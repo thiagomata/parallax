@@ -23,7 +23,8 @@ export class FallbackNudge implements NudgeModifier {
 
     // 2. Fallback to Secondary
     if (this.secondary.active) {
-      return this.secondary.getNudge(currentCarPos);
+      const res = this.secondary.getNudge(currentCarPos);
+      if (res.error === null) return res;
     }
 
     return { value: null, error: "Both modifiers in chain failed or inactive" };
