@@ -12,6 +12,12 @@ export default defineConfig({
       // This is the important part for seeing "missing" lines
       include: ['src/**/*.ts'],
       exclude: ['src/main.ts', 'src/**/*.test.ts'],
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 80,
+        statements: 80
+      }
     },
   },
 });
