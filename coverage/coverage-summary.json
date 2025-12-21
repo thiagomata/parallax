@@ -1,0 +1,4 @@
+{"total": {"lines":{"total":8,"covered":1,"skipped":0,"pct":12.5},"statements":{"total":9,"covered":1,"skipped":0,"pct":11.11},"functions":{"total":5,"covered":1,"skipped":0,"pct":20},"branches":{"total":0,"covered":0,"skipped":0,"pct":100},"branchesTrue":{"total":0,"covered":0,"skipped":0,"pct":"Unknown"}}
+,"/Users/thiagomata/github/thiagomata/parallax/src/counter.ts": {"lines":{"total":6,"covered":0,"skipped":0,"pct":0},"functions":{"total":3,"covered":0,"skipped":0,"pct":0},"statements":{"total":7,"covered":0,"skipped":0,"pct":0},"branches":{"total":0,"covered":0,"skipped":0,"pct":100}}
+,"/Users/thiagomata/github/thiagomata/parallax/src/logic.ts": {"lines":{"total":2,"covered":1,"skipped":0,"pct":50},"functions":{"total":2,"covered":1,"skipped":0,"pct":50},"statements":{"total":2,"covered":1,"skipped":0,"pct":50},"branches":{"total":0,"covered":0,"skipped":0,"pct":100}}
+}
