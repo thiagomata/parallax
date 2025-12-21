@@ -3,6 +3,7 @@ import { FallbackNudge } from './fallback_nudge';
 import type { Vector3, NudgeModifier } from './types';
 
 const mockNudge = (val: Partial<Vector3>, shouldError = false): NudgeModifier => ({
+    name: 'MockNudge',
     active: true,
     getNudge: () => shouldError ? { value: null, error: 'Error' } : { value: val, error: null },
 });

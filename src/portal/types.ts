@@ -21,6 +21,7 @@ export interface CarResult {
 }
 
 export interface CarModifier {
+  name: string;
   active: boolean;
   priority: number;
   /**
@@ -31,6 +32,7 @@ export interface CarModifier {
 }
 
 export interface NudgeModifier {
+  name: string;
   active: boolean;
   /**
    * Provides a partial offset. 
@@ -47,6 +49,7 @@ export interface StickResult {
 }
 
 export interface StickModifier {
+  name: string;
   active: boolean;
   priority: number;
   /**
@@ -56,10 +59,17 @@ export interface StickModifier {
   getStick(finalPos: Vector3): FailableResult<StickResult>;
 }
 
+export interface SceneStateDebugLog {
+    car: { name: string; priority: number,  x?: number; y?: number; z?: number };
+    nudges: Array<{ name: string; x?: number; y?: number; z?: number }>;
+    stick: { name: string; priority: number, yaw?: number; pitch?: number; distance?: number };
+    errors: Array<{ name: string; message: string }>;
+}
+
 export interface SceneState {
   camera: Vector3;
   lookAt: Vector3;
-  debug: Record<string, any>;
+  debug?: SceneStateDebugLog;
 }
 
 export interface GraphicProcessor {

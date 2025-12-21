@@ -3,7 +3,8 @@ import { ChainedStick } from "./chained_stick";
 import type { StickModifier } from "./types";
 
 describe("ChainedStick Decorator", () => {
-  const mockStick = (_id: string, val: number): StickModifier => ({
+  const mockStick = (id: string, val: number): StickModifier => ({
+    name: `MockStick_${id}`,
     active: true,
     priority: 10, // The internal priority doesn't matter to the Manager, only the wrapper's priority
     getStick: () => ({
@@ -25,6 +26,7 @@ describe("ChainedStick Decorator", () => {
 
   it("should skip a failing primary and return the secondary", () => {
     const primary: StickModifier = {
+      name: "primary",
       active: true,
       priority: 10,
       getStick: () => ({ value: null, error: "Hardware Disconnected" }),
@@ -53,11 +55,13 @@ describe("ChainedStick Decorator", () => {
 
   it("should return an error if the entire chain fails", () => {
     const primary: StickModifier = {
+      name: "primary",
       active: true,
       priority: 1,
       getStick: () => ({ value: null, error: "Fail 1" }),
     };
     const secondary: StickModifier = {
+      name: "secondary",
       active: true,
       priority: 1,
       getStick: () => ({ value: null, error: "Fail 2" }),
