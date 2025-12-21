@@ -1,17 +1,15 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 import type {
   Vector3,
-  SceneState,
   CarModifier,
   NudgeModifier,
   StickModifier,
-  StickResult,
 } from "./types";
 
 import { PortalSceneManager } from "./manager";
 
-const mockCar = (id: string, priority: number, pos: Vector3): CarModifier => ({
+const mockCar = (_id: string, priority: number, pos: Vector3): CarModifier => ({
   active: true,
   priority,
   getCarPosition: () => ({ value: { position: pos }, error: null }),
