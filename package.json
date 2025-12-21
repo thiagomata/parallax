@@ -12,12 +12,13 @@
     "prepare": "husky install"
   },
   "devDependencies": {
+    "@codecov/vite-plugin": "^1.9.1",
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
     "happy-dom": "^20.0.11",
+    "husky": "^8.0.0",
     "typescript": "~5.9.3",
     "vite": "^7.2.4",
-    "vitest": "^4.0.16",
-    "husky": "^8.0.0"
+    "vitest": "^4.0.16"
   }
 }
