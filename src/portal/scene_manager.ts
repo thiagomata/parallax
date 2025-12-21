@@ -8,27 +8,54 @@ import type {
   SceneStateDebugLog,
 } from "./types";
 
-export class PortalSceneManager {
+export class SceneManager {
   private initialCam: Vector3;
   private carModifiers: CarModifier[] = [];
   private nudgeModifiers: NudgeModifier[] = [];
   private stickModifiers: StickModifier[] = [];
-  private readonly isDebug: boolean;
+  public isDebug: boolean = false;
+  public stickDistance: number = 1000;
 
-  constructor(initialCam: Vector3, isDebug = false) {
+  constructor(initialCam: Vector3) {
     this.initialCam = initialCam;
+  }
+
+  public setDebug(isDebug: boolean): SceneManager {
     this.isDebug = isDebug;
+    return this;
+  }
+
+  public setStickDistance(stickDistance: number): SceneManager {
+    this.stickDistance = stickDistance;
+    return this;
+  }
+
+  public addCarModifier(carModifier: CarModifier): SceneManager {
+    // Append and Sort descending: Highest priority first.
+    this.carModifiers = [...this.carModifiers, carModifier].sort(
+        (a, b) => b.priority - a.priority
+    );
+    return this;
+  }
+
+  public addNudgeModifier(nudgeModifier: NudgeModifier): SceneManager {
+    this.nudgeModifiers.push(nudgeModifier);
+    return this;
+  }
+
+  public addStickModifier(stickModifier: StickModifier): SceneManager {
+    // Append and Sort descending: Highest priority first.
+    this.stickModifiers = [...this.stickModifiers, stickModifier].sort(
+        (a, b) => b.priority - a.priority
+    );
+    return this;
   }
 
   public calculateScene(): SceneState {
-    // Sort descending: Highest priority first
-    const sortedCars = [...this.carModifiers].sort(
-      (a, b) => b.priority - a.priority
-    );
     let basePos: Vector3 = { ...this.initialCam };
-    const debugLog = this.isDebug ? this.createEmptyDebugLog() : null;
+    const debugLog = this.isDebug? this.createEmptyDebugLog() : null;
 
-    for (const m of sortedCars) {
+    for (const m of this.carModifiers) {
       if (!m.active) continue;
 
       const res = m.getCarPosition(this.initialCam);
@@ -54,17 +81,14 @@ export class PortalSceneManager {
 
     const finalCamPos = this.processNudges(basePos, debugLog);
 
-    const sortedSticks = [...this.stickModifiers].sort(
-      (a, b) => b.priority - a.priority
-    );
     let stickRes: StickResult = {
       yaw: 0,
       pitch: 0,
-      distance: 1000,
+      distance: this.stickDistance,
       priority: -1,
     };
 
-    for (const m of sortedSticks) {
+    for (const m of this.stickModifiers) {
       if (!m.active) continue;
 
       const res = m.getStick(finalCamPos);
@@ -92,6 +116,9 @@ export class PortalSceneManager {
 
     if (this.isDebug) {
       state.debug = debugLog!;
+    } else {
+      // better set to undefined than keep the outdated value
+      state.debug = undefined;
     }
 
     return state;
@@ -132,7 +159,7 @@ export class PortalSceneManager {
     };
   }
 
-  private calculateLookAt(pos: Vector3, stick: StickResult): Vector3 {
+  public calculateLookAt(pos: Vector3, stick: StickResult): Vector3 {
     return {
       x: pos.x + Math.sin(stick.yaw) * Math.cos(stick.pitch) * stick.distance,
       y: pos.y + Math.sin(stick.pitch) * stick.distance,
@@ -142,9 +169,21 @@ export class PortalSceneManager {
 
   private createEmptyDebugLog(): NonNullable<SceneStateDebugLog> {
     return {
-      car: { name: "initialCam", priority: -1, x: this.initialCam.x, y: this.initialCam.y, z: this.initialCam.z },
+      car: {
+        name: "initialCam",
+        priority: -1,
+        x: this.initialCam.x,
+        y: this.initialCam.y,
+        z: this.initialCam.z
+      },
       nudges: [],
-      stick: { name: "default", priority: -1, yaw: 0, pitch: 0, distance: 1000 },
+      stick: {
+        name: "default",
+        priority: -1,
+        yaw: 0,
+        pitch: 0,
+        distance: this.stickDistance
+      },
       errors: [],
     };
   }  

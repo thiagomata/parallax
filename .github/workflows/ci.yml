@@ -39,7 +39,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          
+
       - name: Upload Build Artifact
         uses: actions/upload-pages-artifact@v3
         with:

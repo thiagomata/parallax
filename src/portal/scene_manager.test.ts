@@ -7,7 +7,7 @@ import type {
   StickModifier,
 } from "./types";
 
-import { PortalSceneManager } from "./manager";
+import { SceneManager } from "./scene_manager.ts";
 
 const mockCar = (id: string, priority: number, pos: Vector3): CarModifier => ({
   name: `MockCar_${id}`,
@@ -52,11 +52,10 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
   const initial = { x: 0, y: 0, z: 0 };
 
   it("should pick the highest priority car", () => {
-    const manager = new PortalSceneManager(initial);
-    manager["carModifiers"] = [
-      mockCar("low", 0, { x: 10, y: 11, z: 12 }),
-      mockCar("high", 100, { x: 50, y: 51, z: 52 }),
-    ];
+    const manager = new SceneManager(initial);
+    manager
+        .addCarModifier(mockCar("low", 0, { x: 10, y: 11, z: 12 }))
+        .addCarModifier(mockCar("high", 100, { x: 50, y: 51, z: 52 }));
 
     const state = manager.calculateScene();
     expect(state.camera.x).toBe(50);
@@ -65,7 +64,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
   });
 
   it("should fall back to lower priority if the highest fails with an error", () => {
-    const manager = new PortalSceneManager(initial);
+    const manager = new SceneManager(initial);
 
     const failingHigh: CarModifier = {
       name: "FailingHigh",
@@ -74,10 +73,9 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
       getCarPosition: () => ({ value: null, error: "Sensor Failure" }),
     };
 
-    manager["carModifiers"] = [
-      failingHigh,
-      mockCar("fallback", 50, { x: 20, y: 21, z: 22 }),
-    ];
+    manager
+        .addCarModifier(failingHigh)
+        .addCarModifier(mockCar("fallback", 50, { x: 20, y: 21, z: 22 }));
 
     const state = manager.calculateScene();
     expect(state.camera.x).toBe(20);
@@ -86,39 +84,40 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
   });
 
   it("should completely ignore inactive modifiers", () => {
-    const manager = new PortalSceneManager({ x: 0, y: 0, z: 0 });
+    const manager = new SceneManager({ x: 0, y: 0, z: 0 });
 
     const inactiveCar = mockCar("high", 100, { x: 50, y: 50, z: 50 });
     inactiveCar.active = false; // The switch is off
 
     const activeCar = mockCar("low", 0, { x: 10, y: 10, z: 10 });
 
-    manager["carModifiers"] = [inactiveCar, activeCar];
+    manager
+        .addCarModifier(inactiveCar)
+        .addCarModifier(activeCar);
 
     const state = manager.calculateScene();
 
-    // Should pick the priority 0 car because the priority 100 one is inactive
+    // Should pick the priority zero car because the priority 100 one is inactive
     expect(state.camera.x).toBe(10);
   });
 
   it("should return initialCam and default orientation when no modifiers exist", () => {
     const initial = { x: 1, y: 2, z: 3 };
-    const manager = new PortalSceneManager(initial);
+    const manager = new SceneManager(initial).setStickDistance(200);
 
     const state = manager.calculateScene();
 
     expect(state.camera).toEqual(initial);
-    // Default lookAt should be forward from the camera (Z - 1000)
-    expect(state.lookAt.z).toBe(initial.z - 1000);
+    // Default lookAt should be forward from the camera (Z - stick distance)
+    expect(state.lookAt.z).toBe(initial.z - 200);
   });
 
   it("should pick the first one added if priorities are tied", () => {
-    const manager = new PortalSceneManager({ x: 0, y: 0, z: 0 });
+    const manager = new SceneManager({ x: 0, y: 0, z: 0 });
 
-    manager["carModifiers"] = [
-      mockCar("first", 10, { x: 1, y: 11, z: 111 }),
-      mockCar("second", 10, { x: 2, y: 22, z: 222 }),
-    ];
+    manager
+        .addCarModifier(mockCar("first", 10, { x: 1, y: 11, z: 111 }))
+        .addCarModifier(mockCar("second", 10, { x: 2, y: 22, z: 222 }));
 
     const state = manager.calculateScene();
     // Depending on how you want your engine to behave:
@@ -129,7 +128,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
 
   it("should return to initial defaults if all active modifiers return errors", () => {
     const initial = { x: 500, y: 500, z: 500 };
-    const manager = new PortalSceneManager(initial);
+    const manager = new SceneManager(initial);
 
     const brokenCar: CarModifier = {
       name: "BrokenCar",
@@ -145,8 +144,8 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
       getStick: () => ({ value: null, error: "Math Overflow" }),
     };
 
-    manager["carModifiers"] = [brokenCar];
-    manager["stickModifiers"] = [brokenStick];
+    manager.addCarModifier(brokenCar);
+    manager.addStickModifier(brokenStick);
 
     const state = manager.calculateScene();
 
@@ -161,10 +160,11 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
 
 describe("PortalSceneManager - Stage 2 (Nudge)", () => {
   it("should set all dimensions", () => {
-    const manager = new PortalSceneManager({ x: 0, y: 0, z: 0 }, true);
-    manager["nudgeModifiers"] = [
+    const manager = new SceneManager({ x: 0, y: 0, z: 0 });
+    manager.setDebug(true);
+    manager.addNudgeModifier(
       mockNudge({ x: 100, y: 200, z: 300})
-    ]
+    );
     const state = manager.calculateScene();
     expect(state.camera.x).toBe(100);
     expect(state.camera.y).toBe(200);
@@ -176,18 +176,17 @@ describe("PortalSceneManager - Stage 2 (Nudge)", () => {
   });
 
   it("should average dimensions independently and not dilute missing axes", () => {
-    const manager = new PortalSceneManager({ x: 0, y: 0, z: 0 });
+    const manager = new SceneManager({ x: 0, y: 0, z: 0 });
 
-    manager["nudgeModifiers"] = [
-      mockNudge({ x: 10 }), // Only votes for X
-      mockNudge({ x: 20 }), // Only votes for X
-      mockNudge({ y: 100 }), // Only votes for Y
-      mockNudge({ z: 100 }, false ) // ignore non active
-    ];
+    manager
+        .addNudgeModifier(mockNudge({ x: 10 })) // Only votes for X
+        .addNudgeModifier(mockNudge({ x: 20 })) // Only votes for X
+        .addNudgeModifier(mockNudge({ y: 100 })) // Only votes for Y
+        .addNudgeModifier(mockNudge({ z: 100 }, false)); // Ignore non active
 
     const state = manager.calculateScene();
 
-    // X should be average of 10 and 20 = 15
+    // X should be the average of 10 and 20 = 15
     expect(state.camera.x).toBe(15);
     // Y should be 100 (not 100/3 or 100/2, because only one modifier voted)
     expect(state.camera.y).toBe(100);
@@ -198,7 +197,7 @@ describe("PortalSceneManager - Stage 2 (Nudge)", () => {
 
 describe("PortalSceneManager - Stage 3 (Stick)", () => {
   it("should project lookAt correctly based on yaw/pitch", () => {
-    const manager = new PortalSceneManager({ x: 0, y: 0, z: 0 });
+    const manager = new SceneManager({ x: 0, y: 0, z: 0 });
 
     const forwardStick: StickModifier = {
       name: "ForwardStick",
@@ -210,23 +209,23 @@ describe("PortalSceneManager - Stage 3 (Stick)", () => {
       }),
     };
 
-    manager["stickModifiers"] = [forwardStick];
+    manager.addStickModifier(forwardStick);
     const state = manager.calculateScene();
 
-    // With yaw 0 and pitch 0, looking down -Z axis
+    // With yaw zero and pitch zero, looking down -Z axis
     expect(state.lookAt.z).toBeCloseTo(-10);
     expect(state.lookAt.x).toBe(0);
   });
 });
 
 describe("PortalSceneManager - calculateLookAt Math", () => {
-  const manager = new PortalSceneManager({ x: 0, y: 0, z: 0 });
+  const manager = new SceneManager({ x: 0, y: 0, z: 0 });
   const origin = { x: 0, y: 0, z: 0 };
   const DIST = 10;
 
   it("should look straight forward (Yaw: 0, Pitch: 0)", () => {
     // Expected: {x: 0, y: 0, z: -10}
-    const result = manager["calculateLookAt"](origin, {
+    const result = manager.calculateLookAt(origin, {
       yaw: 0,
       pitch: 0,
       distance: DIST,
@@ -239,7 +238,7 @@ describe("PortalSceneManager - calculateLookAt Math", () => {
 
   it("should look straight Right (Yaw: PI/2, Pitch: 0)", () => {
     // Expected: {x: 10, y: 0, z: 0}
-    const result = manager["calculateLookAt"](origin, {
+    const result = manager.calculateLookAt(origin, {
       yaw: Math.PI / 2,
       pitch: 0,
       distance: DIST,
@@ -253,7 +252,7 @@ describe("PortalSceneManager - calculateLookAt Math", () => {
   it("should look straight Up (Yaw: 0, Pitch: PI/2)", () => {
     // Expected: {x: 0, y: 10, z: 0}
     // Note: Cos(Pitch) becomes 0, which should nullify X and Z
-    const result = manager["calculateLookAt"](origin, {
+    const result = manager.calculateLookAt(origin, {
       yaw: 0,
       pitch: Math.PI / 2,
       distance: DIST,
@@ -266,7 +265,7 @@ describe("PortalSceneManager - calculateLookAt Math", () => {
 
   it("should look 45 degrees Up and Right", () => {
     const angle = Math.PI / 4; // 45 degrees
-    const result = manager["calculateLookAt"](origin, {
+    const result = manager.calculateLookAt(origin, {
       yaw: angle,
       pitch: angle,
       distance: DIST,
@@ -286,13 +285,15 @@ describe("PortalSceneManager - Debug Output", () => {
   const initial = { x: 10, y: 10, z: 10 };
 
   it("should not include the debug property when isDebug is false", () => {
-    const manager = new PortalSceneManager(initial, false);
+    const manager = new SceneManager(initial);
+    manager.setDebug(false);
     const state = manager.calculateScene();
     expect(state.debug).toBeUndefined();
   });
 
   it("should capture failed car modifier in the debug log", () => {
-    const manager = new PortalSceneManager(initial, true);
+    const manager = new SceneManager(initial);
+    manager.setDebug(true);
 
     const failingCar: CarModifier = {
       name: "FailingCar",
@@ -311,7 +312,9 @@ describe("PortalSceneManager - Debug Output", () => {
       }),
     };
 
-    manager["carModifiers"] = [failingCar, goodCar];
+    manager
+        .addCarModifier(failingCar)
+        .addCarModifier(goodCar);
     const state = manager.calculateScene();
 
     expect(state.debug).toBeDefined();
@@ -326,7 +329,7 @@ describe("PortalSceneManager - Debug Output", () => {
   });
 
   it("should capture the winning car details in the debug log", () => {
-    const manager = new PortalSceneManager(initial, true);
+    const manager = new SceneManager(initial).setDebug(true);
 
     const highPriorityCar: CarModifier = {
       name: "highPriorityCar",
@@ -338,7 +341,7 @@ describe("PortalSceneManager - Debug Output", () => {
       }),
     };
 
-    manager["carModifiers"] = [highPriorityCar];
+    manager.addCarModifier(highPriorityCar);
     const state = manager.calculateScene();
 
     expect(state.debug).toBeDefined();
@@ -350,30 +353,43 @@ describe("PortalSceneManager - Debug Output", () => {
   });
 
   it("should accumulate all successful nudges in the debug audit", () => {
-    const manager = new PortalSceneManager(initial, true);
+    const manager = new SceneManager(initial);
 
-    manager["nudgeModifiers"] = [
-      {
-        name: "NudgeX",
-        active: true,
-        getNudge: () => ({ value: { x: 5 }, error: null }),
-      } as NudgeModifier,
-      {
+    manager
+      .addNudgeModifier({
+          name: "NudgeX",
+          active: true,
+          getNudge: () => ({ value: { x: 5 }, error: null }),
+        })
+      .addNudgeModifier({
         name: "NudgeY",
         active: true,
         getNudge: () => ({ value: { y: 20 }, error: null }),
-      } as NudgeModifier,
-    ];
+      });
 
+    // by default, debug should be disabled and not create debug output
+    expect(manager.isDebug).toBe(false);
+    const stateBeforeDebug = manager.calculateScene();
+    expect(stateBeforeDebug.debug === undefined);
+
+    // When enabled, debug should trigger the debug output
+    manager.setDebug(true);
+    expect(manager.isDebug).toBe(true);
     const state = manager.calculateScene();
 
     expect(state.debug?.nudges).toHaveLength(2);
     expect(state.debug?.nudges[0].x).toBe(5);
     expect(state.debug?.nudges[1].y).toBe(20);
+
+    // When disabled, debug should stop
+    manager.setDebug(false);
+    expect(manager.isDebug).toBe(false);
+    const stateAfterDebug = manager.calculateScene();
+    expect(stateAfterDebug.debug === undefined);
   });
 
   it("should capture errors for failing modifiers in the debug log", () => {
-    const manager = new PortalSceneManager(initial, true);
+    const manager = new SceneManager(initial).setDebug(true);
 
     const failingCar: CarModifier = {
       name: "FailingCar",
@@ -382,7 +398,7 @@ describe("PortalSceneManager - Debug Output", () => {
       getCarPosition: () => ({ value: null, error: "DOM element missing" }),
     };
 
-    manager["carModifiers"] = [failingCar];
+    manager.addCarModifier(failingCar);
     const state = manager.calculateScene();
 
     expect(state.debug?.errors).toHaveLength(1);
@@ -392,14 +408,14 @@ describe("PortalSceneManager - Debug Output", () => {
   });
 
   it("should capture failing nudge", () => {
-    const manager = new PortalSceneManager(initial, true);
+    const manager = new SceneManager(initial).setDebug(true);
 
     const failingNudge: NudgeModifier = {
       name: "FailingNudge",
       active: true,
       getNudge: () =>({ value: null, error: "DOM element missing" }),
     };
-    manager["nudgeModifiers"] = [failingNudge];
+    manager.addNudgeModifier(failingNudge);
     const state = manager.calculateScene();
 
     expect(state.debug?.errors).toHaveLength(1);
@@ -413,14 +429,13 @@ describe("PortalSceneManager - Multi-Stick Logic", () => {
   const initialPos = { x: 0, y: 0, z: 0 };
 
   it("should settle on the highest priority stick and log its name", () => {
-    const manager = new PortalSceneManager(initialPos, true);
+    const manager = new SceneManager(initialPos).setDebug(true);
 
-    manager["stickModifiers"] = [
-      mockStick("Disabled",1000, 10, false),
-      mockStick("Low-Priority-Idle", 10, 0),
-      mockStick("High-Priority-Override", 100, 3.14),
-      mockStick("Mid-Priority-Input", 50, 1.5),
-    ];
+    manager
+        .addStickModifier(mockStick("Disabled",1000, 10, false))
+        .addStickModifier(mockStick("Low-Priority-Idle", 10, 0))
+        .addStickModifier(mockStick("High-Priority-Override", 100, 3.14))
+        .addStickModifier(mockStick("Mid-Priority-Input", 50, 1.5));
 
     const state = manager.calculateScene();
 
@@ -436,7 +451,8 @@ describe("PortalSceneManager - Multi-Stick Logic", () => {
 it("should log multiple errors if higher priority sticks fail", () => {
   const initialPos = { x: 0, y: 0, z: 0 };
 
-  const manager = new PortalSceneManager(initialPos, true);
+  const manager = new SceneManager(initialPos);
+  manager.setDebug(true);
 
   const broken1: StickModifier = {
     name: "Hardware-Sensor",
@@ -454,13 +470,17 @@ it("should log multiple errors if higher priority sticks fail", () => {
 
   const working3 = mockStick("Safe-Fallback", 10, 0.75);
 
-  manager["stickModifiers"] = [broken1, broken2, working3];
+  manager
+      .addStickModifier(broken1)
+      .addStickModifier(broken2)
+      .addStickModifier(working3);
+
   const state = manager.calculateScene();
 
   // The final state should be from the working stick
   expect(state.debug?.stick.name).toBe("Safe-Fallback");
 
-  // The error log should contain both failures with their specific names
+  // The error log should contain both failures with their specific names,
   expect(state.debug?.errors).toHaveLength(2);
   expect(state.debug?.errors[0]).toEqual({
     name: "Hardware-Sensor",
