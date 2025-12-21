@@ -3,7 +3,7 @@ import { FallbackNudge } from './fallback_nudge';
 import type { Vector3, NudgeModifier } from './types';
 
 const mockNudge = (val: Partial<Vector3>, shouldError = false): NudgeModifier => ({
-    name: 'MockNudge',
+    name: `MockNudge_${JSON.stringify(val)}`,
     active: true,
     getNudge: () => shouldError ? { value: null, error: 'Error' } : { value: val, error: null },
 });
@@ -12,6 +12,8 @@ it('should fallback to secondary nudge only when primary fails', () => {
   const primary = mockNudge({ x: 100 });
   const secondary = mockNudge({ x: 20 });
   const chain = new FallbackNudge(primary, secondary);
+
+  expect(chain.name).toBe("try_MockNudge_{\"x\":100}_else_MockNudge_{\"x\":20}");
 
   // Test 1: Primary active
   expect(chain.getNudge({x:0,y:0,z:0}).value?.x).toBe(100);

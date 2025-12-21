@@ -1,12 +1,14 @@
 import type { Vector3, NudgeModifier, FailableResult } from "./types";
 
 export class FallbackNudge implements NudgeModifier {
+  public name: string;
   private primary: NudgeModifier;
   private secondary: NudgeModifier;
 
   constructor(primary: NudgeModifier, secondary: NudgeModifier) {
     this.primary = primary;
     this.secondary = secondary;
+    this.name = "try_" + primary.name + "_else_" + secondary.name;
   }
 
   get active(): boolean {
