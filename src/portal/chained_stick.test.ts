@@ -1,6 +1,6 @@
 import { it, expect, describe } from "vitest";
 import { ChainedStick } from "./chained_stick";
-import type { Vector3, StickModifier } from "./types";
+import type { StickModifier } from "./types";
 
 describe("ChainedStick Decorator", () => {
   const mockStick = (_id: string, val: number): StickModifier => ({
