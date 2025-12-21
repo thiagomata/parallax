@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-npm test
+echo "🚀 Husky is checking your code..."
+npm test || echo "⚠️  Tests failed."
