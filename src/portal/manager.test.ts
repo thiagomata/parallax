@@ -54,12 +54,14 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
   it("should pick the highest priority car", () => {
     const manager = new PortalSceneManager(initial);
     manager["carModifiers"] = [
-      mockCar("low", 0, { x: 10, y: 10, z: 10 }),
-      mockCar("high", 100, { x: 50, y: 50, z: 50 }),
+      mockCar("low", 0, { x: 10, y: 11, z: 12 }),
+      mockCar("high", 100, { x: 50, y: 51, z: 52 }),
     ];
 
     const state = manager.calculateScene();
     expect(state.camera.x).toBe(50);
+    expect(state.camera.y).toBe(51);
+    expect(state.camera.z).toBe(52);
   });
 
   it("should fall back to lower priority if the highest fails with an error", () => {
@@ -74,11 +76,13 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
 
     manager["carModifiers"] = [
       failingHigh,
-      mockCar("fallback", 50, { x: 20, y: 20, z: 20 }),
+      mockCar("fallback", 50, { x: 20, y: 21, z: 22 }),
     ];
 
     const state = manager.calculateScene();
-    expect(state.camera.x).toBe(20); // Successfully fell back
+    expect(state.camera.x).toBe(20);
+    expect(state.camera.y).toBe(21);
+    expect(state.camera.z).toBe(22);
   });
 
   it("should completely ignore inactive modifiers", () => {
@@ -112,13 +116,15 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
     const manager = new PortalSceneManager({ x: 0, y: 0, z: 0 });
 
     manager["carModifiers"] = [
-      mockCar("first", 10, { x: 1, y: 1, z: 1 }),
-      mockCar("second", 10, { x: 2, y: 2, z: 2 }),
+      mockCar("first", 10, { x: 1, y: 11, z: 111 }),
+      mockCar("second", 10, { x: 2, y: 22, z: 222 }),
     ];
 
     const state = manager.calculateScene();
     // Depending on how you want your engine to behave:
     expect(state.camera.x).toBe(1);
+    expect(state.camera.y).toBe(11);
+    expect(state.camera.z).toBe(111);
   });
 
   it("should return to initial defaults if all active modifiers return errors", () => {
