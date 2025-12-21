@@ -3,14 +3,14 @@
  * Used for absolute positions (The Car) where all coordinates are required.
  */
 export interface Vector3 {
-  x: number;
-  y: number;
-  z: number;
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
 }
 
 /**
  * A container for operations that can fail.
- * value and error are mutually exclusive in practice.
+ * Value and error are mutually exclusive in practice.
  */
 export type FailableResult<T> = 
   | { value: T; error: null } 
@@ -24,7 +24,7 @@ export interface CarResult {
 export interface CarModifier {
   name: string;
   active: boolean;
-  priority: number;
+  readonly priority: number;
   /**
    * Defines the global anchor point. 
    * Manager uses "First Success Wins" based on priority.
@@ -43,16 +43,16 @@ export interface NudgeModifier {
 }
 
 export interface StickResult {
-  yaw: number;      // Left/Right rotation in radians
-  pitch: number;    // Up/Down rotation in radians
-  distance: number; // Distance from the camera to the focal point
-  priority: number;
+  readonly yaw: number;      // Left/Right rotation in radians
+  readonly pitch: number;    // Up/Down rotation in radians
+  readonly distance: number; // Distance from the camera to the focal point
+  readonly priority: number;
 }
 
 export interface StickModifier {
   name: string;
   active: boolean;
-  priority: number;
+  readonly priority: number;
   /**
    * Defines orientation relative to the final position.
    * Manager uses "First Success Wins" based on priority.

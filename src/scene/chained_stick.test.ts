@@ -3,16 +3,16 @@ import { ChainedStick } from "./chained_stick";
 import type { StickModifier } from "./types";
 
 describe("ChainedStick Decorator", () => {
-  const mockStick = (id: string, val: number): StickModifier => ({
+  const mockStick = (id: string, val: number, priority: number = 10): StickModifier => ({
     name: `${id}`,
     active: true,
-    priority: 10, // The internal priority doesn't matter to the Manager, only the wrapper's priority
+    priority: priority, // The internal priority doesn't matter to the Manager, only the wrapper's priority
     getStick: () => ({
       value: { 
         yaw: val, 
         pitch: val, 
         distance: 100, 
-        priority: 10 
+        priority: priority
       },
       error: null,
     }),
@@ -83,8 +83,7 @@ describe("ChainedStick Decorator", () => {
     const internalPriority = 5;
     const wrapperPriority = 99;
 
-    const internal = mockStick("internal", 1);
-    internal.priority = internalPriority;
+    const internal = mockStick("internal", 1, internalPriority);
 
     const chain = new ChainedStick(wrapperPriority, [internal]);
     const res = chain.getStick({ x: 0, y: 0, z: 0 });
