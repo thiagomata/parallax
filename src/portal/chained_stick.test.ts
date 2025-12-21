@@ -4,11 +4,16 @@ import type { StickModifier } from "./types";
 
 describe("ChainedStick Decorator", () => {
   const mockStick = (id: string, val: number): StickModifier => ({
-    name: `MockStick_${id}`,
+    name: `${id}`,
     active: true,
     priority: 10, // The internal priority doesn't matter to the Manager, only the wrapper's priority
     getStick: () => ({
-      value: { yaw: val, pitch: val, distance: 100, priority: 10 },
+      value: { 
+        yaw: val, 
+        pitch: val, 
+        distance: 100, 
+        priority: 10 
+      },
       error: null,
     }),
   });
@@ -71,7 +76,7 @@ describe("ChainedStick Decorator", () => {
     const res = chain.getStick({ x: 0, y: 0, z: 0 });
 
     expect(res.value).toBeNull();
-    expect(res.error).toBe("Entire stick chain failed");
+    expect(res.error).toBe("Entire stick chain failed on ChainedStick of (primary,secondary)");
   });
 
   it("should overwrite internal priorities with the wrapper priority", () => {

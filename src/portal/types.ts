@@ -17,6 +17,7 @@ export type FailableResult<T> =
   | { value: null; error: string };
 
 export interface CarResult {
+  name: string;
   position: Vector3;
 }
 

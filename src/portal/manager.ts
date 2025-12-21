@@ -41,7 +41,7 @@ export class PortalSceneManager {
         basePos = res.value.position;
         if (this.isDebug && debugLog) {
           debugLog.car = {
-            name: m.name,
+            name: res.value.name,
             priority: m.priority,
             x: basePos.x,
             y: basePos.y,

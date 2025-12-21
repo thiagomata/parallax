@@ -9,29 +9,41 @@ import type {
 
 import { PortalSceneManager } from "./manager";
 
-const mockCar = (_id: string, priority: number, pos: Vector3): CarModifier => ({
-  name: `MockCar_${_id}`,
+const mockCar = (id: string, priority: number, pos: Vector3): CarModifier => ({
+  name: `MockCar_${id}`,
   active: true,
   priority,
-  getCarPosition: () => ({ value: { position: pos }, error: null }),
+  getCarPosition: () => ({ 
+    value: { 
+      name: `Position_${id}`,
+      position: pos 
+    }, error: null 
+  }),
 });
 
-const mockNudge = (val: Partial<Vector3>): NudgeModifier => ({
+const mockNudge = (val: Partial<Vector3>, active: boolean = true): NudgeModifier => ({
   name: `MockNudge_${JSON.stringify(val)}`,
-  active: true,
+  active: active,
   getNudge: () => ({ value: val, error: null }),
 });
 
 const mockStick = (
   name: string,
   priority: number,
-  yaw: number
+  yaw: number,
+  active: boolean = true
 ): StickModifier => ({
   name,
-  active: true,
+  active,
   priority,
   getStick: () => ({
-    value: { yaw, pitch: 0, distance: 10, priority },
+    value: { 
+      name,
+      yaw, 
+      pitch: 0, 
+      distance: 10, 
+      priority 
+    },
     error: null,
   }),
 });
@@ -142,6 +154,21 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
 });
 
 describe("PortalSceneManager - Stage 2 (Nudge)", () => {
+  it("should set all dimensions", () => {
+    const manager = new PortalSceneManager({ x: 0, y: 0, z: 0 }, true);
+    manager["nudgeModifiers"] = [
+      mockNudge({ x: 100, y: 200, z: 300})
+    ]
+    const state = manager.calculateScene();
+    expect(state.camera.x).toBe(100);
+    expect(state.camera.y).toBe(200);
+    expect(state.camera.z).toBe(300);
+    expect(state.debug?.nudges[0]?.x).toBe(100);
+    expect(state.debug?.nudges[0]?.y).toBe(200);
+    expect(state.debug?.nudges[0]?.z).toBe(300);
+    expect(state.debug?.nudges[0]?.name).toBe("MockNudge_{\"x\":100,\"y\":200,\"z\":300}")
+  });
+
   it("should average dimensions independently and not dilute missing axes", () => {
     const manager = new PortalSceneManager({ x: 0, y: 0, z: 0 });
 
@@ -149,6 +176,7 @@ describe("PortalSceneManager - Stage 2 (Nudge)", () => {
       mockNudge({ x: 10 }), // Only votes for X
       mockNudge({ x: 20 }), // Only votes for X
       mockNudge({ y: 100 }), // Only votes for Y
+      mockNudge({ z: 100 }, false ) // ignore non active
     ];
 
     const state = manager.calculateScene();
@@ -171,7 +199,7 @@ describe("PortalSceneManager - Stage 3 (Stick)", () => {
       active: true,
       priority: 1,
       getStick: () => ({
-        value: { yaw: 0, pitch: 0, distance: 10, priority: 1 },
+        value: { name: "ForwardStick", yaw: 0, pitch: 0, distance: 10, priority: 1 },
         error: null,
       }),
     };
@@ -272,7 +300,7 @@ describe("PortalSceneManager - Debug Output", () => {
       active: true,
       priority: 50,
       getCarPosition: () => ({
-        value: { position: { x: 20, y: 30, z: 40 } },
+        value: { name: "GoodCar", position: { x: 20, y: 30, z: 40 } },
         error: null,
       }),
     };
@@ -299,7 +327,7 @@ describe("PortalSceneManager - Debug Output", () => {
       active: true,
       priority: 100,
       getCarPosition: () => ({
-        value: { position: { x: 50, y: 60, z: 70 } },
+        value: { name: "highPriorityCar", position: { x: 50, y: 60, z: 70 } },
         error: null,
       }),
     };
@@ -356,6 +384,23 @@ describe("PortalSceneManager - Debug Output", () => {
     // Ensure it fell back to initialCam
     expect(state.debug?.car.name).toBe("initialCam");
   });
+
+  it("should capture failing nudge", () => {
+    const manager = new PortalSceneManager(initial, true);
+
+    const failingNudge: NudgeModifier = {
+      name: "FailingNudge",
+      active: true,
+      getNudge: () =>({ value: null, error: "DOM element missing" }),
+    };
+    manager["nudgeModifiers"] = [failingNudge];
+    const state = manager.calculateScene();
+
+    expect(state.debug?.errors).toHaveLength(1);
+    expect(state.debug?.errors[0].message).toBe("DOM element missing");
+    // Ensure it fell back to initialCam
+    expect(state.debug?.car.name).toBe("initialCam");
+  });
 });
 
 describe("PortalSceneManager - Multi-Stick Logic", () => {
@@ -365,6 +410,7 @@ describe("PortalSceneManager - Multi-Stick Logic", () => {
     const manager = new PortalSceneManager(initialPos, true);
 
     manager["stickModifiers"] = [
+      mockStick("Disabled",1000, 10, false),
       mockStick("Low-Priority-Idle", 10, 0),
       mockStick("High-Priority-Override", 100, 3.14),
       mockStick("Mid-Priority-Input", 50, 1.5),
