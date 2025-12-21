@@ -3,3 +3,4 @@
 
 echo "🚀 Husky is checking your code..."
 npm test || echo "⚠️  Tests failed."
+npm run coverage || echo "⚠️  Low coverage."
