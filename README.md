@@ -8,24 +8,9 @@ Just me playing around with 3D and fake 3D with HTML and Javascript
 
 ```mermaid
 classDiagram
-    class World {
-        -Map registry
-        -Map textureCache
-        +hydrate(AssetLoader) Promise
-        +step(GraphicProcessor) void
-    }
-
-    class RenderableElement {
+    class AssetLoader {
         <<interface>>
-        +id: string
-        +props: SceneElementProps
-        +assets: ElementAssets
-        +render(gp, state) void
-    }
-
-    class ElementAssets {
-        <<interface>>
-        +main: TextureAsset
+        +hydrate(TextureRef) Promise~TextureAsset~
     }
 
     class TextureAsset {
@@ -35,22 +20,88 @@ classDiagram
         +error: string
     }
 
+    class TextureInstance {
+        <<interface>>
+        +texture: TextureRef
+        +internalRef: any
+    }
+
+    class ElementSpec {
+        +id: string
+        +props: SceneElementProps
+        +asset: TextureAsset
+    }
+
+    class GraphicProcessor {
+        <<interface>>
+        +drawTexture(TextureInstance, ...) void
+    }
+
+%% The Links
+    AssetLoader ..> TextureAsset : creates
+    ElementSpec *-- TextureAsset : holds
+    TextureAsset o-- TextureInstance : contains
+    GraphicProcessor ..> TextureInstance : consumes
+```
+
+
+```mermaid
+classDiagram
+    class World {
+        -Registry registry
+        -Instance[] instances
+        +hydrate(AssetLoader) Promise
+        +step(GraphicProcessor) void
+    }
+
+    class Registry {
+        <<interface>>
+        -Map specs
+        +define(id, props) ElementSpec
+        +all() ElementSpec[]
+    }
+
+    class ElementSpec {
+        +id: string
+        +props: SceneElementProps
+        +asset: TextureAsset
+    }
+
     class AssetLoader {
         <<interface>>
         +hydrate(TextureRef) Promise~TextureAsset~
     }
 
-    class GraphicProcessor {
-        <<interface>>
-        +drawBox(size) void
-        +drawTexture(instance, w, h, a) void
+    class TextureAsset {
+        <<type>>
+        +status: AssetStatus
+        +value: TextureInstance
+        +error: string
     }
 
-    %% Relationships
-    World "1" *-- "many" RenderableElement : manages
-    RenderableElement o-- ElementAssets : contains
-    ElementAssets o-- TextureAsset : holds
-    AssetLoader ..> TextureAsset : produces
-    World ..> AssetLoader : invokes
-    RenderableElement ..> GraphicProcessor : consumes
+    class TextureInstance {
+        +internalRef: any
+    }
+
+    class GraphicProcessor {
+        <<interface>>
+        +drawTexture(TextureInstance, ...) void
+        +drawBox(size) void
+    }
+
+    %% Relationships & Flow
+    World *-- Registry : owns
+    Registry *-- ElementSpec : manages
+    ElementSpec *-- TextureAsset : contains
+    TextureAsset o-- TextureInstance : provides
+    
+    World ..> AssetLoader : uses to fill Specs
+    World ..> GraphicProcessor : passes to instances
+    
+    class Instance {
+        +specId: string
+        +position: Vector3
+    }
+    World *-- Instance : contains
+    Instance ..> ElementSpec : look-up
 ```
