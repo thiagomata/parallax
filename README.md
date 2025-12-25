@@ -8,45 +8,6 @@ Just me playing around with 3D and fake 3D with HTML and Javascript
 
 ```mermaid
 classDiagram
-    class AssetLoader {
-        <<interface>>
-        +hydrate(TextureRef) Promise~TextureAsset~
-    }
-
-    class TextureAsset {
-        <<type>>
-        +status: AssetStatus
-        +value: TextureInstance
-        +error: string
-    }
-
-    class TextureInstance {
-        <<interface>>
-        +texture: TextureRef
-        +internalRef: any
-    }
-
-    class ElementSpec {
-        +id: string
-        +props: SceneElementProps
-        +asset: TextureAsset
-    }
-
-    class GraphicProcessor {
-        <<interface>>
-        +drawTexture(TextureInstance, ...) void
-    }
-
-%% The Links
-    AssetLoader ..> TextureAsset : creates
-    ElementSpec *-- TextureAsset : holds
-    TextureAsset o-- TextureInstance : contains
-    GraphicProcessor ..> TextureInstance : consumes
-```
-
-
-```mermaid
-classDiagram
     class World {
         -Registry registry
         -Instance[] instances
@@ -56,7 +17,6 @@ classDiagram
 
     class Registry {
         <<interface>>
-        -Map specs
         +define(id, props) ElementSpec
         +all() ElementSpec[]
     }
@@ -67,9 +27,9 @@ classDiagram
         +asset: TextureAsset
     }
 
-    class AssetLoader {
-        <<interface>>
-        +hydrate(TextureRef) Promise~TextureAsset~
+    class Instance {
+        +specId: string
+        +position: Vector3
     }
 
     class TextureAsset {
@@ -83,25 +43,56 @@ classDiagram
         +internalRef: any
     }
 
-    class GraphicProcessor {
+    class AssetLoader {
         <<interface>>
-        +drawTexture(TextureInstance, ...) void
-        +drawBox(size) void
+        +hydrate(TextureRef) Promise~TextureAsset~
     }
 
-    %% Relationships & Flow
-    World *-- Registry : owns
-    Registry *-- ElementSpec : manages
-    ElementSpec *-- TextureAsset : contains
-    TextureAsset o-- TextureInstance : provides
-    
-    World ..> AssetLoader : uses to fill Specs
-    World ..> GraphicProcessor : passes to instances
-    
-    class Instance {
-        +specId: string
-        +position: Vector3
+    class GraphicProcessor {
+        <<interface>>
+        +drawTexture(TextureInstance) void
     }
-    World *-- Instance : contains
-    Instance ..> ElementSpec : look-up
+
+    %% Structural Links
+    World *-- Registry
+    World *-- Instance
+    Registry *-- ElementSpec
+    ElementSpec *-- TextureAsset
+    TextureAsset o-- TextureInstance
+    Instance ..> ElementSpec : via specId
+
+    %% Interaction Links
+    World ..> AssetLoader : invokes
+    World ..> GraphicProcessor : drives
+    GraphicProcessor ..> TextureInstance : draws
+```
+
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant W as World
+    participant L as AssetLoader
+    participant S as ElementSpec
+    participant G as GraphicProcessor
+
+    Note over U, S: User defines Spec as PENDING
+    U->>S: create(props)
+
+    Note over W, L: Hydration Phase (Async)
+    W->>L: hydrate(ref)
+    L-->>W: Promise~TextureAsset~
+    W->>W: await Promise
+    W->>S: Update status to READY
+    W->>S: Set value to TextureInstance
+
+    Note over W, G: Render Loop (Step)
+    W->>G: setCamera()
+    W->>S: Check status
+    alt is READY
+        W->>G: drawTexture(TextureInstance)
+    else is ERROR
+        W->>G: drawText(error_msg)
+    end
+
+    G-->>U: Display Frame
 ```
