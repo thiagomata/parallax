@@ -126,6 +126,9 @@ export interface GraphicProcessor {
   rotateY(angle: number): void;
   rotateZ(angle: number): void;
   fill(color: ColorRGBA, alpha?: number): void;
+  noFill(): void;
+  stroke(color: ColorRGBA, weight: number, globalAlpha?: number): void;
+  noStroke(): void;
   drawBox(size: number): void;
   drawPlane(width: number, height: number): void;
   drawTexture(instance: TextureInstance, w: number, h: number, alpha: number): void;

@@ -31,8 +31,23 @@ export class P5GraphicProcessor implements GraphicProcessor {
     rotateZ(a: number): void { this.p5.rotateZ(a); }
 
     // --- Styling & Drawing ---
-    fill(color: ColorRGBA, alpha: number = 255): void {
-        this.p5.fill(color.red, color.green, color.blue, color.alpha ? color.alpha * alpha : alpha);
+    fill(color: ColorRGBA, alpha: number = 1): void {
+        const baseAlpha = color.alpha ?? 1;
+        const finalAlpha = alpha * baseAlpha * 255;
+        this.p5.fill(color.red, color.green, color.blue, finalAlpha);
+    }
+    noFill(): void {
+        this.p5.noFill();
+    }
+
+    stroke(color: ColorRGBA, weight: number = 1, globalAlpha: number = 1): void {
+        const baseAlpha = color.alpha ?? 1;
+        const finalAlpha = (baseAlpha * globalAlpha) * 255;
+        this.p5.strokeWeight(weight);
+        this.p5.stroke(color.red, color.green, color.blue, finalAlpha);
+    }
+    noStroke(): void {
+        this.p5.noStroke();
     }
 
     drawBox(size: number): void {
@@ -46,7 +61,8 @@ export class P5GraphicProcessor implements GraphicProcessor {
     drawTexture(instance: TextureInstance, w: number, h: number, alpha: number): void {
         if (!instance.internalRef) return;
         this.p5.push();
-        this.p5.tint(255, alpha);
+        this.p5.textureMode(this.p5.NORMAL);
+        this.p5.tint(255, alpha * 255);
         this.p5.texture(instance.internalRef);
         this.p5.plane(w, h);
         this.p5.pop();
@@ -67,25 +83,22 @@ export class P5GraphicProcessor implements GraphicProcessor {
 
     // --- UI & Text ---
     drawLabel(s: string, pos: { x: number; y?: number; z?: number }): void {
-        this.p5.text(s, pos.x, pos.y || 0, pos.z || 0);
+        this.p5.text(s, pos.x, pos.y ?? 0, pos.z ?? 0);
     }
 
     drawText(s: string, pos: { x: number; y?: number; z?: number }): void {
-        // Standard 3D text in p5
-        this.p5.text(s, pos.x, pos.y || 0, pos.z || 0);
+        this.p5.text(s, pos.x, pos.y ?? 0, pos.z ?? 0);
     }
 
     drawCrosshair(pos: { x: number; y?: number; z?: number }, size: number): void {
         this.p5.push();
-        this.p5.translate(pos.x, pos.y || 0, pos.z || 0);
+        this.p5.translate(pos.x, pos.y ?? 0, pos.z ?? 0);
         this.p5.line(-size, 0, size, 0);
         this.p5.line(0, -size, 0, size);
         this.p5.pop();
     }
 
     drawHUDText(s: string, x: number, y: number): void {
-        // To draw HUD, we'd normally need to reset the matrix to 2D
-        // For now, we'll keep it simple
         this.p5.text(s, x, y);
     }
 }
