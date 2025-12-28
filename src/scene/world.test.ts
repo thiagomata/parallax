@@ -34,8 +34,8 @@ describe('World Orchestration', () => {
         await world.hydrate(loader); // Using ChaosLoader
 
         const element = (world as any).registry.get('color_box');
-        expect(element.assets.main.status).toBe(ASSET_STATUS.READY);
-        expect(element.assets.main.value).toBeNull();
+        expect(element.assets.texture.status).toBe(ASSET_STATUS.READY);
+        expect(element.assets.texture.value).toBeNull();
     });
 
     it('should handle native failures from ChaosLoader', async () => {
@@ -47,8 +47,8 @@ describe('World Orchestration', () => {
         await world.hydrate(loader);
 
         const element = (world as any).registry.get('broken');
-        expect(element.assets.main.status).toBe(ASSET_STATUS.ERROR);
-        expect(element.assets.main.error).toBe("Could not decode");
+        expect(element.assets.texture.status).toBe(ASSET_STATUS.ERROR);
+        expect(element.assets.texture.error).toBe("Could not decode");
     });
 
     it('should successfully hydrate valid textures', async () => {
@@ -60,7 +60,7 @@ describe('World Orchestration', () => {
         await world.hydrate(loader);
 
         const element = (world as any).registry.get('sprite');
-        expect(element.assets.main.status).toBe(ASSET_STATUS.READY);
-        expect(element.assets.main.value.internalRef).toBe("ptr_bricks.png");
+        expect(element.assets.texture.status).toBe(ASSET_STATUS.READY);
+        expect(element.assets.texture.value.internalRef).toBe("ptr_bricks.png");
     });
 });

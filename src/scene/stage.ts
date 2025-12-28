@@ -19,8 +19,11 @@ export class Stage {
 
         // We process all "orders" in the storage
         await Promise.all(elements.map(async (el) => {
-            if (el.props.texture && !el.assets.main) {
-                el.assets.main = await loader.hydrate(el.props.texture);
+            if (el.props.texture && !el.assets.texture) {
+                el.assets.texture = await loader.hydrateTexture(el.props.texture);
+            }
+            if (el.props.font && el.assets.font) {
+                el.assets.font = await loader.hydrateFont(el.props.font);
             }
         }));
     }

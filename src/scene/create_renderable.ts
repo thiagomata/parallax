@@ -31,9 +31,9 @@ export const createRenderable = (id: string, props: SceneElementProps): Renderab
             // 3. Unwrapping Logic
             switch (props.type) {
                 case ELEMENT_TYPES.PANEL:
-                    const main = this.assets.main;
-                    if (main?.value) {
-                        gp.drawTexture(main.value, props.width, props.height, props.alpha ?? 255);
+                    const texture = this.assets.texture;
+                    if (texture?.value) {
+                        gp.drawTexture(texture.value, props.width, props.height, props.alpha ?? 255);
                     } else {
                         // ... loading/error logic ...
                     }

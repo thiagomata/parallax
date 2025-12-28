@@ -1,6 +1,10 @@
 import {
     ASSET_STATUS,
-    type AssetLoader, type GraphicProcessor, type RenderableElement, type SceneElementProps, type SceneState,
+    type AssetLoader,
+    type GraphicProcessor,
+    type RenderableElement,
+    type SceneElementProps,
+    type SceneState,
     type TextureAsset
 } from "./types.ts";
 import type {SceneManager} from "./scene_manager.ts";
@@ -10,6 +14,7 @@ export class World {
     private registry: Map<string, RenderableElement> = new Map();
     private sceneManager: SceneManager;
     private textureCache: Map<string, Promise<TextureAsset>> = new Map();
+    private fontCache: Map<string, Promise<TextureAsset>> = new Map();
     
     constructor(sceneManager: SceneManager) {
         this.sceneManager = sceneManager;
@@ -17,7 +22,7 @@ export class World {
 
     /**
      * STEP 1: Add a "Spec" to the world.
-     * This creates the object but it is not "Ready" yet.
+     * This creates the object, but it is not "Ready" yet.
      */
     public addElement(id: string, props: SceneElementProps): void {
         const element = createRenderable(id, props);
@@ -31,20 +36,20 @@ export class World {
     public async hydrate(loader: AssetLoader): Promise<void> {
         const elements = Array.from(this.registry.values());
 
-        const tasks = elements.map(async (el) => {
-            if (el.assets.main) return;
+        const tasksLoadTextures = elements.map(async (el) => {
+            if (el.assets.texture) return;
 
-            const tex = el.props.texture;
-            if (tex) {
+            const textureRef = el.props.texture;
+            if (textureRef) {
                 // If this path isn't being loaded yet, start it
-                if (!this.textureCache.has(tex.path)) {
-                    this.textureCache.set(tex.path, loader.hydrate(tex));
+                if (!this.textureCache.has(textureRef.path)) {
+                    this.textureCache.set(textureRef.path, loader.hydrateTexture(textureRef));
                 }
 
                 // Wait for the shared promise (deduplication)
-                el.assets.main = await this.textureCache.get(tex.path)!;
+                el.assets.texture = await this.textureCache.get(textureRef.path)!;
             } else {
-                el.assets.main = {
+                el.assets.texture = {
                     status: ASSET_STATUS.READY,
                     value: null,
                     error: null
@@ -52,7 +57,29 @@ export class World {
             }
         });
 
-        await Promise.all(tasks);
+
+        const tasksLoadFonts = elements.map(async (el) => {
+            if (el.assets.font) return;
+
+            const fontRef = el.props.font;
+            if (fontRef) {
+                // If this path isn't being loaded yet, start it
+                if (!this.fontCache.has(fontRef.path)) {
+                    this.fontCache.set(fontRef.path, loader.hydrateFont(fontRef));
+                }
+
+                // Wait for the shared promise (deduplication)
+                el.assets.font = await this.fontCache.get(fontRef.path)!;
+            } else {
+                el.assets.font = {
+                    status: ASSET_STATUS.READY,
+                    value: null,
+                    error: null
+                };
+            }
+        });
+
+        await Promise.all(tasksLoadTextures.concat(tasksLoadFonts));
     }
 
     /**
@@ -67,7 +94,7 @@ export class World {
         graphicProcessor.setCamera(state.camera, state.lookAt);
 
         // 3. Draw every object in storage
-        // The Renderables check their own 'assets' to see if they are Ready or Gray
+        // The Renderables check their own 'assets' to see if they are Ready or Grey
         this.registry.forEach((element) => {
             element.render(graphicProcessor, state);
         });

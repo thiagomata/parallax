@@ -1,14 +1,25 @@
-import {ASSET_STATUS, type SceneElementProps, type TextureAsset, type Vector3} from "./types.ts";
+import {
+    ASSET_STATUS,
+    type FontAsset,
+    type SceneElementProps, type TextProps,
+    type TextureAsset,
+    type Vector3
+} from "./types.ts";
 
-/**
- * The "Blueprint" or "Work Order"
- * Combines the user's intent (props) with the resulting asset.
- */
-export interface ElementSpec {
+export interface ShapeSpec {
     readonly id: string;
     readonly props: SceneElementProps;
     asset: TextureAsset;
 }
+
+export interface TextSpec {
+    readonly id: string;
+    readonly props: TextProps;
+    // readonly fontRef: FontRef;
+    asset: FontAsset;
+}
+
+export type ElementSpec = TextSpec | ShapeSpec;
 
 /**
  * The "Placement"
@@ -27,30 +38,26 @@ export interface Registry {
     /** Adds a unique specification to the system.
      * Returns the spec so it can be used immediately.
      */
-    define(id: string, props: SceneElementProps): ElementSpec;
+    defineShape(id: string, props: SceneElementProps): ShapeSpec;
 
-    /** * Retrieves a spec by its unique identifier.
-     */
-    get(id: string): ElementSpec | undefined;
+    defineText(id: string, props: TextProps): TextSpec;
 
-    /**
-     * Returns all unique specs currently registered.
-     * Useful for the World's 'hydrateAll' loop.
-     */
+    getShape(id: string): ShapeSpec | undefined;
+
+    getText(id: string): TextSpec | undefined;
+
     all(): IterableIterator<ElementSpec>;
 }
 
 export class AssetRegistry implements Registry {
     // The internal store for our Blueprints
-    private specs = new Map<string, ElementSpec>();
+    private shapes = new Map<string, ShapeSpec>();
+    private texts = new Map<string, TextSpec>();
 
     constructor() {}
 
-    /**
-     * Implementation of Registry.define
-     */
-    define(id: string, props: SceneElementProps): ElementSpec {
-        if (this.specs.has(id)) return this.specs.get(id)!;
+    defineShape(id: string, props: SceneElementProps): ShapeSpec {
+        if (this.shapes.has(id)) return this.shapes.get(id)!;
 
         // We initialise the asset bucket based on whether a texture is requested
         let initialAsset: TextureAsset;
@@ -63,10 +70,6 @@ export class AssetRegistry implements Registry {
                 error: null
             };
         } else {
-            // Case B: No texture needed (The "Born Ready" fix)
-            // To satisfy the type, we must treat this as a 'READY' state.
-            // If your type requires a value to be TextureInstance,
-            // we provide a 'null-object' or adjust the type.
             initialAsset = {
                 status: ASSET_STATUS.READY,
                 value: {
@@ -82,22 +85,66 @@ export class AssetRegistry implements Registry {
             asset: initialAsset
         };
 
-        this.specs.set(id, spec);
+        this.shapes.set(id, spec);
         return spec;
     }
 
-    /**
-     * Implementation of Registry.get
-     */
-    get(id: string): ElementSpec | undefined {
-        return this.specs.get(id);
+    defineText(id: string, props: TextProps): TextSpec {
+        if (this.texts.has(id)) return this.texts.get(id)!;
+
+        let initialAsset: FontAsset;
+
+        if (props.font) {
+            initialAsset = {
+                status: ASSET_STATUS.PENDING,
+                value: null,
+                error: null
+            };
+        } else {
+            initialAsset = {
+                status: ASSET_STATUS.READY,
+                value: {
+                    internalRef: null
+                },
+                error: null
+            };
+        }
+
+        const spec: TextSpec = {
+            id,
+            props,
+            asset: initialAsset
+        };
+
+        this.texts.set(id, spec);
+        return spec;
     }
 
-    /**
-     * Implementation of Registry.all
-     * Returns an iterator for the World's hydration loop
-     */
-    all(): IterableIterator<ElementSpec> {
-        return this.specs.values();
+    getText(id: string): TextSpec | undefined {
+        return this.texts.get(id)!;
     }
+
+    getShape(id: string): ShapeSpec | undefined {
+        return this.shapes.get(id)!;
+    }
+
+    all(): IterableIterator<ElementSpec> {
+        const merged = new Map([...this.shapes, ...this.texts]);
+        return merged.values();
+    }
+
+    // /**
+    //  * Implementation of Registry.
+    //  */
+    // get(id: string): ElementSpec | undefined {
+    //     return this.texts.get(id);
+    // }
+    //
+    // /**
+    //  * Implementation of Registry.all
+    //  * Returns an iterator for the World's hydration loop
+    //  */
+    // all(): IterableIterator<ElementSpec> {
+    //     return this.specs.values();
+    // }
 }

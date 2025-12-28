@@ -2,7 +2,18 @@ import { defineConfig } from 'vitest/config';
 import { codecovVitePlugin } from "@codecov/vite-plugin";
 
 export default defineConfig({
-  base: '/parallax/', 
+  base: '/parallax/',
+  server: {
+    open: true,
+  },
+  build: {
+    rollupOptions: {
+      input: {
+        main: './index.html',
+        demo: './src/scene/p5/p5_graphic_processor_demo.html'
+      }
+    }
+  },
   plugins: [
     codecovVitePlugin({
       enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,

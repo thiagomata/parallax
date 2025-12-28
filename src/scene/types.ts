@@ -61,9 +61,6 @@ export interface StickModifier {
   getStick(finalPos: Vector3): FailableResult<StickResult>;
 }
 
-/**
- * SECTION 2: ASSET STATE MACHINE
- */
 export const ASSET_STATUS = {
   PENDING: 'PENDING',
   LOADING: 'LOADING',
@@ -79,25 +76,45 @@ export interface TextureRef {
   readonly path: string;
 }
 
-export interface TextureInstance {
+export interface TextureInstance<T = unknown> {
   readonly texture?: TextureRef;
-  readonly internalRef: any;
+  readonly internalRef: T; // p5.Image, for example
 }
 
-export type TextureAsset =
-  | { readonly status: typeof ASSET_STATUS.PENDING; readonly value: null; readonly error: null }
-  | { readonly status: typeof ASSET_STATUS.LOADING; readonly value: null; readonly error: null }
-  | { readonly status: typeof ASSET_STATUS.READY;   readonly value: TextureInstance | null; readonly error: null }
-  | { readonly status: typeof ASSET_STATUS.ERROR;   readonly value: null; readonly error: string };
+export type TextureAsset<T = unknown> =
+    | { readonly status: typeof ASSET_STATUS.PENDING; readonly value: null; readonly error: null }
+    | { readonly status: typeof ASSET_STATUS.LOADING; readonly value: null; readonly error: null }
+    | { readonly status: typeof ASSET_STATUS.READY;   readonly value: TextureInstance<T> | null; readonly error: null }
+    | { readonly status: typeof ASSET_STATUS.ERROR;   readonly value: null; readonly error: string };
 
-/**
- * SECTION 3: DRAWING & HYDRATION
- */
+
+export interface FontRef {
+  readonly name: string;
+  readonly path: string;
+}
+
+export interface FontInstance<T = any> {
+  readonly font?: FontRef;
+  readonly internalRef: T; // p5.Font, for example
+}
+
+export type FontAsset<T = any> =
+    | { readonly status: typeof ASSET_STATUS.PENDING; readonly value: null; readonly error: null }
+    | { readonly status: typeof ASSET_STATUS.LOADING; readonly value: null; readonly error: null }
+    | { readonly status: typeof ASSET_STATUS.READY;   readonly value: FontInstance<T> | null; readonly error: null }
+    | { readonly status: typeof ASSET_STATUS.ERROR;   readonly value: null; readonly error: string };
+
 export interface AssetLoader {
-  hydrate(ref: TextureRef): Promise<TextureAsset>;
+  hydrateTexture(ref: TextureRef): Promise<TextureAsset>;
+  hydrateFont(ref: FontRef): Promise<FontAsset>;
 }
 
-export type ColorRGB = [number, number, number];
+export type ColorRGBA = {
+  red: number;
+  green: number;
+  blue: number;
+  alpha?: number;
+}
 
 export interface GraphicProcessor {
   readonly loader: AssetLoader;
@@ -108,7 +125,7 @@ export interface GraphicProcessor {
   rotateX(angle: number): void;
   rotateY(angle: number): void;
   rotateZ(angle: number): void;
-  fill(color: ColorRGB, alpha?: number): void;
+  fill(color: ColorRGBA, alpha?: number): void;
   drawBox(size: number): void;
   drawPlane(width: number, height: number): void;
   drawTexture(instance: TextureInstance, w: number, h: number, alpha: number): void;
@@ -125,28 +142,32 @@ export interface GraphicProcessor {
   drawHUDText(s: string, number: number, number2: number): void;
 }
 
-  /**
- * SECTION 4: ELEMENTS & PROPS
- */
 export const ELEMENT_TYPES = {
   BOX: 'box',
   PANEL: 'panel',
   SPHERE: 'sphere',
-  FLOOR: 'floor'
+  FLOOR: 'floor',
+  TEXT: 'text',
 } as const;
 
 export interface BaseVisualProps {
   readonly position: Vector3;
   readonly alpha?: number;
-  readonly color?: ColorRGB;
+  readonly fillColor?: ColorRGBA;
+  readonly strokeColor?: ColorRGBA;
   readonly texture?: TextureRef;
+  readonly font?: FontRef;
 }
 
 export interface BoxProps extends BaseVisualProps {
   readonly type: typeof ELEMENT_TYPES.BOX;
   readonly size: number;
 }
-export interface PanelProps extends BaseVisualProps { readonly type: typeof ELEMENT_TYPES.PANEL; readonly width: number; readonly height: number; }
+export interface PanelProps extends BaseVisualProps {
+  readonly type: typeof ELEMENT_TYPES.PANEL;
+  readonly width: number;
+  readonly height: number;
+}
 export interface SphereProps extends BaseVisualProps {
   readonly type: typeof ELEMENT_TYPES.SPHERE;
   readonly radius: number;
@@ -159,7 +180,15 @@ export interface FloorProps extends BaseVisualProps {
   readonly depth: number;
 }
 
-export type SceneElementProps = BoxProps | PanelProps | SphereProps | FloorProps;
+export interface TextProps extends BaseVisualProps {
+  readonly type: typeof ELEMENT_TYPES.TEXT;
+  readonly text: string;
+  readonly size: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+export type SceneElementProps = BoxProps | PanelProps | SphereProps | FloorProps | TextProps;
 
 export interface Renderable {
   readonly id: string;
@@ -169,6 +198,7 @@ export interface Renderable {
 export interface RenderableElement extends Renderable {
   readonly props: SceneElementProps;
   assets: {
-    main?: TextureAsset
+    texture?: TextureAsset
+    font?: FontAsset;
   };
 }
