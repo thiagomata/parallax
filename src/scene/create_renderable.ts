@@ -6,23 +6,20 @@ import {
     type SceneState
 } from "./types.ts";
 
-export const createRenderable = (id: string, props: SceneElementProps): RenderableElement => {
+export const createRenderable = <TTexture, TFont>(
+    id: string,
+    props: SceneElementProps
+): RenderableElement<TTexture, TFont> => {
     return {
         id,
         props,
         assets: {},
 
-        render(gp: GraphicProcessor, state: SceneState) {
+        render(gp: GraphicProcessor<TTexture, TFont>, state: SceneState) {
             gp.push();
-
-            // 1. Basic Placement
             gp.translate(props.position.x, props.position.y, props.position.z);
 
-            // 2. Intelligent behaviour using State
-            // Example: Calculate distance from camera to decide if we should even draw
             const distance = gp.dist(props.position, state.camera);
-
-            // If the object is too far away, we might skip high-quality rendering
             if (distance > 5000) {
                 gp.pop();
                 return;
@@ -40,7 +37,7 @@ export const createRenderable = (id: string, props: SceneElementProps): Renderab
                     break;
 
                 case ELEMENT_TYPES.BOX:
-                    gp.drawBox(props.size);
+                    gp.drawBox(props, this.assets, state);
                     break;
             }
 

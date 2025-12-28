@@ -6,20 +6,20 @@ import {
     type Vector3
 } from "./types.ts";
 
-export interface ShapeSpec {
+export interface ShapeSpec<TTexture> {
     readonly id: string;
     readonly props: SceneElementProps;
-    asset: TextureAsset;
+    asset: TextureAsset<TTexture>;
 }
 
-export interface TextSpec {
+export interface TextSpec< TFont> {
     readonly id: string;
     readonly props: TextProps;
     // readonly fontRef: FontRef;
-    asset: FontAsset;
+    asset: FontAsset< TFont>;
 }
 
-export type ElementSpec = TextSpec | ShapeSpec;
+export type ElementSpec<TTexture = any, TFont = any> = TextSpec<TFont> | ShapeSpec<TTexture>;
 
 /**
  * The "Placement"
@@ -34,29 +34,29 @@ export interface Instance {
  * The Registry Interface
  * Its job is to manage the 'Blueprints' (Specs) of what can exist in the scene.
  */
-export interface Registry {
+export interface Registry<TTexture = any, TFont = any> {
     /** Adds a unique specification to the system.
      * Returns the spec so it can be used immediately.
      */
-    defineShape(id: string, props: SceneElementProps): ShapeSpec;
+    defineShape(id: string, props: SceneElementProps): ShapeSpec<TTexture>;
 
-    defineText(id: string, props: TextProps): TextSpec;
+    defineText(id: string, props: TextProps): TextSpec<TFont>;
 
-    getShape(id: string): ShapeSpec | undefined;
+    getShape(id: string): ShapeSpec<TTexture> | undefined;
 
-    getText(id: string): TextSpec | undefined;
+    getText(id: string): TextSpec<TFont> | undefined;
 
     all(): IterableIterator<ElementSpec>;
 }
 
-export class AssetRegistry implements Registry {
+export class AssetRegistry<TTexture, TFont> implements Registry {
     // The internal store for our Blueprints
-    private shapes = new Map<string, ShapeSpec>();
-    private texts = new Map<string, TextSpec>();
+    private shapes = new Map<string, ShapeSpec<TTexture>>();
+    private texts = new Map<string, TextSpec<TFont>>();
 
     constructor() {}
 
-    defineShape(id: string, props: SceneElementProps): ShapeSpec {
+    defineShape(id: string, props: SceneElementProps): ShapeSpec<TTexture> {
         if (this.shapes.has(id)) return this.shapes.get(id)!;
 
         // We initialise the asset bucket based on whether a texture is requested
@@ -89,7 +89,7 @@ export class AssetRegistry implements Registry {
         return spec;
     }
 
-    defineText(id: string, props: TextProps): TextSpec {
+    defineText(id: string, props: TextProps): TextSpec<TFont> {
         if (this.texts.has(id)) return this.texts.get(id)!;
 
         let initialAsset: FontAsset;
@@ -110,7 +110,7 @@ export class AssetRegistry implements Registry {
             };
         }
 
-        const spec: TextSpec = {
+        const spec: TextSpec<TFont> = {
             id,
             props,
             asset: initialAsset
@@ -120,17 +120,25 @@ export class AssetRegistry implements Registry {
         return spec;
     }
 
-    getText(id: string): TextSpec | undefined {
+    getText(id: string): TextSpec<TFont> | undefined {
         return this.texts.get(id)!;
     }
 
-    getShape(id: string): ShapeSpec | undefined {
+    getShape(id: string): ShapeSpec<TTexture> | undefined {
         return this.shapes.get(id)!;
     }
 
-    all(): IterableIterator<ElementSpec> {
-        const merged = new Map([...this.shapes, ...this.texts]);
-        return merged.values();
+// 1. Ensure your return type matches the Interface exactly
+    all(): IterableIterator<ElementSpec<TTexture, TFont>> {
+        // We use a generator to "stream" both maps as one sequence
+        return this.generateAll();
+    }
+
+// 2. The Generator implementation
+    private *generateAll(): IterableIterator<ElementSpec<TTexture, TFont>> {
+        // yield* delegates to the iterator of each map's values
+        yield* this.shapes.values();
+        yield* this.texts.values();
     }
 
     // /**

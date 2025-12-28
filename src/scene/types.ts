@@ -31,6 +31,7 @@ export interface StickResult {
 export interface SceneState {
   camera: Vector3;
   lookAt: Vector3;
+  alpha: number;
   debug?: SceneStateDebugLog;
 }
 
@@ -93,15 +94,15 @@ export interface FontRef {
   readonly path: string;
 }
 
-export interface FontInstance<T = any> {
+export interface FontInstance<TFont = any> {
   readonly font?: FontRef;
-  readonly internalRef: T; // p5.Font, for example
+  readonly internalRef: TFont; // p5.Font, for example
 }
 
-export type FontAsset<T = any> =
+export type FontAsset<TFont = any> =
     | { readonly status: typeof ASSET_STATUS.PENDING; readonly value: null; readonly error: null }
     | { readonly status: typeof ASSET_STATUS.LOADING; readonly value: null; readonly error: null }
-    | { readonly status: typeof ASSET_STATUS.READY;   readonly value: FontInstance<T> | null; readonly error: null }
+    | { readonly status: typeof ASSET_STATUS.READY;   readonly value: FontInstance<TFont> | null; readonly error: null }
     | { readonly status: typeof ASSET_STATUS.ERROR;   readonly value: null; readonly error: string };
 
 export interface AssetLoader {
@@ -116,7 +117,7 @@ export type ColorRGBA = {
   alpha?: number;
 }
 
-export interface GraphicProcessor {
+export interface GraphicProcessor<TTexture = any, TFont = any> {
   readonly loader: AssetLoader;
   setCamera(pos: Vector3, lookAt: Vector3): void;
   push(): void;
@@ -129,7 +130,10 @@ export interface GraphicProcessor {
   noFill(): void;
   stroke(color: ColorRGBA, weight: number, globalAlpha?: number): void;
   noStroke(): void;
-  drawBox(size: number): void;
+  drawBox(
+      boxProps: BoxProps,
+      assets: ElementAssets<TTexture, TFont>,
+      sceneState: SceneState): void;
   drawPlane(width: number, height: number): void;
   drawTexture(instance: TextureInstance, w: number, h: number, alpha: number): void;
   dist(v1: Vector3, v2: Vector3): number;
@@ -198,10 +202,13 @@ export interface Renderable {
   render(gp: GraphicProcessor, state: SceneState): void;
 }
 
-export interface RenderableElement extends Renderable {
+
+export interface ElementAssets<TTexture = any, TFont = any> {
+  texture?: TextureAsset<TTexture>
+  font?: FontAsset<TFont>
+}
+
+export interface RenderableElement<TTexture = any, TFont = any> extends Renderable {
   readonly props: SceneElementProps;
-  assets: {
-    texture?: TextureAsset
-    font?: FontAsset;
-  };
+  assets: ElementAssets<TTexture, TFont>;
 }

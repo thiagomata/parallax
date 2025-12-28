@@ -1,7 +1,16 @@
 import p5 from 'p5';
-import type { GraphicProcessor, AssetLoader, Vector3, ColorRGBA, TextureInstance } from '../types';
+import {
+    type GraphicProcessor,
+    type AssetLoader,
+    type Vector3,
+    type ColorRGBA,
+    type TextureInstance,
+    type BoxProps,
+    type SceneState,
+    type BaseVisualProps, ASSET_STATUS, type ElementAssets
+} from '../types';
 
-export class P5GraphicProcessor implements GraphicProcessor {
+export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
 
     public readonly loader: AssetLoader
     private p5: p5
@@ -33,7 +42,7 @@ export class P5GraphicProcessor implements GraphicProcessor {
     // --- Styling & Drawing ---
     fill(color: ColorRGBA, alpha: number = 1): void {
         const baseAlpha = color.alpha ?? 1;
-        const finalAlpha = alpha * baseAlpha * 255;
+        const finalAlpha = Math.round(alpha * baseAlpha * 255);
         this.p5.fill(color.red, color.green, color.blue, finalAlpha);
     }
     noFill(): void {
@@ -50,8 +59,35 @@ export class P5GraphicProcessor implements GraphicProcessor {
         this.p5.noStroke();
     }
 
-    drawBox(size: number): void {
+    box(size: number): void {
         this.p5.box(size);
+    }
+
+    drawBox(boxProps: BoxProps, assets: ElementAssets, sceneState: SceneState): void {
+
+        const combinedAlpha = this.getP5Alpha(boxProps, sceneState);
+
+        if (assets.texture?.status == ASSET_STATUS.READY && assets.texture.value) {
+            this.p5.texture(assets.texture.value);
+            this.p5.textureMode(this.p5.NORMAL);
+            this.p5.tint(255, combinedAlpha);
+        } else if (boxProps.fillColor) {
+            this.p5.fill(
+                boxProps.fillColor.red,
+                boxProps.fillColor.green,
+                boxProps.fillColor.blue,
+                combinedAlpha
+            );
+        }
+        if (boxProps.strokeColor) {
+            this.p5.stroke(
+                boxProps.strokeColor.red,
+                boxProps.strokeColor.green,
+                boxProps.strokeColor.blue,
+                combinedAlpha
+            );
+        }
+        this.p5.box(boxProps.size);
     }
 
     drawPlane(w: number, h: number): void {
@@ -100,5 +136,11 @@ export class P5GraphicProcessor implements GraphicProcessor {
 
     drawHUDText(s: string, x: number, y: number): void {
         this.p5.text(s, x, y);
+    }
+
+    private getP5Alpha(props: BaseVisualProps, sceneState: SceneState): number {
+        const elementAlpha = props.alpha ?? 1;
+        const sceneAlpha = sceneState.alpha ?? 1;
+        return Math.round(elementAlpha * sceneAlpha * 255);
     }
 }

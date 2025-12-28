@@ -1,6 +1,6 @@
 import {
     ASSET_STATUS,
-    type AssetLoader,
+    type AssetLoader, type FontAsset,
     type GraphicProcessor,
     type RenderableElement,
     type SceneElementProps,
@@ -14,7 +14,7 @@ export class World {
     private registry: Map<string, RenderableElement> = new Map();
     private sceneManager: SceneManager;
     private textureCache: Map<string, Promise<TextureAsset>> = new Map();
-    private fontCache: Map<string, Promise<TextureAsset>> = new Map();
+    private fontCache: Map<string, Promise<FontAsset>> = new Map();
     
     constructor(sceneManager: SceneManager) {
         this.sceneManager = sceneManager;
@@ -93,13 +93,23 @@ export class World {
         // 2. Set the Global Camera on the Engine
         graphicProcessor.setCamera(state.camera, state.lookAt);
 
-        // 3. Draw every object in storage
-        // The Renderables check their own 'assets' to see if they are Ready or Grey
-        this.registry.forEach((element) => {
+        // 3. Draw every object in storage (Sorted for Alpha Blending)
+        // We create a sortable array from the registry
+        const renderQueue = Array.from(this.registry.values())
+            .map(element => ({
+                element,
+                // Calculate distance from camera to the element's position
+                distance: graphicProcessor.dist(state.camera, element.props.position)
+            }))
+            // Sort Descending: Furthest distance first (Painter's Algorithm)
+            .sort((a, b) => b.distance - a.distance);
+
+        // 4. Execute the sorted render calls
+        renderQueue.forEach(({ element }) => {
             element.render(graphicProcessor, state);
         });
 
-        // 4. Optional: Handle Debug Logging
+        // 5. Handle Debug Logging (Usually drawn last/on top)
         if (state.debug) {
             this.renderDebugInfo(graphicProcessor, state);
         }

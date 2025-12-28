@@ -112,6 +112,7 @@ export class SceneManager {
     const state: SceneState = {
       camera: finalCamPos,
       lookAt: this.calculateLookAt(finalCamPos, stickRes),
+      alpha: 1,
     };
 
     if (this.isDebug) {
