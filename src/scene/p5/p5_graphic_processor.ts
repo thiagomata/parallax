@@ -4,16 +4,15 @@ import {
     type AssetLoader,
     type Vector3,
     type ColorRGBA,
-    type TextureInstance,
     type BoxProps,
     type SceneState,
-    type BaseVisualProps, ASSET_STATUS, type ElementAssets
+    type BaseVisualProps, ASSET_STATUS, type ElementAssets, type PanelProps, type TextProps
 } from '../types';
 
 export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
 
     public readonly loader: AssetLoader
-    private p5: p5
+    p5: p5
 
     constructor(
         p5: p5,
@@ -63,44 +62,50 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         this.p5.box(size);
     }
 
+    drawText(textProp: TextProps, assets: ElementAssets<p5.Image, p5.Font>, sceneState: SceneState): void {
+        if(assets.font?.status !== ASSET_STATUS.READY) {
+            // text is not ready
+            return;
+        }
+        if(!assets.font?.value) {
+            // in the future, load a default font.
+            // ignoring texts without font for now
+            return;
+        }
+
+        this.p5.push();
+        this.translate(textProp.position);
+        this.drawFill(textProp, sceneState);
+        this.p5.textFont(assets.font.value?.internalRef);
+        this.p5.textSize(textProp.size);
+        this.p5.noStroke();
+        this.text(textProp.text, textProp.position);
+        this.p5.pop();
+    }
+
     drawBox(boxProps: BoxProps, assets: ElementAssets, sceneState: SceneState): void {
+        this.p5.push();
 
-        const combinedAlpha = this.getP5Alpha(boxProps, sceneState);
+        this.translate(boxProps.position);
+        this.drawTexture(assets, boxProps, sceneState);
 
-        if (assets.texture?.status == ASSET_STATUS.READY && assets.texture.value) {
-            this.p5.texture(assets.texture.value);
-            this.p5.textureMode(this.p5.NORMAL);
-            this.p5.tint(255, combinedAlpha);
-        } else if (boxProps.fillColor) {
-            this.p5.fill(
-                boxProps.fillColor.red,
-                boxProps.fillColor.green,
-                boxProps.fillColor.blue,
-                combinedAlpha
-            );
-        }
-        if (boxProps.strokeColor) {
-            this.p5.stroke(
-                boxProps.strokeColor.red,
-                boxProps.strokeColor.green,
-                boxProps.strokeColor.blue,
-                combinedAlpha
-            );
-        }
+        this.drawStroke(boxProps, sceneState);
+
         this.p5.box(boxProps.size);
+        this.p5.pop();
     }
 
     drawPlane(w: number, h: number): void {
         this.p5.plane(w, h);
     }
 
-    drawPanel(instance: TextureInstance): void {
-        if (!instance.internalRef) return;
+    drawPanel(panelProps: PanelProps, assets: ElementAssets<p5.Image, p5.Font>, sceneState: SceneState) {
         this.p5.push();
-        this.p5.textureMode(this.p5.NORMAL);
-        this.p5.tint(255, ( instance.texture.alpha ?? 1 ) * 255);
-        this.p5.texture(instance.internalRef);
-        this.p5.plane(instance.texture.width, instance.texture.height);
+
+        this.drawTexture(assets, panelProps, sceneState);
+        this.drawStroke(panelProps, sceneState);
+
+        this.p5.plane(panelProps.width, panelProps.height);
         this.p5.pop();
     }
 
@@ -122,7 +127,7 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         this.p5.text(s, pos.x, pos.y ?? 0, pos.z ?? 0);
     }
 
-    drawText(s: string, pos: { x: number; y?: number; z?: number }): void {
+    text(s: string, pos: { x: number; y?: number; z?: number }): void {
         this.p5.text(s, pos.x, pos.y ?? 0, pos.z ?? 0);
     }
 
@@ -142,5 +147,60 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         const elementAlpha = props.alpha ?? 1;
         const sceneAlpha = sceneState.alpha ?? 1;
         return Math.round(elementAlpha * sceneAlpha * 255);
+    }
+
+    private getP5FillAlpha(props: BaseVisualProps, sceneState: SceneState): number {
+        const elementAlpha = props.alpha ?? 1;
+        const sceneAlpha = sceneState.alpha ?? 1;
+        const fillAlpha = props.fillColor?.alpha ?? 1;
+        return Math.round(elementAlpha * sceneAlpha * fillAlpha * 255);
+    }
+
+    private getPSStrokeAlpha(props: BaseVisualProps, sceneState: SceneState): number {
+        const elementAlpha = props.alpha ?? 1;
+        const sceneAlpha = sceneState.alpha ?? 1;
+        const strokeAlpha = props.strokeColor?.alpha ?? 1;
+        return Math.round(elementAlpha * sceneAlpha * strokeAlpha * 255);
+    }
+
+    private drawTexture(
+        assets: ElementAssets<p5.Image, p5.Font>,
+        elementProp: BaseVisualProps,
+        sceneState: SceneState
+    ) {
+        if (assets.texture?.status == ASSET_STATUS.READY && assets.texture.value) {
+            this.p5.texture(assets.texture.value.internalRef);
+            this.p5.textureMode(this.p5.NORMAL);
+            this.p5.tint(255, this.getP5Alpha(elementProp, sceneState))
+        } else if (elementProp.fillColor) {
+            this.drawFill(elementProp, sceneState);
+        }
+    }
+
+    private drawFill(elementProp: BaseVisualProps, sceneState: SceneState) {
+
+        if (!elementProp.fillColor) {
+            return;
+        }
+
+        this.p5.fill(
+            elementProp.fillColor.red,
+            elementProp.fillColor.green,
+            elementProp.fillColor.blue,
+            this.getP5FillAlpha(elementProp, sceneState)
+        );
+    }
+
+    private drawStroke(elementProp: BaseVisualProps, sceneState: SceneState) {
+        if (!elementProp.strokeColor) {
+            return;
+        }
+        this.p5.strokeWeight(elementProp.strokeWidth ?? 1)
+        this.p5.stroke(
+            elementProp.strokeColor.red,
+            elementProp.strokeColor.green,
+            elementProp.strokeColor.blue,
+            this.getPSStrokeAlpha(elementProp, sceneState)
+        );
     }
 }

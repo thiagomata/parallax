@@ -96,7 +96,7 @@ export interface FontRef {
 }
 
 export interface FontInstance<TFont = any> {
-  readonly font?: FontRef;
+  readonly font: FontRef;
   readonly internalRef: TFont; // p5.Font, for example
 }
 
@@ -131,19 +131,28 @@ export interface GraphicProcessor<TTexture = any, TFont = any> {
   noFill(): void;
   stroke(color: ColorRGBA, weight: number, globalAlpha?: number): void;
   noStroke(): void;
+  drawText(
+      textProp: TextProps,
+      assets: ElementAssets<TTexture, TFont>,
+      sceneState: SceneState): void;
   drawBox(
       boxProps: BoxProps,
       assets: ElementAssets<TTexture, TFont>,
       sceneState: SceneState): void;
   drawPlane(width: number, height: number): void;
-  drawPanel(instance: TextureInstance): void;
+  //drawPanel(instance: TextureInstance): void;
+  drawPanel(
+      panelProps: PanelProps,
+      assets: ElementAssets<TTexture, TFont>,
+      sceneState: SceneState): void;
   dist(v1: Vector3, v2: Vector3): number;
   map(val: number, s1: number, st1: number, s2: number, st2: number, clamp?: boolean): number;
   lerp(start: number, stop: number, amt: number): number;
 
   drawLabel(s: string, param2: { x: number; y: number | undefined; z: number | undefined }): void;
 
-  drawText(s: string, param2: { x: number; y: number | undefined; z: number | undefined }): void;
+  text(s: string, param2: { x: number; y: number | undefined; z: number | undefined }): void;
+
 
   drawCrosshair(param: { x: number; y: number | undefined; z: number | undefined }, number: number): void;
 
@@ -163,6 +172,7 @@ export interface BaseVisualProps {
   readonly alpha?: number;
   readonly fillColor?: ColorRGBA;
   readonly strokeColor?: ColorRGBA;
+  readonly strokeWidth?: number;
   readonly texture?: TextureRef;
   readonly font?: FontRef;
 }
@@ -192,8 +202,8 @@ export interface TextProps extends BaseVisualProps {
   readonly type: typeof ELEMENT_TYPES.TEXT;
   readonly text: string;
   readonly size: number;
-  readonly width: number;
-  readonly height: number;
+  // readonly width: number;
+  // readonly height: number;
 }
 
 export type SceneElementProps = BoxProps | PanelProps | SphereProps | FloorProps | TextProps;

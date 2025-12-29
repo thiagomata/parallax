@@ -28,12 +28,7 @@ export const createRenderable = <TTexture, TFont>(
             // 3. Unwrapping Logic
             switch (props.type) {
                 case ELEMENT_TYPES.PANEL:
-                    const texture = this.assets.texture;
-                    if (texture?.value) {
-                        gp.drawPanel(texture.value);
-                    } else {
-                        // ... loading/error logic ...
-                    }
+                    gp.drawPanel(props, this.assets, state);
                     break;
 
                 case ELEMENT_TYPES.BOX:

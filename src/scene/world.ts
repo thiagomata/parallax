@@ -127,7 +127,7 @@ export class World {
         log.nudges.forEach(nudge => {
             if (nudge.x !== undefined) {
                 graphicProcessor.drawCrosshair({x: nudge.x, y: nudge.y, z: nudge.z}, 5);
-                graphicProcessor.drawText(`Nudge: ${nudge.name}`, {x: nudge.x, y: nudge.y, z: nudge.z});
+                graphicProcessor.text(`Nudge: ${nudge.name}`, {x: nudge.x, y: nudge.y, z: nudge.z});
             }
         });
 

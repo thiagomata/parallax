@@ -19,6 +19,7 @@ const mockManager: SceneManager = {
 
 export const createMockGP = (): GraphicProcessor => {
     return {
+        text: vi.fn(),
         loader: {} as AssetLoader,
         setCamera: vi.fn(),
         push: vi.fn(),
@@ -46,7 +47,7 @@ export const createMockGP = (): GraphicProcessor => {
         drawLabel: vi.fn(),
         drawText: vi.fn(),
         drawCrosshair: vi.fn(),
-        drawHUDText: vi.fn(),
+        drawHUDText: vi.fn()
     };
 };
 

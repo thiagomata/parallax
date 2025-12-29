@@ -1,6 +1,10 @@
 import p5 from 'p5';
 import { P5GraphicProcessor } from './p5_graphic_processor';
-import { type AssetLoader } from '../types';
+import {
+    ASSET_STATUS,
+    type AssetLoader, type BoxProps,
+    ELEMENT_TYPES, type ElementAssets, type FontInstance, type FontRef, type PanelProps, type SceneState, type TextProps
+} from '../types';
 
 const sketch = (p: p5) => {
     let gp: P5GraphicProcessor;
@@ -38,28 +42,101 @@ const sketch = (p: p5) => {
                 internalRef: testImg,
                 texture: { width: 200, height: 200, path: '/red.png' }
             };
-            gp.push();
-            gp.translate({x:0, y:0, z:-50}); // Place it behind the boxes
-            // 0.5 alpha should let the grid lines show through clearly
-            gp.drawPanel(textureInstance);
-            gp.pop();
+            // gp.push();
+            // gp.translate({x:0, y:0, z:-50});
+
+
+            gp.drawPanel(
+                {
+                    type: ELEMENT_TYPES.PANEL,
+                    width: 200,
+                    height: 200,
+                    position: {x: 0, y: 0, z: -50},
+                    alpha: 0.5,
+                    texture: textureInstance.texture,
+                } as PanelProps,
+                {
+                    texture: {
+                        status: ASSET_STATUS.READY,
+                        value: textureInstance
+                    }
+                } as ElementAssets<p5.Image, p5.Font>,
+                {
+                    camera: {x:0,y:0,z:0},
+                    lookAt: {x:0,y:0,z:100},
+                    alpha: 1
+                }  as SceneState
+            )
+            // gp.pop();
         }
 
         if (testFont) {
-            p.textFont(testFont);
-            p.textSize(64);
-            gp.noStroke();
-            // White text at 50% opacity
-            gp.fill({ red: 255, green: 255, blue: 255, alpha: 0.5 });
-            gp.drawText("ALPHA CHECK", { x: -200, y: -30, z: 50 });
+            // p.textFont(testFont);
+            // p.textSize(64);
+            // gp.noStroke();
+            // // White text at 50% opacity
+            // gp.fill({ red: 255, green: 255, blue: 255, alpha: 0.5 });
+            // gp.text("ALPHA CHECK", { x: -200, y: -30, z: 50 });
+
+            gp.drawText(
+                {
+                    type: ELEMENT_TYPES.TEXT,
+                    font: {
+                        name: "Roboto",
+                        path: '/parallax/fonts/Roboto-Regular.ttf',
+                    },
+                    size: 64,
+                    fillColor: {
+                        red: 255,
+                        green: 255,
+                        blue: 255,
+                        alpha: 0.5,
+                    },
+                    text: "ALPHA CHECK",
+                    position: {x: -200, y: -30, z: 50},
+                } as TextProps,
+                {
+                    font: {
+                        status: ASSET_STATUS.READY,
+                        value: {
+                            font: {
+                                name: 'Roboto',
+                                path: '/parallax/fonts/Roboto-Regular.ttf',
+                            } as FontRef,
+                            internalRef: testFont,
+                        } as FontInstance<p5.Font>
+                    }
+                } as ElementAssets<p5.Image, p5.Font>,
+                {
+                    camera: {x:0,y:0,z:0},
+                    lookAt: {x:0,y:0,z:100},
+                    alpha: 1
+                }  as SceneState
+            )
         }
 
         const greenVal = gp.map(p.sin(p.frameCount * 0.05), -1, 1, 100, 255);
-        gp.push();
-        gp.translate({x:20, y:20, z:150});
-        gp.fill({ red: 50, green: greenVal, blue: 255, alpha: 0.4 });
-        gp.box(80);
-        gp.pop();
+        // gp.push();
+        // gp.translate({x:20, y:20, z:150});
+        // gp.fill({ red: 50, green: greenVal, blue: 255, alpha: 0.4 });
+        // gp.box(80);
+        // gp.pop();
+
+        //     drawBox(boxProps: BoxProps, assets: ElementAssets, sceneState: SceneState): void {
+        gp.drawBox(
+            {
+                type:  ELEMENT_TYPES.BOX,
+                size: 80,
+                position: {x: 20, y: 20, z: 150},
+                fillColor: {red: 50, green: greenVal, blue: 255, alpha: 0.5},
+            } as BoxProps,
+            {},
+            {
+                camera: {x:0,y:0,z:0},
+                lookAt: {x:0,y:0,z:100},
+                alpha: 1
+            }  as SceneState
+        )
 
         gp.push();
         gp.translate({x:60, y:-50, z:320});
