@@ -25,7 +25,6 @@ export const createRenderable = <TTexture, TFont>(
                 return;
             }
 
-            // 3. Unwrapping Logic
             switch (props.type) {
                 case ELEMENT_TYPES.PANEL:
                     gp.drawPanel(props, this.assets, state);
@@ -33,6 +32,10 @@ export const createRenderable = <TTexture, TFont>(
 
                 case ELEMENT_TYPES.BOX:
                     gp.drawBox(props, this.assets, state);
+                    break;
+
+                case ELEMENT_TYPES.TEXT:
+                    gp.drawText(props, this.assets, state);
                     break;
             }
 
