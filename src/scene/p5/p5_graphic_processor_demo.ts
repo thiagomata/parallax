@@ -41,7 +41,7 @@ const sketch = (p: p5) => {
             gp.push();
             gp.translate({x:0, y:0, z:-50}); // Place it behind the boxes
             // 0.5 alpha should let the grid lines show through clearly
-            gp.drawPanel(textureInstance, 300, 300, 0.5);
+            gp.drawPanel(textureInstance);
             gp.pop();
         }
 

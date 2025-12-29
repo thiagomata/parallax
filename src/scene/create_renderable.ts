@@ -30,7 +30,7 @@ export const createRenderable = <TTexture, TFont>(
                 case ELEMENT_TYPES.PANEL:
                     const texture = this.assets.texture;
                     if (texture?.value) {
-                        gp.drawPanel(texture.value, props.width, props.height, props.alpha ?? 255);
+                        gp.drawPanel(texture.value);
                     } else {
                         // ... loading/error logic ...
                     }

@@ -94,13 +94,13 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         this.p5.plane(w, h);
     }
 
-    drawPanel(instance: TextureInstance, w: number, h: number, alpha: number): void {
+    drawPanel(instance: TextureInstance): void {
         if (!instance.internalRef) return;
         this.p5.push();
         this.p5.textureMode(this.p5.NORMAL);
-        this.p5.tint(255, alpha * 255);
+        this.p5.tint(255, ( instance.texture.alpha ?? 1 ) * 255);
         this.p5.texture(instance.internalRef);
-        this.p5.plane(w, h);
+        this.p5.plane(instance.texture.width, instance.texture.height);
         this.p5.pop();
     }
 

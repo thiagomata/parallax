@@ -136,7 +136,7 @@ export interface GraphicProcessor<TTexture = any, TFont = any> {
       assets: ElementAssets<TTexture, TFont>,
       sceneState: SceneState): void;
   drawPlane(width: number, height: number): void;
-  drawPanel(instance: TextureInstance, w: number, h: number, alpha: number): void;
+  drawPanel(instance: TextureInstance): void;
   dist(v1: Vector3, v2: Vector3): number;
   map(val: number, s1: number, st1: number, s2: number, st2: number, clamp?: boolean): number;
   lerp(start: number, stop: number, amt: number): number;
