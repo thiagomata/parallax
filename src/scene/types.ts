@@ -139,7 +139,7 @@ export interface GraphicProcessor<TTexture = any, TFont = any> {
       boxProps: BoxProps,
       assets: ElementAssets<TTexture, TFont>,
       sceneState: SceneState): void;
-  drawPlane(width: number, height: number): void;
+  plane(width: number, height: number): void;
   //drawPanel(instance: TextureInstance): void;
   drawPanel(
       panelProps: PanelProps,

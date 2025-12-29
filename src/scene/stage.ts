@@ -22,7 +22,7 @@ export class Stage {
             if (el.props.texture && !el.assets.texture) {
                 el.assets.texture = await loader.hydrateTexture(el.props.texture);
             }
-            if (el.props.font && el.assets.font) {
+            if (el.props.font && !el.assets.font) {
                 el.assets.font = await loader.hydrateFont(el.props.font);
             }
         }));

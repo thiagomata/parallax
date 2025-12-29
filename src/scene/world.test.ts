@@ -2,9 +2,8 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import {ASSET_STATUS, type AssetLoader, type GraphicProcessor, type Vector3} from './types.ts';
 import type { SceneManager } from "./scene_manager.ts";
 import { World } from "./world.ts";
-import {ChaosLoader} from "./asset_registry.test.ts";
+import {ChaosLoader} from "./mock/mock_asset_loader.ts";
 
-// 1. Use your actual ChaosLoader
 const loader = new ChaosLoader();
 
 const mockManager: SceneManager = {
@@ -33,9 +32,8 @@ export const createMockGP = (): GraphicProcessor => {
         stroke: vi.fn(),
         noStroke: vi.fn(),
         drawBox: vi.fn(),
-        drawPlane: vi.fn(),
+        plane: vi.fn(),
         drawPanel: vi.fn(),
-        // Real logic for math utils is often better than a mock for tests
         dist: (v1: Vector3, v2: Vector3) => Math.sqrt(
             Math.pow(v2.x - v1.x, 2) +
             Math.pow(v2.y - v1.y, 2) +
@@ -48,7 +46,7 @@ export const createMockGP = (): GraphicProcessor => {
         drawText: vi.fn(),
         drawCrosshair: vi.fn(),
         drawHUDText: vi.fn()
-    };
+    } as GraphicProcessor<unknown, unknown>;
 };
 
 describe('World Orchestration', () => {
@@ -169,5 +167,45 @@ describe('World Orchestration', () => {
             expect(mockGP.drawLabel).toHaveBeenCalledWith(expect.stringContaining('CAR: TestCar'), expect.any(Object));
             expect(mockGP.drawHUDText).toHaveBeenCalledWith(expect.stringContaining('Error: Failed'), 20, 20);
         });
+    });
+
+    it('should deduplicate loading tasks for the same texture path', async () => {
+        const path = 'shared.png';
+        const loaderSpy = vi.spyOn(loader, 'hydrateTexture');
+
+        world.addElement('el1', { type: 'box', size: 1, position: { x: 0, y: 0, z: 0 }, texture: { path, width: 1, height: 1 } });
+        world.addElement('el2', { type: 'box', size: 1, position: { x: 0, y: 0, z: 0 }, texture: { path, width: 1, height: 1 } });
+
+        await world.hydrate(loader);
+
+        // This ensures your cache logic actually saves network/processing resources
+        expect(loaderSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should successfully hydrate valid fonts', async () => {
+        world.addElement('text_el', {
+            type: 'text', text: 'hi', size: 10, position: { x: 0, y: 0, z: 0 },
+            font: { name: 'Inter', path: 'inter.ttf' }
+        });
+
+        await world.hydrate(loader);
+
+        const element = (world as any).registry.get('text_el');
+        expect(element.assets.font.status).toBe(ASSET_STATUS.READY);
+        expect(element.assets.font.value.internalRef).toBe("ptr_inter.ttf");
+    });
+
+    it('should skip hydration if asset is already present', async () => {
+        world.addElement('pre_hydrated', { type: 'box', size: 5, position: { x: 0, y: 0, z: 0 } });
+        const element = (world as any).registry.get('pre_hydrated');
+
+        // Manually set an asset
+        element.assets.texture = { status: ASSET_STATUS.READY, value: null };
+
+        const loaderSpy = vi.spyOn(loader, 'hydrateTexture');
+        await world.hydrate(loader);
+
+        // Should return early due to: if (el.assets.texture) return;
+        expect(loaderSpy).not.toHaveBeenCalled();
     });
 });

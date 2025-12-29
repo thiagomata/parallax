@@ -1,128 +1,103 @@
-import {type AssetLoader, type TextureAsset, ASSET_STATUS, type FontAsset} from "./types.ts";
-import {describe, it, expect} from "vitest";
+import { describe, it, expect, beforeEach } from 'vitest';
+import { AssetRegistry } from './asset_registry';
+import { ASSET_STATUS, ELEMENT_TYPES } from './types';
 
-export class ChaosLoader implements AssetLoader {
-    async hydrateTexture(ref: { path: string }): Promise<TextureAsset> {
-        // Default quick delay
-        let delay = 10;
+describe('AssetRegistry', () => {
+    // We use 'string' and 'number' as dummy types for TTexture and TFont
+    let registry: AssetRegistry<string, number>;
 
-        // Targeted late promise for testing race conditions
-        if (ref?.path === "late.png") {
-            delay = 50;
-        }
+    beforeEach(() => {
+        registry = new AssetRegistry<string, number>();
+    });
 
-        await new Promise(resolve => setTimeout(resolve, delay));
-
-        if (ref?.path === "fail.png") {
-            return {
-                status: ASSET_STATUS.ERROR,
-                value: null,
-                error: "Could not decode"
+    describe('defineShape', () => {
+        it('should initialize with PENDING status if a texture is provided', () => {
+            const id = 'textured-box';
+            const props = {
+                type: ELEMENT_TYPES.BOX,
+                position: { x: 0, y: 0, z: 0 },
+                size: 10,
+                texture: { path: 'grass.png', width: 64, height: 64 }
             };
-        }
 
-        if (ref == null) {
-            return {
-                status: ASSET_STATUS.READY,
-                value: null,
-            }
-        }
+            const spec = registry.defineShape(id, props);
 
-        return {
-            status: ASSET_STATUS.READY,
-            value: {
-                texture: ref as any,
-                internalRef: `ptr_${ref ? ref.path : "none"}`
-            }
-        };
-    }
+            expect(spec.id).toBe(id);
+            expect(spec.asset.status).toBe(ASSET_STATUS.PENDING);
+            expect(spec.asset.value).toBeNull();
+        });
 
-    async hydrateFont(ref: { path: string }): Promise<FontAsset> {
-        // Default quick delay
-        let delay = 10;
-
-        // Targeted late promise for testing race conditions
-        if (ref?.path === "late.ttf") {
-            delay = 50;
-        }
-
-        await new Promise(resolve => setTimeout(resolve, delay));
-
-        if (ref?.path === "fail.ttf") {
-            return {
-                status: ASSET_STATUS.ERROR,
-                value: null,
-                error: "Could not decode"
+        it('should initialize with READY status if NO texture is provided', () => {
+            const props = {
+                type: ELEMENT_TYPES.BOX,
+                position: { x: 0, y: 0, z: 0 },
+                size: 10
             };
-        }
 
-        return {
-            status: ASSET_STATUS.READY,
-            value: ref == null ? null : {
-                font: ref as any,
-                internalRef: `ptr_${ref ? ref.path : "none"}`
-            }
-        };
-    }
-}
+            const spec = registry.defineShape('plain-box', props);
 
-describe('ChaosLoader (Standalone)', () => {
-    const loader = new ChaosLoader();
+            expect(spec.asset.status).toBe(ASSET_STATUS.READY);
+            expect(spec.asset.value).toBeNull();
+        });
 
-    it('should successfully "load" a valid texture path', async () => {
-        const ref = { path: 'success.ttf', width: 100, height: 100 };
-        const result = await loader.hydrateFont(ref);
+        it('should return the existing spec if the ID is already defined', () => {
+            const props = { type: ELEMENT_TYPES.BOX, position: { x: 0, y: 0, z: 0 }, size: 5 };
+            const first = registry.defineShape('item-1', props);
+            const second = registry.defineShape('item-1', props);
 
-        expect(result.status).toBe(ASSET_STATUS.READY);
-        if(result.status === ASSET_STATUS.READY) {
-            expect(result.value?.internalRef).toBe("ptr_success.ttf");
-        }
+            expect(first).toBe(second); // Identity check
+        });
     });
 
-    it('should successfully "load" a valid path', async () => {
-        const ref = { path: 'success.png', width: 100, height: 100 };
-        const result = await loader.hydrateTexture(ref);
+    describe('defineText', () => {
+        it('should initialize with PENDING status if a font is provided', () => {
+            const props = {
+                type: ELEMENT_TYPES.TEXT,
+                text: 'Hello',
+                size: 12,
+                position: { x: 0, y: 0, z: 0 },
+                font: { name: 'Roboto', path: 'roboto.ttf' }
+            };
 
-        expect(result.status).toBe(ASSET_STATUS.READY);
-        expect(result.value?.internalRef).toBe("ptr_success.png");
+            const spec = registry.defineText('label-1', props);
+
+            expect(spec.asset.status).toBe(ASSET_STATUS.PENDING);
+        });
+
+        it('should initialize with READY status if NO font is provided', () => {
+            const props = {
+                type: ELEMENT_TYPES.TEXT,
+                text: 'No Font',
+                size: 12,
+                position: { x: 0, y: 0, z: 0 }
+            };
+
+            const spec = registry.defineText('plain-text', props);
+
+            expect(spec.asset.status).toBe(ASSET_STATUS.READY);
+        });
     });
 
-    it('should return a structured error for fail.png', async () => {
-        const ref = { path: 'fail.png', width: 100, height: 100 };
-        const result = await loader.hydrateTexture(ref);
+    describe('Retrieval and Iteration', () => {
+        it('should retrieve shapes and texts by ID', () => {
+            registry.defineShape('box-1', { type: ELEMENT_TYPES.BOX, size: 1, position: { x: 0, y: 0, z: 0 } });
+            registry.defineText('txt-1', { type: ELEMENT_TYPES.TEXT, text: 'hi', size: 1, position: { x: 0, y: 0, z: 0 } });
 
-        expect(result.status).toBe(ASSET_STATUS.ERROR);
-        expect(result.value).toBeNull();
-        if( result.status === ASSET_STATUS.ERROR ){
-            expect(result.error).toContain("Could not decode");
-        }
-    });
+            expect(registry.getShape('box-1')).toBeDefined();
+            expect(registry.getText('txt-1')).toBeDefined();
+        });
 
-    it('should return a structured error for fail.ttf', async () => {
-        const ref = { path: 'fail.ttf', width: 100, height: 100 };
-        const result = await loader.hydrateFont(ref);
+        it('should provide an iterator over all combined specs', () => {
+            registry.defineShape('s1', { type: ELEMENT_TYPES.BOX, size: 1, position: { x: 0, y: 0, z: 0 } });
+            registry.defineShape('s2', { type: ELEMENT_TYPES.BOX, size: 1, position: { x: 0, y: 0, z: 0 } });
+            registry.defineText('t1', { type: ELEMENT_TYPES.TEXT, text: 'a', size: 1, position: { x: 0, y: 0, z: 0 } });
 
-        expect(result.status).toBe(ASSET_STATUS.ERROR);
-        expect(result.value).toBeNull();
-        if( result.status === ASSET_STATUS.ERROR ){
-            expect(result.error).toContain("Could not decode");
-        }
-    });
+            const allSpecs = Array.from(registry.all());
 
-    it('should handle missing texture by returning an immediate READY state', async () => {
-        // We pass null or an empty ref to the loader
-        const result = await loader.hydrateTexture(null as any);
-
-        expect(result.status).toBe(ASSET_STATUS.READY);
-        expect(result.value).toBeNull();
-    });
-
-    it('should handle missing font by returning an immediate READY state', async () => {
-        // We pass null or an empty ref to the loader
-        const result = await loader.hydrateFont(null as any);
-
-        expect(result.status).toBe(ASSET_STATUS.READY);
-        expect(result.value).toBeNull();
+            expect(allSpecs).toHaveLength(3);
+            // Verify we have both types in the stream
+            expect(allSpecs.some(s => s.id === 's1')).toBe(true);
+            expect(allSpecs.some(s => s.id === 't1')).toBe(true);
+        });
     });
 });
-

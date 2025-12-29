@@ -22,7 +22,6 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         this.loader = loader;
     }
 
-    // --- Camera & Matrix ---
     setCamera(pos: Vector3, lookAt: Vector3): void {
         this.p5.camera(pos.x, pos.y, pos.z, lookAt.x, lookAt.y, lookAt.z, 0, 1, 0);
     }
@@ -30,8 +29,8 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
     push(): void { this.p5.push(); }
     pop(): void { this.p5.pop(); }
 
-    translate(pos: Vector3): void {
-        this.p5.translate(pos.x, pos.y, pos.z);
+    translate(pos: Partial<Vector3>): void {
+        this.p5.translate(pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
     }
 
     rotateX(a: number): void { this.p5.rotateX(a); }
@@ -73,40 +72,41 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
             return;
         }
 
-        this.p5.push();
+        this.push();
         this.translate(textProp.position);
         this.drawFill(textProp, sceneState);
-        this.p5.textFont(assets.font.value?.internalRef);
+        this.p5.textFont(assets.font.value.internalRef);
         this.p5.textSize(textProp.size);
         this.p5.noStroke();
         this.text(textProp.text, textProp.position);
-        this.p5.pop();
+        this.pop();
     }
 
     drawBox(boxProps: BoxProps, assets: ElementAssets, sceneState: SceneState): void {
-        this.p5.push();
+        this.push();
 
         this.translate(boxProps.position);
         this.drawTexture(assets, boxProps, sceneState);
 
         this.drawStroke(boxProps, sceneState);
 
-        this.p5.box(boxProps.size);
-        this.p5.pop();
+        this.box(boxProps.size);
+        this.pop();
     }
 
-    drawPlane(w: number, h: number): void {
+    plane(w: number, h: number): void {
         this.p5.plane(w, h);
     }
 
     drawPanel(panelProps: PanelProps, assets: ElementAssets<p5.Image, p5.Font>, sceneState: SceneState) {
-        this.p5.push();
+        this.push();
 
+        this.translate(panelProps.position);
         this.drawTexture(assets, panelProps, sceneState);
         this.drawStroke(panelProps, sceneState);
 
-        this.p5.plane(panelProps.width, panelProps.height);
-        this.p5.pop();
+        this.plane(panelProps.width, panelProps.height);
+        this.pop();
     }
 
     // --- Math Utilities ---
@@ -122,7 +122,6 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         return this.p5.lerp(start, stop, amt);
     }
 
-    // --- UI & Text ---
     drawLabel(s: string, pos: { x: number; y?: number; z?: number }): void {
         this.p5.text(s, pos.x, pos.y ?? 0, pos.z ?? 0);
     }
@@ -131,12 +130,13 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         this.p5.text(s, pos.x, pos.y ?? 0, pos.z ?? 0);
     }
 
-    drawCrosshair(pos: { x: number; y?: number; z?: number }, size: number): void {
-        this.p5.push();
-        this.p5.translate(pos.x, pos.y ?? 0, pos.z ?? 0);
+    drawCrosshair(pos: Partial<Vector3>, size: number): void {
+        this.push();
+
+        this.translate(pos)
         this.p5.line(-size, 0, size, 0);
         this.p5.line(0, -size, 0, size);
-        this.p5.pop();
+        this.pop();
     }
 
     drawHUDText(s: string, x: number, y: number): void {
@@ -172,7 +172,7 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
             this.p5.texture(assets.texture.value.internalRef);
             this.p5.textureMode(this.p5.NORMAL);
             this.p5.tint(255, this.getP5Alpha(elementProp, sceneState))
-        } else if (elementProp.fillColor) {
+        } else {
             this.drawFill(elementProp, sceneState);
         }
     }
@@ -180,6 +180,7 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
     private drawFill(elementProp: BaseVisualProps, sceneState: SceneState) {
 
         if (!elementProp.fillColor) {
+            this.noFill();
             return;
         }
 
