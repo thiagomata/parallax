@@ -10,8 +10,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: './index.html',
-        p5_graphic_processor_demo: './src/scene/p5/p5_graphic_processor_demo.html',
-        p5_world_demo: './src/scene/p5/p5_world_demo.html'
+        p5_graphic_processor_demo: './src/scene/p5/p5_graphic_processor.demo.html',
+        p5_world_demo: './src/scene/p5/p5_world.demo.html'
       }
     }
   },
@@ -28,7 +28,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html', 'json', 'json-summary'],
       include: ['src/**/*.ts'],
-      exclude: ['src/main.ts', 'src/**/*.test.ts'],
+      exclude: ['src/main.ts', 'src/**/*.test.ts', "src/**/*.demo.ts"],
       thresholds: {
         lines: 80,
         functions: 80,
