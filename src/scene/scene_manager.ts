@@ -59,12 +59,12 @@ export class SceneManager {
       if (!m.active) continue;
 
       const res = m.getCarPosition(this.initialCam);
-    if (res.error !== null && this.isDebug && debugLog) {
+    if (!res.success && this.isDebug && debugLog) {
         debugLog.errors.push({ name: m.name, message: res.error });
         continue;
       }
 
-      if (res.error === null && res.value) {
+      if (res.success && res.value) {
         basePos = res.value.position;
         if (this.isDebug && debugLog) {
           debugLog.car = {
@@ -92,7 +92,7 @@ export class SceneManager {
       if (!m.active) continue;
 
       const res = m.getStick(finalCamPos);
-      if (res.error === null && res.value) {
+      if (res.success) {
         stickRes = res.value;
         if (this.isDebug && debugLog) {
           debugLog.stick = {
@@ -132,7 +132,7 @@ export class SceneManager {
       if (!m.active) continue;
 
       const res = m.getNudge(basePos);
-      if (res.error === null && res.value) {
+      if (res.success) {
         const n = res.value;
         if (n.x !== undefined) votes.x.push(n.x);
         if (n.y !== undefined) votes.y.push(n.y);

@@ -5,7 +5,9 @@ import type { Vector3, NudgeModifier } from './types';
 const mockNudge = (val: Partial<Vector3>, shouldError = false): NudgeModifier => ({
     name: `MockNudge_${JSON.stringify(val)}`,
     active: true,
-    getNudge: () => shouldError ? { value: null, error: 'Error' } : { value: val, error: null },
+    getNudge: () => shouldError ?
+        { success: false, error: 'Error' } :
+        { success: true, value: val },
 });
 
 it('should fallback to secondary nudge only when primary fails', () => {
@@ -16,11 +18,19 @@ it('should fallback to secondary nudge only when primary fails', () => {
   expect(chain.name).toBe("try_MockNudge_{\"x\":100}_else_MockNudge_{\"x\":20}");
 
   // Test 1: Primary active
-  expect(chain.getNudge({x:0,y:0,z:0}).value?.x).toBe(100);
+  const actual = chain.getNudge({x:0,y:0,z:0})
+  expect(actual.success).toBe(true);
+  if (actual.success) {
+      expect(actual.value?.x).toBe(100);
+  }
 
   // Test 2: Primary error
-  primary.getNudge = () => ({ value: null, error: 'Fail' });
-  expect(chain.getNudge({x:0,y:0,z:0}).value?.x).toBe(20);
+  primary.getNudge = () => ({ success: false, error: 'Fail' });
+  const primaryErrorResponse = chain.getNudge({x:0,y:0,z:0});
+  expect(primaryErrorResponse.success).toBe(true);
+  if(primaryErrorResponse.success) {
+      expect(primaryErrorResponse.value?.x).toBe(20);
+  }
 });
 
 it('should consider active state correctly', () => {
@@ -42,6 +52,8 @@ it('should return error if both modifiers fail or inactive', () => {
     const chain = new FallbackNudge(primary, secondary);
 
     const res = chain.getNudge({x:0,y:0,z:0});
-    expect(res.value).toBeNull();
-    expect(res.error).toBe("Both modifiers in chain failed or inactive");
+    expect(res.success).toBe(false);
+    if(!res.success) {
+        expect(res.error).toBe("Both modifiers in chain failed or inactive");
+    }
 });

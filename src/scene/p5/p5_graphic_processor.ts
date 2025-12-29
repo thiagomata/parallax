@@ -31,8 +31,8 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
     push(): void { this.p5.push(); }
     pop(): void { this.p5.pop(); }
 
-    translate(x: number, y: number, z: number): void {
-        this.p5.translate(x, y, z);
+    translate(pos: Vector3): void {
+        this.p5.translate(pos.x, pos.y, pos.z);
     }
 
     rotateX(a: number): void { this.p5.rotateX(a); }
@@ -94,7 +94,7 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         this.p5.plane(w, h);
     }
 
-    drawTexture(instance: TextureInstance, w: number, h: number, alpha: number): void {
+    drawPanel(instance: TextureInstance, w: number, h: number, alpha: number): void {
         if (!instance.internalRef) return;
         this.p5.push();
         this.p5.textureMode(this.p5.NORMAL);

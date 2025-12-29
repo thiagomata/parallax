@@ -26,7 +26,6 @@ export class P5AssetLoader implements AssetLoader {
                             internalRef: img,
                             texture: ref
                         },
-                        error: null
                     });
                 },
                 (err) => {
@@ -55,7 +54,6 @@ export class P5AssetLoader implements AssetLoader {
                             internalRef: font,
                             font: ref
                         },
-                        error: null
                     });
                 },
                 (err: any) => {

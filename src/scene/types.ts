@@ -13,8 +13,8 @@ export interface Vector3 {
  * Value and error are mutually exclusive in practice.
  */
 export type FailableResult<T> = 
-  | { value: T; error: null } 
-  | { value: null; error: string };
+  | { success: true, value: T;}
+  | { success: false, error: string };
 
 export interface CarResult {
   name: string;
@@ -75,17 +75,18 @@ export interface TextureRef {
   readonly width: number;
   readonly height: number;
   readonly path: string;
+  readonly alpha?: number;
 }
 
-export interface TextureInstance<T = unknown> {
-  readonly texture?: TextureRef;
-  readonly internalRef: T; // p5.Image, for example
+export interface TextureInstance<TTexture = unknown> {
+  readonly texture: TextureRef;
+  readonly internalRef: TTexture; // p5.Image, for example
 }
 
-export type TextureAsset<T = unknown> =
-    | { readonly status: typeof ASSET_STATUS.PENDING; readonly value: null; readonly error: null }
-    | { readonly status: typeof ASSET_STATUS.LOADING; readonly value: null; readonly error: null }
-    | { readonly status: typeof ASSET_STATUS.READY;   readonly value: TextureInstance<T> | null; readonly error: null }
+export type TextureAsset<TTexture = unknown> =
+    | { readonly status: typeof ASSET_STATUS.PENDING; readonly value: null;}
+    | { readonly status: typeof ASSET_STATUS.LOADING; readonly value: null;}
+    | { readonly status: typeof ASSET_STATUS.READY;   readonly value: TextureInstance<TTexture> | null;}
     | { readonly status: typeof ASSET_STATUS.ERROR;   readonly value: null; readonly error: string };
 
 
@@ -100,9 +101,9 @@ export interface FontInstance<TFont = any> {
 }
 
 export type FontAsset<TFont = any> =
-    | { readonly status: typeof ASSET_STATUS.PENDING; readonly value: null; readonly error: null }
-    | { readonly status: typeof ASSET_STATUS.LOADING; readonly value: null; readonly error: null }
-    | { readonly status: typeof ASSET_STATUS.READY;   readonly value: FontInstance<TFont> | null; readonly error: null }
+    | { readonly status: typeof ASSET_STATUS.PENDING; readonly value: null; }
+    | { readonly status: typeof ASSET_STATUS.LOADING; readonly value: null; }
+    | { readonly status: typeof ASSET_STATUS.READY;   readonly value: FontInstance<TFont> | null; }
     | { readonly status: typeof ASSET_STATUS.ERROR;   readonly value: null; readonly error: string };
 
 export interface AssetLoader {
@@ -122,7 +123,7 @@ export interface GraphicProcessor<TTexture = any, TFont = any> {
   setCamera(pos: Vector3, lookAt: Vector3): void;
   push(): void;
   pop(): void;
-  translate(x: number, y: number, z: number): void;
+  translate(pos: Vector3): void;
   rotateX(angle: number): void;
   rotateY(angle: number): void;
   rotateZ(angle: number): void;
@@ -135,7 +136,7 @@ export interface GraphicProcessor<TTexture = any, TFont = any> {
       assets: ElementAssets<TTexture, TFont>,
       sceneState: SceneState): void;
   drawPlane(width: number, height: number): void;
-  drawTexture(instance: TextureInstance, w: number, h: number, alpha: number): void;
+  drawPanel(instance: TextureInstance, w: number, h: number, alpha: number): void;
   dist(v1: Vector3, v2: Vector3): number;
   map(val: number, s1: number, st1: number, s2: number, st2: number, clamp?: boolean): number;
   lerp(start: number, stop: number, amt: number): number;

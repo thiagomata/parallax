@@ -17,7 +17,7 @@ export const createRenderable = <TTexture, TFont>(
 
         render(gp: GraphicProcessor<TTexture, TFont>, state: SceneState) {
             gp.push();
-            gp.translate(props.position.x, props.position.y, props.position.z);
+            gp.translate(props.position);
 
             const distance = gp.dist(props.position, state.camera);
             if (distance > 5000) {
@@ -30,7 +30,7 @@ export const createRenderable = <TTexture, TFont>(
                 case ELEMENT_TYPES.PANEL:
                     const texture = this.assets.texture;
                     if (texture?.value) {
-                        gp.drawTexture(texture.value, props.width, props.height, props.alpha ?? 255);
+                        gp.drawPanel(texture.value, props.width, props.height, props.alpha ?? 255);
                     } else {
                         // ... loading/error logic ...
                     }

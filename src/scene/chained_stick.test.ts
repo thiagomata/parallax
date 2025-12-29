@@ -14,7 +14,7 @@ describe("ChainedStick Decorator", () => {
         distance: 100, 
         priority: priority
       },
-      error: null,
+      success: true,
     }),
   });
 
@@ -26,7 +26,10 @@ describe("ChainedStick Decorator", () => {
     const res = chain.getStick({ x: 0, y: 0, z: 0 });
 
     // Should be 1, because primary succeeded
-    expect(res.value?.yaw).toBe(1);
+    expect(res.success).toBe(true);
+    if (res.success) {
+      expect(res.value?.yaw).toBe(1);
+    }
   });
 
   it("should skip a failing primary and return the secondary", () => {
@@ -34,7 +37,7 @@ describe("ChainedStick Decorator", () => {
       name: "primary",
       active: true,
       priority: 10,
-      getStick: () => ({ value: null, error: "Hardware Disconnected" }),
+      getStick: () => ({ success: false, error: "Hardware Disconnected" }),
     };
     const secondary = mockStick("secondary", 2);
     const chain = new ChainedStick(50, [primary, secondary]);
@@ -42,8 +45,10 @@ describe("ChainedStick Decorator", () => {
     const res = chain.getStick({ x: 0, y: 0, z: 0 });
 
     // Should be 2, because primary had an error
-    expect(res.error).toBeNull();
-    expect(res.value?.yaw).toBe(2);
+    expect(res.success).toBe(true);
+    if (res.success) {
+      expect(res.value?.yaw).toBe(2);
+    }
   });
 
   it("should skip an inactive modifier even if it would have succeeded", () => {
@@ -55,7 +60,10 @@ describe("ChainedStick Decorator", () => {
 
     const res = chain.getStick({ x: 0, y: 0, z: 0 });
 
-    expect(res.value?.yaw).toBe(2);
+    expect(res.success).toBe(true);
+    if(res.success) {
+      expect(res.value?.yaw).toBe(2);
+    }
   });
 
   it("should return an error if the entire chain fails", () => {
@@ -63,20 +71,22 @@ describe("ChainedStick Decorator", () => {
       name: "primary",
       active: true,
       priority: 1,
-      getStick: () => ({ value: null, error: "Fail 1" }),
+      getStick: () => ({ success: false, error: "Fail 1" }),
     };
     const secondary: StickModifier = {
       name: "secondary",
       active: true,
       priority: 1,
-      getStick: () => ({ value: null, error: "Fail 2" }),
+      getStick: () => ({ success: false, error: "Fail 2" }),
     };
 
     const chain = new ChainedStick(50, [primary, secondary]);
     const res = chain.getStick({ x: 0, y: 0, z: 0 });
 
-    expect(res.value).toBeNull();
-    expect(res.error).toBe("Entire stick chain failed on ChainedStick of (primary,secondary)");
+    expect(res.success).toBe(false);
+    if(!res.success){
+      expect(res.error).toBe("Entire stick chain failed on ChainedStick of (primary,secondary)");
+    }
   });
 
   it("should overwrite internal priorities with the wrapper priority", () => {
@@ -88,7 +98,9 @@ describe("ChainedStick Decorator", () => {
     const chain = new ChainedStick(wrapperPriority, [internal]);
     const res = chain.getStick({ x: 0, y: 0, z: 0 });
 
-    // The result must reflect the wrapper, not the internal child
-    expect(res.value?.priority).toBe(99);
+    expect(res.success).toBe(true);
+    if(res.success) {
+      expect(res.value?.priority).toBe(99);
+    }
   });
 });

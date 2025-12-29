@@ -21,13 +21,19 @@ export class ChaosLoader implements AssetLoader {
             };
         }
 
+        if (ref == null) {
+            return {
+                status: ASSET_STATUS.READY,
+                value: null,
+            }
+        }
+
         return {
             status: ASSET_STATUS.READY,
-            value: ref == null ? null : {
+            value: {
                 texture: ref as any,
                 internalRef: `ptr_${ref ? ref.path : "none"}`
-            },
-            error: null
+            }
         };
     }
 
@@ -55,8 +61,7 @@ export class ChaosLoader implements AssetLoader {
             value: ref == null ? null : {
                 font: ref as any,
                 internalRef: `ptr_${ref ? ref.path : "none"}`
-            },
-            error: null
+            }
         };
     }
 }
@@ -69,8 +74,9 @@ describe('ChaosLoader (Standalone)', () => {
         const result = await loader.hydrateFont(ref);
 
         expect(result.status).toBe(ASSET_STATUS.READY);
-        expect(result.value?.internalRef).toBe("ptr_success.ttf");
-        expect(result.error).toBeNull();
+        if(result.status === ASSET_STATUS.READY) {
+            expect(result.value?.internalRef).toBe("ptr_success.ttf");
+        }
     });
 
     it('should successfully "load" a valid path', async () => {
@@ -79,7 +85,6 @@ describe('ChaosLoader (Standalone)', () => {
 
         expect(result.status).toBe(ASSET_STATUS.READY);
         expect(result.value?.internalRef).toBe("ptr_success.png");
-        expect(result.error).toBeNull();
     });
 
     it('should return a structured error for fail.png', async () => {
@@ -88,7 +93,9 @@ describe('ChaosLoader (Standalone)', () => {
 
         expect(result.status).toBe(ASSET_STATUS.ERROR);
         expect(result.value).toBeNull();
-        expect(result.error).toContain("Could not decode");
+        if( result.status === ASSET_STATUS.ERROR ){
+            expect(result.error).toContain("Could not decode");
+        }
     });
 
     it('should return a structured error for fail.ttf', async () => {
@@ -97,7 +104,9 @@ describe('ChaosLoader (Standalone)', () => {
 
         expect(result.status).toBe(ASSET_STATUS.ERROR);
         expect(result.value).toBeNull();
-        expect(result.error).toContain("Could not decode");
+        if( result.status === ASSET_STATUS.ERROR ){
+            expect(result.error).toContain("Could not decode");
+        }
     });
 
     it('should handle missing texture by returning an immediate READY state', async () => {
@@ -106,7 +115,6 @@ describe('ChaosLoader (Standalone)', () => {
 
         expect(result.status).toBe(ASSET_STATUS.READY);
         expect(result.value).toBeNull();
-        expect(result.error).toBeNull();
     });
 
     it('should handle missing font by returning an immediate READY state', async () => {
@@ -115,7 +123,6 @@ describe('ChaosLoader (Standalone)', () => {
 
         expect(result.status).toBe(ASSET_STATUS.READY);
         expect(result.value).toBeNull();
-        expect(result.error).toBeNull();
     });
 });
 

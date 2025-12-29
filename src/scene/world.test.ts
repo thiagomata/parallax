@@ -33,7 +33,7 @@ export const createMockGP = (): GraphicProcessor => {
         noStroke: vi.fn(),
         drawBox: vi.fn(),
         drawPlane: vi.fn(),
-        drawTexture: vi.fn(),
+        drawPanel: vi.fn(),
         // Real logic for math utils is often better than a mock for tests
         dist: (v1: Vector3, v2: Vector3) => Math.sqrt(
             Math.pow(v2.x - v1.x, 2) +

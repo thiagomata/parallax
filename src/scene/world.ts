@@ -52,7 +52,6 @@ export class World {
                 el.assets.texture = {
                     status: ASSET_STATUS.READY,
                     value: null,
-                    error: null
                 };
             }
         });
@@ -74,7 +73,6 @@ export class World {
                 el.assets.font = {
                     status: ASSET_STATUS.READY,
                     value: null,
-                    error: null
                 };
             }
         });

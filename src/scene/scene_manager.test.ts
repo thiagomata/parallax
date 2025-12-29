@@ -17,14 +17,20 @@ const mockCar = (id: string, priority: number, pos: Vector3): CarModifier => ({
     value: { 
       name: `Position_${id}`,
       position: pos 
-    }, error: null 
+    },
+    success: true
   }),
 });
 
 const mockNudge = (val: Partial<Vector3>, active: boolean = true): NudgeModifier => ({
   name: `MockNudge_${JSON.stringify(val)}`,
   active: active,
-  getNudge: () => ({ value: val, error: null }),
+  getNudge: () => (
+      {
+        value: val,
+        success: true
+      }
+    ),
 });
 
 const mockStick = (
@@ -44,7 +50,7 @@ const mockStick = (
       distance: 10, 
       priority 
     },
-    error: null,
+    success: true
   }),
 });
 
@@ -70,7 +76,10 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
       name: "FailingHigh",
       active: true,
       priority: 100,
-      getCarPosition: () => ({ value: null, error: "Sensor Failure" }),
+      getCarPosition: () => ({
+        success: false,
+        error: "Sensor Failure"
+      }),
     };
 
     manager
@@ -134,14 +143,20 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
       name: "BrokenCar",
       active: true,
       priority: 999,
-      getCarPosition: () => ({ value: null, error: "Critical Error" }),
+      getCarPosition: () => ({
+        success: false,
+        error: "Critical Error"
+      }),
     };
 
     const brokenStick: StickModifier = {
       name: "BrokenStick",
       active: true,
       priority: 999,
-      getStick: () => ({ value: null, error: "Math Overflow" }),
+      getStick: () => ({
+        success: false,
+        error: "Math Overflow"
+      }),
     };
 
     manager.addCarModifier(brokenCar);
@@ -205,7 +220,7 @@ describe("PortalSceneManager - Stage 3 (Stick)", () => {
       priority: 1,
       getStick: () => ({
         value: { name: "ForwardStick", yaw: 0, pitch: 0, distance: 10, priority: 1 },
-        error: null,
+        success: true
       }),
     };
 
@@ -299,7 +314,10 @@ describe("PortalSceneManager - Debug Output", () => {
       name: "FailingCar",
       active: true,
       priority: 100,
-      getCarPosition: () => ({ value: null, error: "Element not found" }),
+      getCarPosition: () => ({
+        success: false,
+        error: "Element not found"
+      }),
     };
 
     const goodCar: CarModifier = {
@@ -308,7 +326,7 @@ describe("PortalSceneManager - Debug Output", () => {
       priority: 50,
       getCarPosition: () => ({
         value: { name: "GoodCar", position: { x: 20, y: 30, z: 40 } },
-        error: null,
+        success: true,
       }),
     };
 
@@ -337,7 +355,7 @@ describe("PortalSceneManager - Debug Output", () => {
       priority: 100,
       getCarPosition: () => ({
         value: { name: "highPriorityCar", position: { x: 50, y: 60, z: 70 } },
-        error: null,
+        success: true,
       }),
     };
 
@@ -359,12 +377,12 @@ describe("PortalSceneManager - Debug Output", () => {
       .addNudgeModifier({
           name: "NudgeX",
           active: true,
-          getNudge: () => ({ value: { x: 5 }, error: null }),
+          getNudge: () => ({ value: { x: 5 }, success: true }),
         })
       .addNudgeModifier({
         name: "NudgeY",
         active: true,
-        getNudge: () => ({ value: { y: 20 }, error: null }),
+        getNudge: () => ({ value: { y: 20 }, success: true }),
       });
 
     // by default, debug should be disabled and not create debug output
@@ -395,7 +413,7 @@ describe("PortalSceneManager - Debug Output", () => {
       name: "FailingCar",
       active: true,
       priority: 100,
-      getCarPosition: () => ({ value: null, error: "DOM element missing" }),
+      getCarPosition: () => ({ success: false, error: "DOM element missing" }),
     };
 
     manager.addCarModifier(failingCar);
@@ -413,7 +431,7 @@ describe("PortalSceneManager - Debug Output", () => {
     const failingNudge: NudgeModifier = {
       name: "FailingNudge",
       active: true,
-      getNudge: () =>({ value: null, error: "DOM element missing" }),
+      getNudge: () =>({ success: false, error: "DOM element missing" }),
     };
     manager.addNudgeModifier(failingNudge);
     const state = manager.calculateScene();
@@ -458,14 +476,14 @@ it("should log multiple errors if higher priority sticks fail", () => {
     name: "Hardware-Sensor",
     active: true,
     priority: 100,
-    getStick: () => ({ value: null, error: "Not Connected" }),
+    getStick: () => ({ success: false, error: "Not Connected" }),
   };
 
   const broken2: StickModifier = {
     name: "Software-Algorithm",
     active: true,
     priority: 80,
-    getStick: () => ({ value: null, error: "NaN Result" }),
+    getStick: () => ({ success: false, error: "NaN Result" }),
   };
 
   const working3 = mockStick("Safe-Fallback", 10, 0.75);

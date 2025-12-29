@@ -67,15 +67,11 @@ export class AssetRegistry<TTexture, TFont> implements Registry {
             initialAsset = {
                 status: ASSET_STATUS.PENDING,
                 value: null,
-                error: null
             };
         } else {
             initialAsset = {
                 status: ASSET_STATUS.READY,
-                value: {
-                    internalRef: null
-                },
-                error: null
+                value: null,
             };
         }
 
@@ -98,15 +94,11 @@ export class AssetRegistry<TTexture, TFont> implements Registry {
             initialAsset = {
                 status: ASSET_STATUS.PENDING,
                 value: null,
-                error: null
             };
         } else {
             initialAsset = {
                 status: ASSET_STATUS.READY,
-                value: {
-                    internalRef: null
-                },
-                error: null
+                value: null,
             };
         }
 

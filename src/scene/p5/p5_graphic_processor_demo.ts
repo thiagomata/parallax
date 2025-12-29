@@ -39,9 +39,9 @@ const sketch = (p: p5) => {
                 texture: { width: 200, height: 200, path: '/red.png' }
             };
             gp.push();
-            gp.translate(0, 0, -50); // Place it behind the boxes
+            gp.translate({x:0, y:0, z:-50}); // Place it behind the boxes
             // 0.5 alpha should let the grid lines show through clearly
-            gp.drawTexture(textureInstance, 300, 300, 0.5);
+            gp.drawPanel(textureInstance, 300, 300, 0.5);
             gp.pop();
         }
 
@@ -56,13 +56,13 @@ const sketch = (p: p5) => {
 
         const greenVal = gp.map(p.sin(p.frameCount * 0.05), -1, 1, 100, 255);
         gp.push();
-        gp.translate(20, 20, 150);
+        gp.translate({x:20, y:20, z:150});
         gp.fill({ red: 50, green: greenVal, blue: 255, alpha: 0.4 });
         gp.box(80);
         gp.pop();
 
         gp.push();
-        gp.translate(60, -50, 320);
+        gp.translate({x:60, y:-50, z:320});
         gp.rotateZ(p.frameCount * 0.02);
         gp.stroke({ red: 0, green: 0, blue: 255, alpha: 1 }, 3);
         gp.fill({ red: 255, green: 50, blue: 250, alpha: 1.0 }, 0.1);

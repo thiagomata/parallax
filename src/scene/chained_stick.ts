@@ -22,18 +22,18 @@ export class ChainedStick implements StickModifier {
     for (const modifier of this.chain) {
       if (!modifier.active) continue;
       const res = modifier.getStick(finalPos);
-      if (res.error === null && res.value) {
+      if (res.success) {
         return {
+          success: true,
           value: {
             ...res.value,
             priority: this.priority, // Override with chain priority
-          },
-          error: null,
+          }
         };
       }
     }
     return { 
-      value: null, 
+      success: false,
       error: "Entire stick chain failed on " + this.name
     };
   }
