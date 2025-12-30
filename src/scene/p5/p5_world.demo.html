@@ -11,5 +11,14 @@
 </head>
 <body>
 <script type="module" src="./p5_world.demo.ts"></script>
+<button id="view-source-btn" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+    View Source
+</button>
+<div id="source-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; padding: 2rem; overflow: auto;">
+    <div style="max-width: 900px; margin: 0 auto;">
+        <button id="close-source-btn" style="margin-bottom: 1rem;">Close</button>
+        <pre class="language-typescript"><code id="code-output"></code></pre>
+    </div>
+</div>
 </body>
 </html>

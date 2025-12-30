@@ -4,7 +4,16 @@ import { P5GraphicProcessor } from './p5_graphic_processor';
 import { P5AssetLoader } from './p5_asset_loader';
 import {ELEMENT_TYPES} from "../types.ts";
 
-const sketch = (p: p5) => {
+import Prism from 'prismjs';
+
+// Import a theme (you can choose others like 'tomorrow' or 'okaidia')
+import 'prismjs/themes/prism-tomorrow.css';
+
+// Import the languages you need
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-javascript';
+
+const p5WorldDemo = (p: p5) => {
     let world: World;
     let gp: P5GraphicProcessor;
 
@@ -47,7 +56,7 @@ const sketch = (p: p5) => {
 
         // 1. Far Background (Large Green Box)
         world.addElement('back', {
-            type: 'box',
+            type: ELEMENT_TYPES.BOX,
             size: 200,
             position: { x: -100, y: 0, z: -200 }, // Far away
             fillColor: { red: 0, green: 255, blue: 0, alpha: 1.0 }
@@ -90,4 +99,51 @@ const sketch = (p: p5) => {
     };
 };
 
-new p5(sketch);
+new p5(p5WorldDemo);
+
+/// showing the code in the page
+
+/**
+ * Fetches the source code of a file and renders it into an overlay.
+ * @param filePath The path to the source file (e.g., '/src/sketch.ts')
+ * @param targetElementId The ID of the <pre> or <code> element
+ */
+export async function highlightSource(filePath: string, targetElementId: string): Promise<void> {
+    try {
+        const response = await fetch(filePath);
+
+        if (!response.ok) {
+            throw new Error(`Could not fetch source: ${response.statusText}`);
+        }
+
+        const code = await response.text();
+        const target = document.getElementById(targetElementId);
+
+        if (target) {
+            // Using Prism safely with TypeScript
+            const highlighted = Prism.highlight(
+                code,
+                Prism.languages.typescript,
+                'typescript'
+            );
+            target.innerHTML = highlighted;
+        }
+    } catch (error) {
+        console.error("Failed to render source code:", error);
+    }
+}
+
+// THE CALLERS: Wiring up the UI
+document.getElementById('view-source-btn')?.addEventListener('click', () => {
+    const modal = document.getElementById('source-modal');
+    if (modal) {
+        modal.style.display = 'block';
+        // Call it here! Assuming you copied your sketch to the public folder
+        highlightSource('./p5_world.demo.ts', 'code-output');
+    }
+});
+
+document.getElementById('close-source-btn')?.addEventListener('click', () => {
+    const modal = document.getElementById('source-modal');
+    if (modal) modal.style.display = 'none';
+});
