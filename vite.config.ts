@@ -7,6 +7,7 @@ export default defineConfig({
     open: true,
   },
   build: {
+    sourcemap: true,
     rollupOptions: {
       input: {
         main: './index.html',

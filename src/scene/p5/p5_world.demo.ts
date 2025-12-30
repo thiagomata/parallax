@@ -2,6 +2,7 @@ import p5 from 'p5';
 import { World } from '../world';
 import { P5GraphicProcessor } from './p5_graphic_processor';
 import { P5AssetLoader } from './p5_asset_loader';
+import {ELEMENT_TYPES} from "../types.ts";
 
 const sketch = (p: p5) => {
     let world: World;
@@ -11,12 +12,33 @@ const sketch = (p: p5) => {
         p.createCanvas(window.innerWidth, window.innerHeight, p.WEBGL);
 
         // Use a dummy manager for now that just returns a fixed camera
+// Inside your sketch function
         const dummyManager: any = {
-            calculateScene: () => ({
-                camera: { x: 0, y: 0, z: 800 }, // Backed up 800 units
-                lookAt: { x: 0, y: 0, z: 0 },
-                debug: null
-            })
+            calculateScene: () => {
+                // 1. Calculate a time factor (seconds)
+                const time = p.millis() * 0.0005; // Adjust speed by changing this multiplier
+                const radius = 900; // Distance from the center
+
+                // 2. Use Trigonometry to orbit the Y-axis
+                // x = sin(angle) * radius
+                // z = cos(angle) * radius
+                const camX = Math.sin(time) * radius;
+                const camZ = Math.cos(time) * radius;
+
+                // 3. Add a slight vertical "wave" for a more dynamic feel
+                const camY = -400 + Math.sin(time * 0.5) * 100;
+
+                return {
+                    camera: {
+                        x: camX,
+                        y: camY,
+                        z: camZ
+                    },
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    alpha: 1.0,
+                    debug: false
+                };
+            }
         };
 
         world = new World(dummyManager);
@@ -33,7 +55,7 @@ const sketch = (p: p5) => {
 
         // 2. Middle Ground (Semi-transparent Red Box)
         world.addElement('mid', {
-            type: 'box',
+            type: ELEMENT_TYPES.BOX,
             size: 150,
             position: { x: 0, y: 0, z: 0 }, // Center
             fillColor: { red: 255, green: 0, blue: 0, alpha: 0.5 }
@@ -41,10 +63,19 @@ const sketch = (p: p5) => {
 
         // 3. Foreground (Blue Box)
         world.addElement('front', {
-            type: 'box',
+            type: ELEMENT_TYPES.BOX,
             size: 100,
             position: { x: 100, y: 0, z: 200 }, // Close to camera
             fillColor: { red: 0, green: 0, blue: 255, alpha: 1.0 }
+        });
+
+        world.addElement('title-label', {
+            type: ELEMENT_TYPES.TEXT,
+            text: "HELLO WORLD",
+            size: 40,
+            position: { x: 50, y: 0, z: 0 }, // Positioned above the scene
+            font: { name: 'Roboto', path: '/parallax/fonts/Roboto-Regular.ttf' },
+            fillColor: { red: 255, green: 0, blue: 255, alpha: 1 }
         });
 
         // No await needed since there are no textures/fonts
@@ -53,7 +84,6 @@ const sketch = (p: p5) => {
 
     p.draw = () => {
         p.background(220); // Light gray so we can see shapes clearly
-        p.orbitControl();
 
         // This will now handle the sorting and rendering
         world.step(gp);

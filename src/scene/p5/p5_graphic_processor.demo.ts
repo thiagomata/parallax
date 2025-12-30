@@ -87,13 +87,13 @@ const sketch = (p: p5) => {
                     },
                     size: 64,
                     fillColor: {
-                        red: 255,
+                        red: 100,
                         green: 255,
                         blue: 255,
-                        alpha: 0.5,
+                        alpha: 0.8,
                     },
                     text: "ALPHA CHECK",
-                    position: {x: -200, y: -30, z: 50},
+                    position: {x: -50, y: -30, z: 50},
                 } as TextProps,
                 {
                     font: {
