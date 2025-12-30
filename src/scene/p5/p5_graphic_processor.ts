@@ -78,7 +78,7 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         this.p5.textFont(assets.font.value.internalRef);
         this.p5.textSize(textProp.size);
         this.p5.noStroke();
-        this.text(textProp.text, textProp.position);
+        this.text(textProp.text, {x:0,y:0,z:0});
         this.pop();
     }
 
