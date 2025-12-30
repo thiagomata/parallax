@@ -3,7 +3,7 @@ import { World } from '../world';
 import { P5GraphicProcessor } from './p5_graphic_processor';
 import { P5AssetLoader } from './p5_asset_loader';
 import {ELEMENT_TYPES} from "../types.ts";
-
+import demoSourceCode from './p5_world.demo.ts?raw';
 import Prism from 'prismjs';
 
 // Import a theme (you can choose others like 'tomorrow' or 'okaidia')
@@ -120,13 +120,11 @@ export async function highlightSource(filePath: string, targetElementId: string)
         const target = document.getElementById(targetElementId);
 
         if (target) {
-            // Using Prism safely with TypeScript
-            const highlighted = Prism.highlight(
+            target.innerHTML = Prism.highlight(
                 code,
                 Prism.languages.typescript,
                 'typescript'
             );
-            target.innerHTML = highlighted;
         }
     } catch (error) {
         console.error("Failed to render source code:", error);
@@ -134,12 +132,20 @@ export async function highlightSource(filePath: string, targetElementId: string)
 }
 
 // THE CALLERS: Wiring up the UI
+// Updated Caller: No fetch, no 404s!
 document.getElementById('view-source-btn')?.addEventListener('click', () => {
     const modal = document.getElementById('source-modal');
-    if (modal) {
+    const output = document.getElementById('code-output');
+
+    if (modal && output) {
         modal.style.display = 'block';
-        // Call it here! Assuming you copied your sketch to the public folder
-        highlightSource('./p5_world.demo.ts', 'code-output');
+
+        // Directly highlight the string Vite embedded for us
+        output.innerHTML = Prism.highlight(
+            demoSourceCode,
+            Prism.languages.typescript,
+            'typescript'
+        );
     }
 });
 
