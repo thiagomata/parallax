@@ -42,9 +42,6 @@ const sketch = (p: p5) => {
                 internalRef: testImg,
                 texture: { width: 200, height: 200, path: '/red.png' }
             };
-            // gp.push();
-            // gp.translate({x:0, y:0, z:-50});
-
 
             gp.drawPanel(
                 {
@@ -67,17 +64,9 @@ const sketch = (p: p5) => {
                     alpha: 1
                 }  as SceneState
             )
-            // gp.pop();
         }
 
         if (testFont) {
-            // p.textFont(testFont);
-            // p.textSize(64);
-            // gp.noStroke();
-            // // White text at 50% opacity
-            // gp.fill({ red: 255, green: 255, blue: 255, alpha: 0.5 });
-            // gp.text("ALPHA CHECK", { x: -200, y: -30, z: 50 });
-
             gp.drawText(
                 {
                     type: ELEMENT_TYPES.TEXT,
@@ -116,11 +105,6 @@ const sketch = (p: p5) => {
         }
 
         const greenVal = gp.map(p.sin(p.frameCount * 0.05), -1, 1, 100, 255);
-        // gp.push();
-        // gp.translate({x:20, y:20, z:150});
-        // gp.fill({ red: 50, green: greenVal, blue: 255, alpha: 0.4 });
-        // gp.box(80);
-        // gp.pop();
 
         //     drawBox(boxProps: BoxProps, assets: ElementAssets, sceneState: SceneState): void {
         gp.drawBox(

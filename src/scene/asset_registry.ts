@@ -22,7 +22,7 @@ export interface TextSpec< TFont> {
 export type ElementSpec<TTexture = any, TFont = any> = TextSpec<TFont> | ShapeSpec<TTexture>;
 
 /**
- * The "Placement"
+ * The Placement.
  * Just a reference to a Spec and a location in space.
  */
 export interface Instance {
@@ -35,9 +35,6 @@ export interface Instance {
  * Its job is to manage the 'Blueprints' (Specs) of what can exist in the scene.
  */
 export interface Registry<TTexture = any, TFont = any> {
-    /** Adds a unique specification to the system.
-     * Returns the spec so it can be used immediately.
-     */
     defineShape(id: string, props: SceneElementProps): ShapeSpec<TTexture>;
 
     defineText(id: string, props: TextProps): TextSpec<TFont>;
@@ -50,20 +47,18 @@ export interface Registry<TTexture = any, TFont = any> {
 }
 
 export class AssetRegistry<TTexture, TFont> implements Registry {
-    // The internal store for our Blueprints
     private shapes = new Map<string, ShapeSpec<TTexture>>();
     private texts = new Map<string, TextSpec<TFont>>();
 
-    constructor() {}
+    constructor() {
+    }
 
     defineShape(id: string, props: SceneElementProps): ShapeSpec<TTexture> {
         if (this.shapes.has(id)) return this.shapes.get(id)!;
 
-        // We initialise the asset bucket based on whether a texture is requested
         let initialAsset: TextureAsset;
 
         if (props.texture) {
-            // Case A: Needs loading
             initialAsset = {
                 status: ASSET_STATUS.PENDING,
                 value: null,
@@ -120,31 +115,12 @@ export class AssetRegistry<TTexture, TFont> implements Registry {
         return this.shapes.get(id)!;
     }
 
-// 1. Ensure your return type matches the Interface exactly
     all(): IterableIterator<ElementSpec<TTexture, TFont>> {
-        // We use a generator to "stream" both maps as one sequence
         return this.generateAll();
     }
 
-// 2. The Generator implementation
-    private *generateAll(): IterableIterator<ElementSpec<TTexture, TFont>> {
-        // yield* delegates to the iterator of each map's values
+    private* generateAll(): IterableIterator<ElementSpec<TTexture, TFont>> {
         yield* this.shapes.values();
         yield* this.texts.values();
     }
-
-    // /**
-    //  * Implementation of Registry.
-    //  */
-    // get(id: string): ElementSpec | undefined {
-    //     return this.texts.get(id);
-    // }
-    //
-    // /**
-    //  * Implementation of Registry.all
-    //  * Returns an iterator for the World's hydration loop
-    //  */
-    // all(): IterableIterator<ElementSpec> {
-    //     return this.specs.values();
-    // }
 }

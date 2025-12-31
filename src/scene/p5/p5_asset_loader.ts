@@ -40,9 +40,6 @@ export class P5AssetLoader implements AssetLoader {
         });
     }
 
-    /**
-     * Wraps p.loadFont in a Promise.
-     */
     public async hydrateFont(ref: FontRef): Promise<FontAsset> {
         return new Promise((resolve) => {
             this.p.loadFont(

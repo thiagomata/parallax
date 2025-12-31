@@ -1,18 +1,17 @@
 import type {AssetLoader, GraphicProcessor, RenderableElement, SceneState} from "./types.ts";
 
 export class Stage {
-    // THE STORAGE: Where your renderables live after being created/cast
     private registry: Map<string, RenderableElement> = new Map();
 
     /**
-     * Add a 'Spec' to the storage
+     * Add a Spec to the storage
      */
     public add(element: RenderableElement) {
         this.registry.set(element.id, element);
     }
 
     /**
-     * The "Casting" process: Iterates through storage and hydrates assets
+     * The Casting process: Iterates through storage and hydrates assets
      */
     public async hydrateAll(loader: AssetLoader) {
         const elements = Array.from(this.registry.values());

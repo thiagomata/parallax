@@ -12,49 +12,31 @@ import 'prismjs/themes/prism-tomorrow.css';
 // Import the languages you need
 import 'prismjs/components/prism-typescript';
 import 'prismjs/components/prism-javascript';
+import {SceneManager} from "../scene_manager.ts";
+import {OrbitModifier} from "../modifiers/orbit_modifier.ts";
+import {CenterFocusModifier} from "../modifiers/center_focus_modifier.ts";
 
-const p5WorldDemo = (p: p5) => {
+const p5WorldDemo = (p5: p5) => {
     let world: World;
     let gp: P5GraphicProcessor;
+    let manager: SceneManager;
 
-    p.setup = async () => {
-        p.createCanvas(window.innerWidth, window.innerHeight, p.WEBGL);
+    p5.setup = async () => {
+        p5.createCanvas(window.innerWidth, window.innerHeight, p5.WEBGL);
 
-        // Use a dummy manager for now that just returns a fixed camera
-// Inside your sketch function
-        const dummyManager: any = {
-            calculateScene: () => {
-                // 1. Calculate a time factor (seconds)
-                const time = p.millis() * 0.0005; // Adjust speed by changing this multiplier
-                const radius = 900; // Distance from the center
+        manager = new SceneManager({ x: 0, y: 0, z: 900 });
+        manager.setDebug(true);
+        manager.setStickDistance(1000);
 
-                // 2. Use Trigonometry to orbit the Y-axis
-                // x = sin(angle) * radius
-                // z = cos(angle) * radius
-                const camX = Math.sin(time) * radius;
-                const camZ = Math.cos(time) * radius;
+        manager.addCarModifier(new OrbitModifier(p5, 1000));
+        manager.addStickModifier(new CenterFocusModifier());
 
-                // 3. Add a slight vertical "wave" for a more dynamic feel
-                const camY = -400 + Math.sin(time * 0.5) * 100;
+        world = new World(manager);
 
-                return {
-                    camera: {
-                        x: camX,
-                        y: camY,
-                        z: camZ
-                    },
-                    lookAt: { x: 0, y: 0, z: 0 },
-                    alpha: 1.0,
-                    debug: false
-                };
-            }
-        };
+        const loader = new P5AssetLoader(p5);
+        gp = new P5GraphicProcessor(p5, loader);
 
-        world = new World(dummyManager);
-        const loader = new P5AssetLoader(p);
-        gp = new P5GraphicProcessor(p, loader);
 
-        // 1. Far Background (Large Green Box)
         world.addElement('back', {
             type: ELEMENT_TYPES.BOX,
             size: 200,
@@ -82,17 +64,16 @@ const p5WorldDemo = (p: p5) => {
             type: ELEMENT_TYPES.TEXT,
             text: "HELLO WORLD",
             size: 40,
-            position: { x: 50, y: 0, z: 0 }, // Positioned above the scene
+            position: { x: 50, y: 0, z: 0 },
             font: { name: 'Roboto', path: '/parallax/fonts/Roboto-Regular.ttf' },
             fillColor: { red: 255, green: 0, blue: 255, alpha: 1 }
         });
 
-        // No await needed since there are no textures/fonts
         await world.hydrate(loader);
     };
 
-    p.draw = () => {
-        p.background(220); // Light gray so we can see shapes clearly
+    p5.draw = () => {
+        p5.background(220); // Light gray so we can see shapes clearly
 
         // This will now handle the sorting and rendering
         world.step(gp);
