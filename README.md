@@ -1,8 +1,8 @@
 # parallax
+
 Just me playing around with 3D and fake 3D with HTML and Javascript
 
 ![Coverage](https://img.shields.io/codecov/c/github/thiagomata/parallax)
-
 
 ## Scene Entities
 
@@ -53,18 +53,17 @@ classDiagram
         +drawTexture(TextureInstance) void
     }
 
-    %% Structural Links
+%% Structural Links
     World *-- Registry
     World *-- Instance
     Registry *-- ElementSpec
     ElementSpec *-- TextureAsset
     TextureAsset o-- TextureInstance
-    Instance ..> ElementSpec : via specId
-
-    %% Interaction Links
-    World ..> AssetLoader : invokes
-    World ..> GraphicProcessor : drives
-    GraphicProcessor ..> TextureInstance : draws
+    Instance ..> ElementSpec: via specId
+%% Interaction Links
+    World ..> AssetLoader: invokes
+    World ..> GraphicProcessor: drives
+    GraphicProcessor ..> TextureInstance: draws
 ```
 
 ```mermaid

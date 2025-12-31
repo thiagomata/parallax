@@ -1,6 +1,7 @@
 import {
     ASSET_STATUS,
-    type AssetLoader, type FontAsset,
+    type AssetLoader,
+    type FontAsset,
     type GraphicProcessor,
     type RenderableElement,
     type SceneElementProps,
@@ -15,7 +16,7 @@ export class World {
     private sceneManager: SceneManager;
     private textureCache: Map<string, Promise<TextureAsset>> = new Map();
     private fontCache: Map<string, Promise<FontAsset>> = new Map();
-    
+
     constructor(sceneManager: SceneManager) {
         this.sceneManager = sceneManager;
     }
@@ -103,7 +104,7 @@ export class World {
             .sort((a, b) => b.distance - a.distance);
 
         // 4. Execute the sorted render calls
-        renderQueue.forEach(({ element }) => {
+        renderQueue.forEach(({element}) => {
             element.render(graphicProcessor, state);
         });
 

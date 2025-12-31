@@ -1,41 +1,41 @@
-import { it, expect } from 'vitest';
-import { FallbackNudge } from './fallback_nudge';
-import type { Vector3, NudgeModifier } from './types';
+import {expect, it} from 'vitest';
+import {FallbackNudge} from './fallback_nudge';
+import type {NudgeModifier, Vector3} from './types';
 
 const mockNudge = (val: Partial<Vector3>, shouldError = false): NudgeModifier => ({
     name: `MockNudge_${JSON.stringify(val)}`,
     active: true,
     getNudge: () => shouldError ?
-        { success: false, error: 'Error' } :
-        { success: true, value: val },
+        {success: false, error: 'Error'} :
+        {success: true, value: val},
 });
 
 it('should fallback to secondary nudge only when primary fails', () => {
-  const primary = mockNudge({ x: 100 });
-  const secondary = mockNudge({ x: 20 });
-  const chain = new FallbackNudge(primary, secondary);
+    const primary = mockNudge({x: 100});
+    const secondary = mockNudge({x: 20});
+    const chain = new FallbackNudge(primary, secondary);
 
-  expect(chain.name).toBe("try_MockNudge_{\"x\":100}_else_MockNudge_{\"x\":20}");
+    expect(chain.name).toBe("try_MockNudge_{\"x\":100}_else_MockNudge_{\"x\":20}");
 
-  // Test 1: Primary active
-  const actual = chain.getNudge({x:0,y:0,z:0})
-  expect(actual.success).toBe(true);
-  if (actual.success) {
-      expect(actual.value?.x).toBe(100);
-  }
+    // Test 1: Primary active
+    const actual = chain.getNudge({x: 0, y: 0, z: 0})
+    expect(actual.success).toBe(true);
+    if (actual.success) {
+        expect(actual.value?.x).toBe(100);
+    }
 
-  // Test 2: Primary error
-  primary.getNudge = () => ({ success: false, error: 'Fail' });
-  const primaryErrorResponse = chain.getNudge({x:0,y:0,z:0});
-  expect(primaryErrorResponse.success).toBe(true);
-  if(primaryErrorResponse.success) {
-      expect(primaryErrorResponse.value?.x).toBe(20);
-  }
+    // Test 2: Primary error
+    primary.getNudge = () => ({success: false, error: 'Fail'});
+    const primaryErrorResponse = chain.getNudge({x: 0, y: 0, z: 0});
+    expect(primaryErrorResponse.success).toBe(true);
+    if (primaryErrorResponse.success) {
+        expect(primaryErrorResponse.value?.x).toBe(20);
+    }
 });
 
 it('should consider active state correctly', () => {
-    const primary = mockNudge({ x: 100 });
-    const secondary = mockNudge({ x: 20 });
+    const primary = mockNudge({x: 100});
+    const secondary = mockNudge({x: 20});
     const chain = new FallbackNudge(primary, secondary);
     expect(chain.active).toBe(true);
 
@@ -47,13 +47,13 @@ it('should consider active state correctly', () => {
 });
 
 it('should return error if both modifiers fail or inactive', () => {
-    const primary = mockNudge({ x: 100 }, true); // Will error
-    const secondary = mockNudge({ x: 20 }, true); // Will error
+    const primary = mockNudge({x: 100}, true); // Will error
+    const secondary = mockNudge({x: 20}, true); // Will error
     const chain = new FallbackNudge(primary, secondary);
 
-    const res = chain.getNudge({x:0,y:0,z:0});
+    const res = chain.getNudge({x: 0, y: 0, z: 0});
     expect(res.success).toBe(false);
-    if(!res.success) {
+    if (!res.success) {
         expect(res.error).toBe("Both modifiers in chain failed or inactive");
     }
 });

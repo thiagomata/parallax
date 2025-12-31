@@ -1,12 +1,16 @@
 import p5 from 'p5';
 import {
-    type GraphicProcessor,
+    ASSET_STATUS,
     type AssetLoader,
-    type Vector3,
-    type ColorRGBA,
+    type BaseVisualProps,
     type BoxProps,
+    type ColorRGBA,
+    type ElementAssets,
+    type GraphicProcessor,
+    type PanelProps,
     type SceneState,
-    type BaseVisualProps, ASSET_STATUS, type ElementAssets, type PanelProps, type TextProps
+    type TextProps,
+    type Vector3
 } from '../types';
 
 export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
@@ -26,16 +30,29 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         this.p5.camera(pos.x, pos.y, pos.z, lookAt.x, lookAt.y, lookAt.z, 0, 1, 0);
     }
 
-    push(): void { this.p5.push(); }
-    pop(): void { this.p5.pop(); }
+    push(): void {
+        this.p5.push();
+    }
+
+    pop(): void {
+        this.p5.pop();
+    }
 
     translate(pos: Partial<Vector3>): void {
         this.p5.translate(pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
     }
 
-    rotateX(a: number): void { this.p5.rotateX(a); }
-    rotateY(a: number): void { this.p5.rotateY(a); }
-    rotateZ(a: number): void { this.p5.rotateZ(a); }
+    rotateX(a: number): void {
+        this.p5.rotateX(a);
+    }
+
+    rotateY(a: number): void {
+        this.p5.rotateY(a);
+    }
+
+    rotateZ(a: number): void {
+        this.p5.rotateZ(a);
+    }
 
     // --- Styling & Drawing ---
     fill(color: ColorRGBA, alpha: number = 1): void {
@@ -43,6 +60,7 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         const finalAlpha = Math.round(alpha * baseAlpha * 255);
         this.p5.fill(color.red, color.green, color.blue, finalAlpha);
     }
+
     noFill(): void {
         this.p5.noFill();
     }
@@ -53,6 +71,7 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         this.p5.strokeWeight(weight);
         this.p5.stroke(color.red, color.green, color.blue, finalAlpha);
     }
+
     noStroke(): void {
         this.p5.noStroke();
     }
@@ -62,11 +81,11 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
     }
 
     drawText(textProp: TextProps, assets: ElementAssets<p5.Image, p5.Font>, sceneState: SceneState): void {
-        if(assets.font?.status !== ASSET_STATUS.READY) {
+        if (assets.font?.status !== ASSET_STATUS.READY) {
             // text is not ready
             return;
         }
-        if(!assets.font?.value) {
+        if (!assets.font?.value) {
             // in the future, load a default font.
             // ignoring texts without font for now
             return;
@@ -78,7 +97,7 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         this.p5.textFont(assets.font.value.internalRef);
         this.p5.textSize(textProp.size);
         this.p5.noStroke();
-        this.text(textProp.text, {x:0,y:0,z:0});
+        this.text(textProp.text, {x: 0, y: 0, z: 0});
         this.pop();
     }
 

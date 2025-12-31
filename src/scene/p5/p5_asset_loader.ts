@@ -2,10 +2,10 @@ import p5 from 'p5';
 import {
     ASSET_STATUS,
     type AssetLoader,
-    type TextureAsset,
     type FontAsset,
-    type TextureRef,
-    type FontRef
+    type FontRef,
+    type TextureAsset,
+    type TextureRef
 } from '../types';
 
 export class P5AssetLoader implements AssetLoader {

@@ -2,7 +2,7 @@ name: CI and Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch: # Allows manual trigger from the GitHub UI
 
 permissions:
@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:

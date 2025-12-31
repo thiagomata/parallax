@@ -1,7 +1,7 @@
 import p5 from 'p5';
-import { World } from '../world';
-import { P5GraphicProcessor } from './p5_graphic_processor';
-import { P5AssetLoader } from './p5_asset_loader';
+import {World} from '../world';
+import {P5GraphicProcessor} from './p5_graphic_processor';
+import {P5AssetLoader} from './p5_asset_loader';
 import {ELEMENT_TYPES} from "../types.ts";
 import demoSourceCode from './p5_world.demo.ts?raw';
 import Prism from 'prismjs';
@@ -24,7 +24,7 @@ const p5WorldDemo = (p5: p5) => {
     p5.setup = async () => {
         p5.createCanvas(window.innerWidth, window.innerHeight, p5.WEBGL);
 
-        manager = new SceneManager({ x: 0, y: 0, z: 900 });
+        manager = new SceneManager({x: 0, y: 0, z: 900});
         manager.setDebug(true);
         manager.setStickDistance(1000);
 
@@ -40,33 +40,33 @@ const p5WorldDemo = (p5: p5) => {
         world.addElement('back', {
             type: ELEMENT_TYPES.BOX,
             size: 200,
-            position: { x: -100, y: 0, z: -200 }, // Far away
-            fillColor: { red: 0, green: 255, blue: 0, alpha: 1.0 }
+            position: {x: -100, y: 0, z: -200}, // Far away
+            fillColor: {red: 0, green: 255, blue: 0, alpha: 1.0}
         });
 
         // 2. Middle Ground (Semi-transparent Red Box)
         world.addElement('mid', {
             type: ELEMENT_TYPES.BOX,
             size: 150,
-            position: { x: 0, y: 0, z: 0 }, // Center
-            fillColor: { red: 255, green: 0, blue: 0, alpha: 0.5 }
+            position: {x: 0, y: 0, z: 0}, // Center
+            fillColor: {red: 255, green: 0, blue: 0, alpha: 0.5}
         });
 
         // 3. Foreground (Blue Box)
         world.addElement('front', {
             type: ELEMENT_TYPES.BOX,
             size: 100,
-            position: { x: 100, y: 0, z: 200 }, // Close to camera
-            fillColor: { red: 0, green: 0, blue: 255, alpha: 1.0 }
+            position: {x: 100, y: 0, z: 200}, // Close to camera
+            fillColor: {red: 0, green: 0, blue: 255, alpha: 1.0}
         });
 
         world.addElement('title-label', {
             type: ELEMENT_TYPES.TEXT,
             text: "HELLO WORLD",
             size: 40,
-            position: { x: 50, y: 0, z: 0 },
-            font: { name: 'Roboto', path: '/parallax/fonts/Roboto-Regular.ttf' },
-            fillColor: { red: 255, green: 0, blue: 255, alpha: 1 }
+            position: {x: 50, y: 0, z: 0},
+            font: {name: 'Roboto', path: '/parallax/fonts/Roboto-Regular.ttf'},
+            fillColor: {red: 255, green: 0, blue: 255, alpha: 1}
         });
 
         await world.hydrate(loader);

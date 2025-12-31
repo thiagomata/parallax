@@ -1,9 +1,16 @@
 import p5 from 'p5';
-import { P5GraphicProcessor } from './p5_graphic_processor';
+import {P5GraphicProcessor} from './p5_graphic_processor';
 import {
     ASSET_STATUS,
-    type AssetLoader, type BoxProps,
-    ELEMENT_TYPES, type ElementAssets, type FontInstance, type FontRef, type PanelProps, type SceneState, type TextProps
+    type AssetLoader,
+    type BoxProps,
+    ELEMENT_TYPES,
+    type ElementAssets,
+    type FontInstance,
+    type FontRef,
+    type PanelProps,
+    type SceneState,
+    type TextProps
 } from '../types';
 
 const sketch = (p: p5) => {
@@ -18,19 +25,23 @@ const sketch = (p: p5) => {
         const dummyLoader = {} as AssetLoader;
         gp = new P5GraphicProcessor(p, dummyLoader);
 
-        p.loadImage('/parallax/img/red.png', (img) => { testImg = img; });
-        p.loadFont('/parallax/fonts/Roboto-Regular.ttf', (f) => { testFont = f; });
+        p.loadImage('/parallax/img/red.png', (img) => {
+            testImg = img;
+        });
+        p.loadFont('/parallax/fonts/Roboto-Regular.ttf', (f) => {
+            testFont = f;
+        });
     };
 
     p.draw = () => {
         p.background(20);
         p.orbitControl();
 
-        gp.setCamera({ x: 300, y: -300, z: 600 }, { x: 0, y: 0, z: 0 });
+        gp.setCamera({x: 300, y: -300, z: 600}, {x: 0, y: 0, z: 0});
 
         gp.push();
         gp.rotateX(p.HALF_PI); // Lay it flat
-        gp.stroke({ red: 100, green: 100, blue: 100, alpha: 0.5 }, 1);
+        gp.stroke({red: 100, green: 100, blue: 100, alpha: 0.5}, 1);
         for (let i = -500; i <= 500; i += 50) {
             p.line(i, -500, i, 500);
             p.line(-500, i, 500, i);
@@ -40,7 +51,7 @@ const sketch = (p: p5) => {
         if (testImg) {
             const textureInstance = {
                 internalRef: testImg,
-                texture: { width: 200, height: 200, path: '/red.png' }
+                texture: {width: 200, height: 200, path: '/red.png'}
             };
 
             gp.drawPanel(
@@ -59,10 +70,10 @@ const sketch = (p: p5) => {
                     }
                 } as ElementAssets<p5.Image, p5.Font>,
                 {
-                    camera: {x:0,y:0,z:0},
-                    lookAt: {x:0,y:0,z:100},
+                    camera: {x: 0, y: 0, z: 0},
+                    lookAt: {x: 0, y: 0, z: 100},
                     alpha: 1
-                }  as SceneState
+                } as SceneState
             )
         }
 
@@ -97,10 +108,10 @@ const sketch = (p: p5) => {
                     }
                 } as ElementAssets<p5.Image, p5.Font>,
                 {
-                    camera: {x:0,y:0,z:0},
-                    lookAt: {x:0,y:0,z:100},
+                    camera: {x: 0, y: 0, z: 0},
+                    lookAt: {x: 0, y: 0, z: 100},
                     alpha: 1
-                }  as SceneState
+                } as SceneState
             )
         }
 
@@ -109,24 +120,24 @@ const sketch = (p: p5) => {
         //     drawBox(boxProps: BoxProps, assets: ElementAssets, sceneState: SceneState): void {
         gp.drawBox(
             {
-                type:  ELEMENT_TYPES.BOX,
+                type: ELEMENT_TYPES.BOX,
                 size: 80,
                 position: {x: 20, y: 20, z: 150},
                 fillColor: {red: 50, green: greenVal, blue: 255, alpha: 0.5},
             } as BoxProps,
             {},
             {
-                camera: {x:0,y:0,z:0},
-                lookAt: {x:0,y:0,z:100},
+                camera: {x: 0, y: 0, z: 0},
+                lookAt: {x: 0, y: 0, z: 100},
                 alpha: 1
-            }  as SceneState
+            } as SceneState
         )
 
         gp.push();
-        gp.translate({x:60, y:-50, z:320});
+        gp.translate({x: 60, y: -50, z: 320});
         gp.rotateZ(p.frameCount * 0.02);
-        gp.stroke({ red: 0, green: 0, blue: 255, alpha: 1 }, 3);
-        gp.fill({ red: 255, green: 50, blue: 250, alpha: 1.0 }, 0.1);
+        gp.stroke({red: 0, green: 0, blue: 255, alpha: 1}, 3);
+        gp.fill({red: 255, green: 50, blue: 250, alpha: 1.0}, 0.1);
         gp.box(50);
         gp.pop();
     };

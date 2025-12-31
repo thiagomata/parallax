@@ -1,14 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
 import p5 from 'p5';
-import { P5GraphicProcessor } from './p5_graphic_processor';
+import {P5GraphicProcessor} from './p5_graphic_processor';
 import {
     ASSET_STATUS,
     type AssetLoader,
-    type SceneState,
-    ELEMENT_TYPES,
-    type TextProps,
     type BoxProps,
-    type PanelProps
+    ELEMENT_TYPES,
+    type PanelProps,
+    type SceneState,
+    type TextProps
 } from '../types';
 
 describe('P5GraphicProcessor', () => {
@@ -17,8 +17,8 @@ describe('P5GraphicProcessor', () => {
     let mockLoader: AssetLoader;
 
     const mockState: SceneState = {
-        camera: { x: 0, y: 0, z: 0 },
-        lookAt: { x: 0, y: 0, z: 0 },
+        camera: {x: 0, y: 0, z: 0},
+        lookAt: {x: 0, y: 0, z: 0},
         alpha: 1 // Global scene alpha
     };
 
@@ -57,14 +57,14 @@ describe('P5GraphicProcessor', () => {
 
     describe('Styling and Alpha Math', () => {
         it('should correctly calculate fill alpha (0-255 scale)', () => {
-            const color = { red: 255, green: 0, blue: 0, alpha: 0.5 };
+            const color = {red: 255, green: 0, blue: 0, alpha: 0.5};
             // Global alpha 1 * Color alpha 0.5 * input alpha 1 * 255 = 127.5 -> 128
             gp.fill(color, 1);
             expect(mockP5.fill).toHaveBeenCalledWith(255, 0, 0, 128);
         });
 
         it('should handle missing color alpha as 1', () => {
-            const color = { red: 0, green: 255, blue: 0 }; // No alpha property
+            const color = {red: 0, green: 255, blue: 0}; // No alpha property
             gp.fill(color, 0.5); // Input alpha 0.5
             expect(mockP5.fill).toHaveBeenCalledWith(0, 255, 0, 128);
         });
@@ -74,16 +74,16 @@ describe('P5GraphicProcessor', () => {
         it('should apply texture and tint if asset is READY', () => {
             const boxProps = {
                 type: ELEMENT_TYPES.BOX,
-                position: { x: 10, y: 20, z: 30 },
+                position: {x: 10, y: 20, z: 30},
                 size: 50,
                 alpha: 0.8
             };
 
-            const mockImage = { width: 100 };
+            const mockImage = {width: 100};
             const assets = {
                 texture: {
                     status: ASSET_STATUS.READY,
-                    value: { internalRef: mockImage as unknown as p5.Image, texture: {} as any }
+                    value: {internalRef: mockImage as unknown as p5.Image, texture: {} as any}
                 }
             };
 
@@ -101,12 +101,12 @@ describe('P5GraphicProcessor', () => {
         it('should fallback to fillColor if texture is not READY', () => {
             const boxProps = {
                 type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
+                position: {x: 0, y: 0, z: 0},
                 size: 10,
-                fillColor: { red: 100, green: 100, blue: 100 }
+                fillColor: {red: 100, green: 100, blue: 100}
             };
 
-            const assets = { texture: { status: ASSET_STATUS.LOADING, value: null } };
+            const assets = {texture: {status: ASSET_STATUS.LOADING, value: null}};
 
             gp.drawBox(boxProps, assets, mockState);
 
@@ -117,8 +117,8 @@ describe('P5GraphicProcessor', () => {
 
     describe('Math Passthroughs', () => {
         it('should delegate dist calculation to p5', () => {
-            const v1 = { x: 0, y: 0, z: 0 };
-            const v2 = { x: 10, y: 10, z: 10 };
+            const v1 = {x: 0, y: 0, z: 0};
+            const v2 = {x: 10, y: 10, z: 10};
             gp.dist(v1, v2);
             expect(mockP5.dist).toHaveBeenCalledWith(0, 0, 0, 10, 10, 10);
         });
@@ -129,13 +129,13 @@ describe('P5GraphicProcessor', () => {
             type: ELEMENT_TYPES.TEXT,
             text: 'Gemini',
             size: 24,
-            position: { x: 10, y: 10, z: 10 },
-            fillColor: { red: 255, green: 255, blue: 255 }
+            position: {x: 10, y: 10, z: 10},
+            fillColor: {red: 255, green: 255, blue: 255}
         };
 
         it('should return early if font status is not READY', () => {
             const assets = {
-                font: { status: ASSET_STATUS.LOADING, value: null }
+                font: {status: ASSET_STATUS.LOADING, value: null}
             };
             gp.drawText(textProps, assets as any, mockState);
             expect(mockP5.push).not.toHaveBeenCalled();
@@ -143,18 +143,18 @@ describe('P5GraphicProcessor', () => {
 
         it('should return early if font value is null', () => {
             const assets = {
-                font: { status: ASSET_STATUS.READY, value: null }
+                font: {status: ASSET_STATUS.READY, value: null}
             };
             gp.drawText(textProps, assets as any, mockState);
             expect(mockP5.push).not.toHaveBeenCalled();
         });
 
         it('should set textFont and textSize when font is READY', () => {
-            const mockFont = { name: 'Arial' } as p5.Font;
+            const mockFont = {name: 'Arial'} as p5.Font;
             const assets = {
                 font: {
                     status: ASSET_STATUS.READY,
-                    value: { internalRef: mockFont, font: {} as any }
+                    value: {internalRef: mockFont, font: {} as any}
                 }
             };
 
@@ -169,7 +169,7 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should apply stroke weight and calculated alpha', () => {
-        const color = { red: 0, green: 255, blue: 0, alpha: 0.8 };
+        const color = {red: 0, green: 255, blue: 0, alpha: 0.8};
         const weight = 2;
         const globalAlpha = 0.5;
 
@@ -189,13 +189,13 @@ describe('P5GraphicProcessor', () => {
     it('should apply stroke from props when drawing a box', () => {
         const boxProps: BoxProps = {
             type: ELEMENT_TYPES.BOX,
-            position: { x: 0, y: 0, z: 0 },
+            position: {x: 0, y: 0, z: 0},
             size: 50,
-            strokeColor: { red: 255, green: 0, blue: 0, alpha: 1 },
+            strokeColor: {red: 255, green: 0, blue: 0, alpha: 1},
             strokeWidth: 5
         };
         const sceneState: SceneState = {
-            camera: {x:0,y:0,z:0}, lookAt: {x:0,y:0,z:0},
+            camera: {x: 0, y: 0, z: 0}, lookAt: {x: 0, y: 0, z: 0},
             alpha: 1 // Scene global alpha
         };
 
@@ -208,12 +208,12 @@ describe('P5GraphicProcessor', () => {
     it('should skip stroke application if strokeColor is missing in props', () => {
         const boxProps: BoxProps = {
             type: ELEMENT_TYPES.BOX,
-            position: { x: 0, y: 0, z: 0 },
+            position: {x: 0, y: 0, z: 0},
             size: 50
             // No strokeColor provided
         };
 
-        gp.drawBox(boxProps, {}, { alpha: 1 } as any);
+        gp.drawBox(boxProps, {}, {alpha: 1} as any);
 
         expect(mockP5.stroke).not.toHaveBeenCalled();
         expect(mockP5.strokeWeight).not.toHaveBeenCalled();
@@ -222,12 +222,12 @@ describe('P5GraphicProcessor', () => {
     it('should translate to the correct position and draw a plane', () => {
         const panelProps: PanelProps = {
             type: ELEMENT_TYPES.PANEL,
-            position: { x: 100, y: -50, z: 200 },
+            position: {x: 100, y: -50, z: 200},
             width: 300,
             height: 150
         };
 
-        gp.drawPanel(panelProps, {}, { alpha: 1 } as any);
+        gp.drawPanel(panelProps, {}, {alpha: 1} as any);
 
         expect(mockP5.push).toHaveBeenCalled();
         expect(mockP5.translate).toHaveBeenCalledWith(100, -50, 200);
@@ -238,23 +238,23 @@ describe('P5GraphicProcessor', () => {
     it('should apply both texture and stroke if both are provided', () => {
         const panelProps: PanelProps = {
             type: ELEMENT_TYPES.PANEL,
-            position: { x: 0, y: 0, z: 0 },
+            position: {x: 0, y: 0, z: 0},
             width: 100,
             height: 100,
-            strokeColor: { red: 255, green: 255, blue: 255, alpha: 1 },
+            strokeColor: {red: 255, green: 255, blue: 255, alpha: 1},
             strokeWidth: 2,
             alpha: 1
         };
 
-        const mockImage = { width: 50 };
+        const mockImage = {width: 50};
         const assets = {
             texture: {
                 status: ASSET_STATUS.READY,
-                value: { internalRef: mockImage, texture: {} as any }
+                value: {internalRef: mockImage, texture: {} as any}
             }
         };
 
-        gp.drawPanel(panelProps, assets as any, { alpha: 1 } as any);
+        gp.drawPanel(panelProps, assets as any, {alpha: 1} as any);
 
         // Verify Texture logic
         expect(mockP5.texture).toHaveBeenCalledWith(mockImage);
@@ -269,23 +269,23 @@ describe('P5GraphicProcessor', () => {
     it('should fallback to fillColor in drawPanel when texture is not ready', () => {
         const panelProps: PanelProps = {
             type: ELEMENT_TYPES.PANEL,
-            position: { x: 0, y: 0, z: 0 },
+            position: {x: 0, y: 0, z: 0},
             width: 10,
             height: 10,
-            fillColor: { red: 255, green: 0, blue: 0, alpha: 1 }
+            fillColor: {red: 255, green: 0, blue: 0, alpha: 1}
         };
 
         // Asset is still loading
-        const assets = { texture: { status: ASSET_STATUS.LOADING, value: null } };
+        const assets = {texture: {status: ASSET_STATUS.LOADING, value: null}};
 
-        gp.drawPanel(panelProps, assets as any, { alpha: 1 } as any);
+        gp.drawPanel(panelProps, assets as any, {alpha: 1} as any);
 
         expect(mockP5.texture).not.toHaveBeenCalled();
         expect(mockP5.fill).toHaveBeenCalledWith(255, 0, 0, 255);
     });
 
     it('should translate to the position and draw two intersecting lines', () => {
-        const pos = { x: 50, y: 100, z: -20 };
+        const pos = {x: 50, y: 100, z: -20};
         const size = 10;
 
         gp.drawCrosshair(pos, size);
@@ -306,7 +306,7 @@ describe('P5GraphicProcessor', () => {
 
     it('should handle optional coordinate values (y/z) defaulting to 0', () => {
         // Testing the "pos.y ?? 0" and "pos.z ?? 0" logic in your implementation
-        const partialPos = { x: 25 } as any;
+        const partialPos = {x: 25} as any;
 
         gp.drawCrosshair(partialPos, 5);
 
@@ -314,8 +314,8 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should map setCamera to p5.camera with correct up-vector', () => {
-        const pos = { x: 1, y: 2, z: 3 };
-        const lookAt = { x: 4, y: 5, z: 6 };
+        const pos = {x: 1, y: 2, z: 3};
+        const lookAt = {x: 4, y: 5, z: 6};
         gp.setCamera(pos, lookAt);
         // Note the hardcoded 0, 1, 0 up-vector in your implementation
         expect(mockP5.camera).toHaveBeenCalledWith(1, 2, 3, 4, 5, 6, 0, 1, 0);
@@ -349,10 +349,10 @@ describe('P5GraphicProcessor', () => {
 
     it('should apply coordinate defaults in drawLabel', () => {
         // Testing: pos.y ?? 0, pos.z ?? 0
-        gp.drawLabel("Test", { x: 100 } as any);
+        gp.drawLabel("Test", {x: 100} as any);
         expect(mockP5.text).toHaveBeenCalledWith("Test", 100, 0, 0);
 
-        gp.drawLabel("Full", { x: 1, y: 2, z: 3 });
+        gp.drawLabel("Full", {x: 1, y: 2, z: 3});
         expect(mockP5.text).toHaveBeenCalledWith("Full", 1, 2, 3);
     });
 });

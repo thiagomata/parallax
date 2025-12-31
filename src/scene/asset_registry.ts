@@ -1,7 +1,8 @@
 import {
     ASSET_STATUS,
     type FontAsset,
-    type SceneElementProps, type TextProps,
+    type SceneElementProps,
+    type TextProps,
     type TextureAsset,
     type Vector3
 } from "./types.ts";
@@ -12,11 +13,11 @@ export interface ShapeSpec<TTexture> {
     asset: TextureAsset<TTexture>;
 }
 
-export interface TextSpec< TFont> {
+export interface TextSpec<TFont> {
     readonly id: string;
     readonly props: TextProps;
     // readonly fontRef: FontRef;
-    asset: FontAsset< TFont>;
+    asset: FontAsset<TFont>;
 }
 
 export type ElementSpec<TTexture = any, TFont = any> = TextSpec<TFont> | ShapeSpec<TTexture>;

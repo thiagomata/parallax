@@ -25,7 +25,7 @@ export class OrbitModifier implements CarModifier {
             success: true,
             value: {
                 name: this.name,
-                position: { x: camX, y: camY, z: camZ }
+                position: {x: camX, y: camY, z: camZ}
             }
         };
     }

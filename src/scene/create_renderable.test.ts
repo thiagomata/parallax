@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ELEMENT_TYPES, type GraphicProcessor, type SceneState, type Vector3 } from './types';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {ELEMENT_TYPES, type GraphicProcessor, type SceneState, type Vector3} from './types';
 import {createRenderable} from "./create_renderable.ts";
 
 /**
@@ -29,7 +29,7 @@ const createMockGP = () => {
 
 describe('createRenderable', () => {
     let gp: GraphicProcessor<unknown, unknown>;
-    const mockOrigin: Vector3 = { x: 0, y: 0, z: 0 };
+    const mockOrigin: Vector3 = {x: 0, y: 0, z: 0};
     const mockState: SceneState = {
         camera: mockOrigin,
         lookAt: mockOrigin,
@@ -53,7 +53,7 @@ describe('createRenderable', () => {
     });
 
     it('should cull rendering (early return) if distance > 5000', () => {
-        const props = { type: ELEMENT_TYPES.BOX, position: mockOrigin, size: 10 };
+        const props = {type: ELEMENT_TYPES.BOX, position: mockOrigin, size: 10};
         const renderable = createRenderable('id-1', props);
 
         // Mock distance to trigger the 'if' branch
@@ -70,7 +70,7 @@ describe('createRenderable', () => {
     });
 
     it('should render a BOX correctly', () => {
-        const props = { type: ELEMENT_TYPES.BOX, position: mockOrigin, size: 10 };
+        const props = {type: ELEMENT_TYPES.BOX, position: mockOrigin, size: 10};
         const renderable = createRenderable('box-1', props);
 
         renderable.render(gp, mockState);

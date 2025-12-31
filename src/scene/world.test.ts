@@ -1,14 +1,14 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import {beforeEach, describe, expect, it, type Mock, vi} from 'vitest';
 import {ASSET_STATUS, type AssetLoader, type GraphicProcessor, type Vector3} from './types.ts';
-import type { SceneManager } from "./scene_manager.ts";
-import { World } from "./world.ts";
+import type {SceneManager} from "./scene_manager.ts";
+import {World} from "./world.ts";
 import {ChaosLoader} from "./mock/mock_asset_loader.ts";
 
 const loader = new ChaosLoader();
 
 const mockManager: SceneManager = {
     calculateScene: vi.fn(),
-    initialCam: { x: 0, y: 0, z: 0 } as Vector3,
+    initialCam: {x: 0, y: 0, z: 0} as Vector3,
     carModifiers: [], nudgeModifiers: [], stickModifiers: [],
     isDebug: false, stickDistance: 1000,
     setDebug: vi.fn(), setStickDistance: vi.fn(), addCarModifier: vi.fn(),
@@ -55,13 +55,13 @@ describe('World Orchestration', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         (mockManager.calculateScene as Mock).mockReturnValue({
-            camera: { x: 0, y: 0, z: 100 }, lookAt: { x: 0, y: 0, z: 0 }, debug: undefined
+            camera: {x: 0, y: 0, z: 100}, lookAt: {x: 0, y: 0, z: 0}, debug: undefined
         });
         world = new World(mockManager);
     });
 
     it('should handle textureless elements (Born Ready)', async () => {
-        world.addElement('color_box', { type: 'box', position: { x: 0, y: 0, z: 0 }, size: 5 });
+        world.addElement('color_box', {type: 'box', position: {x: 0, y: 0, z: 0}, size: 5});
 
         await world.hydrate(loader); // Using ChaosLoader
 
@@ -72,8 +72,8 @@ describe('World Orchestration', () => {
 
     it('should handle native failures from ChaosLoader', async () => {
         world.addElement('broken', {
-            type: 'panel', width: 1, height: 1, position: { x: 0, y: 0, z: 0 },
-            texture: { path: 'fail.png', width: 1, height: 1 }
+            type: 'panel', width: 1, height: 1, position: {x: 0, y: 0, z: 0},
+            texture: {path: 'fail.png', width: 1, height: 1}
         });
 
         await world.hydrate(loader);
@@ -85,8 +85,8 @@ describe('World Orchestration', () => {
 
     it('should successfully hydrate valid textures', async () => {
         world.addElement('sprite', {
-            type: 'panel', width: 10, height: 10, position: { x: 0, y: 0, z: 0 },
-            texture: { path: 'bricks.png', width: 100, height: 100 }
+            type: 'panel', width: 10, height: 10, position: {x: 0, y: 0, z: 0},
+            texture: {path: 'bricks.png', width: 100, height: 100}
         });
 
         await world.hydrate(loader);
@@ -105,8 +105,8 @@ describe('World Orchestration', () => {
             mockGP = createMockGP();
 
             (mockManager.calculateScene as Mock).mockReturnValue({
-                camera: { x: 0, y: 0, z: 100 },
-                lookAt: { x: 0, y: 0, z: 0 },
+                camera: {x: 0, y: 0, z: 100},
+                lookAt: {x: 0, y: 0, z: 0},
                 debug: undefined
             });
 
@@ -116,11 +116,11 @@ describe('World Orchestration', () => {
         it('should sort elements by distance and render far-to-near', async () => {
             // Add one element far away
             world.addElement('far', {
-                type: 'box', size: 5, position: { x: 0, y: 0, z: -500 }
+                type: 'box', size: 5, position: {x: 0, y: 0, z: -500}
             });
             // Add one element very close
             world.addElement('near', {
-                type: 'box', size: 5, position: { x: 0, y: 0, z: 50 }
+                type: 'box', size: 5, position: {x: 0, y: 0, z: 50}
             });
 
             // Hydrate so they are ready to render
@@ -145,20 +145,20 @@ describe('World Orchestration', () => {
 
             expect(farCallOrder).toBeLessThan(nearCallOrder);
             expect(mockGP.setCamera).toHaveBeenCalledWith(
-                { x: 0, y: 0, z: 100 },
-                { x: 0, y: 0, z: 0 }
+                {x: 0, y: 0, z: 100},
+                {x: 0, y: 0, z: 0}
             );
         });
 
         it('should pass debug info to the processor when enabled', () => {
             (mockManager.calculateScene as Mock).mockReturnValue({
-                camera: { x: 0, y: 0, z: 100 },
-                lookAt: { x: 0, y: 0, z: 0 },
+                camera: {x: 0, y: 0, z: 100},
+                lookAt: {x: 0, y: 0, z: 0},
                 debug: {
-                    car: { name: 'TestCar', priority: 1, x: 10, y: 10, z: 10 },
-                    nudges: [{ name: 'Nudge1', x: 5, y: 5, z: 5 }],
-                    stick: { name: 'Stick', priority: 1 },
-                    errors: [{ name: 'Err', message: 'Failed' }]
+                    car: {name: 'TestCar', priority: 1, x: 10, y: 10, z: 10},
+                    nudges: [{name: 'Nudge1', x: 5, y: 5, z: 5}],
+                    stick: {name: 'Stick', priority: 1},
+                    errors: [{name: 'Err', message: 'Failed'}]
                 }
             });
 
@@ -173,8 +173,18 @@ describe('World Orchestration', () => {
         const path = 'shared.png';
         const loaderSpy = vi.spyOn(loader, 'hydrateTexture');
 
-        world.addElement('el1', { type: 'box', size: 1, position: { x: 0, y: 0, z: 0 }, texture: { path, width: 1, height: 1 } });
-        world.addElement('el2', { type: 'box', size: 1, position: { x: 0, y: 0, z: 0 }, texture: { path, width: 1, height: 1 } });
+        world.addElement('el1', {
+            type: 'box',
+            size: 1,
+            position: {x: 0, y: 0, z: 0},
+            texture: {path, width: 1, height: 1}
+        });
+        world.addElement('el2', {
+            type: 'box',
+            size: 1,
+            position: {x: 0, y: 0, z: 0},
+            texture: {path, width: 1, height: 1}
+        });
 
         await world.hydrate(loader);
 
@@ -184,8 +194,8 @@ describe('World Orchestration', () => {
 
     it('should successfully hydrate valid fonts', async () => {
         world.addElement('text_el', {
-            type: 'text', text: 'hi', size: 10, position: { x: 0, y: 0, z: 0 },
-            font: { name: 'Inter', path: 'inter.ttf' }
+            type: 'text', text: 'hi', size: 10, position: {x: 0, y: 0, z: 0},
+            font: {name: 'Inter', path: 'inter.ttf'}
         });
 
         await world.hydrate(loader);
@@ -196,11 +206,11 @@ describe('World Orchestration', () => {
     });
 
     it('should skip hydration if asset is already present', async () => {
-        world.addElement('pre_hydrated', { type: 'box', size: 5, position: { x: 0, y: 0, z: 0 } });
+        world.addElement('pre_hydrated', {type: 'box', size: 5, position: {x: 0, y: 0, z: 0}});
         const element = (world as any).registry.get('pre_hydrated');
 
         // Manually set an asset
-        element.assets.texture = { status: ASSET_STATUS.READY, value: null };
+        element.assets.texture = {status: ASSET_STATUS.READY, value: null};
 
         const loaderSpy = vi.spyOn(loader, 'hydrateTexture');
         await world.hydrate(loader);

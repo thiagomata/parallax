@@ -5,8 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P5 World Demo</title>
     <style>
-        body { margin: 0; padding: 0; background: #1a1a1a; overflow: hidden; }
-        canvas { display: block; }
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -14,7 +22,8 @@
 <button id="view-source-btn" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
     View Source
 </button>
-<div id="source-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; padding: 2rem; overflow: auto;">
+<div id="source-modal"
+     style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; padding: 2rem; overflow: auto;">
     <div style="max-width: 900px; margin: 0 auto;">
         <button id="close-source-btn" style="margin-bottom: 1rem;">Close</button>
         <pre class="language-typescript"><code id="code-output"></code></pre>

@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Stage } from './stage';
-import { ASSET_STATUS, type AssetLoader, type GraphicProcessor, type SceneState, type RenderableElement } from './types';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {Stage} from './stage';
+import {ASSET_STATUS, type AssetLoader, type GraphicProcessor, type RenderableElement, type SceneState} from './types';
 
 describe('Stage', () => {
     let stage: Stage;
@@ -26,7 +26,7 @@ describe('Stage', () => {
     });
 
     it('should add elements to the registry', () => {
-        const el = { id: 'test-1', props: {}, assets: {}, render: vi.fn() } as unknown as RenderableElement;
+        const el = {id: 'test-1', props: {}, assets: {}, render: vi.fn()} as unknown as RenderableElement;
         stage.add(el);
 
         // Accessing private registry for the sake of the test coverage check
@@ -35,14 +35,14 @@ describe('Stage', () => {
 
     describe('hydrateAll', () => {
         it('should hydrate texture if it exists in props and is missing in assets', async () => {
-            const textureRef = { path: 'tex.png', width: 10, height: 10 };
+            const textureRef = {path: 'tex.png', width: 10, height: 10};
             const el = {
                 id: 'el-1',
-                props: { texture: textureRef },
+                props: {texture: textureRef},
                 assets: {} // missing texture asset
             } as RenderableElement;
 
-            const mockAsset = { status: ASSET_STATUS.READY, value: { texture: textureRef, internalRef: {} } };
+            const mockAsset = {status: ASSET_STATUS.READY, value: {texture: textureRef, internalRef: {}}};
             vi.mocked(mockLoader.hydrateTexture).mockResolvedValue(mockAsset as any);
 
             stage.add(el);
@@ -56,14 +56,14 @@ describe('Stage', () => {
             // Note: I spotted a logic check in your Font hydration:
             // current: if (el.props.font && el.assets.font)
             // should likely be: if (el.props.font && !el.assets.font)
-            const fontRef = { name: 'Arial', path: 'arial.ttf' };
+            const fontRef = {name: 'Arial', path: 'arial.ttf'};
             const el = {
                 id: 'el-font',
-                props: { font: fontRef },
+                props: {font: fontRef},
                 assets: {}
             } as RenderableElement;
 
-            const mockFontAsset = { status: ASSET_STATUS.READY, value: { font: fontRef, internalRef: {} } };
+            const mockFontAsset = {status: ASSET_STATUS.READY, value: {font: fontRef, internalRef: {}}};
             vi.mocked(mockLoader.hydrateFont).mockResolvedValue(mockFontAsset as any);
 
             stage.add(el);
@@ -77,8 +77,8 @@ describe('Stage', () => {
         it('should skip hydration if asset is already present', async () => {
             const el = {
                 id: 'ready-el',
-                props: { texture: { path: 'already.png' } },
-                assets: { texture: { status: ASSET_STATUS.READY } }
+                props: {texture: {path: 'already.png'}},
+                assets: {texture: {status: ASSET_STATUS.READY}}
             } as unknown as RenderableElement;
 
             stage.add(el);
@@ -89,8 +89,8 @@ describe('Stage', () => {
     });
 
     it('should trigger render on all elements in storage', () => {
-        const el1 = { id: '1', render: vi.fn(), props: {}, assets: {} } as unknown as RenderableElement;
-        const el2 = { id: '2', render: vi.fn(), props: {}, assets: {} } as unknown as RenderableElement;
+        const el1 = {id: '1', render: vi.fn(), props: {}, assets: {}} as unknown as RenderableElement;
+        const el2 = {id: '2', render: vi.fn(), props: {}, assets: {}} as unknown as RenderableElement;
 
         stage.add(el1);
         stage.add(el2);
