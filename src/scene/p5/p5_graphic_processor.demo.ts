@@ -12,6 +12,7 @@ import {
     type SceneState,
     type TextProps
 } from '../types';
+import {flatBox, flatPanel, flatText, toProps} from "../create_renderable.ts";
 
 const sketch = (p: p5) => {
     let gp: P5GraphicProcessor;
@@ -48,6 +49,12 @@ const sketch = (p: p5) => {
         }
         gp.pop();
 
+        let sceneState = {
+            camera: {x: 0, y: 0, z: 0},
+            lookAt: {x: 0, y: 0, z: 100},
+            alpha: 1
+        } as SceneState
+
         if (testImg) {
             const textureInstance = {
                 internalRef: testImg,
@@ -55,46 +62,48 @@ const sketch = (p: p5) => {
             };
 
             gp.drawPanel(
-                {
-                    type: ELEMENT_TYPES.PANEL,
-                    width: 200,
-                    height: 200,
-                    position: {x: 0, y: 0, z: -50},
-                    alpha: 0.5,
-                    texture: textureInstance.texture,
-                } as PanelProps,
+                flatPanel(
+                    toProps({
+                        type: ELEMENT_TYPES.PANEL,
+                        width: 200,
+                        height: 200,
+                        position: {x: 0, y: 0, z: -50},
+                        alpha: 0.5,
+                        texture: textureInstance.texture,
+                    }) as PanelProps,
+                    sceneState
+                ),
                 {
                     texture: {
                         status: ASSET_STATUS.READY,
                         value: textureInstance
                     }
                 } as ElementAssets<p5.Image, p5.Font>,
-                {
-                    camera: {x: 0, y: 0, z: 0},
-                    lookAt: {x: 0, y: 0, z: 100},
-                    alpha: 1
-                } as SceneState
+                sceneState
             )
         }
 
         if (testFont) {
             gp.drawText(
-                {
-                    type: ELEMENT_TYPES.TEXT,
-                    font: {
-                        name: "Roboto",
-                        path: '/parallax/fonts/Roboto-Regular.ttf',
-                    },
-                    size: 64,
-                    fillColor: {
-                        red: 100,
-                        green: 255,
-                        blue: 255,
-                        alpha: 0.8,
-                    },
-                    text: "ALPHA CHECK",
-                    position: {x: -50, y: -30, z: 50},
-                } as TextProps,
+                flatText(
+                    toProps({
+                        type: ELEMENT_TYPES.TEXT,
+                        font: {
+                            name: "Roboto",
+                            path: '/parallax/fonts/Roboto-Regular.ttf',
+                        },
+                        size: 64,
+                        fillColor: {
+                            red: 100,
+                            green: 255,
+                            blue: 255,
+                            alpha: 0.8,
+                        },
+                        text: "ALPHA CHECK",
+                        position: {x: -50, y: -30, z: 50},
+                    }) as TextProps,
+                    sceneState
+                ),
                 {
                     font: {
                         status: ASSET_STATUS.READY,
@@ -107,11 +116,7 @@ const sketch = (p: p5) => {
                         } as FontInstance<p5.Font>
                     }
                 } as ElementAssets<p5.Image, p5.Font>,
-                {
-                    camera: {x: 0, y: 0, z: 0},
-                    lookAt: {x: 0, y: 0, z: 100},
-                    alpha: 1
-                } as SceneState
+                sceneState
             )
         }
 
@@ -119,18 +124,17 @@ const sketch = (p: p5) => {
 
         //     drawBox(boxProps: BoxProps, assets: ElementAssets, sceneState: SceneState): void {
         gp.drawBox(
-            {
-                type: ELEMENT_TYPES.BOX,
-                size: 80,
-                position: {x: 20, y: 20, z: 150},
-                fillColor: {red: 50, green: greenVal, blue: 255, alpha: 0.5},
-            } as BoxProps,
+            flatBox(
+                toProps({
+                    type: ELEMENT_TYPES.BOX,
+                    size: 80,
+                    position: {x: 20, y: 20, z: 150},
+                    fillColor: {red: 50, green: greenVal, blue: 255, alpha: 0.5},
+                }) as BoxProps,
+                sceneState
+            ),
             {},
-            {
-                camera: {x: 0, y: 0, z: 0},
-                lookAt: {x: 0, y: 0, z: 100},
-                alpha: 1
-            } as SceneState
+            sceneState
         )
 
         gp.push();

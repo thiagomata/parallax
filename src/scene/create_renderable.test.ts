@@ -1,6 +1,6 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {ELEMENT_TYPES, type GraphicProcessor, type SceneState, type Vector3} from './types';
-import {createRenderable} from "./create_renderable.ts";
+import {createRenderable, flat, flatBox, flatPanel, flatText, toProps} from "./create_renderable.ts";
 
 /**
  * A type-safe mock factory for the GraphicProcessor.
@@ -43,17 +43,19 @@ describe('createRenderable', () => {
     });
 
     it('should initialize with an empty assets object', () => {
-        const renderable = createRenderable('test-1', {
+        const renderable = createRenderable('test-1', toProps({
             type: ELEMENT_TYPES.BOX,
             position: mockOrigin,
             size: 10
-        });
+        }));
         expect(renderable.assets).toEqual({});
         expect(renderable.id).toBe('test-1');
     });
 
     it('should cull rendering (early return) if distance > 5000', () => {
-        const props = {type: ELEMENT_TYPES.BOX, position: mockOrigin, size: 10};
+        const props = toProps(
+            {type: ELEMENT_TYPES.BOX, position: mockOrigin, size: 10}
+        );
         const renderable = createRenderable('id-1', props);
 
         // Mock distance to trigger the 'if' branch
@@ -62,7 +64,7 @@ describe('createRenderable', () => {
         renderable.render(gp, mockState);
 
         expect(gp.push).toHaveBeenCalled();
-        expect(gp.translate).toHaveBeenCalledWith(props.position);
+        expect(gp.translate).toHaveBeenCalledWith(flat(props.position, mockState));
         // Ensure it didn't hit the switch/case
         expect(gp.drawBox).not.toHaveBeenCalled();
         // Ensure it still cleaned up the stack
@@ -70,40 +72,42 @@ describe('createRenderable', () => {
     });
 
     it('should render a BOX correctly', () => {
-        const props = {type: ELEMENT_TYPES.BOX, position: mockOrigin, size: 10};
+        const props = toProps(
+            {type: ELEMENT_TYPES.BOX, position: mockOrigin, size: 10}
+        );
         const renderable = createRenderable('box-1', props);
 
         renderable.render(gp, mockState);
 
-        expect(gp.drawBox).toHaveBeenCalledWith(props, renderable.assets, mockState);
+        expect(gp.drawBox).toHaveBeenCalledWith(flatBox(props, mockState), renderable.assets, mockState);
         expect(gp.pop).toHaveBeenCalled();
     });
 
     it('should render a PANEL correctly', () => {
-        const props = {
+        const props = toProps({
             type: ELEMENT_TYPES.PANEL,
             position: mockOrigin,
             width: 100,
             height: 100
-        };
+        });
         const renderable = createRenderable('panel-1', props);
 
         renderable.render(gp, mockState);
 
-        expect(gp.drawPanel).toHaveBeenCalledWith(props, renderable.assets, mockState);
+        expect(gp.drawPanel).toHaveBeenCalledWith(flatPanel(props, mockState), renderable.assets, mockState);
     });
 
     it('should render TEXT correctly', () => {
-        const props = {
+        const props = toProps({
             type: ELEMENT_TYPES.TEXT,
             position: mockOrigin,
             text: 'Hello World',
             size: 16
-        };
+        });
         const renderable = createRenderable('text-1', props);
 
         renderable.render(gp, mockState);
 
-        expect(gp.drawText).toHaveBeenCalledWith(props, renderable.assets, mockState);
+        expect(gp.drawText).toHaveBeenCalledWith(flatText(props, mockState), renderable.assets, mockState);
     });
 });

@@ -4,12 +4,13 @@ import {P5GraphicProcessor} from './p5_graphic_processor';
 import {
     ASSET_STATUS,
     type AssetLoader,
-    type BoxProps,
     ELEMENT_TYPES,
-    type PanelProps,
+    type FlatBoxProps,
+    type FlatPanelProps,
+    type FlatTextProps,
     type SceneState,
-    type TextProps
 } from '../types';
+import {flatBox, flatPanel, flatText, toProps} from "../create_renderable.ts";
 
 describe('P5GraphicProcessor', () => {
     let gp: P5GraphicProcessor;
@@ -72,12 +73,17 @@ describe('P5GraphicProcessor', () => {
 
     describe('High-level Drawing Logic', () => {
         it('should apply texture and tint if asset is READY', () => {
-            const boxProps = {
-                type: ELEMENT_TYPES.BOX,
-                position: {x: 10, y: 20, z: 30},
-                size: 50,
-                alpha: 0.8
-            };
+            const boxProps = flatBox(
+                toProps(
+                    {
+                        type: ELEMENT_TYPES.BOX,
+                        position: {x: 10, y: 20, z: 30},
+                        size: 50,
+                        alpha: 0.8
+                    }
+                ),
+                mockState
+            );
 
             const mockImage = {width: 100};
             const assets = {
@@ -99,12 +105,15 @@ describe('P5GraphicProcessor', () => {
         });
 
         it('should fallback to fillColor if texture is not READY', () => {
-            const boxProps = {
-                type: ELEMENT_TYPES.BOX,
-                position: {x: 0, y: 0, z: 0},
-                size: 10,
-                fillColor: {red: 100, green: 100, blue: 100}
-            };
+            const boxProps = flatBox(
+                toProps({
+                    type: ELEMENT_TYPES.BOX,
+                    position: {x: 0, y: 0, z: 0},
+                    size: 10,
+                    fillColor: {red: 100, green: 100, blue: 100}
+                }),
+                mockState
+            );
 
             const assets = {texture: {status: ASSET_STATUS.LOADING, value: null}};
 
@@ -125,13 +134,16 @@ describe('P5GraphicProcessor', () => {
     });
 
     describe('P5GraphicProcessor - drawText', () => {
-        const textProps: TextProps = {
-            type: ELEMENT_TYPES.TEXT,
-            text: 'Gemini',
-            size: 24,
-            position: {x: 10, y: 10, z: 10},
-            fillColor: {red: 255, green: 255, blue: 255}
-        };
+        const textProps: FlatTextProps = flatText(
+            toProps({
+                type: ELEMENT_TYPES.TEXT,
+                text: 'Gemini',
+                size: 24,
+                position: {x: 10, y: 10, z: 10},
+                fillColor: {red: 255, green: 255, blue: 255}
+            }),
+            mockState
+        );
 
         it('should return early if font status is not READY', () => {
             const assets = {
@@ -187,13 +199,16 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should apply stroke from props when drawing a box', () => {
-        const boxProps: BoxProps = {
-            type: ELEMENT_TYPES.BOX,
-            position: {x: 0, y: 0, z: 0},
-            size: 50,
-            strokeColor: {red: 255, green: 0, blue: 0, alpha: 1},
-            strokeWidth: 5
-        };
+        const boxProps: FlatBoxProps = flatBox(
+            toProps({
+                type: ELEMENT_TYPES.BOX,
+                position: {x: 0, y: 0, z: 0},
+                size: 50,
+                strokeColor: {red: 255, green: 0, blue: 0, alpha: 1},
+                strokeWidth: 5
+            }),
+            mockState,
+        );
         const sceneState: SceneState = {
             camera: {x: 0, y: 0, z: 0}, lookAt: {x: 0, y: 0, z: 0},
             alpha: 1 // Scene global alpha
@@ -206,12 +221,15 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should skip stroke application if strokeColor is missing in props', () => {
-        const boxProps: BoxProps = {
-            type: ELEMENT_TYPES.BOX,
-            position: {x: 0, y: 0, z: 0},
-            size: 50
-            // No strokeColor provided
-        };
+        const boxProps: FlatBoxProps = flatBox(
+            toProps({
+                type: ELEMENT_TYPES.BOX,
+                position: {x: 0, y: 0, z: 0},
+                size: 50
+                // No strokeColor provided
+            }),
+            mockState
+        );
 
         gp.drawBox(boxProps, {}, {alpha: 1} as any);
 
@@ -220,12 +238,15 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should translate to the correct position and draw a plane', () => {
-        const panelProps: PanelProps = {
-            type: ELEMENT_TYPES.PANEL,
-            position: {x: 100, y: -50, z: 200},
-            width: 300,
-            height: 150
-        };
+        const panelProps: FlatPanelProps = flatPanel(
+            toProps({
+                type: ELEMENT_TYPES.PANEL,
+                position: {x: 100, y: -50, z: 200},
+                width: 300,
+                height: 150
+            }),
+            mockState,
+        );
 
         gp.drawPanel(panelProps, {}, {alpha: 1} as any);
 
@@ -236,15 +257,18 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should apply both texture and stroke if both are provided', () => {
-        const panelProps: PanelProps = {
-            type: ELEMENT_TYPES.PANEL,
-            position: {x: 0, y: 0, z: 0},
-            width: 100,
-            height: 100,
-            strokeColor: {red: 255, green: 255, blue: 255, alpha: 1},
-            strokeWidth: 2,
-            alpha: 1
-        };
+        const panelProps: FlatPanelProps = flatPanel(
+            toProps({
+                type: ELEMENT_TYPES.PANEL,
+                position: {x: 0, y: 0, z: 0},
+                width: 100,
+                height: 100,
+                strokeColor: {red: 255, green: 255, blue: 255, alpha: 1},
+                strokeWidth: 2,
+                alpha: 1
+            }),
+            mockState,
+        );
 
         const mockImage = {width: 50};
         const assets = {
@@ -267,13 +291,16 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should fallback to fillColor in drawPanel when texture is not ready', () => {
-        const panelProps: PanelProps = {
-            type: ELEMENT_TYPES.PANEL,
-            position: {x: 0, y: 0, z: 0},
-            width: 10,
-            height: 10,
-            fillColor: {red: 255, green: 0, blue: 0, alpha: 1}
-        };
+        const panelProps: FlatPanelProps = flatPanel(
+            toProps({
+                type: ELEMENT_TYPES.PANEL,
+                position: {x: 0, y: 0, z: 0},
+                width: 10,
+                height: 10,
+                fillColor: {red: 255, green: 0, blue: 0, alpha: 1}
+            }),
+            mockState,
+        );
 
         // Asset is still loading
         const assets = {texture: {status: ASSET_STATUS.LOADING, value: null}};

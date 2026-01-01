@@ -148,12 +148,12 @@ export interface GraphicProcessor<TTexture = any, TFont = any> {
     noStroke(): void;
 
     drawText(
-        textProp: TextProps,
+        textProp: FlatTextProps,
         assets: ElementAssets<TTexture, TFont>,
         sceneState: SceneState): void;
 
     drawBox(
-        boxProps: BoxProps,
+        boxProps: FlatBoxProps,
         assets: ElementAssets<TTexture, TFont>,
         sceneState: SceneState): void;
 
@@ -161,7 +161,7 @@ export interface GraphicProcessor<TTexture = any, TFont = any> {
 
     //drawPanel(instance: TextureInstance): void;
     drawPanel(
-        panelProps: PanelProps,
+        panelProps: FlatPanelProps,
         assets: ElementAssets<TTexture, TFont>,
         sceneState: SceneState): void;
 
@@ -189,7 +189,25 @@ export const ELEMENT_TYPES = {
     TEXT: 'text',
 } as const;
 
+export type DynamicValueFromSceneState<T> = T | ((state: SceneState) => T);
+
+export type SpecProperty<T> =
+    | { kind: 'static'; value: T }
+    | { kind: 'computed'; compute: (state: SceneState) => T };
+
+export type StaticKeys = 'type' | 'texture' | 'font';
+
 export interface BaseVisualProps {
+    readonly position: SpecProperty<Vector3>;
+    readonly alpha?: SpecProperty<number>;
+    readonly fillColor?: SpecProperty<ColorRGBA>;
+    readonly strokeColor?: SpecProperty<ColorRGBA>;
+    readonly strokeWidth?: SpecProperty<number>;
+    readonly texture?: TextureRef;
+    readonly font?: FontRef;
+}
+
+export interface FlatBaseVisualProps {
     readonly position: Vector3;
     readonly alpha?: number;
     readonly fillColor?: ColorRGBA;
@@ -201,10 +219,21 @@ export interface BaseVisualProps {
 
 export interface BoxProps extends BaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.BOX;
+    readonly size: SpecProperty<number>;
+}
+
+export interface FlatBoxProps extends FlatBaseVisualProps {
+    readonly type: typeof ELEMENT_TYPES.BOX;
     readonly size: number;
 }
 
 export interface PanelProps extends BaseVisualProps {
+    readonly type: typeof ELEMENT_TYPES.PANEL;
+    readonly width: SpecProperty<number>;
+    readonly height: SpecProperty<number>;
+}
+
+export interface FlatPanelProps extends FlatBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.PANEL;
     readonly width: number;
     readonly height: number;
@@ -212,11 +241,23 @@ export interface PanelProps extends BaseVisualProps {
 
 export interface SphereProps extends BaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.SPHERE;
+    readonly radius: SpecProperty<number>;
+    readonly detail?: SpecProperty<number>;
+}
+
+export interface FlatSphereProps extends FlatBaseVisualProps {
+    readonly type: typeof ELEMENT_TYPES.SPHERE;
     readonly radius: number;
     readonly detail?: number;
 }
 
 export interface FloorProps extends BaseVisualProps {
+    readonly type: typeof ELEMENT_TYPES.FLOOR;
+    readonly width: SpecProperty<number>;
+    readonly depth: SpecProperty<number>;
+}
+
+export interface FlatFloorProps extends FlatBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.FLOOR;
     readonly width: number;
     readonly depth: number;
@@ -224,13 +265,18 @@ export interface FloorProps extends BaseVisualProps {
 
 export interface TextProps extends BaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.TEXT;
+    readonly text: SpecProperty<string>;
+    readonly size: SpecProperty<number>;
+}
+
+export interface FlatTextProps extends FlatBaseVisualProps {
+    readonly type: typeof ELEMENT_TYPES.TEXT;
     readonly text: string;
     readonly size: number;
-    // readonly width: number;
-    // readonly height: number;
 }
 
 export type SceneElementProps = BoxProps | PanelProps | SphereProps | FloorProps | TextProps;
+export type FlatSceneElementProps = FlatBoxProps | FlatPanelProps | FlatSphereProps | FlatFloorProps | FlatTextProps;
 
 export interface Renderable {
     readonly id: string;

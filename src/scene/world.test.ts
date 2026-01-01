@@ -3,6 +3,7 @@ import {ASSET_STATUS, type AssetLoader, type GraphicProcessor, type Vector3} fro
 import type {SceneManager} from "./scene_manager.ts";
 import {World} from "./world.ts";
 import {ChaosLoader} from "./mock/mock_asset_loader.ts";
+import {toProps} from "./create_renderable.ts";
 
 const loader = new ChaosLoader();
 
@@ -61,7 +62,7 @@ describe('World Orchestration', () => {
     });
 
     it('should handle textureless elements (Born Ready)', async () => {
-        world.addElement('color_box', {type: 'box', position: {x: 0, y: 0, z: 0}, size: 5});
+        world.addElement('color_box', toProps({type: 'box', position: {x: 0, y: 0, z: 0}, size: 5}));
 
         await world.hydrate(loader); // Using ChaosLoader
 
@@ -71,10 +72,10 @@ describe('World Orchestration', () => {
     });
 
     it('should handle native failures from ChaosLoader', async () => {
-        world.addElement('broken', {
+        world.addElement('broken', toProps({
             type: 'panel', width: 1, height: 1, position: {x: 0, y: 0, z: 0},
             texture: {path: 'fail.png', width: 1, height: 1}
-        });
+        }));
 
         await world.hydrate(loader);
 
@@ -84,10 +85,10 @@ describe('World Orchestration', () => {
     });
 
     it('should successfully hydrate valid textures', async () => {
-        world.addElement('sprite', {
+        world.addElement('sprite', toProps({
             type: 'panel', width: 10, height: 10, position: {x: 0, y: 0, z: 0},
             texture: {path: 'bricks.png', width: 100, height: 100}
-        });
+        }));
 
         await world.hydrate(loader);
 
@@ -115,13 +116,13 @@ describe('World Orchestration', () => {
 
         it('should sort elements by distance and render far-to-near', async () => {
             // Add one element far away
-            world.addElement('far', {
+            world.addElement('far', toProps({
                 type: 'box', size: 5, position: {x: 0, y: 0, z: -500}
-            });
+            }));
             // Add one element very close
-            world.addElement('near', {
+            world.addElement('near', toProps({
                 type: 'box', size: 5, position: {x: 0, y: 0, z: 50}
-            });
+            }));
 
             // Hydrate so they are ready to render
             await world.hydrate(loader);
@@ -173,18 +174,18 @@ describe('World Orchestration', () => {
         const path = 'shared.png';
         const loaderSpy = vi.spyOn(loader, 'hydrateTexture');
 
-        world.addElement('el1', {
+        world.addElement('el1', toProps({
             type: 'box',
             size: 1,
             position: {x: 0, y: 0, z: 0},
             texture: {path, width: 1, height: 1}
-        });
-        world.addElement('el2', {
+        }));
+        world.addElement('el2', toProps({
             type: 'box',
             size: 1,
             position: {x: 0, y: 0, z: 0},
             texture: {path, width: 1, height: 1}
-        });
+        }));
 
         await world.hydrate(loader);
 
@@ -193,10 +194,10 @@ describe('World Orchestration', () => {
     });
 
     it('should successfully hydrate valid fonts', async () => {
-        world.addElement('text_el', {
+        world.addElement('text_el', toProps({
             type: 'text', text: 'hi', size: 10, position: {x: 0, y: 0, z: 0},
             font: {name: 'Inter', path: 'inter.ttf'}
-        });
+        }));
 
         await world.hydrate(loader);
 
@@ -206,7 +207,9 @@ describe('World Orchestration', () => {
     });
 
     it('should skip hydration if asset is already present', async () => {
-        world.addElement('pre_hydrated', {type: 'box', size: 5, position: {x: 0, y: 0, z: 0}});
+        world.addElement('pre_hydrated', toProps(
+            {type: 'box', size: 5, position: {x: 0, y: 0, z: 0}}
+        ));
         const element = (world as any).registry.get('pre_hydrated');
 
         // Manually set an asset

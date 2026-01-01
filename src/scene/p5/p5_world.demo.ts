@@ -15,6 +15,7 @@ import 'prismjs/components/prism-javascript';
 import {SceneManager} from "../scene_manager.ts";
 import {OrbitModifier} from "../modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../modifiers/center_focus_modifier.ts";
+import {toProps} from "../create_renderable.ts";
 
 const p5WorldDemo = (p5: p5) => {
     let world: World;
@@ -37,37 +38,37 @@ const p5WorldDemo = (p5: p5) => {
         gp = new P5GraphicProcessor(p5, loader);
 
 
-        world.addElement('back', {
+        world.addElement('back', toProps({
             type: ELEMENT_TYPES.BOX,
             size: 200,
             position: {x: -100, y: 0, z: -200}, // Far away
             fillColor: {red: 0, green: 255, blue: 0, alpha: 1.0}
-        });
+        }));
 
         // 2. Middle Ground (Semi-transparent Red Box)
-        world.addElement('mid', {
+        world.addElement('mid', toProps({
             type: ELEMENT_TYPES.BOX,
             size: 150,
             position: {x: 0, y: 0, z: 0}, // Center
             fillColor: {red: 255, green: 0, blue: 0, alpha: 0.5}
-        });
+        }));
 
         // 3. Foreground (Blue Box)
-        world.addElement('front', {
+        world.addElement('front', toProps({
             type: ELEMENT_TYPES.BOX,
             size: 100,
             position: {x: 100, y: 0, z: 200}, // Close to camera
             fillColor: {red: 0, green: 0, blue: 255, alpha: 1.0}
-        });
+        }));
 
-        world.addElement('title-label', {
+        world.addElement('title-label', toProps({
             type: ELEMENT_TYPES.TEXT,
             text: "HELLO WORLD",
             size: 40,
             position: {x: 50, y: 0, z: 0},
             font: {name: 'Roboto', path: '/parallax/fonts/Roboto-Regular.ttf'},
             fillColor: {red: 255, green: 0, blue: 255, alpha: 1}
-        });
+        }));
 
         await world.hydrate(loader);
     };

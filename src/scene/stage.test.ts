@@ -40,7 +40,7 @@ describe('Stage', () => {
                 id: 'el-1',
                 props: {texture: textureRef},
                 assets: {} // missing texture asset
-            } as RenderableElement;
+            } as unknown as RenderableElement;
 
             const mockAsset = {status: ASSET_STATUS.READY, value: {texture: textureRef, internalRef: {}}};
             vi.mocked(mockLoader.hydrateTexture).mockResolvedValue(mockAsset as any);
@@ -61,7 +61,7 @@ describe('Stage', () => {
                 id: 'el-font',
                 props: {font: fontRef},
                 assets: {}
-            } as RenderableElement;
+            } as unknown as RenderableElement;
 
             const mockFontAsset = {status: ASSET_STATUS.READY, value: {font: fontRef, internalRef: {}}};
             vi.mocked(mockLoader.hydrateFont).mockResolvedValue(mockFontAsset as any);

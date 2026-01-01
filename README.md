@@ -73,25 +73,22 @@ sequenceDiagram
     participant L as AssetLoader
     participant S as ElementSpec
     participant G as GraphicProcessor
-
     Note over U, S: User defines Spec as PENDING
-    U->>S: create(props)
-
+    U ->> S: create(props)
     Note over W, L: Hydration Phase (Async)
-    W->>L: hydrate(ref)
-    L-->>W: Promise~TextureAsset~
-    W->>W: await Promise
-    W->>S: Update status to READY
-    W->>S: Set value to TextureInstance
-
+    W ->> L: hydrate(ref)
+    L -->> W: Promise~TextureAsset~
+    W ->> W: await Promise
+    W ->> S: Update status to READY
+    W ->> S: Set value to TextureInstance
     Note over W, G: Render Loop (Step)
-    W->>G: setCamera()
-    W->>S: Check status
+    W ->> G: setCamera()
+    W ->> S: Check status
     alt is READY
-        W->>G: drawTexture(TextureInstance)
+        W ->> G: drawTexture(TextureInstance)
     else is ERROR
-        W->>G: drawText(error_msg)
+        W ->> G: drawText(error_msg)
     end
 
-    G-->>U: Display Frame
+    G -->> U: Display Frame
 ```

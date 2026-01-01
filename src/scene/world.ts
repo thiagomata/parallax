@@ -9,7 +9,7 @@ import {
     type TextureAsset
 } from "./types.ts";
 import type {SceneManager} from "./scene_manager.ts";
-import {createRenderable} from "./create_renderable.ts";
+import {createRenderable, flat} from "./create_renderable.ts";
 
 export class World {
     private registry: Map<string, RenderableElement> = new Map();
@@ -98,7 +98,7 @@ export class World {
             .map(element => ({
                 element,
                 // Calculate distance from camera to the element's position
-                distance: graphicProcessor.dist(state.camera, element.props.position)
+                distance: graphicProcessor.dist(state.camera, flat(element.props.position, state)!)
             }))
             // Sort Descending: Furthest distance first (Painter's Algorithm)
             .sort((a, b) => b.distance - a.distance);

@@ -1,6 +1,7 @@
 import {beforeEach, describe, expect, it} from 'vitest';
 import {AssetRegistry} from './asset_registry';
-import {ASSET_STATUS, ELEMENT_TYPES} from './types';
+import {ASSET_STATUS, type BoxProps, ELEMENT_TYPES, type TextProps} from './types';
+import {toProps} from "./create_renderable.ts";
 
 describe('AssetRegistry', () => {
     // We use 'string' and 'number' as dummy types for TTexture and TFont
@@ -13,12 +14,12 @@ describe('AssetRegistry', () => {
     describe('defineShape', () => {
         it('should initialize with PENDING status if a texture is provided', () => {
             const id = 'textured-box';
-            const props = {
+            const props = toProps({
                 type: ELEMENT_TYPES.BOX,
                 position: {x: 0, y: 0, z: 0},
                 size: 10,
                 texture: {path: 'grass.png', width: 64, height: 64}
-            };
+            }) as BoxProps;
 
             const spec = registry.defineShape(id, props);
 
@@ -28,11 +29,11 @@ describe('AssetRegistry', () => {
         });
 
         it('should initialize with READY status if NO texture is provided', () => {
-            const props = {
+            const props = toProps({
                 type: ELEMENT_TYPES.BOX,
                 position: {x: 0, y: 0, z: 0},
                 size: 10
-            };
+            }) as BoxProps;
 
             const spec = registry.defineShape('plain-box', props);
 
@@ -41,7 +42,9 @@ describe('AssetRegistry', () => {
         });
 
         it('should return the existing spec if the ID is already defined', () => {
-            const props = {type: ELEMENT_TYPES.BOX, position: {x: 0, y: 0, z: 0}, size: 5};
+            const props = toProps(
+                {type: ELEMENT_TYPES.BOX, position: {x: 0, y: 0, z: 0}, size: 5}
+            ) as BoxProps;
             const first = registry.defineShape('item-1', props);
             const second = registry.defineShape('item-1', props);
 
@@ -51,13 +54,13 @@ describe('AssetRegistry', () => {
 
     describe('defineText', () => {
         it('should initialize with PENDING status if a font is provided', () => {
-            const props = {
+            const props = toProps({
                 type: ELEMENT_TYPES.TEXT,
                 text: 'Hello',
                 size: 12,
                 position: {x: 0, y: 0, z: 0},
                 font: {name: 'Roboto', path: 'roboto.ttf'}
-            };
+            }) as TextProps;
 
             const spec = registry.defineText('label-1', props);
 
@@ -65,12 +68,12 @@ describe('AssetRegistry', () => {
         });
 
         it('should initialize with READY status if NO font is provided', () => {
-            const props = {
+            const props = toProps({
                 type: ELEMENT_TYPES.TEXT,
                 text: 'No Font',
                 size: 12,
                 position: {x: 0, y: 0, z: 0}
-            };
+            }) as TextProps;
 
             const spec = registry.defineText('plain-text', props);
 
@@ -80,17 +83,26 @@ describe('AssetRegistry', () => {
 
     describe('Retrieval and Iteration', () => {
         it('should retrieve shapes and texts by ID', () => {
-            registry.defineShape('box-1', {type: ELEMENT_TYPES.BOX, size: 1, position: {x: 0, y: 0, z: 0}});
-            registry.defineText('txt-1', {type: ELEMENT_TYPES.TEXT, text: 'hi', size: 1, position: {x: 0, y: 0, z: 0}});
+            registry.defineShape('box-1',
+                toProps({type: ELEMENT_TYPES.BOX, size: 1, position: {x: 0, y: 0, z: 0}})
+            );
+            registry.defineText('txt-1',
+                toProps({type: ELEMENT_TYPES.TEXT, text: 'hi', size: 1, position: {x: 0, y: 0, z: 0}})
+            );
 
             expect(registry.getShape('box-1')).toBeDefined();
             expect(registry.getText('txt-1')).toBeDefined();
         });
 
         it('should provide an iterator over all combined specs', () => {
-            registry.defineShape('s1', {type: ELEMENT_TYPES.BOX, size: 1, position: {x: 0, y: 0, z: 0}});
-            registry.defineShape('s2', {type: ELEMENT_TYPES.BOX, size: 1, position: {x: 0, y: 0, z: 0}});
-            registry.defineText('t1', {type: ELEMENT_TYPES.TEXT, text: 'a', size: 1, position: {x: 0, y: 0, z: 0}});
+            registry.defineShape('s1', toProps({type: ELEMENT_TYPES.BOX, size: 1, position: {x: 0, y: 0, z: 0}}));
+            registry.defineShape('s2', toProps({type: ELEMENT_TYPES.BOX, size: 1, position: {x: 0, y: 0, z: 0}}));
+            registry.defineText('t1', toProps({
+                type: ELEMENT_TYPES.TEXT,
+                text: 'a',
+                size: 1,
+                position: {x: 0, y: 0, z: 0}
+            }));
 
             const allSpecs = Array.from(registry.all());
 
