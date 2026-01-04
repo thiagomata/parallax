@@ -1,4 +1,9 @@
-import {type FailableResult, type StickModifier, type StickResult, type Vector3} from '../types';
+import {
+    type FailableResult,
+    type StickModifier,
+    type StickResult,
+    type Vector3
+} from '../types';
 
 export class CenterFocusModifier implements StickModifier {
     name = "Center Focus";

@@ -26,6 +26,16 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         this.loader = loader;
     }
 
+    millis(): number {
+        return this.p5.millis()
+    }
+    deltaTime(): number {
+        return this.p5.deltaTime
+    }
+    frameCount(): number {
+        return this.p5.frameCount
+    }
+
     setCamera(pos: Vector3, lookAt: Vector3): void {
         this.p5.camera(pos.x, pos.y, pos.z, lookAt.x, lookAt.y, lookAt.z, 0, 1, 0);
     }
@@ -164,20 +174,20 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
 
     private getP5Alpha(props: FlatBaseVisualProps, sceneState: SceneState): number {
         const elementAlpha = props.alpha ?? 1;
-        const sceneAlpha = sceneState.alpha ?? 1;
+        const sceneAlpha = sceneState.settings.alpha;
         return Math.round(elementAlpha * sceneAlpha * 255);
     }
 
     private getP5FillAlpha(props: FlatBaseVisualProps, sceneState: SceneState): number {
         const elementAlpha = props.alpha ?? 1;
-        const sceneAlpha = sceneState.alpha ?? 1;
+        const sceneAlpha = sceneState.settings.alpha;
         const fillAlpha = props.fillColor?.alpha ?? 1;
         return Math.round(elementAlpha * sceneAlpha * fillAlpha * 255);
     }
 
     private getPSStrokeAlpha(props: FlatBaseVisualProps, sceneState: SceneState): number {
         const elementAlpha = props.alpha ?? 1;
-        const sceneAlpha = sceneState.alpha ?? 1;
+        const sceneAlpha = sceneState.settings.alpha;
         const strokeAlpha = props.strokeColor?.alpha ?? 1;
         return Math.round(elementAlpha * sceneAlpha * strokeAlpha * 255);
     }

@@ -4,10 +4,13 @@ import {P5GraphicProcessor} from './p5_graphic_processor';
 import {
     ASSET_STATUS,
     type AssetLoader,
+    DEFAULT_SETTINGS,
     ELEMENT_TYPES,
     type FlatBoxProps,
     type FlatPanelProps,
     type FlatTextProps,
+    type SceneCameraState,
+    type ScenePlaybackState,
     type SceneState,
 } from '../types';
 import {flatBox, flatPanel, flatText, toProps} from "../create_renderable.ts";
@@ -17,11 +20,22 @@ describe('P5GraphicProcessor', () => {
     let mockP5: any;
     let mockLoader: AssetLoader;
 
-    const mockState: SceneState = {
-        camera: {x: 0, y: 0, z: 0},
-        lookAt: {x: 0, y: 0, z: 0},
-        alpha: 1 // Global scene alpha
-    };
+    let mockState = {
+        settings: DEFAULT_SETTINGS,
+        playback: {
+            now: Date.now(),
+            delta: 0,
+            progress: 0,
+            frameCount: 60
+        } as ScenePlaybackState,
+        camera: {
+            position: {x: 0, y: 0, z: 0},
+            lookAt: {x: 0, y: 0, z: 100},
+            yaw: 0,
+            pitch: 0,
+            direction: {x: 0, y: 0, z: 1},
+        } as SceneCameraState
+    } as SceneState;
 
     beforeEach(() => {
         mockP5 = {
@@ -209,12 +223,8 @@ describe('P5GraphicProcessor', () => {
             }),
             mockState,
         );
-        const sceneState: SceneState = {
-            camera: {x: 0, y: 0, z: 0}, lookAt: {x: 0, y: 0, z: 0},
-            alpha: 1 // Scene global alpha
-        };
 
-        gp.drawBox(boxProps, {}, sceneState);
+        gp.drawBox(boxProps, {}, mockState);
 
         expect(mockP5.strokeWeight).toHaveBeenCalledWith(5);
         expect(mockP5.stroke).toHaveBeenCalledWith(255, 0, 0, 255);
@@ -278,7 +288,7 @@ describe('P5GraphicProcessor', () => {
             }
         };
 
-        gp.drawPanel(panelProps, assets as any, {alpha: 1} as any);
+        gp.drawPanel(panelProps, assets as any, mockState);
 
         // Verify Texture logic
         expect(mockP5.texture).toHaveBeenCalledWith(mockImage);
@@ -305,7 +315,7 @@ describe('P5GraphicProcessor', () => {
         // Asset is still loading
         const assets = {texture: {status: ASSET_STATUS.LOADING, value: null}};
 
-        gp.drawPanel(panelProps, assets as any, {alpha: 1} as any);
+        gp.drawPanel(panelProps, assets as any, mockState);
 
         expect(mockP5.texture).not.toHaveBeenCalled();
         expect(mockP5.fill).toHaveBeenCalledWith(255, 0, 0, 255);

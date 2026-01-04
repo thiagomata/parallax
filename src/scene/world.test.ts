@@ -1,5 +1,15 @@
 import {beforeEach, describe, expect, it, type Mock, vi} from 'vitest';
-import {ASSET_STATUS, type AssetLoader, type GraphicProcessor, type Vector3} from './types.ts';
+import {
+    ASSET_STATUS,
+    type AssetLoader,
+    DEFAULT_SETTINGS,
+    type GraphicProcessor,
+    type SceneCameraState,
+    type ScenePlaybackState,
+    type SceneState,
+    type SceneStateDebugLog,
+    type Vector3
+} from './types.ts';
 import type {SceneManager} from "./scene_manager.ts";
 import {World} from "./world.ts";
 import {ChaosLoader} from "./mock/mock_asset_loader.ts";
@@ -46,7 +56,10 @@ export const createMockGP = (): GraphicProcessor => {
         drawLabel: vi.fn(),
         drawText: vi.fn(),
         drawCrosshair: vi.fn(),
-        drawHUDText: vi.fn()
+        drawHUDText: vi.fn(),
+        millis: vi.fn(),
+        deltaTime: vi.fn(),
+        frameCount: vi.fn(),
     } as GraphicProcessor<unknown, unknown>;
 };
 
@@ -106,22 +119,32 @@ describe('World Orchestration', () => {
             mockGP = createMockGP();
 
             (mockManager.calculateScene as Mock).mockReturnValue({
-                camera: {x: 0, y: 0, z: 100},
-                lookAt: {x: 0, y: 0, z: 0},
-                debug: undefined
-            });
+                settings: DEFAULT_SETTINGS,
+                playback: {
+                    now: Date.now(),
+                    delta: 0,
+                    progress: 0,
+                    frameCount: 60
+                } as ScenePlaybackState,
+                camera: {
+                    position: {x: 0, y: 0, z: 0},
+                    lookAt: {x: 0, y: 0, z: 0},
+                } as SceneCameraState,
+            } as SceneState);
 
             world = new World(mockManager);
         });
 
         it('should sort elements by distance and render far-to-near', async () => {
             // Add one element far away
+            let farPlace = {x: 0, y: 0, z: 500}
             world.addElement('far', toProps({
-                type: 'box', size: 5, position: {x: 0, y: 0, z: -500}
+                type: 'box', size: 5, position: farPlace
             }));
             // Add one element very close
+            let nearPlace = {x: 0, y: 0, z: 50};
             world.addElement('near', toProps({
-                type: 'box', size: 5, position: {x: 0, y: 0, z: 50}
+                type: 'box', size: 5, position: nearPlace
             }));
 
             // Hydrate so they are ready to render
@@ -145,23 +168,43 @@ describe('World Orchestration', () => {
             const nearCallOrder = nearSpy.mock.invocationCallOrder[0];
 
             expect(farCallOrder).toBeLessThan(nearCallOrder);
-            expect(mockGP.setCamera).toHaveBeenCalledWith(
-                {x: 0, y: 0, z: 100},
-                {x: 0, y: 0, z: 0}
-            );
+            expect(mockGP.translate).toHaveBeenCalledWith(farPlace);
+            expect(mockGP.translate).toHaveBeenCalledWith(nearPlace);
+
+            const calls = vi.mocked(mockGP.translate).mock.calls;
+
+            // first translated the far place
+            expect(calls[0][0]).toEqual(farPlace);
+            // later translated the near place
+            expect(calls[1][0]).toEqual(nearPlace);
         });
 
         it('should pass debug info to the processor when enabled', () => {
             (mockManager.calculateScene as Mock).mockReturnValue({
-                camera: {x: 0, y: 0, z: 100},
-                lookAt: {x: 0, y: 0, z: 0},
-                debug: {
+                settings: {
+                    ...DEFAULT_SETTINGS,
+                    debug: true,
+                },
+                playback: {
+                    now: Date.now(),
+                    delta: 0,
+                    progress: 0,
+                    frameCount: 60,
+                } as ScenePlaybackState,
+                camera: {
+                    position: {x:0,y:0,z:0},
+                    lookAt: {x: 0, y: 0, z: 100},
+                    direction: {x:0,y:0,z:1},
+                    yaw: 0,
+                    pitch: 0,
+                } as SceneCameraState,
+                debugStateLog: {
                     car: {name: 'TestCar', priority: 1, x: 10, y: 10, z: 10},
                     nudges: [{name: 'Nudge1', x: 5, y: 5, z: 5}],
                     stick: {name: 'Stick', priority: 1},
                     errors: [{name: 'Err', message: 'Failed'}]
-                }
-            });
+                } as SceneStateDebugLog,
+            } as SceneState);
 
             world.step(mockGP);
 

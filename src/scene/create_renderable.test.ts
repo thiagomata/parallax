@@ -1,5 +1,12 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {ELEMENT_TYPES, type GraphicProcessor, type SceneState, type Vector3} from './types';
+import {
+    DEFAULT_SETTINGS,
+    ELEMENT_TYPES,
+    type GraphicProcessor, type SceneCameraState,
+    type ScenePlaybackState,
+    type SceneState,
+    type Vector3
+} from './types';
 import {createRenderable, flat, flatBox, flatPanel, flatText, toProps} from "./create_renderable.ts";
 
 /**
@@ -31,9 +38,20 @@ describe('createRenderable', () => {
     let gp: GraphicProcessor<unknown, unknown>;
     const mockOrigin: Vector3 = {x: 0, y: 0, z: 0};
     const mockState: SceneState = {
-        camera: mockOrigin,
-        lookAt: mockOrigin,
-        alpha: 1,
+        settings: DEFAULT_SETTINGS,
+        playback: {
+            now: Date.now(),
+            delta: 0,
+            progress: 0,
+            frameCount: 60
+        } as ScenePlaybackState,
+        camera: {
+            position: mockOrigin,
+            lookAt: mockOrigin,
+            yaw: 0,
+            pitch: 0,
+            direction: mockOrigin,
+        } as SceneCameraState
     };
 
     beforeEach(() => {

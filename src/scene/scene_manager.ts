@@ -1,23 +1,23 @@
-import type {
-    CarModifier,
-    NudgeModifier,
-    SceneState,
-    SceneStateDebugLog,
-    StickModifier,
-    StickResult,
-    Vector3,
+import {
+    type CarModifier, DEFAULT_SETTINGS,
+    type NudgeModifier, type ScenePlaybackState, type SceneCameraState, type SceneSettings,
+    type SceneState,
+    type SceneStateDebugLog,
+    type StickModifier,
+    type StickResult,
+    type Vector3,
 } from "./types";
 
 export class SceneManager {
-    private initialCam: Vector3;
+    private settings: SceneSettings;
     private carModifiers: CarModifier[] = [];
     private nudgeModifiers: NudgeModifier[] = [];
     private stickModifiers: StickModifier[] = [];
     public isDebug: boolean = false;
     public stickDistance: number = 1000;
 
-    constructor(initialCam: Vector3) {
-        this.initialCam = initialCam;
+    constructor(initialSettings: SceneSettings = DEFAULT_SETTINGS) {
+        this.settings = initialSettings;
     }
 
     public setDebug(isDebug: boolean): SceneManager {
@@ -51,14 +51,21 @@ export class SceneManager {
         return this;
     }
 
-    public calculateScene(): SceneState {
-        let basePos: Vector3 = {...this.initialCam};
+    public calculateScene(millis: number, deltaTime: number, frameCount: number): SceneState {
+    // public calculateScene(): SceneState {
+        let basePos: Vector3 = {...this.settings.camera.position};
         const debugLog = this.isDebug ? this.createEmptyDebugLog() : null;
 
+        const now = millis - this.settings.playback.startTime;
+        const scaledNow = now * this.settings.playback.timeSpeed;
+        const scaledDelta = deltaTime * this.settings.playback.timeSpeed;
+        const progress = this.settings.playback.duration
+            ? (scaledNow % this.settings.playback.duration) / this.settings.playback.duration
+            : 0
         for (const m of this.carModifiers) {
             if (!m.active) continue;
 
-            const res = m.getCarPosition(this.initialCam);
+            const res = m.getCarPosition(this.settings.camera.position);
             if (!res.success && this.isDebug && debugLog) {
                 debugLog.errors.push({name: m.name, message: res.error});
                 continue;
@@ -109,20 +116,28 @@ export class SceneManager {
             }
         }
 
-        const state: SceneState = {
-            camera: finalCamPos,
-            lookAt: this.calculateLookAt(finalCamPos, stickRes),
-            alpha: 1,
-        };
+        const lookAt = this.calculateLookAt(finalCamPos, stickRes);
 
-        if (this.isDebug) {
-            state.debug = debugLog!;
-        } else {
-            // better set to undefined than keep the outdated value
-            state.debug = undefined;
-        }
-
-        return state;
+        return {
+            settings: this.settings,
+            playback: {
+                now: scaledNow,
+                delta: scaledDelta,
+                frameCount: frameCount,
+                progress: progress,
+            } as ScenePlaybackState,
+            camera: {
+                fov: this.settings.camera.fov ?? Math.PI / 3,
+                near: this.settings.camera.near ?? 0.1,
+                far: this.settings.camera.far ?? 1000,
+                position: finalCamPos,
+                lookAt: lookAt,
+                yaw: stickRes.yaw,
+                pitch: stickRes.pitch,
+                direction: this.calculateDirection(stickRes),
+            } as SceneCameraState,
+            debugStateLog: debugLog ?? undefined,
+        } as SceneState;
     }
 
     private processNudges(basePos: Vector3, debugLog: SceneStateDebugLog | null): Vector3 {
@@ -173,9 +188,9 @@ export class SceneManager {
             car: {
                 name: "initialCam",
                 priority: -1,
-                x: this.initialCam.x,
-                y: this.initialCam.y,
-                z: this.initialCam.z
+                x: this.settings.camera.position.x,
+                y: this.settings.camera.position.y,
+                z: this.settings.camera.position.z,
             },
             nudges: [],
             stick: {
@@ -187,5 +202,13 @@ export class SceneManager {
             },
             errors: [],
         };
+    }
+
+    private calculateDirection(stickRes: StickResult): Vector3 {
+        return {
+            x: Math.sin(stickRes.yaw) * Math.cos(stickRes.pitch),
+            y: Math.sin(stickRes.pitch),
+            z: -Math.cos(stickRes.yaw) * Math.cos(stickRes.pitch)
+        }
     }
 }

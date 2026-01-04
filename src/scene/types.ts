@@ -28,11 +28,81 @@ export interface StickResult {
     readonly priority: number;
 }
 
+export interface SceneWindow {
+    readonly width: number;
+    readonly height: number;
+    readonly aspectRatio: number;
+}
+
+export interface SceneCameraSettings {
+    readonly position: Vector3;
+    readonly lookAt: Vector3;
+    readonly fov?: number;
+    readonly near?: number;
+    readonly far?: number;
+    readonly focusDistance?: number; // Distance from camera to the focal plane
+    readonly aperture?: number;      // "Strength" of the blur (e.g., f-stop)
+    readonly blurMax?: number;       // Limit for post-processing blur
+}
+
+export interface SceneCameraState extends SceneCameraSettings {
+    readonly yaw: number;
+    readonly pitch: number;
+    readonly direction: Vector3;
+}
+
+export interface PlaybackSettings {
+    readonly duration?: number;    // Total cycle time in ms (e.g., 5000 for 5s)
+    readonly isLoop: boolean;     // Should the global clock reset or stop?
+    readonly timeSpeed: number;   // Multiplier (1.0 = real time, 2.0 = double speed)
+    readonly startTime: number;   // Sync point for the animation
+}
+
+export interface ScenePlaybackState {
+    readonly now: number;
+    readonly delta: number;
+    readonly progress: number; // defaults 0 for playback without duration
+    readonly frameCount: number;
+}
+
+export interface SceneSettings {
+    window: SceneWindow;
+    camera: SceneCameraSettings;
+    playback: PlaybackSettings;
+    debug: boolean; // default false
+    alpha: number; // default 1
+}
+
+export const DEFAULT_CAMERA_FAR = 5000
+
+export const DEFAULT_SETTINGS: SceneSettings = {
+    window: {
+        width: 800,
+        height: 600,
+        aspectRatio: 800 / 600
+    },
+    camera: {
+        position: {x:0, y:0, z:500} as Vector3,
+        lookAt: {x:0, y:0, z:0} as Vector3,
+        fov: Math.PI / 3, // 60 degrees
+        near: 0.1,
+        far: DEFAULT_CAMERA_FAR
+    },
+    playback: {
+        duration: 5000,
+        isLoop: true,
+        timeSpeed: 1.0,
+        startTime: 0
+    },
+    debug: false,
+    alpha: 1
+};
+
 export interface SceneState {
-    camera: Vector3;
-    lookAt: Vector3;
-    alpha: number;
-    debug?: SceneStateDebugLog;
+    settings: SceneSettings;
+    playback: ScenePlaybackState;
+    camera: SceneCameraState;
+    debugStateLog?: SceneStateDebugLog;
 }
 
 export interface SceneStateDebugLog {
@@ -179,6 +249,12 @@ export interface GraphicProcessor<TTexture = any, TFont = any> {
     drawCrosshair(param: { x: number; y: number | undefined; z: number | undefined }, number: number): void;
 
     drawHUDText(s: string, number: number, number2: number): void;
+
+    millis(): number;
+
+    deltaTime(): number;
+
+    frameCount(): number;
 }
 
 export const ELEMENT_TYPES = {

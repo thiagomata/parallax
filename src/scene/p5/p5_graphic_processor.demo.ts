@@ -3,12 +3,14 @@ import {P5GraphicProcessor} from './p5_graphic_processor';
 import {
     ASSET_STATUS,
     type AssetLoader,
-    type BoxProps,
+    type BoxProps, DEFAULT_SETTINGS,
     ELEMENT_TYPES,
     type ElementAssets,
     type FontInstance,
     type FontRef,
     type PanelProps,
+    type SceneCameraState,
+    type ScenePlaybackState,
     type SceneState,
     type TextProps
 } from '../types';
@@ -50,10 +52,21 @@ const sketch = (p: p5) => {
         gp.pop();
 
         let sceneState = {
-            camera: {x: 0, y: 0, z: 0},
-            lookAt: {x: 0, y: 0, z: 100},
-            alpha: 1
-        } as SceneState
+            settings: DEFAULT_SETTINGS,
+            playback: {
+                now: Date.now(),
+                delta: 0,
+                progress: 0,
+                frameCount: 60
+            } as ScenePlaybackState,
+            camera: {
+                position: {x: 0, y: 0, z: 0},
+                lookAt: {x: 0, y: 0, z: 100},
+                yaw: 0,
+                pitch: 0,
+                direction: {x: 0, y: 0, z: 1},
+            } as SceneCameraState
+        } as SceneState;
 
         if (testImg) {
             const textureInstance = {

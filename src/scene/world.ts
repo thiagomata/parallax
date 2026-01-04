@@ -87,10 +87,14 @@ export class World {
      */
     public step(graphicProcessor: GraphicProcessor): void {
         // 1. Get the current Perspective from the SceneManager
-        const state = this.sceneManager.calculateScene();
+        const state = this.sceneManager.calculateScene(
+            graphicProcessor.millis(),     // Total time elapsed
+            graphicProcessor.deltaTime(),    // Time since last frame (important for smooth motion)
+            graphicProcessor.frameCount()    // The current frame number
+        );
 
         // 2. Set the Global Camera on the Engine
-        graphicProcessor.setCamera(state.camera, state.lookAt);
+        graphicProcessor.setCamera(state.camera.position, state.camera.lookAt);
 
         // 3. Draw every object in storage (Sorted for Alpha Blending)
         // We create a sortable array from the registry
@@ -98,7 +102,7 @@ export class World {
             .map(element => ({
                 element,
                 // Calculate distance from camera to the element's position
-                distance: graphicProcessor.dist(state.camera, flat(element.props.position, state)!)
+                distance: graphicProcessor.dist(state.camera.position, flat(element.props.position, state)!)
             }))
             // Sort Descending: Furthest distance first (Painter's Algorithm)
             .sort((a, b) => b.distance - a.distance);
@@ -109,15 +113,15 @@ export class World {
         });
 
         // 5. Handle Debug Logging (Usually drawn last/on top)
-        if (state.debug) {
+        if (state.settings.debug) {
             this.renderDebugInfo(graphicProcessor, state);
         }
     }
 
     private renderDebugInfo(graphicProcessor: GraphicProcessor, state: SceneState) {
-        if (!state.debug) return;
+        if (!state.debugStateLog) return;
 
-        const log = state.debug;
+        const log = state.debugStateLog
 
         // 1. Draw the "Car" status at its coordinates
         if (log.car.x !== undefined) {

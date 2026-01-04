@@ -1,7 +1,6 @@
 import {
     type BaseVisualProps,
-    type BoxProps,
-    type DynamicValueFromSceneState,
+    type BoxProps, DEFAULT_CAMERA_FAR, type DynamicValueFromSceneState,
     ELEMENT_TYPES,
     type FlatBaseVisualProps,
     type FlatBoxProps,
@@ -125,8 +124,8 @@ export const createRenderable = <TTexture, TFont>(
             gp.push();
             gp.translate(position);
 
-            const distance = gp.dist(position, state.camera);
-            if (distance > 5000) {
+            const distance = gp.dist(position, state.camera.position);
+            if (distance > (state.settings.camera.far ?? DEFAULT_CAMERA_FAR )) {
                 gp.pop();
                 return;
             }

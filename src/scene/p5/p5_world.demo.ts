@@ -2,14 +2,12 @@ import p5 from 'p5';
 import {World} from '../world';
 import {P5GraphicProcessor} from './p5_graphic_processor';
 import {P5AssetLoader} from './p5_asset_loader';
-import {ELEMENT_TYPES} from "../types.ts";
+import {DEFAULT_SETTINGS, ELEMENT_TYPES} from "../types.ts";
 import demoSourceCode from './p5_world.demo.ts?raw';
 import Prism from 'prismjs';
 
-// Import a theme (you can choose others like 'tomorrow' or 'okaidia')
 import 'prismjs/themes/prism-tomorrow.css';
 
-// Import the languages you need
 import 'prismjs/components/prism-typescript';
 import 'prismjs/components/prism-javascript';
 import {SceneManager} from "../scene_manager.ts";
@@ -25,7 +23,7 @@ const p5WorldDemo = (p5: p5) => {
     p5.setup = async () => {
         p5.createCanvas(window.innerWidth, window.innerHeight, p5.WEBGL);
 
-        manager = new SceneManager({x: 0, y: 0, z: 900});
+        manager = new SceneManager(DEFAULT_SETTINGS);
         manager.setDebug(true);
         manager.setStickDistance(1000);
 
