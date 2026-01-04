@@ -2,7 +2,7 @@ import p5 from 'p5';
 import {World} from '../world';
 import {P5GraphicProcessor} from './p5_graphic_processor';
 import {P5AssetLoader} from './p5_asset_loader';
-import {DEFAULT_SETTINGS, ELEMENT_TYPES} from "../types.ts";
+import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "../types.ts";
 import demoSourceCode from './p5_world.demo.ts?raw';
 import Prism from 'prismjs';
 
@@ -13,7 +13,7 @@ import 'prismjs/components/prism-javascript';
 import {SceneManager} from "../scene_manager.ts";
 import {OrbitModifier} from "../modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../modifiers/center_focus_modifier.ts";
-import {toProps} from "../create_renderable.ts";
+import {toProps, toSpec, toSpecComputed} from "../create_renderable.ts";
 
 const p5WorldDemo = (p5: p5) => {
     let world: World;
@@ -23,7 +23,15 @@ const p5WorldDemo = (p5: p5) => {
     p5.setup = async () => {
         p5.createCanvas(window.innerWidth, window.innerHeight, p5.WEBGL);
 
-        manager = new SceneManager(DEFAULT_SETTINGS);
+        manager = new SceneManager({
+            ...DEFAULT_SETTINGS,
+            playback: {
+                timeSpeed: 1.0,
+                startTime: 0,
+                duration: 10000,
+                isLoop: true
+            },
+        });
         manager.setDebug(true);
         manager.setStickDistance(1000);
 
@@ -44,12 +52,22 @@ const p5WorldDemo = (p5: p5) => {
         }));
 
         // 2. Middle Ground (Semi-transparent Red Box)
-        world.addElement('mid', toProps({
+        world.addElement('mid', {
             type: ELEMENT_TYPES.BOX,
-            size: 150,
-            position: {x: 0, y: 0, z: 0}, // Center
-            fillColor: {red: 255, green: 0, blue: 0, alpha: 0.5}
-        }));
+            size: toSpecComputed((state: SceneState)=> {
+                return state.playback.progress * 100;
+            }),
+            position: toSpecComputed(
+                (state: SceneState): Vector3 => {
+                    return {
+                        x: 0,
+                        y: 0,
+                        z: state.playback.progress * 200,
+                    }
+                }
+            ),
+            fillColor: toSpec({red: 255, green: 0, blue: 0, alpha: 0.5})
+        });
 
         // 3. Foreground (Blue Box)
         world.addElement('front', toProps({

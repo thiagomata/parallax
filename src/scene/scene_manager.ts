@@ -51,7 +51,35 @@ export class SceneManager {
         return this;
     }
 
-    public calculateScene(millis: number, deltaTime: number, frameCount: number): SceneState {
+    public initialState(): SceneState {
+        return {
+            settings: this.settings,
+            playback: {
+                now: 0,
+                delta: 0,
+                frameCount: 60,
+                progress: 0,
+            } as ScenePlaybackState,
+            camera: {
+                fov: this.settings.camera.fov ?? Math.PI / 3,
+                near: this.settings.camera.near ?? 0.1,
+                far: this.settings.camera.far ?? 1000,
+                position: this.settings.camera.position,
+                lookAt: this.settings.camera.lookAt ?? 0,
+                yaw: 0,
+                pitch: 0,
+                direction: this.calculateDirection({
+                    yaw: 0,
+                    pitch:0,
+                    distance: this.stickDistance,
+                    priority: 0,
+                }),
+            } as SceneCameraState,
+            debugStateLog: undefined,
+        } as SceneState;
+    }
+
+    public calculateScene(millis: number, deltaTime: number, frameCount: number, previousState: SceneState): SceneState {
     // public calculateScene(): SceneState {
         let basePos: Vector3 = {...this.settings.camera.position};
         const debugLog = this.isDebug ? this.createEmptyDebugLog() : null;
@@ -62,10 +90,22 @@ export class SceneManager {
         const progress = this.settings.playback.duration
             ? (scaledNow % this.settings.playback.duration) / this.settings.playback.duration
             : 0
+
+        let currentState = {
+            ...previousState,
+            playback: {
+                ...previousState.playback,
+                now: millis,
+                delta: deltaTime,
+                progress: progress,
+                frameCount: frameCount,
+            } as ScenePlaybackState
+        } as SceneState
+
         for (const m of this.carModifiers) {
             if (!m.active) continue;
 
-            const res = m.getCarPosition(this.settings.camera.position);
+            const res = m.getCarPosition(this.settings.camera.position, currentState);
             if (!res.success && this.isDebug && debugLog) {
                 debugLog.errors.push({name: m.name, message: res.error});
                 continue;
@@ -86,7 +126,7 @@ export class SceneManager {
             }
         }
 
-        const finalCamPos = this.processNudges(basePos, debugLog);
+        const finalCamPos = this.processNudges(basePos, debugLog, currentState);
 
         let stickRes: StickResult = {
             yaw: 0,
@@ -98,7 +138,7 @@ export class SceneManager {
         for (const m of this.stickModifiers) {
             if (!m.active) continue;
 
-            const res = m.getStick(finalCamPos);
+            const res = m.getStick(finalCamPos, currentState);
             if (res.success) {
                 stickRes = res.value;
                 if (this.isDebug && debugLog) {
@@ -140,13 +180,13 @@ export class SceneManager {
         } as SceneState;
     }
 
-    private processNudges(basePos: Vector3, debugLog: SceneStateDebugLog | null): Vector3 {
+    private processNudges(basePos: Vector3, debugLog: SceneStateDebugLog | null, currentState: SceneState): Vector3 {
         const votes: Record<keyof Vector3, number[]> = {x: [], y: [], z: []};
 
         for (const m of this.nudgeModifiers) {
             if (!m.active) continue;
 
-            const res = m.getNudge(basePos);
+            const res = m.getNudge(basePos, currentState);
             if (res.success) {
                 const n = res.value;
                 if (n.x !== undefined) votes.x.push(n.x);

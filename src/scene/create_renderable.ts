@@ -16,6 +16,14 @@ import {
     type TextProps
 } from "./types.ts";
 
+
+export function toSpecComputed<T>(source: (state: SceneState) => T): SpecProperty<T> {
+    return {
+        kind: 'computed',
+        compute: source,
+    }
+}
+
 export function toSpec<T>(source: DynamicValueFromSceneState<T>): SpecProperty<T> {
     if (typeof source === 'function') {
         return {

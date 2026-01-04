@@ -117,14 +117,14 @@ export interface CarModifier {
     active: boolean;
     readonly priority: number;
 
-    getCarPosition(initialCam: Vector3): FailableResult<CarResult>;
+    getCarPosition(initialCam: Vector3, currentState: SceneState): FailableResult<CarResult>;
 }
 
 export interface NudgeModifier {
     name: string;
     active: boolean;
 
-    getNudge(currentCarPos: Vector3): FailableResult<Partial<Vector3>>;
+    getNudge(currentCarPos: Vector3, currentState: SceneState): FailableResult<Partial<Vector3>>;
 }
 
 export interface StickModifier {
@@ -132,7 +132,7 @@ export interface StickModifier {
     active: boolean;
     readonly priority: number;
 
-    getStick(finalPos: Vector3): FailableResult<StickResult>;
+    getStick(finalPos: Vector3, currentState: SceneState): FailableResult<StickResult>;
 }
 
 export const ASSET_STATUS = {

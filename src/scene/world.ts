@@ -16,9 +16,11 @@ export class World {
     private sceneManager: SceneManager;
     private textureCache: Map<string, Promise<TextureAsset>> = new Map();
     private fontCache: Map<string, Promise<FontAsset>> = new Map();
+    private sceneState: SceneState;
 
     constructor(sceneManager: SceneManager) {
         this.sceneManager = sceneManager;
+        this.sceneState = this.sceneManager.initialState()
     }
 
     /**
@@ -90,7 +92,8 @@ export class World {
         const state = this.sceneManager.calculateScene(
             graphicProcessor.millis(),     // Total time elapsed
             graphicProcessor.deltaTime(),    // Time since last frame (important for smooth motion)
-            graphicProcessor.frameCount()    // The current frame number
+            graphicProcessor.frameCount(),   // The current frame number,
+            this.sceneState,
         );
 
         // 2. Set the Global Camera on the Engine
