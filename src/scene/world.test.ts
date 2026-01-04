@@ -25,6 +25,7 @@ const mockManager: SceneManager = {
     setDebug: vi.fn(), setStickDistance: vi.fn(), addCarModifier: vi.fn(),
     addNudgeModifier: vi.fn(), addStickModifier: vi.fn(), processNudges: vi.fn(),
     calculateLookAt: vi.fn(), createEmptyDebugLog: vi.fn(),
+    initialState: vi.fn(),
 } as unknown as SceneManager;
 
 export const createMockGP = (): GraphicProcessor => {
@@ -60,6 +61,7 @@ export const createMockGP = (): GraphicProcessor => {
         millis: vi.fn(),
         deltaTime: vi.fn(),
         frameCount: vi.fn(),
+        initialState: vi.fn(),
     } as GraphicProcessor<unknown, unknown>;
 };
 

@@ -87,7 +87,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
             .addCarModifier(mockCar("low", 0, {x: 10, y: 11, z: 12}))
             .addCarModifier(mockCar("high", 100, {x: 50, y: 51, z: 52}));
 
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
         expect(state.camera.position.x).toBe(50);
         expect(state.camera.position.y).toBe(51);
         expect(state.camera.position.z).toBe(52);
@@ -110,7 +110,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
             .addCarModifier(failingHigh)
             .addCarModifier(mockCar("fallback", 50, {x: 20, y: 21, z: 22}));
 
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
         expect(state.camera.position.x).toBe(20);
         expect(state.camera.position.y).toBe(21);
         expect(state.camera.position.z).toBe(22);
@@ -128,7 +128,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
             .addCarModifier(inactiveCar)
             .addCarModifier(activeCar);
 
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
 
         // Should pick the priority zero car because the priority 100 one is inactive
         expect(state.camera.position.x).toBe(10);
@@ -138,7 +138,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
         const initial = {x: 1, y: 2, z: 3};
         const manager = new SceneManager(createMockSettings(initial)).setStickDistance(200);
 
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
 
         expect(state.camera.position).toEqual(initial);
         // Default lookAt should be forward from the camera (Z - stick distance)
@@ -152,7 +152,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
             .addCarModifier(mockCar("first", 10, {x: 1, y: 11, z: 111}))
             .addCarModifier(mockCar("second", 10, {x: 2, y: 22, z: 222}));
 
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
         // Depending on how you want your engine to behave:
         expect(state.camera.position.x).toBe(1);
         expect(state.camera.position.y).toBe(11);
@@ -186,7 +186,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
         manager.addCarModifier(brokenCar);
         manager.addStickModifier(brokenStick);
 
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
 
         // 1. Camera should stay at initialCam
         expect(state.camera.position).toEqual(initial);
@@ -204,7 +204,7 @@ describe("PortalSceneManager - Stage 2 (Nudge)", () => {
         manager.addNudgeModifier(
             mockNudge({x: 100, y: 200, z: 300})
         );
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
         expect(state.camera.position.x).toBe(100);
         expect(state.camera.position.y).toBe(200);
         expect(state.camera.position.z).toBe(300);
@@ -223,7 +223,7 @@ describe("PortalSceneManager - Stage 2 (Nudge)", () => {
             .addNudgeModifier(mockNudge({y: 100})) // Only votes for Y
             .addNudgeModifier(mockNudge({z: 100}, false)); // Ignore non active
 
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
 
         // X should be the average of 10 and 20 = 15
         expect(state.camera.position.x).toBe(15);
@@ -249,7 +249,7 @@ describe("PortalSceneManager - Stage 3 (Stick)", () => {
         };
 
         manager.addStickModifier(forwardStick);
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
 
         // With yaw zero and pitch zero, looking down -Z axis
         expect(state.camera.lookAt.z).toBeCloseTo(-10);
@@ -326,7 +326,7 @@ describe("PortalSceneManager - Debug Output", () => {
     it("should not include the debug property when isDebug is false", () => {
         const manager = new SceneManager(createMockSettings(initial));
         manager.setDebug(false);
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
         expect(state.debugStateLog).toBeUndefined();
     });
 
@@ -357,7 +357,7 @@ describe("PortalSceneManager - Debug Output", () => {
         manager
             .addCarModifier(failingCar)
             .addCarModifier(goodCar);
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
 
         expect(state.debugStateLog).toBeDefined();
         expect(state.debugStateLog?.errors).toHaveLength(1);
@@ -384,7 +384,7 @@ describe("PortalSceneManager - Debug Output", () => {
         };
 
         manager.addCarModifier(highPriorityCar);
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
 
         expect(state.debugStateLog).toBeDefined();
         expect(state.debugStateLog?.car.name).toBe("highPriorityCar");
@@ -411,13 +411,13 @@ describe("PortalSceneManager - Debug Output", () => {
 
         // by default, debug should be disabled and not create debug output
         expect(manager.isDebug).toBe(false);
-        const stateBeforeDebug = manager.calculateScene(1000, 10, 60);
+        const stateBeforeDebug = manager.calculateScene(1000, 10, 60, mockState);
         expect(stateBeforeDebug.debugStateLog === undefined);
 
         // When enabled, debug should trigger the debug output
         manager.setDebug(true);
         expect(manager.isDebug).toBe(true);
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
 
         expect(state.debugStateLog?.nudges).toHaveLength(2);
         expect(state.debugStateLog?.nudges[0].x).toBe(5);
@@ -430,6 +430,7 @@ describe("PortalSceneManager - Debug Output", () => {
             1000,
             10,
             122,
+            mockState
         );
         expect(stateAfterDebug.debugStateLog === undefined);
     });
@@ -445,7 +446,7 @@ describe("PortalSceneManager - Debug Output", () => {
         };
 
         manager.addCarModifier(failingCar);
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
 
         expect(state.debugStateLog?.errors).toHaveLength(1);
         expect(state.debugStateLog?.errors[0].message).toBe("DOM element missing");
@@ -462,7 +463,7 @@ describe("PortalSceneManager - Debug Output", () => {
             getNudge: () => ({success: false, error: "DOM element missing"}),
         };
         manager.addNudgeModifier(failingNudge);
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
 
         expect(state.debugStateLog?.errors).toHaveLength(1);
         expect(state.debugStateLog?.errors[0].message).toBe("DOM element missing");
@@ -483,7 +484,7 @@ describe("PortalSceneManager - Multi-Stick Logic", () => {
             .addStickModifier(mockStick("High-Priority-Override", 100, 3.14))
             .addStickModifier(mockStick("Mid-Priority-Input", 50, 1.5));
 
-        const state = manager.calculateScene(1000, 10, 60);
+        const state = manager.calculateScene(1000, 10, 60, mockState);
 
         // 1. Math check: Must be the High-Priority value
         expect(state.camera.lookAt.z).toBeCloseTo(10); // Since yaw 3.14 (PI) is "backward"
@@ -521,7 +522,7 @@ it("should log multiple errors if higher priority sticks fail", () => {
         .addStickModifier(broken2)
         .addStickModifier(working3);
 
-    const state = manager.calculateScene(1000, 10, 60);
+    const state = manager.calculateScene(1000, 10, 60, mockState);
 
     // The final state should be from the working stick
     expect(state.debugStateLog?.stick.name).toBe("Safe-Fallback");
