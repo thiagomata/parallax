@@ -7,7 +7,7 @@ import {
     type SceneState,
     type Vector3
 } from './types';
-import {createRenderable, flat, flatBox, flatPanel, flatText, toProps} from "./create_renderable.ts";
+import {createRenderable, resolve, resolveBox, ResolvedPanel, resolveText, toProps} from "./create_renderable.ts";
 
 /**
  * A type-safe mock factory for the GraphicProcessor.
@@ -82,7 +82,7 @@ describe('createRenderable', () => {
         renderable.render(gp, mockState);
 
         expect(gp.push).toHaveBeenCalled();
-        expect(gp.translate).toHaveBeenCalledWith(flat(props.position, mockState));
+        expect(gp.translate).toHaveBeenCalledWith(resolve(props.position, mockState));
         // Ensure it didn't hit the switch/case
         expect(gp.drawBox).not.toHaveBeenCalled();
         // Ensure it still cleaned up the stack
@@ -97,7 +97,7 @@ describe('createRenderable', () => {
 
         renderable.render(gp, mockState);
 
-        expect(gp.drawBox).toHaveBeenCalledWith(flatBox(props, mockState), renderable.assets, mockState);
+        expect(gp.drawBox).toHaveBeenCalledWith(resolveBox(props, mockState), renderable.assets, mockState);
         expect(gp.pop).toHaveBeenCalled();
     });
 
@@ -112,7 +112,7 @@ describe('createRenderable', () => {
 
         renderable.render(gp, mockState);
 
-        expect(gp.drawPanel).toHaveBeenCalledWith(flatPanel(props, mockState), renderable.assets, mockState);
+        expect(gp.drawPanel).toHaveBeenCalledWith(ResolvedPanel(props, mockState), renderable.assets, mockState);
     });
 
     it('should render TEXT correctly', () => {
@@ -126,6 +126,6 @@ describe('createRenderable', () => {
 
         renderable.render(gp, mockState);
 
-        expect(gp.drawText).toHaveBeenCalledWith(flatText(props, mockState), renderable.assets, mockState);
+        expect(gp.drawText).toHaveBeenCalledWith(resolveText(props, mockState), renderable.assets, mockState);
     });
 });

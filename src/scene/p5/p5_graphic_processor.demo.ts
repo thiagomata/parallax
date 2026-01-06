@@ -14,7 +14,7 @@ import {
     type SceneState,
     type TextProps
 } from '../types';
-import {flatBox, flatPanel, flatText, toProps} from "../create_renderable.ts";
+import {resolveBox, ResolvedPanel, resolveText, toProps} from "../create_renderable.ts";
 
 const sketch = (p: p5) => {
     let gp: P5GraphicProcessor;
@@ -43,7 +43,7 @@ const sketch = (p: p5) => {
         gp.setCamera({x: 300, y: -300, z: 600}, {x: 0, y: 0, z: 0});
 
         gp.push();
-        gp.rotateX(p.HALF_PI); // Lay it flat
+        gp.rotateX(p.HALF_PI); // Lay it Resolved
         gp.stroke({red: 100, green: 100, blue: 100, alpha: 0.5}, 1);
         for (let i = -500; i <= 500; i += 50) {
             p.line(i, -500, i, 500);
@@ -75,7 +75,7 @@ const sketch = (p: p5) => {
             };
 
             gp.drawPanel(
-                flatPanel(
+                ResolvedPanel(
                     toProps({
                         type: ELEMENT_TYPES.PANEL,
                         width: 200,
@@ -98,7 +98,7 @@ const sketch = (p: p5) => {
 
         if (testFont) {
             gp.drawText(
-                flatText(
+                resolveText(
                     toProps({
                         type: ELEMENT_TYPES.TEXT,
                         font: {
@@ -137,7 +137,7 @@ const sketch = (p: p5) => {
 
         //     drawBox(boxProps: BoxProps, assets: ElementAssets, sceneState: SceneState): void {
         gp.drawBox(
-            flatBox(
+            resolveBox(
                 toProps({
                     type: ELEMENT_TYPES.BOX,
                     size: 80,

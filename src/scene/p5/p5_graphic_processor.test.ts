@@ -6,14 +6,14 @@ import {
     type AssetLoader,
     DEFAULT_SETTINGS,
     ELEMENT_TYPES,
-    type FlatBoxProps,
-    type FlatPanelProps,
-    type FlatTextProps,
+    type ResolvedBoxProps,
+    type ResolvedPanelProps,
+    type ResolvedTextProps,
     type SceneCameraState,
     type ScenePlaybackState,
     type SceneState,
 } from '../types';
-import {flatBox, flatPanel, flatText, toProps} from "../create_renderable.ts";
+import {resolveBox, ResolvedPanel, resolveText, toProps} from "../create_renderable.ts";
 
 describe('P5GraphicProcessor', () => {
     let gp: P5GraphicProcessor;
@@ -87,7 +87,7 @@ describe('P5GraphicProcessor', () => {
 
     describe('High-level Drawing Logic', () => {
         it('should apply texture and tint if asset is READY', () => {
-            const boxProps = flatBox(
+            const boxProps = resolveBox(
                 toProps(
                     {
                         type: ELEMENT_TYPES.BOX,
@@ -119,7 +119,7 @@ describe('P5GraphicProcessor', () => {
         });
 
         it('should fallback to fillColor if texture is not READY', () => {
-            const boxProps = flatBox(
+            const boxProps = resolveBox(
                 toProps({
                     type: ELEMENT_TYPES.BOX,
                     position: {x: 0, y: 0, z: 0},
@@ -148,7 +148,7 @@ describe('P5GraphicProcessor', () => {
     });
 
     describe('P5GraphicProcessor - drawText', () => {
-        const textProps: FlatTextProps = flatText(
+        const textProps: ResolvedTextProps = resolveText(
             toProps({
                 type: ELEMENT_TYPES.TEXT,
                 text: 'Gemini',
@@ -213,7 +213,7 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should apply stroke from props when drawing a box', () => {
-        const boxProps: FlatBoxProps = flatBox(
+        const boxProps: ResolvedBoxProps = resolveBox(
             toProps({
                 type: ELEMENT_TYPES.BOX,
                 position: {x: 0, y: 0, z: 0},
@@ -231,7 +231,7 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should skip stroke application if strokeColor is missing in props', () => {
-        const boxProps: FlatBoxProps = flatBox(
+        const boxProps: ResolvedBoxProps = resolveBox(
             toProps({
                 type: ELEMENT_TYPES.BOX,
                 position: {x: 0, y: 0, z: 0},
@@ -248,7 +248,7 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should translate to the correct position and draw a plane', () => {
-        const panelProps: FlatPanelProps = flatPanel(
+        const panelProps: ResolvedPanelProps = ResolvedPanel(
             toProps({
                 type: ELEMENT_TYPES.PANEL,
                 position: {x: 100, y: -50, z: 200},
@@ -267,7 +267,7 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should apply both texture and stroke if both are provided', () => {
-        const panelProps: FlatPanelProps = flatPanel(
+        const panelProps: ResolvedPanelProps = ResolvedPanel(
             toProps({
                 type: ELEMENT_TYPES.PANEL,
                 position: {x: 0, y: 0, z: 0},
@@ -301,7 +301,7 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should fallback to fillColor in drawPanel when texture is not ready', () => {
-        const panelProps: FlatPanelProps = flatPanel(
+        const panelProps: ResolvedPanelProps = ResolvedPanel(
             toProps({
                 type: ELEMENT_TYPES.PANEL,
                 position: {x: 0, y: 0, z: 0},

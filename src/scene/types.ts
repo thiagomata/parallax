@@ -218,12 +218,12 @@ export interface GraphicProcessor<TTexture = any, TFont = any> {
     noStroke(): void;
 
     drawText(
-        textProp: FlatTextProps,
+        textProp: ResolvedTextProps,
         assets: ElementAssets<TTexture, TFont>,
         sceneState: SceneState): void;
 
     drawBox(
-        boxProps: FlatBoxProps,
+        boxProps: ResolvedBoxProps,
         assets: ElementAssets<TTexture, TFont>,
         sceneState: SceneState): void;
 
@@ -231,7 +231,7 @@ export interface GraphicProcessor<TTexture = any, TFont = any> {
 
     //drawPanel(instance: TextureInstance): void;
     drawPanel(
-        panelProps: FlatPanelProps,
+        panelProps: ResolvedPanelProps,
         assets: ElementAssets<TTexture, TFont>,
         sceneState: SceneState): void;
 
@@ -291,7 +291,7 @@ export type MapToSpec<T> = {
         : FlexibleSpec<T[K]>;
 };
 
-export interface FlatBaseVisualProps {
+export interface ResolvedBaseVisualProps {
     readonly position: Vector3;
     readonly alpha?: number;
     readonly fillColor?: ColorRGBA;
@@ -302,9 +302,9 @@ export interface FlatBaseVisualProps {
     readonly font?: FontRef;
 }
 
-export type BaseVisualProps = MapToSpec<FlatBaseVisualProps>
+export type BaseVisualProps = MapToSpec<ResolvedBaseVisualProps>
 
-export interface FlatBaseVisualProps {
+export interface ResolvedBaseVisualProps {
     readonly position: Vector3;
     readonly alpha?: number;
     readonly fillColor?: ColorRGBA;
@@ -315,47 +315,47 @@ export interface FlatBaseVisualProps {
     readonly font?: FontRef;
 }
 
-export interface FlatBoxProps extends FlatBaseVisualProps {
+export interface ResolvedBoxProps extends ResolvedBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.BOX;
     readonly size: number;
 }
 
-export type BoxProps = MapToSpec<FlatBoxProps>
+export type BoxProps = MapToSpec<ResolvedBoxProps>
 
-export interface FlatPanelProps extends FlatBaseVisualProps {
+export interface ResolvedPanelProps extends ResolvedBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.PANEL;
     readonly width: number;
     readonly height: number;
 }
 
-export type PanelProps = MapToSpec<FlatPanelProps>
+export type PanelProps = MapToSpec<ResolvedPanelProps>
 
-export interface FlatSphereProps extends FlatBaseVisualProps {
+export interface ResolvedSphereProps extends ResolvedBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.SPHERE;
     readonly radius: number;
     readonly detail?: number;
 }
 
-export type SphereProps = MapToSpec<FlatSphereProps>
+export type SphereProps = MapToSpec<ResolvedSphereProps>
 
-export interface FlatFloorProps extends FlatBaseVisualProps {
+export interface ResolvedFloorProps extends ResolvedBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.FLOOR;
     readonly width: number;
     readonly depth: number;
 }
 
-export type FloorProps = MapToSpec<FlatFloorProps>
+export type FloorProps = MapToSpec<ResolvedFloorProps>
 
-export interface FlatTextProps extends FlatBaseVisualProps {
+export interface ResolvedTextProps extends ResolvedBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.TEXT;
     readonly text: string;
     readonly size: number;
 }
 
-export type TextProps = MapToSpec<FlatTextProps>
+export type TextProps = MapToSpec<ResolvedTextProps>
 
 export type SceneElementProps = BoxProps | PanelProps | SphereProps | FloorProps | TextProps;
-export type FlatSceneElementProps = FlatBoxProps | FlatPanelProps | FlatSphereProps | FlatFloorProps | FlatTextProps;
+export type ResolvedSceneElementProps = ResolvedBoxProps | ResolvedPanelProps | ResolvedSphereProps | ResolvedFloorProps | ResolvedTextProps;
 
 export interface Renderable {
     readonly id: string;
