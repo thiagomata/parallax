@@ -1,19 +1,15 @@
 import {
-    type BoxProps,
     DEFAULT_CAMERA_FAR,
     ELEMENT_TYPES,
     type ResolvedBoxProps,
     type ResolvedPanelProps,
     type ResolvedTextProps,
     type GraphicProcessor, type MapToSpec,
-    type PanelProps,
     type RenderableElement,
     type SceneElementProps,
     type SceneState,
     type SpecProperty,
-    type TextProps,
 } from "./types.ts";
-
 
 const STATIC_KEYS: Set<string> = new Set(['type', 'texture', 'font']);
 
@@ -54,7 +50,9 @@ export function toProps<T extends object>(props: T): MapToSpec<T> {
     return spec as MapToSpec<T>;
 }
 
-// Recursive type to unwrap the tree in resolved objects
+/**
+ * Recursive type to unwrap the tree in resolved objects
+ */
 type Resolved<T> = T extends SpecProperty<infer U>
     ? U
     : T extends object
@@ -62,13 +60,13 @@ type Resolved<T> = T extends SpecProperty<infer U>
         : T;
 
 export function resolve<T>(src: T, state: SceneState): Resolved<T> {
-    // Handle Specs (Leaf)
+    /* Handle Specs (Leaf) */
     if (src && typeof src === 'object' && 'kind' in src) {
         const spec = src as unknown as SpecProperty<any>;
         return spec.kind === 'static' ? spec.value : spec.compute(state);
     }
 
-    // Handle Branches (Recursion)
+    /* Handle Branches (Recursion) */
     if (src && typeof src === 'object' && !Array.isArray(src)) {
         const result = {} as any;
         for (const key in src) {
@@ -77,27 +75,14 @@ export function resolve<T>(src: T, state: SceneState): Resolved<T> {
         return result;
     }
 
-    //  Handle Pass-through
+    /*  Handle Pass-through */
     return src as Resolved<T>;
-}
-
-export function resolveBox(props: BoxProps, sceneState: SceneState): ResolvedBoxProps {
-    return resolve(props, sceneState) as ResolvedBoxProps;
-}
-
-export function resolveText(props: TextProps, sceneState: SceneState): ResolvedTextProps {
-    return resolve(props, sceneState) as ResolvedTextProps;
-}
-
-export function ResolvedPanel(props: PanelProps, sceneState: SceneState): ResolvedPanelProps {
-    return resolve(props, sceneState) as ResolvedPanelProps;
 }
 
 export const createRenderable = <TTexture, TFont>(
     id: string,
     props: SceneElementProps,
 ): RenderableElement<TTexture, TFont> => {
-
 
     return {
         id,
@@ -119,17 +104,17 @@ export const createRenderable = <TTexture, TFont>(
 
             switch (props.type) {
                 case ELEMENT_TYPES.PANEL:
-                    const ResolvedPanelProp = ResolvedPanel(props, state);
+                    const ResolvedPanelProp = resolve(props, state) as ResolvedPanelProps;
                     gp.drawPanel(ResolvedPanelProp, this.assets, state);
                     break;
 
                 case ELEMENT_TYPES.BOX:
-                    const ResolvedBoxProp = resolveBox(props, state);
+                    const ResolvedBoxProp = resolve(props, state) as ResolvedBoxProps;
                     gp.drawBox(ResolvedBoxProp, this.assets, state);
                     break;
 
                 case ELEMENT_TYPES.TEXT:
-                    const ResolvedTextProp = resolveText(props, state);
+                    const ResolvedTextProp = resolve(props, state) as ResolvedTextProps;
                     gp.drawText(ResolvedTextProp, this.assets, state);
                     break;
             }

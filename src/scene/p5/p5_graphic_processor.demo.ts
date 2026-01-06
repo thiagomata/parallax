@@ -14,7 +14,7 @@ import {
     type SceneState,
     type TextProps
 } from '../types';
-import {resolveBox, ResolvedPanel, resolveText, toProps} from "../create_renderable.ts";
+import {resolve, toProps} from "../create_renderable.ts";
 
 const sketch = (p: p5) => {
     let gp: P5GraphicProcessor;
@@ -75,7 +75,7 @@ const sketch = (p: p5) => {
             };
 
             gp.drawPanel(
-                ResolvedPanel(
+                resolve(
                     toProps({
                         type: ELEMENT_TYPES.PANEL,
                         width: 200,
@@ -98,7 +98,7 @@ const sketch = (p: p5) => {
 
         if (testFont) {
             gp.drawText(
-                resolveText(
+                resolve(
                     toProps({
                         type: ELEMENT_TYPES.TEXT,
                         font: {
@@ -137,7 +137,7 @@ const sketch = (p: p5) => {
 
         //     drawBox(boxProps: BoxProps, assets: ElementAssets, sceneState: SceneState): void {
         gp.drawBox(
-            resolveBox(
+            resolve(
                 toProps({
                     type: ELEMENT_TYPES.BOX,
                     size: 80,

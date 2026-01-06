@@ -2,18 +2,13 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {
     DEFAULT_SETTINGS,
     ELEMENT_TYPES,
-    type GraphicProcessor, type SceneCameraState,
+    type GraphicProcessor, type ResolvedBoxProps, type SceneCameraState,
     type ScenePlaybackState,
     type SceneState,
     type Vector3
 } from './types';
-import {createRenderable, resolve, resolveBox, ResolvedPanel, resolveText, toProps} from "./create_renderable.ts";
+import {createRenderable, resolve, toProps} from "./create_renderable.ts";
 
-/**
- * A type-safe mock factory for the GraphicProcessor.
- * Using 'unknown' for generics to ensure we aren't "fighting the type system"
- * with 'any' in our test setup.
- */
 const createMockGP = () => {
     return {
         push: vi.fn(),
@@ -56,7 +51,7 @@ describe('createRenderable', () => {
 
     beforeEach(() => {
         gp = createMockGP();
-        // Default distance to 0 so tests pass unless we explicitly test the cull logic
+        /* Default distance to 0 so tests pass unless we explicitly test the cull logic */
         vi.mocked(gp.dist).mockReturnValue(0);
     });
 
@@ -97,7 +92,7 @@ describe('createRenderable', () => {
 
         renderable.render(gp, mockState);
 
-        expect(gp.drawBox).toHaveBeenCalledWith(resolveBox(props, mockState), renderable.assets, mockState);
+        expect(gp.drawBox).toHaveBeenCalledWith(resolve(props, mockState), renderable.assets, mockState);
         expect(gp.pop).toHaveBeenCalled();
     });
 
@@ -112,7 +107,7 @@ describe('createRenderable', () => {
 
         renderable.render(gp, mockState);
 
-        expect(gp.drawPanel).toHaveBeenCalledWith(ResolvedPanel(props, mockState), renderable.assets, mockState);
+        expect(gp.drawPanel).toHaveBeenCalledWith(resolve(props, mockState), renderable.assets, mockState);
     });
 
     it('should render TEXT correctly', () => {
@@ -126,6 +121,126 @@ describe('createRenderable', () => {
 
         renderable.render(gp, mockState);
 
-        expect(gp.drawText).toHaveBeenCalledWith(resolveText(props, mockState), renderable.assets, mockState);
+        expect(gp.drawText).toHaveBeenCalledWith(resolve(props, mockState), renderable.assets, mockState);
+    });
+
+    it('should recursively resolve nested objects (granular specs)', () => {
+        const props = toProps({
+            type: ELEMENT_TYPES.BOX,
+            position: mockOrigin,
+            size: 10,
+            fillColor: { red: 255, green: 0, blue: 0 } // This becomes nested specs
+        });
+
+        const resolved = resolve(props, mockState) as ResolvedBoxProps;
+
+        // Verify the structure is flattened back to raw data
+        expect(resolved.fillColor).toEqual({ red: 255, green: 0, blue: 0 });
+        // Ensure it's not still a spec object
+        expect(resolved.fillColor).not.toHaveProperty('kind');
+    });
+
+    it('should resolve computed properties using SceneState', () => {
+        const customState = {
+            ...mockState,
+            playback: { ...mockState.playback, progress: 0.5 }
+        };
+
+        const props = toProps({
+            type: ELEMENT_TYPES.BOX,
+            position: mockOrigin,
+            // Computed property: size is progress * 100
+            size: (state: SceneState) => state.playback.progress * 100
+        });
+
+        const resolved = resolve(props, customState) as ResolvedBoxProps;
+
+        expect(resolved.size).toBe(50); // 0.5 * 100
+    });
+
+    it('should handle both atomic and granular resolution for the same property type', () => {
+        // Case A: Atomic Function for position
+        const atomicProps = toProps({
+            position: (_s: SceneState) => ({ x: 10, y: 10, z: 10 })
+        });
+
+        // Case B: Granular coordinates
+        const granularProps = toProps({
+            position: { x: (_s: SceneState) => 20, y: 0, z: 0 }
+        });
+
+        expect(resolve(atomicProps.position, mockState)).toEqual({ x: 10, y: 10, z: 10 });
+        expect(resolve(granularProps.position, mockState)).toEqual({ x: 20, y: 0, z: 0 });
+    });
+
+    it('should pass through STATIC_KEYS without wrapping them in specs', () => {
+        const props = toProps({
+            type: ELEMENT_TYPES.BOX,
+            texture: { path: 'test.png', width: 100, height: 100 }
+        });
+
+        // In the spec tree, 'type' should be a string, not { kind: 'static', value: 'box' }
+        expect(typeof props.type).toBe('string');
+        expect(props.type).toBe(ELEMENT_TYPES.BOX);
+
+        // texture should also remain a raw object
+        expect(props.texture).not.toHaveProperty('kind');
+    });
+
+    it('should resolve a complex mix of static, atomic, and granular props simultaneously', () => {
+        const customState: SceneState = {
+            ...mockState,
+            playback: { ...mockState.playback, progress: 0.5 }
+        };
+
+        const props = toProps({
+            type: ELEMENT_TYPES.BOX,
+            /* Atomic Function (The whole object moves) */
+            position: (s: SceneState) => ({ x: s.playback.progress * 100, y: 0, z: 0 }),
+
+            /* Granular Object (Only one color channel is dynamic) */
+            fillColor: {
+                red: 255,
+                green: (s: SceneState) => s.playback.progress * 255,
+                blue: 0,
+                alpha: 1
+            },
+
+            /* Static Primitive */
+            size: 50
+        });
+
+        const result = resolve(props, customState);
+
+        expect(result.position).toEqual({ x: 50, y: 0, z: 0 });
+        expect(result.fillColor).toEqual({
+            red: 255,
+            green: 127.5,
+            blue: 0,
+            alpha: 1
+        });
+        expect(result.size).toBe(50);
+        expect(result.type).toBe(ELEMENT_TYPES.BOX);
+    });
+
+    it('should pass fully resolved multi-prop data to the GraphicProcessor', () => {
+        const props = toProps({
+            type: ELEMENT_TYPES.BOX,
+            position: { x: 100, y: 100, z: 100 },
+            size: (_state: SceneState) => 200
+        });
+
+        const renderable = createRenderable('multi-test', props);
+        renderable.render(gp, mockState);
+
+        /* Verify the GP received the resolved '200' instead of the function */
+        expect(gp.drawBox).toHaveBeenCalledWith(
+            expect.objectContaining({
+                size: 200,
+                position: { x: 100, y: 100, z: 100 }
+            }),
+            expect.anything(),
+            expect.anything()
+        );
     });
 });

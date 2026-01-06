@@ -13,7 +13,7 @@ import {
     type ScenePlaybackState,
     type SceneState,
 } from '../types';
-import {resolveBox, ResolvedPanel, resolveText, toProps} from "../create_renderable.ts";
+import {resolve, toProps} from "../create_renderable.ts";
 
 describe('P5GraphicProcessor', () => {
     let gp: P5GraphicProcessor;
@@ -87,7 +87,7 @@ describe('P5GraphicProcessor', () => {
 
     describe('High-level Drawing Logic', () => {
         it('should apply texture and tint if asset is READY', () => {
-            const boxProps = resolveBox(
+            const boxProps = resolve(
                 toProps(
                     {
                         type: ELEMENT_TYPES.BOX,
@@ -97,7 +97,7 @@ describe('P5GraphicProcessor', () => {
                     }
                 ),
                 mockState
-            );
+            ) as ResolvedBoxProps;
 
             const mockImage = {width: 100};
             const assets = {
@@ -119,7 +119,7 @@ describe('P5GraphicProcessor', () => {
         });
 
         it('should fallback to fillColor if texture is not READY', () => {
-            const boxProps = resolveBox(
+            const boxProps = resolve(
                 toProps({
                     type: ELEMENT_TYPES.BOX,
                     position: {x: 0, y: 0, z: 0},
@@ -127,7 +127,7 @@ describe('P5GraphicProcessor', () => {
                     fillColor: {red: 100, green: 100, blue: 100}
                 }),
                 mockState
-            );
+            ) as ResolvedBoxProps;
 
             const assets = {texture: {status: ASSET_STATUS.LOADING, value: null}};
 
@@ -148,7 +148,7 @@ describe('P5GraphicProcessor', () => {
     });
 
     describe('P5GraphicProcessor - drawText', () => {
-        const textProps: ResolvedTextProps = resolveText(
+        const textProps: ResolvedTextProps = resolve(
             toProps({
                 type: ELEMENT_TYPES.TEXT,
                 text: 'Gemini',
@@ -213,7 +213,7 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should apply stroke from props when drawing a box', () => {
-        const boxProps: ResolvedBoxProps = resolveBox(
+        const boxProps: ResolvedBoxProps = resolve(
             toProps({
                 type: ELEMENT_TYPES.BOX,
                 position: {x: 0, y: 0, z: 0},
@@ -222,7 +222,7 @@ describe('P5GraphicProcessor', () => {
                 strokeWidth: 5
             }),
             mockState,
-        );
+        ) as ResolvedBoxProps;
 
         gp.drawBox(boxProps, {}, mockState);
 
@@ -231,7 +231,7 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should skip stroke application if strokeColor is missing in props', () => {
-        const boxProps: ResolvedBoxProps = resolveBox(
+        const boxProps: ResolvedBoxProps = resolve(
             toProps({
                 type: ELEMENT_TYPES.BOX,
                 position: {x: 0, y: 0, z: 0},
@@ -239,7 +239,7 @@ describe('P5GraphicProcessor', () => {
                 // No strokeColor provided
             }),
             mockState
-        );
+        ) as ResolvedBoxProps;
 
         gp.drawBox(boxProps, {}, {alpha: 1} as any);
 
@@ -248,7 +248,7 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should translate to the correct position and draw a plane', () => {
-        const panelProps: ResolvedPanelProps = ResolvedPanel(
+        const panelProps: ResolvedPanelProps = resolve(
             toProps({
                 type: ELEMENT_TYPES.PANEL,
                 position: {x: 100, y: -50, z: 200},
@@ -267,7 +267,7 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should apply both texture and stroke if both are provided', () => {
-        const panelProps: ResolvedPanelProps = ResolvedPanel(
+        const panelProps: ResolvedPanelProps = resolve(
             toProps({
                 type: ELEMENT_TYPES.PANEL,
                 position: {x: 0, y: 0, z: 0},
@@ -301,7 +301,7 @@ describe('P5GraphicProcessor', () => {
     });
 
     it('should fallback to fillColor in drawPanel when texture is not ready', () => {
-        const panelProps: ResolvedPanelProps = ResolvedPanel(
+        const panelProps: ResolvedPanelProps = resolve(
             toProps({
                 type: ELEMENT_TYPES.PANEL,
                 position: {x: 0, y: 0, z: 0},
