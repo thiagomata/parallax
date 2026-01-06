@@ -6,16 +6,14 @@ import {
     type FlatBoxProps,
     type FlatPanelProps,
     type FlatTextProps,
-    type GraphicProcessor,
+    type GraphicProcessor, type MapToSpec,
     type PanelProps,
     type RenderableElement,
     type SceneElementProps,
     type SceneState,
     type SpecProperty,
-    type StaticKeys,
-    type TextProps
+    type TextProps,
 } from "./types.ts";
-
 
 export function toSpecComputed<T>(source: (state: SceneState) => T): SpecProperty<T> {
     return {
@@ -33,46 +31,74 @@ export function toSpec<T>(source: DynamicValueFromSceneState<T>): SpecProperty<T
     }
     return {
         kind: 'static',
-        value: source
+        value: source as T
     };
 }
 
-export type MapToSpec<T> = {
-    [K in keyof T]: K extends StaticKeys
-        ? T[K] // Leave 'type' alone
-        : T[K] extends DynamicValueFromSceneState<infer U>
-            ? SpecProperty<U>
-            : T[K];
-};
-
-const STATIC_KEYS = new Set(['type', 'texture', 'font']);
+const STATIC_KEYS: Set<string> = new Set(['type', 'texture', 'font']);
 
 export function toProps<T extends object>(props: T): MapToSpec<T> {
     const spec = {} as any;
 
     for (const key in props) {
-        if (Object.prototype.hasOwnProperty.call(props, key)) {
-            // Do not wrap the 'type' field or any non-dynamic values
-            if (STATIC_KEYS.has(key)) {
-                spec[key] = props[key];
-            } else {
-                spec[key] = toSpec((props as any)[key]);
-            }
+        const value = props[key];
+
+        /* Static Key Pass-through */
+        if (STATIC_KEYS.has(key)) {
+            spec[key] = value;
+            continue;
         }
+
+        /* Handle Null/Undefined */
+        if (value === null || value === undefined) {
+            spec[key] = value;
+            continue;
+        }
+
+        /* Is it a function? Wrap as Atomic Spec */
+        if (typeof value === "function") {
+            spec[key] = { kind: "computed", compute: value };
+            continue;
+        }
+
+        /* Is it a plain object? Recurse */
+        if (typeof value === "object" && !Array.isArray(value)) {
+            spec[key] = toProps(value as object);
+            continue;
+        }
+
+        /* Default: Wrap as Static Leaf */
+        spec[key] = { kind: "static", value };
     }
 
     return spec as MapToSpec<T>;
 }
 
-export function flat<T>(source: SpecProperty<T>, sceneState: SceneState): T;
-export function flat<T>(source: SpecProperty<T> | undefined, sceneState: SceneState): T | undefined;
-export function flat<T>(source: SpecProperty<T> | undefined, sceneState: SceneState): T | undefined {
-    if (source == undefined) return undefined;
-    if (source.kind === 'static') {
-        return source.value
-    } else {
-        return source.compute(sceneState);
+// Recursive type to unwrap the tree in resolved objects
+type Flatten<T> = T extends SpecProperty<infer U>
+    ? U
+    : T extends object
+        ? { [K in keyof T]: Flatten<T[K]> }
+        : T;
+
+export function flat<T>(src: T, state: SceneState): Flatten<T> {
+    // Handle Specs (Leaf)
+    if (src && typeof src === 'object' && 'kind' in src) {
+        const spec = src as unknown as SpecProperty<any>;
+        return spec.kind === 'static' ? spec.value : spec.compute(state);
     }
+
+    // Handle Branches (Recursion)
+    if (src && typeof src === 'object' && !Array.isArray(src)) {
+        const result = {} as any;
+        for (const key in src) {
+            result[key] = flat(src[key], state);
+        }
+        return result;
+    }
+
+    //  Handle Pass-through
+    return src as Flatten<T>;
 }
 
 export function flatBaseShape(props: BaseVisualProps, sceneState: SceneState): FlatBaseVisualProps {
@@ -82,6 +108,7 @@ export function flatBaseShape(props: BaseVisualProps, sceneState: SceneState): F
         fillColor: flat(props.fillColor, sceneState),
         strokeColor: flat(props.strokeColor, sceneState),
         strokeWidth: flat(props.strokeWidth, sceneState),
+        rotate: flat(props.rotate, sceneState),
         texture: props.texture,
         font: props.font,
     } as FlatPanelProps;
@@ -116,7 +143,7 @@ export function flatPanel(props: PanelProps, sceneState: SceneState): FlatPanelP
 
 export const createRenderable = <TTexture, TFont>(
     id: string,
-    props: SceneElementProps
+    props: SceneElementProps,
 ): RenderableElement<TTexture, TFont> => {
 
 

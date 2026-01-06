@@ -90,7 +90,7 @@ export class World {
     public step(graphicProcessor: GraphicProcessor): void {
         // 1. Get the current Perspective from the SceneManager
         const state = this.sceneManager.calculateScene(
-            graphicProcessor.millis(),     // Total time elapsed
+            graphicProcessor.millis(),       // Total time elapsed
             graphicProcessor.deltaTime(),    // Time since last frame (important for smooth motion)
             graphicProcessor.frameCount(),   // The current frame number,
             this.sceneState,

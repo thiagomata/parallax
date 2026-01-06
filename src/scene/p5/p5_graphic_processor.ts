@@ -115,6 +115,7 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
         this.push();
 
         this.translate(boxProps.position);
+        this.rotate(boxProps.rotate);
         this.drawTexture(assets, boxProps, sceneState);
 
         this.drawStroke(boxProps, sceneState);
@@ -232,5 +233,18 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
             elementProp.strokeColor.blue,
             this.getPSStrokeAlpha(elementProp, sceneState)
         );
+    }
+
+    private rotate(rotate: Vector3 | undefined) {
+        if (!rotate) return;
+        if (rotate.x != 0) {
+            this.rotateX(rotate.x);
+        }
+        if (rotate.y != 0) {
+            this.rotateY(rotate.y);
+        }
+        if (rotate.z != 0) {
+            this.rotateZ(rotate.z);
+        }
     }
 }

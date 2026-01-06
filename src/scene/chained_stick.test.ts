@@ -1,6 +1,12 @@
 import {describe, expect, it} from "vitest";
 import {ChainedStick} from "./chained_stick";
-import type {StickModifier} from "./types";
+import {
+    DEFAULT_SETTINGS,
+    type SceneCameraState,
+    type ScenePlaybackState,
+    type SceneState,
+    type StickModifier
+} from "./types";
 
 describe("ChainedStick Decorator", () => {
     const mockStick = (id: string, val: number, priority: number = 10): StickModifier => ({
@@ -18,12 +24,30 @@ describe("ChainedStick Decorator", () => {
         }),
     });
 
+    const mockState = {
+        settings: DEFAULT_SETTINGS,
+        playback: {
+            now: Date.now(),
+            delta: 0,
+            progress: 0,
+            frameCount: 60
+        } as ScenePlaybackState,
+        camera: {
+            position: {x: 0, y: 0, z: 0},
+            lookAt: {x: 0, y: 0, z: 100},
+            yaw: 0,
+            pitch: 0,
+            direction: {x: 0, y: 0, z: 1},
+        } as SceneCameraState
+    } as SceneState;
+
+
     it("should return the first successful result and ignore the rest", () => {
         const primary = mockStick("primary", 1);
         const secondary = mockStick("secondary", 2);
         const chain = new ChainedStick(50, [primary, secondary]);
 
-        const res = chain.getStick({x: 0, y: 0, z: 0});
+        const res = chain.getStick({x: 0, y: 0, z: 0}, mockState);
 
         // Should be 1, because primary succeeded
         expect(res.success).toBe(true);
@@ -42,7 +66,7 @@ describe("ChainedStick Decorator", () => {
         const secondary = mockStick("secondary", 2);
         const chain = new ChainedStick(50, [primary, secondary]);
 
-        const res = chain.getStick({x: 0, y: 0, z: 0});
+        const res = chain.getStick({x: 0, y: 0, z: 0}, mockState);
 
         // Should be 2, because primary had an error
         expect(res.success).toBe(true);
@@ -58,7 +82,7 @@ describe("ChainedStick Decorator", () => {
         const secondary = mockStick("secondary", 2);
         const chain = new ChainedStick(50, [primary, secondary]);
 
-        const res = chain.getStick({x: 0, y: 0, z: 0});
+        const res = chain.getStick({x: 0, y: 0, z: 0}, mockState);
 
         expect(res.success).toBe(true);
         if (res.success) {
@@ -81,7 +105,7 @@ describe("ChainedStick Decorator", () => {
         };
 
         const chain = new ChainedStick(50, [primary, secondary]);
-        const res = chain.getStick({x: 0, y: 0, z: 0});
+        const res = chain.getStick({x: 0, y: 0, z: 0}, mockState);
 
         expect(res.success).toBe(false);
         if (!res.success) {
@@ -96,7 +120,7 @@ describe("ChainedStick Decorator", () => {
         const internal = mockStick("internal", 1, internalPriority);
 
         const chain = new ChainedStick(wrapperPriority, [internal]);
-        const res = chain.getStick({x: 0, y: 0, z: 0});
+        const res = chain.getStick({x: 0, y: 0, z: 0}, mockState);
 
         expect(res.success).toBe(true);
         if (res.success) {

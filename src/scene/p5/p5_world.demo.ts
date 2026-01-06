@@ -13,7 +13,7 @@ import 'prismjs/components/prism-javascript';
 import {SceneManager} from "../scene_manager.ts";
 import {OrbitModifier} from "../modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../modifiers/center_focus_modifier.ts";
-import {toProps, toSpec, toSpecComputed} from "../create_renderable.ts";
+import {toProps} from "../create_renderable.ts";
 
 const p5WorldDemo = (p5: p5) => {
     let world: World;
@@ -52,12 +52,12 @@ const p5WorldDemo = (p5: p5) => {
         }));
 
         // 2. Middle Ground (Semi-transparent Red Box)
-        world.addElement('mid', {
+        world.addElement('mid', toProps({
             type: ELEMENT_TYPES.BOX,
-            size: toSpecComputed((state: SceneState)=> {
+            size: (state: SceneState)=> {
                 return state.playback.progress * 100;
-            }),
-            position: toSpecComputed(
+            },
+            position: (
                 (state: SceneState): Vector3 => {
                     return {
                         x: 0,
@@ -66,8 +66,8 @@ const p5WorldDemo = (p5: p5) => {
                     }
                 }
             ),
-            fillColor: toSpec({red: 255, green: 0, blue: 0, alpha: 0.5})
-        });
+            fillColor: {red: 255, green: 0, blue: 0, alpha: 0.5}
+        }));
 
         // 3. Foreground (Blue Box)
         world.addElement('front', toProps({

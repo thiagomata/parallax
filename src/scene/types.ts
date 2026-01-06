@@ -273,15 +273,23 @@ export type SpecProperty<T> =
 
 export type StaticKeys = 'type' | 'texture' | 'font';
 
-export interface BaseVisualProps {
-    readonly position: SpecProperty<Vector3>;
-    readonly alpha?: SpecProperty<number>;
-    readonly fillColor?: SpecProperty<ColorRGBA>;
-    readonly strokeColor?: SpecProperty<ColorRGBA>;
-    readonly strokeWidth?: SpecProperty<number>;
-    readonly texture?: TextureRef;
-    readonly font?: FontRef;
-}
+export type SpecCompute<R> = (state: SceneState) => R;
+
+export type FlexibleSpec<T> = T extends SpecCompute<infer R>
+    ? SpecProperty<R>
+    : T extends object
+        ? DeepSpec<T> | SpecProperty<T>
+        : SpecProperty<T>;
+
+type DeepSpec<T> = {
+    [K in keyof T]: FlexibleSpec<T[K]>;
+};
+
+export type MapToSpec<T> = {
+    [K in keyof T]: K extends StaticKeys
+        ? T[K]
+        : FlexibleSpec<T[K]>;
+};
 
 export interface FlatBaseVisualProps {
     readonly position: Vector3;
@@ -289,13 +297,22 @@ export interface FlatBaseVisualProps {
     readonly fillColor?: ColorRGBA;
     readonly strokeColor?: ColorRGBA;
     readonly strokeWidth?: number;
+    readonly rotate?: Vector3;
     readonly texture?: TextureRef;
     readonly font?: FontRef;
 }
 
-export interface BoxProps extends BaseVisualProps {
-    readonly type: typeof ELEMENT_TYPES.BOX;
-    readonly size: SpecProperty<number>;
+export type BaseVisualProps = MapToSpec<FlatBaseVisualProps>
+
+export interface FlatBaseVisualProps {
+    readonly position: Vector3;
+    readonly alpha?: number;
+    readonly fillColor?: ColorRGBA;
+    readonly strokeColor?: ColorRGBA;
+    readonly strokeWidth?: number;
+    readonly rotate?: Vector3;
+    readonly texture?: TextureRef;
+    readonly font?: FontRef;
 }
 
 export interface FlatBoxProps extends FlatBaseVisualProps {
@@ -303,11 +320,7 @@ export interface FlatBoxProps extends FlatBaseVisualProps {
     readonly size: number;
 }
 
-export interface PanelProps extends BaseVisualProps {
-    readonly type: typeof ELEMENT_TYPES.PANEL;
-    readonly width: SpecProperty<number>;
-    readonly height: SpecProperty<number>;
-}
+export type BoxProps = MapToSpec<FlatBoxProps>
 
 export interface FlatPanelProps extends FlatBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.PANEL;
@@ -315,11 +328,7 @@ export interface FlatPanelProps extends FlatBaseVisualProps {
     readonly height: number;
 }
 
-export interface SphereProps extends BaseVisualProps {
-    readonly type: typeof ELEMENT_TYPES.SPHERE;
-    readonly radius: SpecProperty<number>;
-    readonly detail?: SpecProperty<number>;
-}
+export type PanelProps = MapToSpec<FlatPanelProps>
 
 export interface FlatSphereProps extends FlatBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.SPHERE;
@@ -327,11 +336,7 @@ export interface FlatSphereProps extends FlatBaseVisualProps {
     readonly detail?: number;
 }
 
-export interface FloorProps extends BaseVisualProps {
-    readonly type: typeof ELEMENT_TYPES.FLOOR;
-    readonly width: SpecProperty<number>;
-    readonly depth: SpecProperty<number>;
-}
+export type SphereProps = MapToSpec<FlatSphereProps>
 
 export interface FlatFloorProps extends FlatBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.FLOOR;
@@ -339,17 +344,15 @@ export interface FlatFloorProps extends FlatBaseVisualProps {
     readonly depth: number;
 }
 
-export interface TextProps extends BaseVisualProps {
-    readonly type: typeof ELEMENT_TYPES.TEXT;
-    readonly text: SpecProperty<string>;
-    readonly size: SpecProperty<number>;
-}
+export type FloorProps = MapToSpec<FlatFloorProps>
 
 export interface FlatTextProps extends FlatBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.TEXT;
     readonly text: string;
     readonly size: number;
 }
+
+export type TextProps = MapToSpec<FlatTextProps>
 
 export type SceneElementProps = BoxProps | PanelProps | SphereProps | FloorProps | TextProps;
 export type FlatSceneElementProps = FlatBoxProps | FlatPanelProps | FlatSphereProps | FlatFloorProps | FlatTextProps;
@@ -359,7 +362,6 @@ export interface Renderable {
 
     render(gp: GraphicProcessor, state: SceneState): void;
 }
-
 
 export interface ElementAssets<TTexture = any, TFont = any> {
     texture?: TextureAsset<TTexture>
