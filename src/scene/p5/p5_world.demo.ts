@@ -2,7 +2,7 @@ import p5 from 'p5';
 import {World} from '../world';
 import {P5GraphicProcessor} from './p5_graphic_processor';
 import {P5AssetLoader} from './p5_asset_loader';
-import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "../types.ts";
+import {type BoxProps, DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "../types.ts";
 import demoSourceCode from './p5_world.demo.ts?raw';
 import Prism from 'prismjs';
 
@@ -17,7 +17,7 @@ import {toProps} from "../create_renderable.ts";
 
 const p5WorldDemo = (p5: p5) => {
     let world: World;
-    let gp: P5GraphicProcessor;
+    let graphicProcessor: P5GraphicProcessor;
     let manager: SceneManager;
 
     p5.setup = async () => {
@@ -25,25 +25,31 @@ const p5WorldDemo = (p5: p5) => {
 
         manager = new SceneManager({
             ...DEFAULT_SETTINGS,
-            playback: {
+            playback: { /* change the progress, during the loop */
                 timeSpeed: 1.0,
                 startTime: 0,
-                duration: 10000,
+                duration: 10000, /* define the loop duration in seconds */
                 isLoop: true
             },
         });
         manager.setDebug(true);
         manager.setStickDistance(1000);
 
+        /* add the modifier that moves the camera in the orbit effect */
         manager.addCarModifier(new OrbitModifier(p5, 1000));
+        /* add the modifier that ensure the look at stay in the center position */
         manager.addStickModifier(new CenterFocusModifier());
 
+        /* create the world */
         world = new World(manager);
 
+        /* prepare to load the required assets */
         const loader = new P5AssetLoader(p5);
-        gp = new P5GraphicProcessor(p5, loader);
+        /* create the graphic processor using p5.js */
+        graphicProcessor = new P5GraphicProcessor(p5, loader);
 
 
+        /* add the back box in the world */
         world.addElement('back', toProps({
             type: ELEMENT_TYPES.BOX,
             size: 200,
@@ -51,32 +57,41 @@ const p5WorldDemo = (p5: p5) => {
             fillColor: {red: 0, green: 255, blue: 0, alpha: 1.0}
         }));
 
-        // 2. Middle Ground (Semi-transparent Red Box)
+        /* add the middle box with some animation based in the progress */
         world.addElement('mid', toProps({
             type: ELEMENT_TYPES.BOX,
             size: (state: SceneState)=> {
-                return state.playback.progress * 100;
+                return (Math.cos(  2 * Math.PI * state.playback.progress ) * 50) + 100;
+            },
+            rotate: {
+                x: 0,
+                y: 0,
+                z: (state: SceneState) => {
+                    return state.playback.progress * 2 * Math.PI;
+                }
             },
             position: (
                 (state: SceneState): Vector3 => {
+                    let y = (Math.cos(  2 * Math.PI * state.playback.progress ) * 100) - 100;
                     return {
                         x: 0,
-                        y: 0,
-                        z: state.playback.progress * 200,
+                        y: y,
+                        z: 0,
                     }
                 }
             ),
             fillColor: {red: 255, green: 0, blue: 0, alpha: 0.5}
-        }));
+        }) as BoxProps);
 
-        // 3. Foreground (Blue Box)
+        /* add another box closer to the camera */
         world.addElement('front', toProps({
             type: ELEMENT_TYPES.BOX,
             size: 100,
-            position: {x: 100, y: 0, z: 200}, // Close to camera
+            position: {x: 100, y: 0, z: 200},
             fillColor: {red: 0, green: 0, blue: 255, alpha: 1.0}
         }));
 
+        /* add a text with hello world */
         world.addElement('title-label', toProps({
             type: ELEMENT_TYPES.TEXT,
             text: "HELLO WORLD",
@@ -86,20 +101,21 @@ const p5WorldDemo = (p5: p5) => {
             fillColor: {red: 255, green: 0, blue: 255, alpha: 1}
         }));
 
+        /* wait for all assets to be available */
         await world.hydrate(loader);
     };
 
     p5.draw = () => {
-        p5.background(220); // Light gray so we can see shapes clearly
+        p5.background(220);
 
-        // This will now handle the sorting and rendering
-        world.step(gp);
+        /* world will render using the defined graphic processor */
+        world.step(graphicProcessor);
     };
 };
 
 new p5(p5WorldDemo);
 
-/// showing the code in the page
+/// code required to show the code in the page
 
 /**
  * Fetches the source code of a file and renders it into an overlay.
@@ -129,8 +145,6 @@ export async function highlightSource(filePath: string, targetElementId: string)
     }
 }
 
-// THE CALLERS: Wiring up the UI
-// Updated Caller: No fetch, no 404s!
 document.getElementById('view-source-btn')?.addEventListener('click', () => {
     const modal = document.getElementById('source-modal');
     const output = document.getElementById('code-output');
@@ -138,7 +152,6 @@ document.getElementById('view-source-btn')?.addEventListener('click', () => {
     if (modal && output) {
         modal.style.display = 'block';
 
-        // Directly highlight the string Vite embedded for us
         output.innerHTML = Prism.highlight(
             demoSourceCode,
             Prism.languages.typescript,

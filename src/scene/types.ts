@@ -229,7 +229,6 @@ export interface GraphicProcessor<TTexture = any, TFont = any> {
 
     plane(width: number, height: number): void;
 
-    //drawPanel(instance: TextureInstance): void;
     drawPanel(
         panelProps: ResolvedPanelProps,
         assets: ElementAssets<TTexture, TFont>,
@@ -278,8 +277,10 @@ export type SpecCompute<R> = (state: SceneState) => R;
 export type FlexibleSpec<T> = T extends SpecCompute<infer R>
     ? SpecProperty<R>
     : T extends object
-        ? DeepSpec<T> | SpecProperty<T>
-        : SpecProperty<T>;
+        ? (DeepSpec<T> | SpecProperty<T>)
+        : T extends null | undefined
+            ? T
+            : SpecProperty<T>;
 
 type DeepSpec<T> = {
     [K in keyof T]: FlexibleSpec<T[K]>;
@@ -305,6 +306,7 @@ export interface ResolvedBaseVisualProps {
 export type BaseVisualProps = MapToSpec<ResolvedBaseVisualProps>
 
 export interface ResolvedBaseVisualProps {
+    readonly id?: string;
     readonly position: Vector3;
     readonly alpha?: number;
     readonly fillColor?: ColorRGBA;

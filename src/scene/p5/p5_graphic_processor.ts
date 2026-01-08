@@ -223,6 +223,11 @@ export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
     }
 
     private drawStroke(elementProp: ResolvedBaseVisualProps, sceneState: SceneState) {
+        if(elementProp.strokeWidth == 0) {
+            this.p5.noStroke();
+            return;
+        }
+
         if (!elementProp.strokeColor) {
             return;
         }

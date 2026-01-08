@@ -1,0 +1,113 @@
+/* Apply dark background to the whole page to prevent white flashes */
+body {
+    margin: 0;
+    background-color: #0f0f0f;
+    color: #eee;
+    font-family: sans-serif;
+}
+
+/* Updated Row: Fixed height and no overflow allows the columns to scroll internally */
+.step-row {
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    background-color: #1e1e1e;
+    border-bottom: 2px solid #000;
+    /* Changed from min-height to height to constrain the container */
+    height: 85vh;
+    overflow: hidden;
+}
+
+/* Updated Code Side: Fixed 50% width and internal scroll */
+.code-side {
+    flex: 0 0 50%; /* Strictly 50% width */
+    background-color: #1e1e1e;
+    padding: 2rem;
+    border-right: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; /* Enable vertical scroll for long code */
+    box-sizing: border-box;
+}
+
+/* Updated Canvas Side: Fixed 50% width */
+.canvas-side {
+    flex: 0 0 50%; /* Strictly 50% width */
+    background-color: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* sticky is no longer needed because the parent row is fixed height */
+    position: relative;
+    overflow: hidden;
+}
+
+/* Rest of your existing styles remain untouched */
+.editor-container {
+    background: transparent;
+    padding: 0;
+    margin-top: 1rem;
+    flex: 1; /* Allows the editor to fill space */
+}
+
+code[contenteditable="true"] {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 0;
+    outline: none;
+    white-space: pre;
+    font-family: 'Fira Code', monospace;
+    display: block;
+    /* Optional: allow horizontal scroll for long lines */
+    overflow-x: auto;
+}
+
+.code-side h2 {
+    display: inline-block;
+    background: #333;
+    color: #00e5ff;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-family: 'Fira Code', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+    border: 1px solid #444;
+}
+
+.code-side h2::before {
+    content: "●";
+    margin-right: 8px;
+    font-size: 0.7rem;
+    vertical-align: middle;
+    color: #00e5ff;
+    text-shadow: 0 0 8px #00e5ff;
+}
+
+/* Tutorial Links Styling */
+a {
+    color: #00e5ff; /* Your Cyan Accent */
+    text-decoration: none; /* Remove default underline */
+    border-bottom: 1px solid rgba(0, 229, 255, 0.3); /* Subtle bottom border */
+    transition: all 0.2s ease;
+}
+
+a:visited {
+    color: #00b8cc; /* Slightly darker cyan for visited links */
+}
+
+a:hover {
+    color: #fff; /* Turn white on hover */
+    border-bottom-color: #00e5ff; /* Brighten the border */
+    background-color: rgba(0, 229, 255, 0.1); /* Very subtle glow background */
+}
+
+a:active {
+    transform: translateY(1px); /* Small click feel */
+}
+
+/* For links inside the error log or descriptions */
+.error-log a, .step-description a {
+    font-weight: bold;
+}

@@ -243,4 +243,28 @@ describe('createRenderable', () => {
             expect.anything()
         );
     });
+
+    it('should resolve partially computed nested objects (like rotate)', () => {
+        const customState: SceneState = {
+            ...mockState,
+            playback: { ...mockState.playback, progress: 0.5 }
+        };
+
+        const props = toProps({
+            type: ELEMENT_TYPES.BOX,
+            // z-rotation is the only dynamic part of the rotation object
+            rotate: {
+                x: 0,
+                y: 0,
+                z: (state: SceneState) => state.playback.progress * 2 * Math.PI
+            },
+            size: 100
+        });
+
+        const result = resolve(props, customState);
+
+        // Verification: The object is flattened and the math is executed
+        expect(result.rotate).toEqual({ x: 0, y: 0, z: Math.PI });
+        expect(typeof result.rotate.z).toBe('number'); // No longer a function
+    });
 });

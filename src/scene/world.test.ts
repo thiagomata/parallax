@@ -2,7 +2,7 @@ import {beforeEach, describe, expect, it, type Mock, vi} from 'vitest';
 import {
     ASSET_STATUS,
     type AssetLoader,
-    DEFAULT_SETTINGS,
+    DEFAULT_SETTINGS, ELEMENT_TYPES,
     type GraphicProcessor,
     type SceneCameraState,
     type ScenePlaybackState,
@@ -28,7 +28,25 @@ const mockManager: SceneManager = {
     initialState: vi.fn(),
 } as unknown as SceneManager;
 
-export const createMockGP = (): GraphicProcessor => {
+const mockOrigin = {x: 0, y: 0, z: 0};
+const mockState: SceneState = {
+    settings: DEFAULT_SETTINGS,
+    playback: {
+        now: Date.now(),
+        delta: 0,
+        progress: 0,
+        frameCount: 60
+    } as ScenePlaybackState,
+    camera: {
+        position: mockOrigin,
+        lookAt: mockOrigin,
+        yaw: 0,
+        pitch: 0,
+        direction: mockOrigin,
+    } as SceneCameraState
+};
+
+const createMockGP = (): GraphicProcessor => {
     return {
         text: vi.fn(),
         loader: {} as AssetLoader,
@@ -61,7 +79,7 @@ export const createMockGP = (): GraphicProcessor => {
         millis: vi.fn(),
         deltaTime: vi.fn(),
         frameCount: vi.fn(),
-        initialState: vi.fn(),
+        initialState: () => mockState
     } as GraphicProcessor<unknown, unknown>;
 };
 
@@ -70,9 +88,7 @@ describe('World Orchestration', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        (mockManager.calculateScene as Mock).mockReturnValue({
-            camera: {x: 0, y: 0, z: 100}, lookAt: {x: 0, y: 0, z: 0}, debug: undefined
-        });
+        (mockManager.calculateScene as Mock).mockReturnValue(mockState);
         world = new World(mockManager);
     });
 
@@ -265,5 +281,29 @@ describe('World Orchestration', () => {
 
         // Should return early due to: if (el.assets.texture) return;
         expect(loaderSpy).not.toHaveBeenCalled();
+    });
+
+    it('should remove all elements and stop rendering after world.clear()', () => {
+        const world = new World(mockManager);
+        const gp = createMockGP(); // Using the mock from our previous conversation
+        gp.dist = (_v1, _v2) => 0;
+
+        // 1. Add an element
+        world.addElement('temp-box', toProps({
+            type: ELEMENT_TYPES.BOX,
+            position: { x: 0, y: 0, z: 0 },
+            size: 10
+        }));
+
+        world.step(gp);
+        expect(gp.drawBox).toHaveBeenCalled();
+
+        // 2. Clear the world
+        world.clear();
+        vi.clearAllMocks(); // Clear call history
+
+        // 3. Step again - nothing should be drawn
+        world.step(gp);
+        expect(gp.drawBox).not.toHaveBeenCalled();
     });
 });

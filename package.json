@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "p5": "^2.1.2",
-    "prismjs": "^1.30.0"
+    "prismjs": "^1.30.0",
+    "sucrase": "^3.35.1"
   }
 }

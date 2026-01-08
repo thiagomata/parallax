@@ -23,6 +23,11 @@ export class World {
         this.sceneState = this.sceneManager.initialState()
     }
 
+
+    public clear(): void {
+        this.registry.clear();
+    }
+
     /**
      * STEP 1: Add a "Spec" to the world.
      * This creates the object, but it is not "Ready" yet.

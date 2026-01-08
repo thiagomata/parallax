@@ -20,6 +20,12 @@ export class SceneManager {
         this.settings = initialSettings;
     }
 
+    public clearModifiers(): void {
+        this.carModifiers = [];
+        this.nudgeModifiers = [];
+        this.stickModifiers = [];
+    }
+
     public setDebug(isDebug: boolean): SceneManager {
         this.isDebug = isDebug;
         return this;

@@ -538,3 +538,49 @@ it("should log multiple errors if higher priority sticks fail", () => {
         message: "NaN Result",
     });
 });
+
+it('should completely reset spatial logic after clearModifiers', () => {
+    const manager = new SceneManager();
+    const initialPos = manager.initialState().camera.position;
+
+    // 1. Add a modifier that moves the camera far away
+    manager.addCarModifier({
+        name: "Wanderer",
+        priority: 100,
+        active: true,
+        getCarPosition: () => ({ success: true, value: { position: { x: 999, y: 999, z: 999 }, name: "far" } })
+    });
+
+    const stateWithModifier = manager.calculateScene(1000, 16, 60, manager.initialState());
+    expect(stateWithModifier.camera.position.x).toBe(999);
+
+    // 2. Clear and verify we are back to baseline
+    manager.clearModifiers();
+
+    // We expect the modifiers array to be empty (Internal check if public, or via result)
+    const stateAfterClear = manager.calculateScene(1000, 16, 60, manager.initialState());
+    expect(stateAfterClear.camera.position).toEqual(initialPos);
+});
+
+it('should completely reset spatial logic after clearModifiers', () => {
+    const manager = new SceneManager();
+    const initialPos = manager.initialState().camera.position;
+
+    // 1. Add a modifier that moves the camera far away
+    manager.addCarModifier({
+        name: "Wanderer",
+        priority: 100,
+        active: true,
+        getCarPosition: () => ({ success: true, value: { position: { x: 999, y: 999, z: 999 }, name: "far" } })
+    });
+
+    const stateWithModifier = manager.calculateScene(1000, 16, 60, manager.initialState());
+    expect(stateWithModifier.camera.position.x).toBe(999);
+
+    // 2. Clear and verify we are back to baseline
+    manager.clearModifiers();
+
+    // We expect the modifiers array to be empty (Internal check if public, or via result)
+    const stateAfterClear = manager.calculateScene(1000, 16, 60, manager.initialState());
+    expect(stateAfterClear.camera.position).toEqual(initialPos);
+});
