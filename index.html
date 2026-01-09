@@ -1,13 +1,73 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"/>
-    <link rel="icon" type="image/svg+xml" href="/vite.svg"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>parallax</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parallax | Living Documentation</title>
 </head>
 <body>
-<div id="app"></div>
-<script type="module" src="/src/main.ts"></script>
+
+<header style="max-width: 900px; margin: 40px auto; padding: 0 20px; font-family: sans-serif;">
+    <h1 style="color: #38bdf8; margin: 0; font-size: 2.5rem; letter-spacing: -1px;">Parallax Engine</h1>
+    <p style="color: #888; font-style: italic; font-size: 1.1rem; margin-top: 5px;">
+        Deterministic 3D state-to-state transformation.
+    </p>
+
+    <div style="margin-top: 30px; line-height: 1.7; color: #ccc;">
+        <p>
+            Parallax is a strictly-typed engine designed to decouple <strong>spatial intent</strong> from the rendering pipeline.
+            By treating 3D transformations as pure data, it allows for frame-independent motion that can be rendered via p5.js, Three.js, or even raw CSS.
+        </p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 40px;">
+        <div style="background: #222; padding: 20px; border-radius: 8px; border-left: 4px solid #38bdf8;">
+            <h3 style="margin-top: 0; color: #fff;">🚗 Car (Base)</h3>
+            <p style="font-size: 0.9rem; color: #aaa; margin-bottom: 0;">Primary anchors. Defines the fundamental position and trajectory of an object in space.</p>
+        </div>
+        <div style="background: #222; padding: 20px; border-radius: 8px; border-left: 4px solid #00e5ff;">
+            <h3 style="margin-top: 0; color: #fff;">🫷 Nudge (Offset)</h3>
+            <p style="font-size: 0.9rem; color: #aaa; margin-bottom: 0;">Secondary offsets. Layered noise, reactions, or micro-movements applied on top of the base.</p>
+        </div>
+        <div style="background: #222; padding: 20px; border-radius: 8px; border-left: 4px solid #7dd3fc;">
+            <h3 style="margin-top: 0; color: #fff;">🕹️ Stick (Gaze)</h3>
+            <p style="font-size: 0.9rem; color: #aaa; margin-bottom: 0;">Spherical gaze. Controls the orientation and "LookAt" logic independently of position.</p>
+        </div>
+    </div>
+
+    <div style="margin-top: 40px; padding: 15px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px;">
+        <p style="margin: 0; font-size: 0.9rem; color: #7dd3fc;">
+            <strong>Deterministic Resolution:</strong> Every frame is calculated based on a normalized <code>progress</code> (0.0 to 1.0).
+            This ensures the animation is perfectly repeatable and easy to debug.
+        </p>
+    </div>
+</header>
+
+<nav style="max-width: 900px; margin: 20px auto; padding: 0 20px; font-family: sans-serif;">
+    <div style="display: flex; align-items: center; gap: 15px; padding: 20px; background: #1e1e1e; border-radius: 8px; border: 1px solid #333;">
+        <span style="font-size: 1.5rem;">📚</span>
+        <div style="flex-grow: 1;">
+            <h4 style="margin: 0; color: #fff;">Ready to dive in?</h4>
+            <p style="margin: 5px 0 0; font-size: 0.9rem; color: #888;">Follow the step-by-step guide to build your first parallax scene.</p>
+        </div>
+        <a href="/parallax/docs/tutorial/"
+           style="background: #38bdf8; color: #0f172a; padding: 10px 20px; border-radius: 6px; font-weight: bold; text-decoration: none; transition: opacity 0.2s;">
+            Start Tutorial →
+        </a>
+    </div>
+</nav>
+
+<main id="tutorial-root"></main>
+
+<footer style="max-width: 900px; margin: 50px auto; padding: 20px; border-top: 1px solid #333; text-align: center; color: #666;">
+    <p>
+        <a href="https://github.com/thiagomata/parallax/" style="color: #38bdf8; text-decoration: none;">
+            Interactive Parallax Engine.
+        </a>
+        Edit the code to see real-time layer transformations.
+    </p>
+</footer>
+
+<script type="module" src="/src/docs/hero/hero.demo.ts"></script>
 </body>
 </html>
