@@ -1,10 +1,10 @@
 import p5 from 'p5';
-import { type BoxProps, ELEMENT_TYPES, DEFAULT_SETTINGS, type SceneState } from "../scene/types.ts";
-import {World} from "../scene/world.ts";
-import {P5GraphicProcessor} from "../scene/p5/p5_graphic_processor.ts";
-import {SceneManager} from "../scene/scene_manager.ts";
-import {P5AssetLoader} from "../scene/p5/p5_asset_loader.ts";
-import {toProps} from "../scene/create_renderable.ts";
+import { type BoxProps, ELEMENT_TYPES, DEFAULT_SETTINGS, type SceneState } from "../../scene/types.ts";
+import {World} from "../../scene/world.ts";
+import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
+import {SceneManager} from "../../scene/scene_manager.ts";
+import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
+import {toProps} from "../../scene/create_renderable.ts";
 
 export const tutorial_2 = (p: p5) => {
     let world: World;

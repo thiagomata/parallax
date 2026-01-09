@@ -1,11 +1,11 @@
-import {World} from "../scene/world.ts";
-import {P5GraphicProcessor} from "../scene/p5/p5_graphic_processor.ts";
-import {SceneManager} from "../scene/scene_manager.ts";
-import {OrbitModifier} from "../scene/modifiers/orbit_modifier.ts";
-import {CenterFocusModifier} from "../scene/modifiers/center_focus_modifier.ts";
-import {P5AssetLoader} from "../scene/p5/p5_asset_loader.ts";
-import {toProps} from "../scene/create_renderable.ts";
-import {type BoxProps, ELEMENT_TYPES} from "../scene/types.ts";
+import {World} from "../../scene/world.ts";
+import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
+import {SceneManager} from "../../scene/scene_manager.ts";
+import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
+import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
+import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
+import {toProps} from "../../scene/create_renderable.ts";
+import {type BoxProps, ELEMENT_TYPES} from "../../scene/types.ts";
 import p5 from "p5";
 
 export const tutorial_4 = (p: p5) => {

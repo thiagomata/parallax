@@ -1,9 +1,9 @@
-import {World} from "../scene/world.ts";
-import {SceneManager} from "../scene/scene_manager.ts";
-import {toProps} from "../scene/create_renderable.ts";
-import {DEFAULT_SETTINGS, ELEMENT_TYPES} from "../scene/types.ts";
-import {P5AssetLoader} from "../scene/p5/p5_asset_loader.ts";
-import {P5GraphicProcessor} from "../scene/p5/p5_graphic_processor.ts";
+import {World} from "../../scene/world.ts";
+import {SceneManager} from "../../scene/scene_manager.ts";
+import {toProps} from "../../scene/create_renderable.ts";
+import {DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
+import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
+import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 
 // libs
 import p5 from 'p5';
@@ -18,19 +18,19 @@ import { transform } from 'sucrase';
 
 // Tutorial Steps
 import { tutorial_1 } from './tutorial_1.ts';
-import step1Source from './tutorial_1?raw';
+import step1Source from './tutorial_1.ts?raw';
 
 import { tutorial_2 } from './tutorial_2.ts';
-import step2Source from './tutorial_2?raw';
+import step2Source from './tutorial_2.ts?raw';
 
 import { tutorial_3 } from './tutorial_3.ts';
-import step3Source from './tutorial_3?raw';
+import step3Source from './tutorial_3.ts?raw';
 
 import { tutorial_4 } from './tutorial_4.ts';
-import step4Source from './tutorial_4?raw';
+import step4Source from './tutorial_4.ts?raw';
 
 import { tutorial_5 } from './tutorial_5.ts';
-import step5Source from './tutorial_5?raw';
+import step5Source from './tutorial_5.ts?raw';
 
 /**
  * [2026-01-07] Respecting signatures:

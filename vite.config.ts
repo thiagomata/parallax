@@ -13,7 +13,7 @@ export default defineConfig({
                 main: './index.html',
                 p5_graphic_processor_demo: './src/scene/p5/p5_graphic_processor.demo.html',
                 p5_world_demo: './src/scene/p5/p5_world.demo.html',
-                tutorial: './src/tutorial/tutorial.html',
+                tutorial: './docs/tutorialq/index.html',
             }
         }
     },
