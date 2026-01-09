@@ -19,6 +19,8 @@ import {transform} from 'sucrase';
 // Tutorial Steps
 import {heroExample1} from "./hero_example_1.ts";
 import heroExample1Code from './hero_example_1.ts?raw';
+import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
+import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
 
 
 /**
@@ -33,9 +35,10 @@ Object.assign(window, {
     ELEMENT_TYPES,
     DEFAULT_SETTINGS,
     toProps,
-    p5 // Also expose p5 for static method access if needed
+    p5,
+    OrbitModifier,
+    CenterFocusModifier
 });
-
 type P5Sketch = (p: p5) => void;
 
 /**
