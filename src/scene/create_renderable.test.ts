@@ -1,13 +1,12 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {
-    DEFAULT_SETTINGS,
     ELEMENT_TYPES,
-    type GraphicProcessor, type ResolvedBoxProps, type SceneCameraState,
-    type ScenePlaybackState,
+    type GraphicProcessor, type ResolvedBoxProps,
     type SceneState,
     type Vector3
 } from './types';
 import {createRenderable, resolve, toProps} from "./create_renderable.ts";
+import {createMockState} from "./mock/mock_scene_state.mock.ts";
 
 const createMockGP = () => {
     return {
@@ -32,22 +31,7 @@ const createMockGP = () => {
 describe('createRenderable', () => {
     let gp: GraphicProcessor<unknown, unknown>;
     const mockOrigin: Vector3 = {x: 0, y: 0, z: 0};
-    const mockState: SceneState = {
-        settings: DEFAULT_SETTINGS,
-        playback: {
-            now: Date.now(),
-            delta: 0,
-            progress: 0,
-            frameCount: 60
-        } as ScenePlaybackState,
-        camera: {
-            position: mockOrigin,
-            lookAt: mockOrigin,
-            yaw: 0,
-            pitch: 0,
-            direction: mockOrigin,
-        } as SceneCameraState
-    };
+    const mockState = createMockState();
 
     beforeEach(() => {
         gp = createMockGP();

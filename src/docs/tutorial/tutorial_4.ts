@@ -8,14 +8,15 @@ import {toProps} from "../../scene/create_renderable.ts";
 import {type BoxProps, ELEMENT_TYPES} from "../../scene/types.ts";
 import p5 from "p5";
 
-export const tutorial_4 = (p: p5) => {
+export const tutorial_4 = (p: p5, manager? : SceneManager): World => {
     let world: World;
     let gp: P5GraphicProcessor;
+    manager = manager ?? new SceneManager();
+    world = new World(manager);
 
     p.setup = async () => {
         p.createCanvas(500, 400, p.WEBGL);
 
-        const manager = new SceneManager();
 
         // 1. Add Camera Modifiers
         // OrbitModifier(p5, distance) moves the camera in a circle
@@ -23,7 +24,6 @@ export const tutorial_4 = (p: p5) => {
         // CenterFocusModifier ensures the camera always points at {0,0,0}
         manager.addStickModifier(new CenterFocusModifier());
 
-        world = new World(manager);
         gp = new P5GraphicProcessor(p, new P5AssetLoader(p));
 
         // 2. Add some static objects to see the camera movement
@@ -41,4 +41,5 @@ export const tutorial_4 = (p: p5) => {
         p.background(20);
         world.step(gp);
     };
+    return world;
 };

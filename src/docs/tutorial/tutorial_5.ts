@@ -1,13 +1,12 @@
 import p5 from 'p5';
-import {type BoxProps, type TextProps, ELEMENT_TYPES, DEFAULT_SETTINGS, type SceneState} from "../../scene/types.ts";
-import { World } from "../../scene/world.ts";
+import {type BoxProps, DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type TextProps} from "../../scene/types.ts";
+import {World} from "../../scene/world.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {SceneManager} from "../../scene/scene_manager.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import {toProps} from "../../scene/create_renderable.ts";
 
-export const tutorial_5 = (p: p5) => {
-    let world: World;
+export const tutorial_5 = (p: p5): World => {
     let gp: P5GraphicProcessor;
     const manager = new SceneManager({
         ...DEFAULT_SETTINGS,
@@ -18,10 +17,10 @@ export const tutorial_5 = (p: p5) => {
             isLoop: true
         }
     });
+    const world = new World(manager);
 
     p.setup = async () => {
         p.createCanvas(500, 400, p.WEBGL);
-        world = new World(manager);
 
         const loader = new P5AssetLoader(p);
         gp = new P5GraphicProcessor(p, loader);
@@ -61,4 +60,6 @@ export const tutorial_5 = (p: p5) => {
         p.background(15);
         world.step(gp);
     };
+
+    return world;
 };

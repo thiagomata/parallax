@@ -1,12 +1,13 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {Stage} from './stage';
-import {ASSET_STATUS, type AssetLoader, type GraphicProcessor, type RenderableElement, type SceneState} from './types';
+import {ASSET_STATUS, type AssetLoader, type GraphicProcessor, type RenderableElement} from './types';
+import {createMockState} from "./mock/mock_scene_state.mock.ts";
 
 describe('Stage', () => {
     let stage: Stage;
     let mockLoader: AssetLoader;
     let mockGP: GraphicProcessor<unknown, unknown>;
-    const mockState = {} as SceneState;
+    const mockState = createMockState();
 
     beforeEach(() => {
         stage = new Stage();

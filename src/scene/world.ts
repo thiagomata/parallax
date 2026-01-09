@@ -23,6 +23,10 @@ export class World {
         this.sceneState = this.sceneManager.initialState()
     }
 
+    public getSceneState(): SceneState {
+        return this.sceneState;
+    }
+
 
     public clear(): void {
         this.registry.clear();
@@ -35,6 +39,14 @@ export class World {
     public addElement(id: string, props: SceneElementProps): void {
         const element = createRenderable(id, props);
         this.registry.set(id, element);
+    }
+
+    public removeElement(id: string): void {
+        this.registry.delete(id);
+    }
+
+    public getElement(id: string): RenderableElement | undefined {
+        return this.registry.get(id);
     }
 
     /**
@@ -124,6 +136,7 @@ export class World {
         if (state.settings.debug) {
             this.renderDebugInfo(graphicProcessor, state);
         }
+        this.sceneState = state;
     }
 
     private renderDebugInfo(graphicProcessor: GraphicProcessor, state: SceneState) {

@@ -1,12 +1,10 @@
 import {expect, it} from 'vitest';
 import {FallbackNudge} from './fallback_nudge';
 import {
-    DEFAULT_SETTINGS,
     type NudgeModifier,
-    type SceneCameraState,
-    type ScenePlaybackState, type SceneState,
     type Vector3
 } from './types';
+import {createMockState} from "./mock/mock_scene_state.mock.ts";
 
 const mockNudge = (val: Partial<Vector3>, shouldError = false): NudgeModifier => ({
     name: `MockNudge_${JSON.stringify(val)}`,
@@ -16,27 +14,11 @@ const mockNudge = (val: Partial<Vector3>, shouldError = false): NudgeModifier =>
         {success: true, value: val},
 });
 
-const mockState = {
-    settings: DEFAULT_SETTINGS,
-    playback: {
-        now: Date.now(),
-        delta: 0,
-        progress: 0,
-        frameCount: 60
-    } as ScenePlaybackState,
-    camera: {
-        position: {x: 0, y: 0, z: 0},
-        lookAt: {x: 0, y: 0, z: 100},
-        yaw: 0,
-        pitch: 0,
-        direction: {x: 0, y: 0, z: 1},
-    } as SceneCameraState
-} as SceneState;
-
 it('should fallback to secondary nudge only when primary fails', () => {
     const primary = mockNudge({x: 100});
     const secondary = mockNudge({x: 20});
     const chain = new FallbackNudge(primary, secondary);
+    const mockState = createMockState();
 
     expect(chain.name).toBe("try_MockNudge_{\"x\":100}_else_MockNudge_{\"x\":20}");
 
@@ -73,6 +55,7 @@ it('should return error if both modifiers fail or inactive', () => {
     const primary = mockNudge({x: 100}, true); // Will error
     const secondary = mockNudge({x: 20}, true); // Will error
     const chain = new FallbackNudge(primary, secondary);
+    const mockState = createMockState();
 
     const res = chain.getNudge({x: 0, y: 0, z: 0}, mockState);
     expect(res.success).toBe(false);

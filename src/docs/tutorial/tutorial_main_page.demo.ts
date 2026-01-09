@@ -14,22 +14,22 @@ import 'prismjs/themes/prism-tomorrow.css';
 import './style.css';
 import 'prismjs/components/prism-typescript';
 import 'prismjs/components/prism-javascript';
-import { transform } from 'sucrase';
+import {transform} from 'sucrase';
 
 // Tutorial Steps
-import { tutorial_1 } from './tutorial_1.ts';
+import {tutorial_1} from './tutorial_1.ts';
 import step1Source from './tutorial_1.ts?raw';
 
-import { tutorial_2 } from './tutorial_2.ts';
+import {tutorial_2} from './tutorial_2.ts';
 import step2Source from './tutorial_2.ts?raw';
 
-import { tutorial_3 } from './tutorial_3.ts';
+import {tutorial_3} from './tutorial_3.ts';
 import step3Source from './tutorial_3.ts?raw';
 
-import { tutorial_4 } from './tutorial_4.ts';
+import {tutorial_4} from './tutorial_4.ts';
 import step4Source from './tutorial_4.ts?raw';
 
-import { tutorial_5 } from './tutorial_5.ts';
+import {tutorial_5} from './tutorial_5.ts';
 import step5Source from './tutorial_5.ts?raw';
 
 /**

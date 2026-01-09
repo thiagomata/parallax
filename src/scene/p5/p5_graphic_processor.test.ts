@@ -4,38 +4,23 @@ import {P5GraphicProcessor} from './p5_graphic_processor';
 import {
     ASSET_STATUS,
     type AssetLoader,
-    DEFAULT_SETTINGS,
     ELEMENT_TYPES,
     type ResolvedBoxProps,
     type ResolvedPanelProps,
     type ResolvedTextProps,
-    type SceneCameraState,
-    type ScenePlaybackState,
-    type SceneState,
 } from '../types';
 import {resolve, toProps} from "../create_renderable.ts";
+import {createMockState} from "../mock/mock_scene_state.mock.ts";
 
 describe('P5GraphicProcessor', () => {
     let gp: P5GraphicProcessor;
     let mockP5: any;
     let mockLoader: AssetLoader;
 
-    let mockState = {
-        settings: DEFAULT_SETTINGS,
-        playback: {
-            now: Date.now(),
-            delta: 0,
-            progress: 0,
-            frameCount: 60
-        } as ScenePlaybackState,
-        camera: {
-            position: {x: 0, y: 0, z: 0},
-            lookAt: {x: 0, y: 0, z: 100},
-            yaw: 0,
-            pitch: 0,
-            direction: {x: 0, y: 0, z: 1},
-        } as SceneCameraState
-    } as SceneState;
+    const mockState = createMockState(
+        {x: 0, y: 0, z: 0},
+        {x: 0, y: 0, z: 100},
+    );
 
     beforeEach(() => {
         mockP5 = {

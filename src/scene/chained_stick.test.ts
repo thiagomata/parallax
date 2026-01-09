@@ -1,12 +1,9 @@
 import {describe, expect, it} from "vitest";
 import {ChainedStick} from "./chained_stick";
 import {
-    DEFAULT_SETTINGS,
-    type SceneCameraState,
-    type ScenePlaybackState,
-    type SceneState,
     type StickModifier
 } from "./types";
+import {createMockState} from "./mock/mock_scene_state.mock.ts";
 
 describe("ChainedStick Decorator", () => {
     const mockStick = (id: string, val: number, priority: number = 10): StickModifier => ({
@@ -24,23 +21,10 @@ describe("ChainedStick Decorator", () => {
         }),
     });
 
-    const mockState = {
-        settings: DEFAULT_SETTINGS,
-        playback: {
-            now: Date.now(),
-            delta: 0,
-            progress: 0,
-            frameCount: 60
-        } as ScenePlaybackState,
-        camera: {
-            position: {x: 0, y: 0, z: 0},
-            lookAt: {x: 0, y: 0, z: 100},
-            yaw: 0,
-            pitch: 0,
-            direction: {x: 0, y: 0, z: 1},
-        } as SceneCameraState
-    } as SceneState;
-
+    const mockState = createMockState(
+        {x: 0, y: 0, z: 0},
+        {x: 0, y: 0, z: 100},
+    );
 
     it("should return the first successful result and ignore the rest", () => {
         const primary = mockStick("primary", 1);

@@ -3,13 +3,14 @@ import {describe, expect, it} from "vitest";
 import {
     type CarModifier,
     DEFAULT_SETTINGS,
-    type NudgeModifier, type SceneCameraState,
-    type ScenePlaybackState, type SceneSettings, type SceneState,
+    type NudgeModifier,
+    type SceneSettings,
     type StickModifier,
     type Vector3,
 } from "./types";
 
 import {SceneManager} from "./scene_manager.ts";
+import {createMockState} from "./mock/mock_scene_state.mock.ts";
 
 const mockCar = (id: string, priority: number, pos: Vector3): CarModifier => ({
     name: `MockCar_${id}`,
@@ -61,23 +62,10 @@ const mockStick = (
     }),
 });
 
-let mockState = {
-    settings: DEFAULT_SETTINGS,
-    playback: {
-        now: Date.now(),
-        delta: 0,
-        progress: 0,
-        frameCount: 60
-    } as ScenePlaybackState,
-    camera: {
-        position: {x: 0, y: 0, z: 0},
-        lookAt: {x: 0, y: 0, z: 100},
-        yaw: 0,
-        pitch: 0,
-        direction: {x: 0, y: 0, z: 1},
-    } as SceneCameraState
-} as SceneState;
-
+const mockState = createMockState(
+    {x: 0, y: 0, z: 0},
+    {x: 0, y: 0, z: 100},
+);
 
 describe("PortalSceneManager - Stage 1 (Car)", () => {
 

@@ -12,8 +12,9 @@ import {
 } from './types.ts';
 import type {SceneManager} from "./scene_manager.ts";
 import {World} from "./world.ts";
-import {ChaosLoader} from "./mock/mock_asset_loader.ts";
+import {ChaosLoader} from "./mock/mock_asset_loader.mock.ts";
 import {toProps} from "./create_renderable.ts";
+import {createMockState} from "./mock/mock_scene_state.mock.ts";
 
 const loader = new ChaosLoader();
 
@@ -29,22 +30,7 @@ const mockManager: SceneManager = {
 } as unknown as SceneManager;
 
 const mockOrigin = {x: 0, y: 0, z: 0};
-const mockState: SceneState = {
-    settings: DEFAULT_SETTINGS,
-    playback: {
-        now: Date.now(),
-        delta: 0,
-        progress: 0,
-        frameCount: 60
-    } as ScenePlaybackState,
-    camera: {
-        position: mockOrigin,
-        lookAt: mockOrigin,
-        yaw: 0,
-        pitch: 0,
-        direction: mockOrigin,
-    } as SceneCameraState
-};
+const mockState = createMockState(mockOrigin);
 
 const createMockGP = (): GraphicProcessor => {
     return {

@@ -90,8 +90,8 @@ export class SceneManager {
         let basePos: Vector3 = {...this.settings.camera.position};
         const debugLog = this.isDebug ? this.createEmptyDebugLog() : null;
 
-        const now = millis - this.settings.playback.startTime;
-        const scaledNow = now * this.settings.playback.timeSpeed;
+        const startTime = millis - this.settings.playback.startTime;
+        const scaledNow = startTime * this.settings.playback.timeSpeed;
         const scaledDelta = deltaTime * this.settings.playback.timeSpeed;
         const progress = this.settings.playback.duration
             ? (scaledNow % this.settings.playback.duration) / this.settings.playback.duration
