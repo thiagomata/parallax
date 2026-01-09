@@ -2,7 +2,7 @@
 
 ![Coverage](https://img.shields.io/codecov/c/github/thiagomata/parallax)
 [![Live Demo](https://img.shields.io/badge/Demo-Live_Preview-brightgreen)](https://thiagomata.github.io/parallax/src/scene/p5/p5_world.demo.html)
-[![Live Demo](https://img.shields.io/badge/Tutorial-Hands_On-brightgreen)](http://https://thiagomata.github.io/parallax/docs/tutorial/)
+[![tutorial](https://img.shields.io/badge/Tutorial-Hands_On-brightgreen)](https://thiagomata.github.io/parallax/docs/tutorial/)
 
 # Parallax Engine
 
@@ -16,7 +16,7 @@ decoupling spatial intent from the rendering pipeline.
 
 Nothing like seen the magic happening!
 So we created one 
-[hands-on tutorial](http://https://thiagomata.github.io/parallax/docs/tutorial/) that allow you see and change the components
+[hands-on tutorial](https://thiagomata.github.io/parallax/docs/tutorial/) that allow you see and change the components
 of this library.
 
 ## Core Concepts
