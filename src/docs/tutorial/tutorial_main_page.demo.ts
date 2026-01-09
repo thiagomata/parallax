@@ -75,6 +75,7 @@ function renderStep(containerId: string, title: string, initialSketch: P5Sketch,
                 <div class="button-group">
                     <button class="run-btn" id="run-${containerId}">Update Preview</button>
                     <button class="reset-btn" id="reset-${containerId}">Reset</button>
+                    <button class="fs-btn" id="fs-${containerId}">Fullscreen</button> 
                     <button class="copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('code-${containerId}').innerText)">
                        Copy
                     </button>
@@ -155,6 +156,20 @@ function renderStep(containerId: string, title: string, initialSketch: P5Sketch,
     document.getElementById(`reset-${containerId}`)?.addEventListener('click', () => {
         codeElem.innerHTML = Prism.highlight(source, Prism.languages.typescript, 'typescript');
         executeUpdate();
+    });
+
+    document.getElementById(`fs-${containerId}`)?.addEventListener('click', () => {
+        const canvasContainer = document.getElementById(`canvas-${containerId}`);
+        // p5 always creates a canvas element inside the provided node
+        const canvas = canvasContainer?.querySelector('canvas');
+
+        if (canvas) {
+            if (canvas.requestFullscreen) {
+                canvas.requestFullscreen();
+            } else if ((canvas as any).webkitRequestFullscreen) { /* Safari support */
+                (canvas as any).webkitRequestFullscreen();
+            }
+        }
     });
 }
 

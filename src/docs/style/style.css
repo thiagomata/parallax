@@ -111,3 +111,31 @@ a:active {
 .error-log a, .step-description a {
     font-weight: bold;
 }
+
+/* Ensure the canvas fills the screen when in fullscreen mode */
+canvas:fullscreen {
+    width: 100vw !important;
+    height: 100vh !important;
+    object-fit: contain;
+    background-color: #0f0f0f; /* Match your page background */
+}
+
+button {
+    cursor: pointer;
+}
+
+/* Target the canvas only when its parent (canvas-side) is fullscreen */
+.canvas-side:fullscreen canvas {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain; /* This prevents stretching/distortion */
+    image-rendering: pixelated; /* Optional: keeps things sharp if upscaling */
+}
+
+/* Ensure the container behaves like a black stage */
+.canvas-side:fullscreen {
+    background-color: #000 !important;
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+}
