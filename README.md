@@ -1,7 +1,7 @@
 # Parallax
 
 ![Coverage](https://img.shields.io/codecov/c/github/thiagomata/parallax)
-[![Live Demo](https://img.shields.io/badge/Demo-Live_Preview-brightgreen)](https://thiagomata.github.io/parallax/src/scene/p5/p5_world.demo.html)
+[![Live Demo](https://img.shields.io/badge/Demo-Live_Preview-brightgreen)](https://thiagomata.github.io/parallax/)
 [![tutorial](https://img.shields.io/badge/Tutorial-Hands_On-brightgreen)](https://thiagomata.github.io/parallax/docs/tutorial/)
 
 # Parallax Engine
