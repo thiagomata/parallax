@@ -145,12 +145,16 @@ describe('createRenderable', () => {
     it('should handle both atomic and granular resolution for the same property type', () => {
         // Case A: Atomic Function for position
         const atomicProps = toProps({
-            position: (_s: SceneState) => ({ x: 10, y: 10, z: 10 })
+            type: ELEMENT_TYPES.BOX,
+            position: (_s: SceneState) => ({ x: 10, y: 10, z: 10 }),
+            size: 10,
         });
 
         // Case B: Granular coordinates
         const granularProps = toProps({
-            position: { x: (_s: SceneState) => 20, y: 0, z: 0 }
+            type: ELEMENT_TYPES.BOX,
+            position: { x: (_s: SceneState) => 20, y: 0, z: 0 },
+            size: 10,
         });
 
         expect(resolve(atomicProps.position, mockState)).toEqual({ x: 10, y: 10, z: 10 });
@@ -160,7 +164,9 @@ describe('createRenderable', () => {
     it('should pass through STATIC_KEYS without wrapping them in specs', () => {
         const props = toProps({
             type: ELEMENT_TYPES.BOX,
-            texture: { path: 'test.png', width: 100, height: 100 }
+            texture: { path: 'test.png', width: 100, height: 100 },
+            size: 10,
+            position: {x:0,y:0,z:0},
         });
 
         // In the spec tree, 'type' should be a string, not { kind: 'static', value: 'box' }
@@ -242,6 +248,7 @@ describe('createRenderable', () => {
                 y: 0,
                 z: (state: SceneState) => state.playback.progress * 2 * Math.PI
             },
+            position: { x: 100, y: 100, z: 100 },
             size: 100
         });
 

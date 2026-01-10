@@ -37,7 +37,11 @@ export const tutorial_5 = (p: p5): World => {
                 y: (state: SceneState) => Math.PI * 2 * state.playback.progress,
                 z: (state: SceneState) => Math.PI * 2 * state.playback.progress,
             },
-            texture: { path: '/parallax/img/red.png' },
+            texture: {
+                width: 100,
+                height: 100,
+                path: '/parallax/img/red.png'
+            },
         }) as BoxProps);
 
         // 2. Fonts: Render 3D Text

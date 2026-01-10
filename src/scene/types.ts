@@ -292,6 +292,43 @@ export type MapToSpec<T> = {
         : FlexibleSpec<T[K]>;
 };
 
+/**
+ * TO_RAW: THE DYNAMIC PROPERTY BRIDGE
+ * * This utility transforms a "Resolved" interface (values only) into a "Raw"
+ * interface (values OR functions). It enables three levels of input:
+ * * 1. ATOMIC VALUE:     size: 10
+ * 2. ATOMIC FUNCTION:  position: (s) => ({ x: s.progress, y: 0, z: 0 })
+ * 3. GRANULAR OBJECT:  position: { x: (s) => s.progress, y: 0, z: 0 }
+ */
+export type ToRaw<T> = {
+    // 1. Remove 'readonly' so literals can be defined easily.
+    -readonly [K in keyof T]: K extends StaticKeys
+        // 2. EXCEPTION: Static keys (type, texture, font) must remain values.
+        // We cannot allow (s) => 'box' because the Discriminated Union needs
+        // the literal string to identify the element type.
+        ? T[K]
+        : T[K] extends (object | undefined)
+            // 3. OBJECT BRANCH: For objects like Vector3 or ColorRGBA.
+            // We allow the whole object, a function that returns the object,
+            // OR a "Granular" version where individual properties are functions.
+            ? ((state: SceneState) => T[K]) | ToRawObject<NonNullable<T[K]>> | T[K]
+            // 4. PRIMITIVE BRANCH: For numbers, strings, booleans.
+            // Simple wrap: value OR function returning the value.
+            : DynamicValueFromSceneState<T[K]>;
+};
+
+/**
+ * TO_RAW_OBJECT: NESTED PROPERTY WRAPPER
+ * * Takes an object (like Vector3) and makes every property within it dynamic.
+ * We use NonNullable in the parent to ensure optional objects (like fillColor)
+ * still have their internal properties validated correctly.
+ */
+type ToRawObject<T> = {
+    // +? handles cases where the base interface properties are optional.
+    // This allows { red: 255 } without complaining about missing 'alpha'.
+    -readonly [K in keyof T]+?: DynamicValueFromSceneState<T[K]>;
+};
+
 export interface ResolvedBaseVisualProps {
     readonly position: Vector3;
     readonly alpha?: number;
@@ -323,6 +360,7 @@ export interface ResolvedBoxProps extends ResolvedBaseVisualProps {
 }
 
 export type BoxProps = MapToSpec<ResolvedBoxProps>
+export type RawBoxProps = ToRaw<ResolvedBoxProps>;
 
 export interface ResolvedPanelProps extends ResolvedBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.PANEL;
@@ -331,6 +369,7 @@ export interface ResolvedPanelProps extends ResolvedBaseVisualProps {
 }
 
 export type PanelProps = MapToSpec<ResolvedPanelProps>
+export type RawPanelProps  = ToRaw<ResolvedPanelProps>;
 
 export interface ResolvedSphereProps extends ResolvedBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.SPHERE;
@@ -339,6 +378,7 @@ export interface ResolvedSphereProps extends ResolvedBaseVisualProps {
 }
 
 export type SphereProps = MapToSpec<ResolvedSphereProps>
+export type RawSphereProps  = ToRaw<ResolvedSphereProps>;
 
 export interface ResolvedFloorProps extends ResolvedBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.FLOOR;
@@ -347,6 +387,7 @@ export interface ResolvedFloorProps extends ResolvedBaseVisualProps {
 }
 
 export type FloorProps = MapToSpec<ResolvedFloorProps>
+export type RawFloorProps   = ToRaw<ResolvedFloorProps>;
 
 export interface ResolvedTextProps extends ResolvedBaseVisualProps {
     readonly type: typeof ELEMENT_TYPES.TEXT;
@@ -355,9 +396,12 @@ export interface ResolvedTextProps extends ResolvedBaseVisualProps {
 }
 
 export type TextProps = MapToSpec<ResolvedTextProps>
+export type RawTextProps   = ToRaw<ResolvedTextProps>;
+
 
 export type SceneElementProps = BoxProps | PanelProps | SphereProps | FloorProps | TextProps;
 export type ResolvedSceneElementProps = ResolvedBoxProps | ResolvedPanelProps | ResolvedSphereProps | ResolvedFloorProps | ResolvedTextProps;
+export type RawElementsProps = RawBoxProps | RawPanelProps | RawSphereProps | RawFloorProps | RawTextProps;
 
 export interface Renderable {
     readonly id: string;

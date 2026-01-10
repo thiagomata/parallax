@@ -1,11 +1,13 @@
 import {
     DEFAULT_CAMERA_FAR,
     ELEMENT_TYPES,
+    type GraphicProcessor,
+    type MapToSpec,
+    type RawElementsProps,
+    type RenderableElement,
     type ResolvedBoxProps,
     type ResolvedPanelProps,
     type ResolvedTextProps,
-    type GraphicProcessor, type MapToSpec,
-    type RenderableElement,
     type SceneElementProps,
     type SceneState,
     type SpecProperty,
@@ -13,7 +15,12 @@ import {
 
 const STATIC_KEYS: Set<string> = new Set(['type', 'texture', 'font']);
 
-export function toProps<T extends object>(props: T): MapToSpec<T> {
+/**
+ * INTERNAL (NOT EXPORTED)
+ * This is the "loose" recursive engine. It doesn't know about Box/Panel/Text.
+ * It just knows how to turn any object tree into a Spec tree.
+ */
+function convertToSpecTree<T extends object>(props: T): MapToSpec<T> {
     const spec = {} as any;
 
     for (const key in props) {
@@ -39,7 +46,8 @@ export function toProps<T extends object>(props: T): MapToSpec<T> {
 
         /* Is it a plain object? Recurse */
         if (typeof value === "object" && !Array.isArray(value)) {
-            spec[key] = toProps(value as object);
+            // Recursive call to the loose internal function
+            spec[key] = convertToSpecTree(value as object);
             continue;
         }
 
@@ -48,6 +56,15 @@ export function toProps<T extends object>(props: T): MapToSpec<T> {
     }
 
     return spec as MapToSpec<T>;
+}
+
+/**
+ * PUBLIC EXPORT
+ * These overloads are the ONLY way to use this module from the outside.
+ * They enforce that the TOP LEVEL must be a valid scene element.
+ */
+export function toProps<T extends RawElementsProps>(props: T): MapToSpec<T> {
+    return convertToSpecTree(props);
 }
 
 /**
