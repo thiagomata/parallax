@@ -4,252 +4,187 @@ import {
     type AssetLoader,
     type ColorRGBA,
     type ElementAssets,
-    type ResolvedBaseVisualProps,
-    type ResolvedBoxProps,
-    type ResolvedPanelProps,
-    type ResolvedTextProps,
+    type ResolvedBaseVisual,
+    type ResolvedBox,
+    type ResolvedPanel,
+    type ResolvedText,
     type GraphicProcessor,
     type SceneState,
     type Vector3
 } from '../types';
+import type { P5Bundler } from './p5_asset_loader';
 
-export class P5GraphicProcessor implements GraphicProcessor<p5.Image, p5.Font> {
+export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
+    public readonly loader: AssetLoader<P5Bundler>;
+    private p: p5;
 
-    public readonly loader: AssetLoader
-    p5: p5
-
-    constructor(
-        p5: p5,
-        loader: AssetLoader
-    ) {
-        this.p5 = p5;
+    constructor(p: p5, loader: AssetLoader<P5Bundler>) {
+        this.p = p;
         this.loader = loader;
     }
 
-    millis(): number {
-        return this.p5.millis()
-    }
-    deltaTime(): number {
-        return this.p5.deltaTime
-    }
-    frameCount(): number {
-        return this.p5.frameCount
-    }
+    // --- Timing ---
+    millis(): number { return this.p.millis(); }
+    deltaTime(): number { return this.p.deltaTime; }
+    frameCount(): number { return this.p.frameCount; }
 
+    // --- Transformations ---
     setCamera(pos: Vector3, lookAt: Vector3): void {
-        this.p5.camera(pos.x, pos.y, pos.z, lookAt.x, lookAt.y, lookAt.z, 0, 1, 0);
+        this.p.camera(pos.x, pos.y, pos.z, lookAt.x, lookAt.y, lookAt.z, 0, 1, 0);
     }
 
-    push(): void {
-        this.p5.push();
-    }
-
-    pop(): void {
-        this.p5.pop();
-    }
+    push(): void { this.p.push(); }
+    pop(): void { this.p.pop(); }
 
     translate(pos: Partial<Vector3>): void {
-        this.p5.translate(pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
+        this.p.translate(pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
     }
 
-    rotateX(a: number): void {
-        this.p5.rotateX(a);
-    }
+    rotateX(a: number): void { this.p.rotateX(a); }
+    rotateY(a: number): void { this.p.rotateY(a); }
+    rotateZ(a: number): void { this.p.rotateZ(a); }
 
-    rotateY(a: number): void {
-        this.p5.rotateY(a);
-    }
-
-    rotateZ(a: number): void {
-        this.p5.rotateZ(a);
-    }
-
-    // --- Styling & Drawing ---
+    // --- Styling ---
     fill(color: ColorRGBA, alpha: number = 1): void {
         const baseAlpha = color.alpha ?? 1;
         const finalAlpha = Math.round(alpha * baseAlpha * 255);
-        this.p5.fill(color.red, color.green, color.blue, finalAlpha);
+        this.p.fill(color.red, color.green, color.blue, finalAlpha);
     }
 
-    noFill(): void {
-        this.p5.noFill();
-    }
+    noFill(): void { this.p.noFill(); }
 
     stroke(color: ColorRGBA, weight: number = 1, globalAlpha: number = 1): void {
         const baseAlpha = color.alpha ?? 1;
         const finalAlpha = (baseAlpha * globalAlpha) * 255;
-        this.p5.strokeWeight(weight);
-        this.p5.stroke(color.red, color.green, color.blue, finalAlpha);
+        this.p.strokeWeight(weight);
+        this.p.stroke(color.red, color.green, color.blue, finalAlpha);
     }
 
-    noStroke(): void {
-        this.p5.noStroke();
+    noStroke(): void { this.p.noStroke(); }
+
+    // --- Drawing Implementation ---
+    drawText(props: ResolvedText, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        if (assets.font?.status !== ASSET_STATUS.READY || !assets.font.value) return;
+
+        this.push();
+        this.translate(props.position);
+        this.rotate(props.rotate);
+
+        this.p.textFont(assets.font.value.internalRef);
+        this.p.textSize(props.size);
+        this.drawFill(props, state);
+        this.drawStroke(props, state);
+
+        // Render text at local origin
+        this.p.text(props.text, 0, 0);
+        this.pop();
     }
 
     box(size: number): void {
-        this.p5.box(size);
+        this.p.box(size);
     }
 
-    drawText(textProp: ResolvedTextProps, assets: ElementAssets<p5.Image, p5.Font>, sceneState: SceneState): void {
-        if (assets.font?.status !== ASSET_STATUS.READY) {
-            // text is not ready
+    drawBox(props: ResolvedBox, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.push();
+        this.translate(props.position);
+        this.rotate(props.rotate);
+
+        this.drawTexture(assets, props, state);
+        this.drawStroke(props, state);
+
+        this.p.box(props.size);
+        this.pop();
+    }
+
+    drawPanel(props: ResolvedPanel, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.push();
+        this.translate(props.position);
+        this.rotate(props.rotate);
+
+        this.drawTexture(assets, props, state);
+        this.drawStroke(props, state);
+
+        this.p.plane(props.width, props.height);
+        this.pop();
+    }
+
+    plane(w: number, h: number): void { this.p.plane(w, h); }
+
+    // --- Internal Helpers ---
+    private drawTexture(assets: ElementAssets<P5Bundler>, props: ResolvedBaseVisual, state: SceneState) {
+        if (assets.texture?.status === ASSET_STATUS.READY && assets.texture.value) {
+            this.p.texture(assets.texture.value.internalRef);
+            this.p.textureMode(this.p.NORMAL);
+            // Tint handles both the element alpha and the scene-wide transition alpha
+            const alpha = this.getP5Alpha(props, state);
+            this.p.tint(255, alpha);
+        } else {
+            this.p.noTint();
+            this.drawFill(props, state);
+        }
+    }
+
+    private drawFill(props: ResolvedBaseVisual, state: SceneState) {
+        if (!props.fillColor) {
+            this.p.noFill();
             return;
         }
-        if (!assets.font?.value) {
-            // in the future, load a default font.
-            // ignoring texts without font for now
+        this.p.fill(
+            props.fillColor.red,
+            props.fillColor.green,
+            props.fillColor.blue,
+            this.getP5FillAlpha(props, state)
+        );
+    }
+
+    private drawStroke(props: ResolvedBaseVisual, state: SceneState) {
+        if (!props.strokeColor || props.strokeWidth === 0) {
+            this.p.noStroke();
             return;
         }
-
-        this.push();
-        this.translate(textProp.position);
-        this.drawFill(textProp, sceneState);
-        this.p5.textFont(assets.font.value.internalRef);
-        this.p5.textSize(textProp.size);
-        this.p5.noStroke();
-        this.text(textProp.text, {x: 0, y: 0, z: 0});
-        this.pop();
+        this.p.strokeWeight(props.strokeWidth ?? 1);
+        this.p.stroke(
+            props.strokeColor.red,
+            props.strokeColor.green,
+            props.strokeColor.blue,
+            this.getP5StrokeAlpha(props, state)
+        );
     }
 
-    drawBox(boxProps: ResolvedBoxProps, assets: ElementAssets, sceneState: SceneState): void {
-        this.push();
-
-        this.translate(boxProps.position);
-        this.rotate(boxProps.rotate);
-        this.drawTexture(assets, boxProps, sceneState);
-
-        this.drawStroke(boxProps, sceneState);
-
-        this.box(boxProps.size);
-        this.pop();
+    private rotate(rot: Vector3 | undefined) {
+        if (!rot) return;
+        if (rot.x !== 0) this.p.rotateX(rot.x);
+        if (rot.y !== 0) this.p.rotateY(rot.y);
+        if (rot.z !== 0) this.p.rotateZ(rot.z);
     }
 
-    plane(w: number, h: number): void {
-        this.p5.plane(w, h);
+    // --- Alpha Calculation Logic ---
+    private getP5Alpha(props: ResolvedBaseVisual, state: SceneState): number {
+        return Math.round((props.alpha ?? 1) * state.settings.alpha * 255);
     }
 
-    drawPanel(panelProps: ResolvedPanelProps, assets: ElementAssets<p5.Image, p5.Font>, sceneState: SceneState) {
-        this.push();
-
-        this.translate(panelProps.position);
-        this.drawTexture(assets, panelProps, sceneState);
-        this.drawStroke(panelProps, sceneState);
-
-        this.plane(panelProps.width, panelProps.height);
-        this.pop();
+    private getP5FillAlpha(props: ResolvedBaseVisual, state: SceneState): number {
+        const fillA = props.fillColor?.alpha ?? 1;
+        return Math.round((props.alpha ?? 1) * state.settings.alpha * fillA * 255);
     }
 
-    // --- Math Utilities ---
-    dist(v1: Vector3, v2: Vector3): number {
-        return this.p5.dist(v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+    private getP5StrokeAlpha(props: ResolvedBaseVisual, state: SceneState): number {
+        const strokeA = props.strokeColor?.alpha ?? 1;
+        return Math.round((props.alpha ?? 1) * state.settings.alpha * strokeA * 255);
     }
 
-    map(val: number, s1: number, st1: number, s2: number, st2: number, clamp?: boolean): number {
-        return this.p5.map(val, s1, st1, s2, st2, clamp);
-    }
-
-    lerp(start: number, stop: number, amt: number): number {
-        return this.p5.lerp(start, stop, amt);
-    }
-
-    drawLabel(s: string, pos: { x: number; y?: number; z?: number }): void {
-        this.p5.text(s, pos.x, pos.y ?? 0, pos.z ?? 0);
-    }
-
-    text(s: string, pos: { x: number; y?: number; z?: number }): void {
-        this.p5.text(s, pos.x, pos.y ?? 0, pos.z ?? 0);
-    }
-
+    // --- Utilities ---
+    dist(v1: Vector3, v2: Vector3): number { return this.p.dist(v1.x, v1.y, v1.z, v2.x, v2.y, v2.z); }
+    map(v: number, s1: number, st1: number, s2: number, st2: number, c?: boolean): number { return this.p.map(v, s1, st1, s2, st2, c); }
+    lerp(s: number, e: number, a: number): number { return this.p.lerp(s, e, a); }
+    text(s: string, pos: Partial<Vector3>): void { this.p.text(s, pos.x ?? 0, pos.y ?? 0, pos.z ?? 0); }
+    drawLabel(s: string, pos: Partial<Vector3>): void { this.text(s, pos); }
+    drawHUDText(s: string, x: number, y: number): void { this.p.text(s, x, y); }
     drawCrosshair(pos: Partial<Vector3>, size: number): void {
         this.push();
-
-        this.translate(pos)
-        this.p5.line(-size, 0, size, 0);
-        this.p5.line(0, -size, 0, size);
+        this.translate(pos);
+        this.p.line(-size, 0, size, 0);
+        this.p.line(0, -size, 0, size);
         this.pop();
-    }
-
-    drawHUDText(s: string, x: number, y: number): void {
-        this.p5.text(s, x, y);
-    }
-
-    private getP5Alpha(props: ResolvedBaseVisualProps, sceneState: SceneState): number {
-        const elementAlpha = props.alpha ?? 1;
-        const sceneAlpha = sceneState.settings.alpha;
-        return Math.round(elementAlpha * sceneAlpha * 255);
-    }
-
-    private getP5FillAlpha(props: ResolvedBaseVisualProps, sceneState: SceneState): number {
-        const elementAlpha = props.alpha ?? 1;
-        const sceneAlpha = sceneState.settings.alpha;
-        const fillAlpha = props.fillColor?.alpha ?? 1;
-        return Math.round(elementAlpha * sceneAlpha * fillAlpha * 255);
-    }
-
-    private getPSStrokeAlpha(props: ResolvedBaseVisualProps, sceneState: SceneState): number {
-        const elementAlpha = props.alpha ?? 1;
-        const sceneAlpha = sceneState.settings.alpha;
-        const strokeAlpha = props.strokeColor?.alpha ?? 1;
-        return Math.round(elementAlpha * sceneAlpha * strokeAlpha * 255);
-    }
-
-    private drawTexture(
-        assets: ElementAssets<p5.Image, p5.Font>,
-        elementProp: ResolvedBaseVisualProps,
-        sceneState: SceneState
-    ) {
-        if (assets.texture?.status == ASSET_STATUS.READY && assets.texture.value) {
-            this.p5.texture(assets.texture.value.internalRef);
-            this.p5.textureMode(this.p5.NORMAL);
-            this.p5.tint(255, this.getP5Alpha(elementProp, sceneState))
-        } else {
-            this.drawFill(elementProp, sceneState);
-        }
-    }
-
-    private drawFill(elementProp: ResolvedBaseVisualProps, sceneState: SceneState) {
-
-        if (!elementProp.fillColor) {
-            this.noFill();
-            return;
-        }
-
-        this.p5.fill(
-            elementProp.fillColor.red,
-            elementProp.fillColor.green,
-            elementProp.fillColor.blue,
-            this.getP5FillAlpha(elementProp, sceneState)
-        );
-    }
-
-    private drawStroke(elementProp: ResolvedBaseVisualProps, sceneState: SceneState) {
-        if(elementProp.strokeWidth == 0) {
-            this.p5.noStroke();
-            return;
-        }
-
-        if (!elementProp.strokeColor) {
-            return;
-        }
-        this.p5.strokeWeight(elementProp.strokeWidth ?? 1)
-        this.p5.stroke(
-            elementProp.strokeColor.red,
-            elementProp.strokeColor.green,
-            elementProp.strokeColor.blue,
-            this.getPSStrokeAlpha(elementProp, sceneState)
-        );
-    }
-
-    private rotate(rotate: Vector3 | undefined) {
-        if (!rotate) return;
-        if (rotate.x != 0) {
-            this.rotateX(rotate.x);
-        }
-        if (rotate.y != 0) {
-            this.rotateY(rotate.y);
-        }
-        if (rotate.z != 0) {
-            this.rotateZ(rotate.z);
-        }
     }
 }

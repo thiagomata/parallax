@@ -1,127 +1,51 @@
-import {
-    ASSET_STATUS,
-    type FontAsset,
-    type BlueprintElement,
-    type TextProps,
-    type TextureAsset,
-    type Vector3
-} from "./types.ts";
+import type {
+    GraphicsBundle,
+    AssetLoader,
+    BlueprintElement,
+    RenderableElement,
+} from "./types";
+import {createRenderable} from "./resolver.ts";
 
-export interface ShapeSpec<TTexture> {
-    readonly id: string;
-    readonly props: BlueprintElement;
-    asset: TextureAsset<TTexture>;
-}
+export class AssetRegistry<TBundle extends GraphicsBundle> {
+    // We store the fully-formed Renderables, which include:
+    // 1. The Blueprint (Intent)
+    // 2. The Dynamic Plan (Phase 1)
+    // 3. The Asset Containers (Phase 2)
+    private elements = new Map<string, RenderableElement<TBundle>>();
+    private readonly loader: AssetLoader<TBundle>;
 
-export interface TextSpec<TFont> {
-    readonly id: string;
-    readonly props: TextProps;
-    // readonly fontRef: FontRef;
-    asset: FontAsset<TFont>;
-}
-
-export type ElementSpec<TTexture = any, TFont = any> = TextSpec<TFont> | ShapeSpec<TTexture>;
-
-/**
- * The Placement.
- * Just a reference to a Spec and a location in space.
- */
-export interface Instance {
-    readonly specId: string;
-    readonly position: Vector3;
-}
-
-/**
- * The Registry Interface
- * Its job is to manage the 'Blueprints' (Specs) of what can exist in the scene.
- */
-export interface Registry<TTexture = any, TFont = any> {
-    defineShape(id: string, props: BlueprintElement): ShapeSpec<TTexture>;
-
-    defineText(id: string, props: TextProps): TextSpec<TFont>;
-
-    getShape(id: string): ShapeSpec<TTexture> | undefined;
-
-    getText(id: string): TextSpec<TFont> | undefined;
-
-    all(): IterableIterator<ElementSpec>;
-}
-
-export class AssetRegistry<TTexture, TFont> implements Registry {
-    private shapes = new Map<string, ShapeSpec<TTexture>>();
-    private texts = new Map<string, TextSpec<TFont>>();
-
-    constructor() {
+    constructor(loader: AssetLoader<TBundle>) {
+        this.loader = loader;
     }
 
-    defineShape(id: string, props: BlueprintElement): ShapeSpec<TTexture> {
-        if (this.shapes.has(id)) return this.shapes.get(id)!;
+    /**
+     * Define or retrieve a renderable element.
+     * This triggers Phase 1 (Compiling to Dynamic) and Phase 2 (Async Hydration).
+     */
+    register(id: string, blueprint: BlueprintElement): RenderableElement<TBundle> {
+        const existing = this.elements.get(id);
+        if (existing) return existing;
 
-        let initialAsset: TextureAsset;
+        // Use our resolver utility to build the self-hydrating element
+        const element = createRenderable(id, blueprint, this.loader);
 
-        if (props.texture) {
-            initialAsset = {
-                status: ASSET_STATUS.PENDING,
-                value: null,
-            };
-        } else {
-            initialAsset = {
-                status: ASSET_STATUS.READY,
-                value: null,
-            };
-        }
-
-        const spec: ElementSpec = {
-            id,
-            props,
-            asset: initialAsset
-        };
-
-        this.shapes.set(id, spec);
-        return spec;
+        this.elements.set(id, element);
+        return element;
     }
 
-    defineText(id: string, props: TextProps): TextSpec<TFont> {
-        if (this.texts.has(id)) return this.texts.get(id)!;
-
-        let initialAsset: FontAsset;
-
-        if (props.font) {
-            initialAsset = {
-                status: ASSET_STATUS.PENDING,
-                value: null,
-            };
-        } else {
-            initialAsset = {
-                status: ASSET_STATUS.READY,
-                value: null,
-            };
-        }
-
-        const spec: TextSpec<TFont> = {
-            id,
-            props,
-            asset: initialAsset
-        };
-
-        this.texts.set(id, spec);
-        return spec;
+    get(id: string): RenderableElement<TBundle> | undefined {
+        return this.elements.get(id);
     }
 
-    getText(id: string): TextSpec<TFont> | undefined {
-        return this.texts.get(id)!;
+    /**
+     * Phase 3 Feed:
+     * Provides the list of elements for the World's frame loop.
+     */
+    all(): IterableIterator<RenderableElement<TBundle>> {
+        return this.elements.values();
     }
 
-    getShape(id: string): ShapeSpec<TTexture> | undefined {
-        return this.shapes.get(id)!;
-    }
-
-    all(): IterableIterator<ElementSpec<TTexture, TFont>> {
-        return this.generateAll();
-    }
-
-    private* generateAll(): IterableIterator<ElementSpec<TTexture, TFont>> {
-        yield* this.shapes.values();
-        yield* this.texts.values();
+    remove(id: string) {
+        this.elements.delete(id);
     }
 }

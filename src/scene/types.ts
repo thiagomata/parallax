@@ -1,6 +1,5 @@
 /**
  * A strict 3D vector.
- * Used for absolute positions (The Car) where all coordinates are required.
  */
 export interface Vector3 {
     readonly x: number;
@@ -10,70 +9,37 @@ export interface Vector3 {
 
 /**
  * A container for operations that can fail.
- * Value and error are mutually exclusive in practice.
  */
 export type FailableResult<T> =
     | { success: true, value: T; }
     | { success: false, error: string };
 
-export interface CarResult {
-    name: string;
-    position: Vector3;
+/** * CORE GENERIC: THE GRAPHICS BUNDLE
+ * Defines the platform-specific instances for a specific renderer.
+ */
+export interface GraphicsBundle {
+    readonly texture: unknown;
+    readonly font: unknown;
 }
 
-export interface StickResult {
-    readonly yaw: number;      // Left/Right rotation in radians
-    readonly pitch: number;    // Up/Down rotation in radians
-    readonly distance: number; // Distance from the camera to the focal point
-    readonly priority: number;
-}
-
-export interface SceneWindow {
-    readonly width: number;
-    readonly height: number;
-    readonly aspectRatio: number;
-}
-
+/**
+ * SCENE DATA STRUCTURES
+ */
+export interface SceneWindow { readonly width: number; readonly height: number; readonly aspectRatio: number; }
 export interface SceneCameraSettings {
     readonly position: Vector3;
     readonly lookAt: Vector3;
     readonly fov?: number;
     readonly near?: number;
     readonly far?: number;
-    readonly focusDistance?: number; // Distance from camera to the focal plane
-    readonly aperture?: number;      // "Strength" of the blur (e.g., f-stop)
-    readonly blurMax?: number;       // Limit for post-processing blur
 }
+export interface SceneCameraState extends SceneCameraSettings { readonly yaw: number; readonly pitch: number; readonly direction: Vector3; }
+export interface PlaybackSettings { readonly duration?: number; readonly isLoop: boolean; readonly timeSpeed: number; readonly startTime: number; }
+export interface ScenePlaybackState { readonly now: number; readonly delta: number; readonly progress: number; readonly frameCount: number; }
+export interface SceneSettings { window: SceneWindow; camera: SceneCameraSettings; playback: PlaybackSettings; debug: boolean; alpha: number; }
+export interface SceneState { settings: SceneSettings; playback: ScenePlaybackState; camera: SceneCameraState; debugStateLog?: SceneStateDebugLog; }
 
-export interface SceneCameraState extends SceneCameraSettings {
-    readonly yaw: number;
-    readonly pitch: number;
-    readonly direction: Vector3;
-}
-
-export interface PlaybackSettings {
-    readonly duration?: number;    // Total cycle time in ms (e.g., 5000 for 5s)
-    readonly isLoop: boolean;     // Should the global clock reset or stop?
-    readonly timeSpeed: number;   // Multiplier (1.0 = real time, 2.0 = double speed)
-    readonly startTime: number;   // Sync point for the animation
-}
-
-export interface ScenePlaybackState {
-    readonly now: number;
-    readonly delta: number;
-    readonly progress: number; // defaults 0 for playback without duration
-    readonly frameCount: number;
-}
-
-export interface SceneSettings {
-    window: SceneWindow;
-    camera: SceneCameraSettings;
-    playback: PlaybackSettings;
-    debug: boolean; // default false
-    alpha: number; // default 1
-}
-
-export const DEFAULT_CAMERA_FAR = 5000
+export const DEFAULT_CAMERA_FAR = 5000;
 
 export const DEFAULT_SETTINGS: SceneSettings = {
     window: {
@@ -98,63 +64,30 @@ export const DEFAULT_SETTINGS: SceneSettings = {
     alpha: 1
 };
 
-export interface SceneState {
-    settings: SceneSettings;
-    playback: ScenePlaybackState;
-    camera: SceneCameraState;
-    debugStateLog?: SceneStateDebugLog;
-}
-
 export interface SceneStateDebugLog {
-    car: { name: string; priority: number, x?: number; y?: number; z?: number };
-    nudges: Array<{ name: string; x?: number; y?: number; z?: number }>;
+    car: { name: string; priority: number } & Partial<Vector3>;
+    nudges: Array<{ name: string } & Partial<Vector3>>;
     stick: { name: string; priority: number, yaw?: number; pitch?: number; distance?: number };
     errors: Array<{ name: string; message: string }>;
 }
 
-export interface CarModifier {
-    name: string;
-    active: boolean;
-    readonly priority: number;
+/**
+ * MODIFIERS
+ */
+export interface CarResult { name: string; position: Vector3; }
+export interface StickResult { readonly yaw: number; readonly pitch: number; readonly distance: number; readonly priority: number; }
+export interface CarModifier { name: string; active: boolean; readonly priority: number; getCarPosition(initialCam: Vector3, currentState: SceneState): FailableResult<CarResult>; }
+export interface NudgeModifier { name: string; active: boolean; getNudge(currentCarPos: Vector3, currentState: SceneState): FailableResult<Partial<Vector3>>; }
+export interface StickModifier { name: string; active: boolean; readonly priority: number; getStick(finalPos: Vector3, currentState: SceneState): FailableResult<StickResult>; }
 
-    getCarPosition(initialCam: Vector3, currentState: SceneState): FailableResult<CarResult>;
-}
-
-export interface NudgeModifier {
-    name: string;
-    active: boolean;
-
-    getNudge(currentCarPos: Vector3, currentState: SceneState): FailableResult<Partial<Vector3>>;
-}
-
-export interface StickModifier {
-    name: string;
-    active: boolean;
-    readonly priority: number;
-
-    getStick(finalPos: Vector3, currentState: SceneState): FailableResult<StickResult>;
-}
-
-export const ASSET_STATUS = {
-    PENDING: 'PENDING',
-    LOADING: 'LOADING',
-    READY: 'READY',
-    ERROR: 'ERROR',
-} as const;
-
+/**
+ * ASSET SYSTEM
+ */
+export const ASSET_STATUS = { PENDING: 'PENDING', LOADING: 'LOADING', READY: 'READY', ERROR: 'ERROR' } as const;
 export type AssetStatus = typeof ASSET_STATUS[keyof typeof ASSET_STATUS];
 
-export interface TextureRef {
-    readonly width: number;
-    readonly height: number;
-    readonly path: string;
-    readonly alpha?: number;
-}
-
-export interface TextureInstance<TTexture = unknown> {
-    readonly texture: TextureRef;
-    readonly internalRef: TTexture; // p5.Image, for example
-}
+export interface TextureRef { readonly width: number; readonly height: number; readonly path: string; readonly alpha?: number; }
+export interface TextureInstance<TTexture = unknown> { readonly texture: TextureRef; readonly internalRef: TTexture; }
 
 export type TextureAsset<TTexture = unknown> =
     | { readonly status: typeof ASSET_STATUS.PENDING; readonly value: null; }
@@ -162,167 +95,81 @@ export type TextureAsset<TTexture = unknown> =
     | { readonly status: typeof ASSET_STATUS.READY; readonly value: TextureInstance<TTexture> | null; }
     | { readonly status: typeof ASSET_STATUS.ERROR; readonly value: null; readonly error: string };
 
-
-export function createBlueprint<T>(blueprint: MapToBlueprint<T>): MapToBlueprint<T> {
-    return blueprint;
-}
-
-export interface FontRef {
-    readonly name: string;
-    readonly path: string;
-}
-
-export interface FontInstance<TFont = any> {
-    readonly font: FontRef;
-    readonly internalRef: TFont; // p5.Font, for example
-}
-
-export type FontAsset<TFont = any> =
+export interface FontRef { readonly name: string; readonly path: string; }
+export interface FontInstance<TFont = unknown> { readonly font: FontRef; readonly internalRef: TFont; }
+export type FontAsset<TFont = unknown> =
     | { readonly status: typeof ASSET_STATUS.PENDING; readonly value: null; }
     | { readonly status: typeof ASSET_STATUS.LOADING; readonly value: null; }
     | { readonly status: typeof ASSET_STATUS.READY; readonly value: FontInstance<TFont> | null; }
     | { readonly status: typeof ASSET_STATUS.ERROR; readonly value: null; readonly error: string };
 
-export interface AssetLoader {
-    hydrateTexture(ref: TextureRef): Promise<TextureAsset>;
-
-    hydrateFont(ref: FontRef): Promise<FontAsset>;
+export interface ElementAssets<TBundle extends GraphicsBundle> {
+    texture?: TextureAsset<TBundle['texture']>;
+    font?: FontAsset<TBundle['font']>;
 }
 
-export type ColorRGBA = {
-    red: number;
-    green: number;
-    blue: number;
-    alpha?: number;
+export interface AssetLoader<TBundle extends GraphicsBundle> {
+    hydrateTexture(ref: TextureRef): Promise<TextureAsset<TBundle['texture']>>;
+    hydrateFont(ref: FontRef): Promise<FontAsset<TBundle['font']>>;
 }
 
-export interface GraphicProcessor<TTexture = any, TFont = any> {
-    readonly loader: AssetLoader;
+/**
+ * GRAPHIC PROCESSOR
+ */
+export type ColorRGBA = { red: number; green: number; blue: number; alpha?: number; }
 
+export interface GraphicProcessor<TBundle extends GraphicsBundle> {
+    readonly loader: AssetLoader<TBundle>;
     setCamera(pos: Vector3, lookAt: Vector3): void;
-
     push(): void;
-
     pop(): void;
-
     translate(pos: Vector3): void;
-
     rotateX(angle: number): void;
-
     rotateY(angle: number): void;
-
     rotateZ(angle: number): void;
-
     fill(color: ColorRGBA, alpha?: number): void;
-
     noFill(): void;
-
     stroke(color: ColorRGBA, weight: number, globalAlpha?: number): void;
-
     noStroke(): void;
-
-    drawText(
-        textProp: ResolvedText,
-        assets: ElementAssets<TTexture, TFont>,
-        sceneState: SceneState): void;
-
-    drawBox(
-        boxProps: ResolvedBox,
-        assets: ElementAssets<TTexture, TFont>,
-        sceneState: SceneState): void;
-
+    drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: SceneState): void;
+    drawBox(props: ResolvedBox, assets: ElementAssets<TBundle>, state: SceneState): void;
+    drawPanel(props: ResolvedPanel, assets: ElementAssets<TBundle>, state: SceneState): void;
     plane(width: number, height: number): void;
-
-    drawPanel(
-        panelProps: ResolvedPanel,
-        assets: ElementAssets<TTexture, TFont>,
-        sceneState: SceneState): void;
-
     dist(v1: Vector3, v2: Vector3): number;
-
     map(val: number, s1: number, st1: number, s2: number, st2: number, clamp?: boolean): number;
-
     lerp(start: number, stop: number, amt: number): number;
-
-    drawLabel(s: string, param2: { x: number; y: number | undefined; z: number | undefined }): void;
-
-    text(s: string, param2: { x: number; y: number | undefined; z: number | undefined }): void;
-
-
-    drawCrosshair(param: { x: number; y: number | undefined; z: number | undefined }, number: number): void;
-
-    drawHUDText(s: string, number: number, number2: number): void;
-
+    drawLabel(s: string, pos: Partial<Vector3>): void;
+    text(s: string, pos: Partial<Vector3>): void;
+    drawCrosshair(pos: Partial<Vector3>, size: number): void;
+    drawHUDText(s: string, x: number, y: number): void;
     millis(): number;
-
     deltaTime(): number;
-
     frameCount(): number;
 }
 
-export const ELEMENT_TYPES = {
-    BOX: 'box',
-    PANEL: 'panel',
-    SPHERE: 'sphere',
-    FLOOR: 'floor',
-    TEXT: 'text',
-} as const;
-
-export type DynamicValueFromSceneState<T> = T | ((state: SceneState) => T);
-
-export const SPEC_KINDS = {
-    STATIC: 'static',
-    COMPUTED: 'computed',
-    BRANCH: 'branch'
-} as const;
-
-export type SpecKind = (typeof SPEC_KINDS)[keyof typeof SPEC_KINDS];
-
 /**
- * PHASE B: THE INTERNAL ENGINE WRAPPER
- * The "Dynamic" state of a property, waiting for SceneState.
+ * DYNAMIC ENGINE CORE
  */
+export const ELEMENT_TYPES = { BOX: 'box', PANEL: 'panel', SPHERE: 'sphere', FLOOR: 'floor', TEXT: 'text' } as const;
+export const SPEC_KINDS = { STATIC: 'static', COMPUTED: 'computed', BRANCH: 'branch' } as const;
+
 export type DynamicProperty<T> =
     | { kind: typeof SPEC_KINDS.STATIC; value: T }
     | { kind: typeof SPEC_KINDS.COMPUTED; compute: (state: SceneState) => T | DynamicProperty<T> | DynamicTree<T> }
     | { kind: typeof SPEC_KINDS.BRANCH; value: DynamicTree<T> };
 
-export type DynamicTree<T> = {
-    [K in keyof T]?: DynamicProperty<T[K]>;
-};
+export type DynamicTree<T> = { [K in keyof T]?: DynamicProperty<T[K]>; };
+export type FlexibleSpec<T> = T | ((state: SceneState) => T | DynamicProperty<T> | DynamicTree<T>) | (T extends object ? BlueprintTree<T> : never);
+export type BlueprintTree<T> = { [K in keyof T]?: FlexibleSpec<T[K]>; };
 
-/**
- * PHASE A: THE USER INPUT
- * The "Blueprint" version that allows for raw values, functions, or objects.
- */
-export type FlexibleSpec<T> =
-    | T
-    | ((state: SceneState) => T | DynamicProperty<T> | DynamicTree<T>)
-    | (T extends object ? BlueprintTree<T> : never);
-
-export type BlueprintTree<T> = {
-    [K in keyof T]?: FlexibleSpec<T[K]>;
-};
-
-/**
- * MAPPING UTILITIES
- */
 type StaticKeys = 'type' | 'texture' | 'font';
+export type MapToBlueprint<T> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K]>; };
+export type MapToDynamic<T> = { [K in keyof T]: K extends StaticKeys ? T[K] : DynamicProperty<T[K]>; };
+export type Unwrapped<T> = T extends DynamicProperty<infer U> ? Unwrapped<U> : T extends object ? { [K in keyof T]: Unwrapped<T[K]> } : T;
 
-export type MapToBlueprint<T> = {
-    -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K]>;
-};
-
-export type MapToDynamic<T> = {
-    [K in keyof T]: K extends StaticKeys ? T[K] : DynamicProperty<T[K]>;
-};
-
-export type Unwrapped<T> = T extends DynamicProperty<infer U>
-    ? Unwrapped<U> // 1. It is a DynamicProperty? Unwrap the inner type U.
-    : T extends object
-        ? { [K in keyof T]: Unwrapped<T[K]> } // 2. It is an Object? Loop through keys and repeat.
-        : T; // 3. It's a primitive? Return as-is.
-
+/**
+ * ELEMENT DEFINITIONS
+ */
 export interface ResolvedBaseVisual {
     readonly position: Vector3;
     readonly alpha?: number;
@@ -334,69 +181,44 @@ export interface ResolvedBaseVisual {
     readonly font?: FontRef;
 }
 
-export type BlueprintBaseVisual = MapToBlueprint<ResolvedBaseVisual>;
-export type DynamicBaseVisual = MapToDynamic<ResolvedBaseVisual>
-
-export interface ResolvedBox extends ResolvedBaseVisual {
-    readonly type: typeof ELEMENT_TYPES.BOX;
-    readonly size: number;
-}
-
+export interface ResolvedBox extends ResolvedBaseVisual { readonly type: typeof ELEMENT_TYPES.BOX; readonly size: number; }
 export type BlueprintBox = MapToBlueprint<ResolvedBox>;
 export type DynamicBox = MapToDynamic<ResolvedBox>;
 
-export interface ResolvedPanel extends ResolvedBaseVisual {
-    readonly type: typeof ELEMENT_TYPES.PANEL;
-    readonly width: number;
-    readonly height: number;
-}
-
+export interface ResolvedPanel extends ResolvedBaseVisual { readonly type: typeof ELEMENT_TYPES.PANEL; readonly width: number; readonly height: number; }
 export type BlueprintPanel = MapToBlueprint<ResolvedPanel>;
-export type DynamicPanel   = MapToDynamic<ResolvedPanel>;
+export type DynamicPanel = MapToDynamic<ResolvedPanel>;
 
-export interface ResolvedSphere extends ResolvedBaseVisual {
-    readonly type: typeof ELEMENT_TYPES.SPHERE;
-    readonly radius: number;
-    readonly detail?: number;
-}
-
+export interface ResolvedSphere extends ResolvedBaseVisual { readonly type: typeof ELEMENT_TYPES.SPHERE; readonly radius: number; readonly detail?: number; }
 export type BlueprintSphere = MapToBlueprint<ResolvedSphere>;
-export type DynamicSphere   = MapToDynamic<ResolvedSphere>;
+export type DynamicSphere = MapToDynamic<ResolvedSphere>;
 
-export interface ResolvedFloor extends ResolvedBaseVisual {
-    readonly type: typeof ELEMENT_TYPES.FLOOR;
-    readonly width: number;
-    readonly depth: number;
-}
-
+export interface ResolvedFloor extends ResolvedBaseVisual { readonly type: typeof ELEMENT_TYPES.FLOOR; readonly width: number; readonly depth: number; }
 export type BlueprintFloor = MapToBlueprint<ResolvedFloor>;
-export type DynamicFloor   = MapToDynamic<ResolvedFloor>;
+export type DynamicFloor = MapToDynamic<ResolvedFloor>;
 
-export interface ResolvedText extends ResolvedBaseVisual {
-    readonly type: typeof ELEMENT_TYPES.TEXT;
-    readonly text: string;
-    readonly size: number;
-}
-
+export interface ResolvedText extends ResolvedBaseVisual { readonly type: typeof ELEMENT_TYPES.TEXT; readonly text: string; readonly size: number; }
 export type BlueprintText = MapToBlueprint<ResolvedText>;
-export type DynamicText   = MapToDynamic<ResolvedText>;
-
+export type DynamicText = MapToDynamic<ResolvedText>;
 
 export type BlueprintElement = BlueprintBox | BlueprintPanel | BlueprintSphere | BlueprintFloor | BlueprintText;
-export type ResolvedElement =  ResolvedBox  | ResolvedPanel  | ResolvedSphere  | ResolvedFloor  | ResolvedText;
-export type DynamicElement  =  DynamicBox   | DynamicPanel   | DynamicSphere   | DynamicFloor   | DynamicText;
+export type DynamicElement = DynamicBox | DynamicPanel | DynamicSphere | DynamicFloor | DynamicText;
+export type ResolvedElement = ResolvedBox | ResolvedPanel | ResolvedSphere | ResolvedFloor | ResolvedText;
 
-export interface Renderable {
+/**
+ * WORLD INTERFACES
+ */
+export interface Renderable<TBundle extends GraphicsBundle = GraphicsBundle> {
     readonly id: string;
-    render(gp: GraphicProcessor, state: SceneState): void;
+    render(gp: GraphicProcessor<TBundle>, state: SceneState): void;
 }
 
-export interface ElementAssets<TTexture = any, TFont = any> {
-    texture?: TextureAsset<TTexture>
-    font?: FontAsset<TFont>
-}
-
-export interface RenderableElement<TTexture = any, TFont = any> extends Renderable {
+export interface RenderableElement<TBundle extends GraphicsBundle = GraphicsBundle> extends Renderable<TBundle> {
     readonly blueprint: BlueprintElement;
-    assets: ElementAssets<TTexture, TFont>;
+    readonly dynamic: DynamicElement; // Renamed from props to reflect execution plan
+    assets: ElementAssets<TBundle>;
+}
+
+export function createBlueprint<T>(blueprint: MapToBlueprint<T>): MapToBlueprint<T> {
+    return blueprint;
 }

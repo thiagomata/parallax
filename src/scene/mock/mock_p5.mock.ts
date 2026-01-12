@@ -21,6 +21,9 @@ export function createMockP5() {
         strokeWidth: vi.fn(),
         noStroke: vi.fn(),
         stroke: vi.fn(),
+        noTint: vi.fn(),
+        noFill: vi.fn(),
+        line: vi.fn(),
         texture: vi.fn(),
         textureMode: vi.fn(),
         textFont: vi.fn(),
@@ -29,6 +32,7 @@ export function createMockP5() {
         text: vi.fn(),
         tint: vi.fn(),
         WEBGL: 'webgl',
+        NORMAL: 'normal',
         setup: undefined as any,
         draw: undefined as any,
     };

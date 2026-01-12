@@ -24,6 +24,7 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
+    "native": "^0.2.0",
     "p5": "^2.1.2",
     "prismjs": "^1.30.0",
     "sucrase": "^3.35.1"
