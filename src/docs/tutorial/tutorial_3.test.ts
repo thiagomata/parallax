@@ -30,7 +30,7 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
             world.getElement( 'orbit-box'),
             world.getSceneState(),
         );
-        expect(element0?.props.position).toMatchObject({
+        expect(element0?.blueprint.position).toMatchObject({
             x: 40,
             y: 0,
             z: 0
@@ -41,7 +41,7 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
         mockP5.draw();
 
         const element = resolve(
-            world.getElement('orbit-box')?.props,
+            world.getElement('orbit-box')?.blueprint,
             world.getSceneState(),
         );
         if (!element) throw new Error("orbit-box not found");

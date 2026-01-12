@@ -31,7 +31,7 @@ describe('Tutorial 5 Execution Test', () => {
 
         // Resolve the props to check the computed rotation
         // We cast to BoxProps to respect the signature and access .rotate
-        const props25 = resolve(box?.props, world.getSceneState()) as ResolvedBoxProps;
+        const props25 = resolve(box?.blueprint, world.getSceneState()) as ResolvedBoxProps;
 
         // Math: progress(0.25) * PI * 2 = PI / 2 (approx 1.57)
         expect(props25.rotate?.y).toBeCloseTo(Math.PI * 0.5, 5);

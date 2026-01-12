@@ -74,7 +74,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
             const element = world.getElement('box');
             if(!element) throw new Error("Tutorial box missing");
 
-            const resolved = resolve(element.props, world.getSceneState()) as ResolvedBoxProps;
+            const resolved = resolve(element.blueprint, world.getSceneState()) as ResolvedBoxProps;
             expect(resolved.size).toBe(100);
             expect(resolved.fillColor?.blue).toBe(255);
 

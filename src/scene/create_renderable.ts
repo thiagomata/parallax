@@ -1,138 +1,100 @@
 import {
     DEFAULT_CAMERA_FAR,
     ELEMENT_TYPES,
+    SPEC_KINDS,
     type GraphicProcessor,
-    type MapToSpec,
-    type RawElementsProps,
     type RenderableElement,
-    type ResolvedBoxProps,
-    type ResolvedPanelProps,
-    type ResolvedTextProps,
-    type SceneElementProps,
+    type ResolvedElement,
+    type BlueprintElement,
     type SceneState,
-    type SpecProperty,
+    type DynamicProperty,
+    type MapToDynamic,
 } from "./types.ts";
 
-const STATIC_KEYS: Set<string> = new Set(['type', 'texture', 'font']);
-
 /**
- * INTERNAL (NOT EXPORTED)
- * This is the "loose" recursive engine. It doesn't know about Box/Panel/Text.
- * It just knows how to turn any object tree into a Spec tree.
+ * Confirmed Recursive Sieve:
+ * Unwraps DynamicProperty containers and traverses nested objects.
  */
-function convertToSpecTree<T extends object>(props: T): MapToSpec<T> {
-    const spec = {} as any;
-
-    for (const key in props) {
-        const value = props[key];
-
-        /* Static Key Pass-through */
-        if (STATIC_KEYS.has(key)) {
-            spec[key] = value;
-            continue;
-        }
-
-        /* Handle Null/Undefined */
-        if (value === null || value === undefined) {
-            spec[key] = value;
-            continue;
-        }
-
-        /* Is it a function? Wrap as Atomic Spec */
-        if (typeof value === "function") {
-            spec[key] = { kind: "computed", compute: value };
-            continue;
-        }
-
-        /* Is it a plain object? Recurse */
-        if (typeof value === "object" && !Array.isArray(value)) {
-            // Recursive call to the loose internal function
-            spec[key] = convertToSpecTree(value as object);
-            continue;
-        }
-
-        /* Default: Wrap as Static Leaf */
-        spec[key] = { kind: "static", value };
-    }
-
-    return spec as MapToSpec<T>;
-}
-
-/**
- * PUBLIC EXPORT
- * These overloads are the ONLY way to use this module from the outside.
- * They enforce that the TOP LEVEL must be a valid scene element.
- */
-export function toProps<T extends RawElementsProps>(props: T): MapToSpec<T> {
-    return convertToSpecTree(props);
-}
-
-/**
- * Recursive type to unwrap the tree in resolved objects
- */
-type Resolved<T> = T extends SpecProperty<infer U>
-    ? U
+export type Unwrapped<T> = T extends DynamicProperty<infer U>
+    ? Unwrapped<U>
     : T extends object
-        ? { [K in keyof T]: Resolved<T[K]> }
+        ? { [K in keyof T]: Unwrapped<T[K]> }
         : T;
 
-export function resolve<T>(src: T, state: SceneState): Resolved<T> {
-    /* Handle Specs (Leaf) */
-    if (src && typeof src === 'object' && 'kind' in src) {
-        const spec = src as unknown as SpecProperty<any>;
-        return spec.kind === 'static' ? spec.value : spec.compute(state);
-    }
-
-    /* Handle Branches (Recursion) */
-    if (src && typeof src === 'object' && !Array.isArray(src)) {
-        const result = {} as any;
-        for (const key in src) {
-            result[key] = resolve(src[key], state);
+/**
+ * Type-safe resolution using the Unwrapped mapping.
+ * Guided by the type system to maintain identity from Dynamic to Resolved.
+ */
+export function resolve<T>(src: T, state: SceneState): Unwrapped<T> {
+    // 1. Handle DynamicProperty (The Container)
+    if (isDynamicProperty(src)) {
+        switch (src.kind) {
+            case SPEC_KINDS.STATIC:
+                return src.value as Unwrapped<T>;
+            case SPEC_KINDS.BRANCH:
+                return resolve(src.value, state) as Unwrapped<T>;
+            case SPEC_KINDS.COMPUTED:
+                return resolve(src.compute(state), state) as Unwrapped<T>;
         }
-        return result;
     }
 
-    /*  Handle Pass-through */
-    return src as Resolved<T>;
+    // 2. Handle Objects (The Branch)
+    if (src && typeof src === 'object' && !Array.isArray(src)) {
+        const result = {} as { [K in keyof T]: Unwrapped<T[K]> };
+
+        for (const key in src) {
+            if (Object.prototype.hasOwnProperty.call(src, key)) {
+                // Recursive call maintains the specific key's type safety
+                result[key] = resolve(src[key], state);
+            }
+        }
+        return result as Unwrapped<T>;
+    }
+
+    // 3. Leaf / Primitive identity
+    return src as Unwrapped<T>;
 }
 
 export const createRenderable = <TTexture, TFont>(
     id: string,
-    props: SceneElementProps,
+    blueprint: BlueprintElement, // Plain blueprint, no magic types
 ): RenderableElement<TTexture, TFont> => {
+
+    // The dynamic tree mirrors the Blueprint exactly
+    const dynamicTree = toDynamic(blueprint) as MapToDynamic<ResolvedElement>;
 
     return {
         id,
-        props,
-        assets: {},
+        blueprint,
+        assets
 
         render(gp: GraphicProcessor<TTexture, TFont>, state: SceneState) {
-
-            const position = resolve(props.position, state)!;
+            // 1. Resolve the dynamic tree into solid data
+            // (e.g., DynamicProperty<TextureRef> becomes TextureRef)
+            const resolved = resolve(dynamicTree, state);
 
             gp.push();
-            gp.translate(position);
+            gp.translate(resolved.position);
 
-            const distance = gp.dist(position, state.camera.position);
-            if (distance > (state.settings.camera.far ?? DEFAULT_CAMERA_FAR )) {
+            // 2. Frustum Culling
+            const distance = gp.dist(resolved.position, state.camera.position);
+            if (distance > (state.settings.camera.far ?? DEFAULT_CAMERA_FAR)) {
                 gp.pop();
                 return;
             }
 
-            switch (props.type) {
-                case ELEMENT_TYPES.PANEL:
-                    const ResolvedPanelProp = resolve(props, state) as ResolvedPanelProps;
-                    gp.drawPanel(ResolvedPanelProp, this.assets, state);
-                    break;
-
+            // 3. Execution
+            // The GraphicProcessor implementation of drawBox will handle:
+            // const instance = this.assetLoader.getTexture(resolved.texture);
+            switch (resolved.type) {
                 case ELEMENT_TYPES.BOX:
-                    const ResolvedBoxProp = resolve(props, state) as ResolvedBoxProps;
-                    gp.drawBox(ResolvedBoxProp, this.assets, state);
+                    gp.drawBox(resolved, state);
                     break;
-
+                case ELEMENT_TYPES.PANEL:
+                    gp.drawPanel(resolved, state);
+                    break;
                 case ELEMENT_TYPES.TEXT:
-                    const ResolvedTextProp = resolve(props, state) as ResolvedTextProps;
-                    gp.drawText(ResolvedTextProp, this.assets, state);
+                    gp.drawText(resolved, state);
                     break;
             }
 
@@ -140,3 +102,74 @@ export const createRenderable = <TTexture, TFont>(
         }
     };
 };
+
+/**
+ * Internal Type Guard for DynamicProperty
+ */
+function isDynamicProperty<T>(obj: unknown): obj is DynamicProperty<T> {
+    return (
+        typeof obj === 'object' &&
+        obj !== null &&
+        'kind' in obj &&
+        Object.values(SPEC_KINDS).includes((obj as any).kind)
+    );
+}
+
+/**
+ * Transforms a Blueprint tree into a Dynamic tree.
+ * Guided by MapToDynamic<T> to ensure the structure mirrors the Resolved type.
+ */
+export function toDynamic<T>(blueprint: T): MapToDynamic<T> {
+    // 1. If the blueprint is a function, it's a Computed leaf at the root
+    if (typeof blueprint === "function") {
+        return {
+            kind: SPEC_KINDS.COMPUTED,
+            compute: blueprint as (state: SceneState) => any,
+        } as unknown as MapToDynamic<T>;
+    }
+
+    // 2. If it's an object (but not null/array), we traverse its branches
+    if (blueprint && typeof blueprint === "object" && !Array.isArray(blueprint)) {
+        const dynamic = {} as Record<keyof T, unknown>;
+
+        for (const key in blueprint) {
+            if (!Object.prototype.hasOwnProperty.call(blueprint, key)) continue;
+
+            const value = blueprint[key];
+
+            // Reserved identity keys (like 'type') are passed through as-is
+            if (key === "type" || key === "id") {
+                dynamic[key] = value;
+                continue;
+            }
+
+            // Recursive Wrapping Logic
+            if (typeof value === "function") {
+                dynamic[key] = {
+                    kind: SPEC_KINDS.COMPUTED,
+                    compute: value,
+                };
+            } else if (value && typeof value === "object" && !Array.isArray(value)) {
+                // We treat nested objects as Branches to allow deep resolution
+                dynamic[key] = {
+                    kind: SPEC_KINDS.BRANCH,
+                    value: toDynamic(value),
+                };
+            } else {
+                // Primitives or solid Refs are Static leaves
+                dynamic[key] = {
+                    kind: SPEC_KINDS.STATIC,
+                    value,
+                };
+            }
+        }
+
+        return dynamic as MapToDynamic<T>;
+    }
+
+    // 3. Fallback for raw primitives passed as blueprints
+    return {
+        kind: SPEC_KINDS.STATIC,
+        value: blueprint,
+    } as unknown as MapToDynamic<T>;
+}

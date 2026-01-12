@@ -32,6 +32,9 @@ import step4Source from './tutorial_4.ts?raw';
 import {tutorial_5} from './tutorial_5.ts';
 import step5Source from './tutorial_5.ts?raw';
 
+import {tutorial_6} from "./tutorial_6.ts";
+import step6Source from './tutorial_6.ts?raw';
+
 /**
  * [2026-01-07] Respecting signatures:
  * We expose the engine to the window so the dynamic code can resolve types.
@@ -178,3 +181,4 @@ renderStep('tutorial-2', '2. Animation', tutorial_2, step2Source);
 renderStep('tutorial-3', '3. Movement', tutorial_3, step3Source);
 renderStep('tutorial-4', '4. Camera', tutorial_4, step4Source);
 renderStep('tutorial-5', '5. Stick and Nudge', tutorial_5, step5Source);
+renderStep('tutorial-6', '5. Shapes', tutorial_6, step6Source);

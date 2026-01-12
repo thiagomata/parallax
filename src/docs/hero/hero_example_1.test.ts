@@ -24,7 +24,7 @@ describe('Hero Demo Integration: World Animation', () => {
         mockP5.draw();
 
         const state0 = world.getSceneState();
-        const midBox0 = resolve(world.getElement('mid')?.props, state0) as unknown as ResolvedBoxProps;
+        const midBox0 = resolve(world.getElement('mid')?.blueprint, state0) as unknown as ResolvedBoxProps;
 
         // Size logic: cos(2 * PI * 0) * 50 + 100 = 1 * 50 + 100 = 150
         expect(midBox0?.size).toBe(150);
@@ -38,7 +38,7 @@ describe('Hero Demo Integration: World Animation', () => {
         mockP5.draw();
 
         const state25 = world.getSceneState();
-        const midBox25 = resolve(world.getElement('mid')?.props, state25) as unknown as ResolvedBoxProps;
+        const midBox25 = resolve(world.getElement('mid')?.blueprint, state25) as unknown as ResolvedBoxProps;
 
         // Size logic: cos(PI/2) * 50 + 100 = 0 * 50 + 100 = 100
         expect(midBox25.size).toBeCloseTo(100, 5);
@@ -54,7 +54,7 @@ describe('Hero Demo Integration: World Animation', () => {
         mockP5.draw();
 
         const state50 = world.getSceneState();
-        const midBox50 = resolve(world.getElement('mid')?.props, state50) as unknown as ResolvedBoxProps;
+        const midBox50 = resolve(world.getElement('mid')?.blueprint, state50) as unknown as ResolvedBoxProps;
 
         // Size logic: cos(PI) * 50 + 100 = -1 * 50 + 100 = 50
         expect(midBox50.size).toBeCloseTo(50, 5);
@@ -77,12 +77,12 @@ describe('Hero Demo Integration: World Animation', () => {
 
         const backBox = resolve(world.getElement('back'), world.getSceneState());
 
-        expect(backBox?.props.position).toMatchObject({
+        expect(backBox?.blueprint.position).toMatchObject({
             x: -100,
             y: 0,
             z: -200
         });
-        expect(backBox?.props.fillColor).toMatchObject({ green: 255 });
+        expect(backBox?.blueprint.fillColor).toMatchObject({ green: 255 });
     });
 
     it('should verify p5 rendering side effects', async () => {

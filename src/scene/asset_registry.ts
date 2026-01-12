@@ -1,7 +1,7 @@
 import {
     ASSET_STATUS,
     type FontAsset,
-    type SceneElementProps,
+    type BlueprintElement,
     type TextProps,
     type TextureAsset,
     type Vector3
@@ -9,7 +9,7 @@ import {
 
 export interface ShapeSpec<TTexture> {
     readonly id: string;
-    readonly props: SceneElementProps;
+    readonly props: BlueprintElement;
     asset: TextureAsset<TTexture>;
 }
 
@@ -36,7 +36,7 @@ export interface Instance {
  * Its job is to manage the 'Blueprints' (Specs) of what can exist in the scene.
  */
 export interface Registry<TTexture = any, TFont = any> {
-    defineShape(id: string, props: SceneElementProps): ShapeSpec<TTexture>;
+    defineShape(id: string, props: BlueprintElement): ShapeSpec<TTexture>;
 
     defineText(id: string, props: TextProps): TextSpec<TFont>;
 
@@ -54,7 +54,7 @@ export class AssetRegistry<TTexture, TFont> implements Registry {
     constructor() {
     }
 
-    defineShape(id: string, props: SceneElementProps): ShapeSpec<TTexture> {
+    defineShape(id: string, props: BlueprintElement): ShapeSpec<TTexture> {
         if (this.shapes.has(id)) return this.shapes.get(id)!;
 
         let initialAsset: TextureAsset;

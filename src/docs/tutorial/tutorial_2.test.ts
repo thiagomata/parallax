@@ -26,7 +26,7 @@ describe('Tutorial 2: Progression Integration', () => {
         mockP5.draw(); // Calls world.step internally
 
         const element0 = world.getElement('pulsing-box');
-        const props0 = resolve(element0?.props, world.getSceneState()) as unknown as ResolvedBoxProps;
+        const props0 = resolve(element0?.blueprint, world.getSceneState()) as unknown as ResolvedBoxProps;
 
         expect(props0.size).toBe(100);
         expect(props0.fillColor?.blue).toBe(255);
@@ -35,7 +35,7 @@ describe('Tutorial 2: Progression Integration', () => {
         mockP5.millis.mockReturnValue(1000);
         mockP5.draw();
 
-        const props25 = resolve(element0?.props, world.getSceneState()) as unknown as ResolvedBoxProps;
+        const props25 = resolve(element0?.blueprint, world.getSceneState()) as unknown as ResolvedBoxProps;
 
         expect(props25.size).toBe(150);
         expect(props25.rotate?.y).toBeCloseTo(Math.PI * 0.5, 5);

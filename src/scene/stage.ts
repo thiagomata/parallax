@@ -18,11 +18,11 @@ export class Stage {
 
         // We process all "orders" in the storage
         await Promise.all(elements.map(async (el) => {
-            if (el.props.texture && !el.assets.texture) {
-                el.assets.texture = await loader.hydrateTexture(el.props.texture);
+            if (el.blueprint.texture && !el.assets.texture) {
+                el.assets.texture = await loader.hydrateTexture(el.blueprint.texture);
             }
-            if (el.props.font && !el.assets.font) {
-                el.assets.font = await loader.hydrateFont(el.props.font);
+            if (el.blueprint.font && !el.assets.font) {
+                el.assets.font = await loader.hydrateFont(el.blueprint.font);
             }
         }));
     }

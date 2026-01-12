@@ -163,6 +163,10 @@ export type TextureAsset<TTexture = unknown> =
     | { readonly status: typeof ASSET_STATUS.ERROR; readonly value: null; readonly error: string };
 
 
+export function createBlueprint<T>(blueprint: MapToBlueprint<T>): MapToBlueprint<T> {
+    return blueprint;
+}
+
 export interface FontRef {
     readonly name: string;
     readonly path: string;
@@ -218,19 +222,19 @@ export interface GraphicProcessor<TTexture = any, TFont = any> {
     noStroke(): void;
 
     drawText(
-        textProp: ResolvedTextProps,
+        textProp: ResolvedText,
         assets: ElementAssets<TTexture, TFont>,
         sceneState: SceneState): void;
 
     drawBox(
-        boxProps: ResolvedBoxProps,
+        boxProps: ResolvedBox,
         assets: ElementAssets<TTexture, TFont>,
         sceneState: SceneState): void;
 
     plane(width: number, height: number): void;
 
     drawPanel(
-        panelProps: ResolvedPanelProps,
+        panelProps: ResolvedPanel,
         assets: ElementAssets<TTexture, TFont>,
         sceneState: SceneState): void;
 
@@ -266,70 +270,60 @@ export const ELEMENT_TYPES = {
 
 export type DynamicValueFromSceneState<T> = T | ((state: SceneState) => T);
 
-export type SpecProperty<T> =
-    | { kind: 'static'; value: T }
-    | { kind: 'computed'; compute: (state: SceneState) => T };
+export const SPEC_KINDS = {
+    STATIC: 'static',
+    COMPUTED: 'computed',
+    BRANCH: 'branch'
+} as const;
 
-export type StaticKeys = 'type' | 'texture' | 'font';
+export type SpecKind = (typeof SPEC_KINDS)[keyof typeof SPEC_KINDS];
 
-export type SpecCompute<R> = (state: SceneState) => R;
+/**
+ * PHASE B: THE INTERNAL ENGINE WRAPPER
+ * The "Dynamic" state of a property, waiting for SceneState.
+ */
+export type DynamicProperty<T> =
+    | { kind: typeof SPEC_KINDS.STATIC; value: T }
+    | { kind: typeof SPEC_KINDS.COMPUTED; compute: (state: SceneState) => T | DynamicProperty<T> | DynamicTree<T> }
+    | { kind: typeof SPEC_KINDS.BRANCH; value: DynamicTree<T> };
 
-export type FlexibleSpec<T> = T extends SpecCompute<infer R>
-    ? SpecProperty<R>
+export type DynamicTree<T> = {
+    [K in keyof T]?: DynamicProperty<T[K]>;
+};
+
+/**
+ * PHASE A: THE USER INPUT
+ * The "Blueprint" version that allows for raw values, functions, or objects.
+ */
+export type FlexibleSpec<T> =
+    | T
+    | ((state: SceneState) => T | DynamicProperty<T> | DynamicTree<T>)
+    | (T extends object ? BlueprintTree<T> : never);
+
+export type BlueprintTree<T> = {
+    [K in keyof T]?: FlexibleSpec<T[K]>;
+};
+
+/**
+ * MAPPING UTILITIES
+ */
+type StaticKeys = 'type' | 'texture' | 'font';
+
+export type MapToBlueprint<T> = {
+    -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K]>;
+};
+
+export type MapToDynamic<T> = {
+    [K in keyof T]: K extends StaticKeys ? T[K] : DynamicProperty<T[K]>;
+};
+
+export type Unwrapped<T> = T extends DynamicProperty<infer U>
+    ? Unwrapped<U> // 1. It is a DynamicProperty? Unwrap the inner type U.
     : T extends object
-        ? (DeepSpec<T> | SpecProperty<T>)
-        : T extends null | undefined
-            ? T
-            : SpecProperty<T>;
+        ? { [K in keyof T]: Unwrapped<T[K]> } // 2. It is an Object? Loop through keys and repeat.
+        : T; // 3. It's a primitive? Return as-is.
 
-type DeepSpec<T> = {
-    [K in keyof T]: FlexibleSpec<T[K]>;
-};
-
-export type MapToSpec<T> = {
-    [K in keyof T]: K extends StaticKeys
-        ? T[K]
-        : FlexibleSpec<T[K]>;
-};
-
-/**
- * TO_RAW: THE DYNAMIC PROPERTY BRIDGE
- * * This utility transforms a "Resolved" interface (values only) into a "Raw"
- * interface (values OR functions). It enables three levels of input:
- * * 1. ATOMIC VALUE:     size: 10
- * 2. ATOMIC FUNCTION:  position: (s) => ({ x: s.progress, y: 0, z: 0 })
- * 3. GRANULAR OBJECT:  position: { x: (s) => s.progress, y: 0, z: 0 }
- */
-export type ToRaw<T> = {
-    // 1. Remove 'readonly' so literals can be defined easily.
-    -readonly [K in keyof T]: K extends StaticKeys
-        // 2. EXCEPTION: Static keys (type, texture, font) must remain values.
-        // We cannot allow (s) => 'box' because the Discriminated Union needs
-        // the literal string to identify the element type.
-        ? T[K]
-        : T[K] extends (object | undefined)
-            // 3. OBJECT BRANCH: For objects like Vector3 or ColorRGBA.
-            // We allow the whole object, a function that returns the object,
-            // OR a "Granular" version where individual properties are functions.
-            ? ((state: SceneState) => T[K]) | ToRawObject<NonNullable<T[K]>> | T[K]
-            // 4. PRIMITIVE BRANCH: For numbers, strings, booleans.
-            // Simple wrap: value OR function returning the value.
-            : DynamicValueFromSceneState<T[K]>;
-};
-
-/**
- * TO_RAW_OBJECT: NESTED PROPERTY WRAPPER
- * * Takes an object (like Vector3) and makes every property within it dynamic.
- * We use NonNullable in the parent to ensure optional objects (like fillColor)
- * still have their internal properties validated correctly.
- */
-type ToRawObject<T> = {
-    // +? handles cases where the base interface properties are optional.
-    // This allows { red: 255 } without complaining about missing 'alpha'.
-    -readonly [K in keyof T]+?: DynamicValueFromSceneState<T[K]>;
-};
-
-export interface ResolvedBaseVisualProps {
+export interface ResolvedBaseVisual {
     readonly position: Vector3;
     readonly alpha?: number;
     readonly fillColor?: ColorRGBA;
@@ -340,72 +334,60 @@ export interface ResolvedBaseVisualProps {
     readonly font?: FontRef;
 }
 
-export type BaseVisualProps = MapToSpec<ResolvedBaseVisualProps>
+export type BlueprintBaseVisual = MapToBlueprint<ResolvedBaseVisual>;
+export type DynamicBaseVisual = MapToDynamic<ResolvedBaseVisual>
 
-export interface ResolvedBaseVisualProps {
-    readonly id?: string;
-    readonly position: Vector3;
-    readonly alpha?: number;
-    readonly fillColor?: ColorRGBA;
-    readonly strokeColor?: ColorRGBA;
-    readonly strokeWidth?: number;
-    readonly rotate?: Vector3;
-    readonly texture?: TextureRef;
-    readonly font?: FontRef;
-}
-
-export interface ResolvedBoxProps extends ResolvedBaseVisualProps {
+export interface ResolvedBox extends ResolvedBaseVisual {
     readonly type: typeof ELEMENT_TYPES.BOX;
     readonly size: number;
 }
 
-export type BoxProps = MapToSpec<ResolvedBoxProps>
-export type RawBoxProps = ToRaw<ResolvedBoxProps>;
+export type BlueprintBox = MapToBlueprint<ResolvedBox>;
+export type DynamicBox = MapToDynamic<ResolvedBox>;
 
-export interface ResolvedPanelProps extends ResolvedBaseVisualProps {
+export interface ResolvedPanel extends ResolvedBaseVisual {
     readonly type: typeof ELEMENT_TYPES.PANEL;
     readonly width: number;
     readonly height: number;
 }
 
-export type PanelProps = MapToSpec<ResolvedPanelProps>
-export type RawPanelProps  = ToRaw<ResolvedPanelProps>;
+export type BlueprintPanel = MapToBlueprint<ResolvedPanel>;
+export type DynamicPanel   = MapToDynamic<ResolvedPanel>;
 
-export interface ResolvedSphereProps extends ResolvedBaseVisualProps {
+export interface ResolvedSphere extends ResolvedBaseVisual {
     readonly type: typeof ELEMENT_TYPES.SPHERE;
     readonly radius: number;
     readonly detail?: number;
 }
 
-export type SphereProps = MapToSpec<ResolvedSphereProps>
-export type RawSphereProps  = ToRaw<ResolvedSphereProps>;
+export type BlueprintSphere = MapToBlueprint<ResolvedSphere>;
+export type DynamicSphere   = MapToDynamic<ResolvedSphere>;
 
-export interface ResolvedFloorProps extends ResolvedBaseVisualProps {
+export interface ResolvedFloor extends ResolvedBaseVisual {
     readonly type: typeof ELEMENT_TYPES.FLOOR;
     readonly width: number;
     readonly depth: number;
 }
 
-export type FloorProps = MapToSpec<ResolvedFloorProps>
-export type RawFloorProps   = ToRaw<ResolvedFloorProps>;
+export type BlueprintFloor = MapToBlueprint<ResolvedFloor>;
+export type DynamicFloor   = MapToDynamic<ResolvedFloor>;
 
-export interface ResolvedTextProps extends ResolvedBaseVisualProps {
+export interface ResolvedText extends ResolvedBaseVisual {
     readonly type: typeof ELEMENT_TYPES.TEXT;
     readonly text: string;
     readonly size: number;
 }
 
-export type TextProps = MapToSpec<ResolvedTextProps>
-export type RawTextProps   = ToRaw<ResolvedTextProps>;
+export type BlueprintText = MapToBlueprint<ResolvedText>;
+export type DynamicText   = MapToDynamic<ResolvedText>;
 
 
-export type SceneElementProps = BoxProps | PanelProps | SphereProps | FloorProps | TextProps;
-export type ResolvedSceneElementProps = ResolvedBoxProps | ResolvedPanelProps | ResolvedSphereProps | ResolvedFloorProps | ResolvedTextProps;
-export type RawElementsProps = RawBoxProps | RawPanelProps | RawSphereProps | RawFloorProps | RawTextProps;
+export type BlueprintElement = BlueprintBox | BlueprintPanel | BlueprintSphere | BlueprintFloor | BlueprintText;
+export type ResolvedElement =  ResolvedBox  | ResolvedPanel  | ResolvedSphere  | ResolvedFloor  | ResolvedText;
+export type DynamicElement  =  DynamicBox   | DynamicPanel   | DynamicSphere   | DynamicFloor   | DynamicText;
 
 export interface Renderable {
     readonly id: string;
-
     render(gp: GraphicProcessor, state: SceneState): void;
 }
 
@@ -415,6 +397,6 @@ export interface ElementAssets<TTexture = any, TFont = any> {
 }
 
 export interface RenderableElement<TTexture = any, TFont = any> extends Renderable {
-    readonly props: SceneElementProps;
+    readonly blueprint: BlueprintElement;
     assets: ElementAssets<TTexture, TFont>;
 }

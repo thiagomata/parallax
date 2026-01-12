@@ -4,7 +4,7 @@ import {
     type FontAsset,
     type GraphicProcessor,
     type RenderableElement,
-    type SceneElementProps,
+    type BlueprintElement,
     type SceneState,
     type TextureAsset
 } from "./types.ts";
@@ -36,7 +36,7 @@ export class World {
      * STEP 1: Add a "Spec" to the world.
      * This creates the object, but it is not "Ready" yet.
      */
-    public addElement(id: string, props: SceneElementProps): void {
+    public addElement(id: string, props: BlueprintElement): void {
         const element = createRenderable(id, props);
         this.registry.set(id, element);
     }
@@ -59,7 +59,7 @@ export class World {
         const tasksLoadTextures = elements.map(async (el) => {
             if (el.assets.texture) return;
 
-            const textureRef = el.props.texture;
+            const textureRef = el.blueprint.texture;
             if (textureRef) {
                 // If this path isn't being loaded yet, start it
                 if (!this.textureCache.has(textureRef.path)) {
@@ -80,7 +80,7 @@ export class World {
         const tasksLoadFonts = elements.map(async (el) => {
             if (el.assets.font) return;
 
-            const fontRef = el.props.font;
+            const fontRef = el.blueprint.font;
             if (fontRef) {
                 // If this path isn't being loaded yet, start it
                 if (!this.fontCache.has(fontRef.path)) {
@@ -122,7 +122,7 @@ export class World {
             .map(element => ({
                 element,
                 // Calculate distance from camera to the element's position
-                distance: graphicProcessor.dist(state.camera.position, resolve(element.props.position, state)!)
+                distance: graphicProcessor.dist(state.camera.position, resolve(element.blueprint.position, state)!)
             }))
             // Sort Descending: Furthest distance first (Painter's Algorithm)
             .sort((a, b) => b.distance - a.distance);

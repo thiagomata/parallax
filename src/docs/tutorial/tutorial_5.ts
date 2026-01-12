@@ -31,7 +31,7 @@ export const tutorial_5 = (p: p5): World => {
             size: 150,
             position: { x: 0, y: 0, z: -100 },
             strokeWidth: 0,
-            fillColor: { red: 0, green: 0, blue: 200 },
+            fillColor: { red: 0, green: 0, blue: (_state: SceneState) => 200 },
             rotate: {
                 x: 0,
                 y: (state: SceneState) => Math.PI * 2 * state.playback.progress,
