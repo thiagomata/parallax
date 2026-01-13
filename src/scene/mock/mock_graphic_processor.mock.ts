@@ -37,6 +37,9 @@ export const createMockGraphicProcessor = <TBundle extends GraphicsBundle>(_mock
         drawText: vi.fn(),
         drawCrosshair: vi.fn(),
         drawHUDText: vi.fn(),
+        drawPlane: vi.fn(),
+        drawSphere: vi.fn(),
+        drawFloor: vi.fn(),
         millis: vi.fn(),
         deltaTime: vi.fn(),
         frameCount: vi.fn()

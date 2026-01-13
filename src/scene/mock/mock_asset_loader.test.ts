@@ -6,7 +6,7 @@ describe('ChaosLoader (Standalone)', () => {
     const loader = new ChaosLoader();
 
     it('should successfully "load" a valid texture path', async () => {
-        const ref = {path: 'success.ttf', width: 100, height: 100};
+        const ref = {path: 'success.ttf', name: 'Arial'};
         const result = await loader.hydrateFont(ref);
 
         expect(result.status).toBe(ASSET_STATUS.READY);
@@ -35,7 +35,7 @@ describe('ChaosLoader (Standalone)', () => {
     });
 
     it('should return a structured error for fail.ttf', async () => {
-        const ref = {path: 'fail.ttf', width: 100, height: 100};
+        const ref = {path: 'fail.ttf', name: 'Arial'};
         const result = await loader.hydrateFont(ref);
 
         expect(result.status).toBe(ASSET_STATUS.ERROR);
