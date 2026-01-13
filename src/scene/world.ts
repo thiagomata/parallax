@@ -1,5 +1,13 @@
 import type {SceneManager} from "./scene_manager.ts";
-import type {AssetLoader, GraphicProcessor, GraphicsBundle, SceneState} from "./types.ts";
+import type {
+    AssetLoader,
+    BlueprintBox,
+    BlueprintFloor,
+    BlueprintText,
+    GraphicProcessor,
+    GraphicsBundle,
+    SceneState
+} from "./types.ts";
 import {Stage} from "./stage.ts";
 
 export class World<TBundle extends GraphicsBundle> {
@@ -11,6 +19,27 @@ export class World<TBundle extends GraphicsBundle> {
         this.sceneManager = sceneManager;
         this.sceneState = sceneManager.initialState();
         this.stage = stage ?? new Stage<TBundle>(loader);
+    }
+
+    /**
+     * Registers a box using the specific Box Blueprint interface.
+     */
+    public addBox(id: string, blueprint: BlueprintBox): void {
+        this.stage.add(id, blueprint);
+    }
+
+    /**
+     * Registers text using the specific Text Blueprint interface.
+     */
+    public addText(id: string, blueprint: BlueprintText): void {
+        this.stage.add(id, blueprint);
+    }
+
+    /**
+     * Registers a floor using the specific Floor Blueprint interface.
+     */
+    public addFloor(id: string, blueprint: BlueprintFloor): void {
+        this.stage.add(id, blueprint);
     }
 
     public step(gp: GraphicProcessor<TBundle>): void {

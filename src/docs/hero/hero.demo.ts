@@ -3,7 +3,6 @@ import {SceneManager} from "../../scene/scene_manager.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
-import {toProps} from "../../scene/create_renderable.ts";
 
 // libs
 import p5 from 'p5';
@@ -34,7 +33,6 @@ Object.assign(window, {
     P5GraphicProcessor,
     ELEMENT_TYPES,
     DEFAULT_SETTINGS,
-    toProps,
     p5,
     OrbitModifier,
     CenterFocusModifier

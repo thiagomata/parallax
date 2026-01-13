@@ -17,35 +17,37 @@ new p5((p: p5) => {
         const loader = new P5AssetLoader(p);
         gp = new P5GraphicProcessor(p, loader);
 
-        // The Registry is our "Real Asset Manager"
         registry = new AssetRegistry<P5Bundler>(loader);
 
-        // PHASE 1: REGISTRATION (Real thing, starts loading the jpg)
         registry.register('hero', {
             type: ELEMENT_TYPES.BOX,
             position: { x: 0, y: 0, z: 0 },
             size: 100,
             fillColor: {red: 200, green:0, blue: 25},
-            // texture: { path: 'textures/container.jpg', width: 512, height: 512 }
+            strokeColor: {red: 25, green: 0, blue: 25},
+            rotate: (s) => ({
+                x: s.playback.now * 0.001,
+                y: s.playback.now * 0.001,
+                z: 0
+            }),
+            texture: { path: '/parallax/img/stars.jpg', width: 512, height: 512 }
         } as BlueprintBox);
 
-        // Expose to window for manual inspection
-        Object.assign(window, { gp, registry, p });
+        Object.assign(window, { gp, registry, p, p5 });
     };
 
     p.draw = () => {
         p.background(15);
 
-        let state = createMockState();
+        let state = createMockState(
+            { x: 0, y: 0, z: 500},  // origin
+            { x: 0, y: 0, z: 0 }    // LookAt (The origin)
+        );
 
         gp.setCamera(state.camera.position, state.camera.lookAt);
 
-        // PHASE 3: RENDERING
-        // We get the REAL element (with its REAL assets) from the registry
         const hero = registry.get('hero');
         if (hero) {
-            // This call now uses real assets (either LOADING or READY)
-            // No mocks. No as any.
             hero.render(gp, state);
         }
     };
