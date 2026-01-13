@@ -5,53 +5,50 @@ sequenceDiagram
     participant W as World
     participant L as AssetLoader
     participant SM as SceneManager
+    participant S as Stage
     participant R as Resolver
     participant GP as GraphicProcessor
 
-    Note over U, W: Phase 1: Registration (One-time)
-    U->>W: addElement(id, blueprint)
-    W->>W: toProps(blueprint)
-    Note right of W: Wraps raw functions/values into<br/>persistent DynamicProperty tree.
+    Note over U,W: Phase 1: Registration (One-time)
+    U->>W: addSphere/addBox(id, blueprint)
+    W->>W: Create RenderableElement
+    Note right of W: Blueprint contains static values<br/>or (state) => T functions.
     W-->>W: Store in Registry
 
-    Note over W, L: Phase 2: Hydration (One-time / Async)
+    Note over W,L: Phase 2: Hydration (One-time / Async)
     U->>W: hydrate(loader)
     activate W
-    W->>L: hydrateTexture(textureRef)
-    W->>L: hydrateFont(fontRef)
-    L-->>W: Promise<TextureAsset / FontAsset>
+    W->>L: loadAsset(path)
+    L-->>W: Promise<P5Bundler>
     deactivate W
-    Note right of W: Assets are now locked in the Registry.<br/>No more loading occurs after this.
+    Note right of W: element.assets are populated.<br/>Status becomes ASSET_STATUS.READY.
 
-    Note over W, GP: Phase 3: The Frame Loop (60fps)
+    Note over W,GP: Phase 3: The Frame Loop (60fps)
     loop Every Frame
         U->>W: step(graphicProcessor)
         activate W
-        
+
         W->>GP: Get millis(), deltaTime(), frameCount()
-        W->>SM: calculateScene(timeData, prevState)
-        SM-->>W: New SceneState (Deterministic)
-        
+        W->>SM: calculateScene(timeData)
+        SM-->>W: SceneState (The Truth)
+
         W->>GP: setCamera(state.camera)
 
+        W->>S: render(registry, state, graphicProcessor)
+        activate S
+
         loop For each RenderableElement
-            W->>R: resolve(persistentDynamicProps, state)
+            S->>R: resolve(element.blueprint, state)
             activate R
-            Note right of R: Recursive walk: executes cached functions<br/>using the current SceneState.
-            R-->>W: ResolvedProps (Solid Data)
+            Note right of R: Surgical Resolution: Executes functions<br/>passing the current SceneState.
+            R-->>S: ResolvedProps (Flattened Data)
             deactivate R
 
-            W->>GP: push()
-            W->>GP: translate(resolved.position)
-            
-            alt is visible (Frustum Culling)
-                W->>GP: drawElement(resolved, element.assets, state)
-                Note right of GP: Pure Draw: No logic, no loading,<br/>just mapping data to pixels.
-            end
-            
-            W->>GP: pop()
+            S->>GP: draw[Type](resolved, element.assets, state)
+            Note right of GP: Bridge Execution: Uses GP tools<br/>(push, translate, rotate, box, etc.)
         end
-        
+        deactivate S
+
         W-->>U: Updated SceneState
         deactivate W
     end
