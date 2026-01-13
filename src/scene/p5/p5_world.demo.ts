@@ -13,7 +13,6 @@ import 'prismjs/components/prism-javascript';
 import {SceneManager} from "../scene_manager.ts";
 import {OrbitModifier} from "../modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../modifiers/center_focus_modifier.ts";
-import {toProps} from "../create_renderable.ts";
 
 const p5WorldDemo = (p5: p5) => {
     let world: World;

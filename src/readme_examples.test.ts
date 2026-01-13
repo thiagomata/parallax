@@ -1,16 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {SceneManager} from "./scene/scene_manager.ts";
-import {createRenderable, resolve, toProps} from "./scene/create_renderable.ts";
 import {
     DEFAULT_SETTINGS,
-    ELEMENT_TYPES,
-    type ResolvedBoxProps,
+    ELEMENT_TYPES, type GraphicProcessor,
     type SceneState,
 } from "./scene/types.ts";
+import {createRenderable, resolve} from "./scene/resolver.ts";
+import {ChaosLoader} from "./scene/mock/mock_asset_loader.mock.ts";
 
 describe('README Examples Validation', () => {
 
     let manager: SceneManager;
+    let assetLoader = new ChaosLoader();
     beforeEach(() => {
         manager = new SceneManager(DEFAULT_SETTINGS);
     });
@@ -62,7 +63,7 @@ describe('README Examples Validation', () => {
 
         // Example 1: Static & Computed Props
         // Added 'position' as it is required by SceneElementProps
-        const props = toProps({
+        const props = ({
             type: ELEMENT_TYPES.BOX,
             position: { x: 0, y: 0, z: 0 },
             size: (s: SceneState) => 50 + (s.playback.progress * 20),
@@ -70,7 +71,7 @@ describe('README Examples Validation', () => {
         });
 
         // Example 2: Deep Resolution (Granular)
-        const granularProps = toProps({
+        const granularProps = ({
             type: ELEMENT_TYPES.BOX,
             position: {
                 x: (_s: SceneState) => 100, // Prefixed with _ to satisfy unused variable check
@@ -81,18 +82,21 @@ describe('README Examples Validation', () => {
         });
 
         // 1. Validate factory creation (TS6133 fix: we use 'element' below)
-        const element = createRenderable('test-id', props);
-        const elementResolved = resolve(element, state) as unknown as ResolvedBoxProps;
+        const element = createRenderable(
+            'test-id',
+            props,
+            assetLoader
+        );
+        const elementResolved = resolve(element, state);
 
         // 2. Validate standalone resolution utility
-        const resolved = resolve(props, state) as ResolvedBoxProps;
-        const granularResolved = resolve(granularProps, state) as ResolvedBoxProps;
+        const resolved = resolve(props, state);
+        const granularResolved = resolve(granularProps, state);
 
         // Assertions
         expect(elementResolved.id).toBe('test-id');
         expect(resolved.size).toBe(50);
 
-        // TS18048 fix: resolved.fillColor is now guaranteed by the types and the factory
         if (resolved.fillColor) {
             expect(resolved.fillColor.red).toBe(255);
         }
