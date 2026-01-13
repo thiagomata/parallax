@@ -25,7 +25,12 @@ export const tutorial_6 = (p: p5, loader: P5AssetLoader | null = null): World<P5
             width: 500,
             depth: 500,
             position: { x: 0, y: 100, z: 0 },
-            fillColor: { red: 100, green: 100, blue: 100 }
+            fillColor: { red: 100, green: 100, blue: 100 },
+            texture: {
+                path: '/parallax/img/stars.jpg',
+                width: 100,
+                height: 100,
+            },
         });
 
         // The Hero: Testing Hybrid Props (Atomic Position + Granular Color)
