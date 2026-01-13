@@ -1,10 +1,5 @@
-import {
-    type GraphicsBundle,
-    type AssetLoader,
-    type RenderableElement,
-    type ResolvedElement
-} from "./types.ts";
-import { createRenderable } from "./resolver.ts";
+import {type AssetLoader, type GraphicsBundle, type RenderableElement, type ResolvedElement} from "./types.ts";
+import {createRenderable} from "./resolver.ts";
 
 export class AssetRegistry<TBundle extends GraphicsBundle> {
     // The ONLY list: A map of IDs to the actual Renderable instances

@@ -1,10 +1,10 @@
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { World } from './world.ts';
-import { Stage } from './stage.ts';
-import { createMockState } from './mock/mock_scene_state.mock.ts';
-import { ChaosLoader } from './mock/mock_asset_loader.mock.ts';
-import type { SceneManager } from './scene_manager.ts';
-import type { GraphicProcessor } from './types.ts';
+import {beforeEach, describe, expect, it, type Mock, vi} from 'vitest';
+import {World} from './world.ts';
+import {Stage} from './stage.ts';
+import {createMockState} from './mock/mock_scene_state.mock.ts';
+import {ChaosLoader} from './mock/mock_asset_loader.mock.ts';
+import type {SceneManager} from './scene_manager.ts';
+import type {GraphicProcessor} from './types.ts';
 import {createMockGraphicProcessor} from "./mock/mock_graphic_processor.mock.ts";
 
 describe('World Orchestration (Dependency Injection)', () => {
@@ -13,7 +13,7 @@ describe('World Orchestration (Dependency Injection)', () => {
     let mockManager: SceneManager;
     let mockGP: GraphicProcessor<any>;
     let loader: ChaosLoader<any>;
-    const initialState = createMockState({ x: 0, y: 0, z: 0 });
+    const initialState = createMockState({x: 0, y: 0, z: 0});
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -35,7 +35,7 @@ describe('World Orchestration (Dependency Injection)', () => {
 
     it('should drive the Stage.render with calculated SceneState', () => {
         const renderSpy = vi.spyOn(stage, 'render');
-        const nextState = { ...initialState, playback: { ...initialState.playback, now: 5000 } };
+        const nextState = {...initialState, playback: {...initialState.playback, now: 5000}};
         (mockManager.calculateScene as Mock).mockReturnValue(nextState);
 
         world.step(mockGP);
@@ -47,9 +47,9 @@ describe('World Orchestration (Dependency Injection)', () => {
     it('should correctly position debug car labels', () => {
         const debugState = {
             ...initialState,
-            settings: { ...initialState.settings, debug: true },
+            settings: {...initialState.settings, debug: true},
             debugStateLog: {
-                car: { name: 'Viper', x: 100, y: 0, z: -50 },
+                car: {name: 'Viper', x: 100, y: 0, z: -50},
                 nudges: [],
                 errors: []
             }
@@ -58,19 +58,19 @@ describe('World Orchestration (Dependency Injection)', () => {
 
         world.step(mockGP);
 
-        expect(mockGP.drawLabel).toHaveBeenCalledWith('CAR: Viper', { x: 100, y: 0, z: -50 });
+        expect(mockGP.drawLabel).toHaveBeenCalledWith('CAR: Viper', {x: 100, y: 0, z: -50});
     });
 
     it('should verify the HUD error offset logic', () => {
         const debugState = {
             ...initialState,
-            settings: { ...initialState.settings, debug: true },
+            settings: {...initialState.settings, debug: true},
             debugStateLog: {
-                car: { name: 'None' },
+                car: {name: 'None'},
                 nudges: [],
                 errors: [
-                    { message: 'First' },
-                    { message: 'Second' }
+                    {message: 'First'},
+                    {message: 'Second'}
                 ]
             }
         };

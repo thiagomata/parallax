@@ -1,82 +1,93 @@
 import {
+    ASSET_STATUS,
+    type AssetLoader,
+    type DynamicElement,
+    type DynamicProperty,
     ELEMENT_TYPES,
-    SPEC_KINDS,
+    type ElementAssets,
     type GraphicProcessor,
+    type GraphicsBundle,
+    type MapToBlueprint,
+    type MapToDynamic,
     type RenderableElement,
     type ResolvedElement,
     type SceneState,
-    type DynamicProperty,
-    type GraphicsBundle,
-    type DynamicElement,
-    type Unwrapped, type AssetLoader, type ElementAssets, ASSET_STATUS, type MapToBlueprint, type MapToDynamic,
+    SPEC_KINDS,
+    type Unwrapped,
 } from "./types";
 
 export const createRenderable =
     <T extends ResolvedElement, TBundle extends GraphicsBundle>(
-    id: string,
-    blueprint: MapToBlueprint<T>,
-    loader: AssetLoader<TBundle>
-): RenderableElement<T, TBundle> => {
+        id: string,
+        blueprint: MapToBlueprint<T>,
+        loader: AssetLoader<TBundle>
+    ): RenderableElement<T, TBundle> => {
 
-    const dynamic = toDynamic(blueprint) as DynamicElement<T>;
+        const dynamic = toDynamic(blueprint) as DynamicElement<T>;
 
-    const assets: ElementAssets<TBundle> = {
-        texture: blueprint.texture ? { status: ASSET_STATUS.PENDING, value: null } : { status: ASSET_STATUS.READY, value: null },
-        font: blueprint.font ? { status: ASSET_STATUS.PENDING, value: null } : { status: ASSET_STATUS.READY, value: null }
-    };
-
-    if (blueprint.texture) {
-        loader.hydrateTexture(blueprint.texture)
-            .then(asset => assets.texture = asset);
-    }
-
-    if (blueprint.font) {
-        loader.hydrateFont(blueprint.font)
-            .then(asset => {
-                assets.font = asset
-        });
-    }
-
-    return {
-        id,
-        dynamic,
-        assets,
-
-        render(gp: GraphicProcessor<TBundle>, state: SceneState) {
-            const resolved = resolve(this, state)
-
-            gp.push();
-            gp.translate(resolved.position);
-
-            const distance = gp.dist(resolved.position, state.camera.position);
-            const far = state.settings.camera.far ?? 5000;
-
-            if (distance < far) {
-                switch (resolved.type) {
-                    case ELEMENT_TYPES.BOX:
-                        gp.drawBox(resolved, this.assets, state);
-                        break;
-                    case ELEMENT_TYPES.PANEL:
-                        gp.drawPanel(resolved, this.assets, state);
-                        break;
-                    case ELEMENT_TYPES.TEXT:
-                        gp.drawText(resolved, this.assets, state);
-                        break;
-                    case ELEMENT_TYPES.SPHERE:
-                        gp.drawSphere(resolved, this.assets, state);
-                        break;
-                    case ELEMENT_TYPES.FLOOR:
-                        gp.drawFloor(resolved, this.assets, state);
-                        break;
-                    default:
-                        throw new Error(`Unknown type ${resolved.type}`);
-                }
+        const assets: ElementAssets<TBundle> = {
+            texture: blueprint.texture ? {status: ASSET_STATUS.PENDING, value: null} : {
+                status: ASSET_STATUS.READY,
+                value: null
+            },
+            font: blueprint.font ? {status: ASSET_STATUS.PENDING, value: null} : {
+                status: ASSET_STATUS.READY,
+                value: null
             }
+        };
 
-            gp.pop();
+        if (blueprint.texture) {
+            loader.hydrateTexture(blueprint.texture)
+                .then(asset => assets.texture = asset);
         }
+
+        if (blueprint.font) {
+            loader.hydrateFont(blueprint.font)
+                .then(asset => {
+                    assets.font = asset
+                });
+        }
+
+        return {
+            id,
+            dynamic,
+            assets,
+
+            render(gp: GraphicProcessor<TBundle>, state: SceneState) {
+                const resolved = resolve(this, state)
+
+                gp.push();
+                gp.translate(resolved.position);
+
+                const distance = gp.dist(resolved.position, state.camera.position);
+                const far = state.settings.camera.far ?? 5000;
+
+                if (distance < far) {
+                    switch (resolved.type) {
+                        case ELEMENT_TYPES.BOX:
+                            gp.drawBox(resolved, this.assets, state);
+                            break;
+                        case ELEMENT_TYPES.PANEL:
+                            gp.drawPanel(resolved, this.assets, state);
+                            break;
+                        case ELEMENT_TYPES.TEXT:
+                            gp.drawText(resolved, this.assets, state);
+                            break;
+                        case ELEMENT_TYPES.SPHERE:
+                            gp.drawSphere(resolved, this.assets, state);
+                            break;
+                        case ELEMENT_TYPES.FLOOR:
+                            gp.drawFloor(resolved, this.assets, state);
+                            break;
+                        default:
+                            throw new Error(`Unknown type ${resolved.type}`);
+                    }
+                }
+
+                gp.pop();
+            }
+        };
     };
-};
 
 export function toDynamic<T extends ResolvedElement>(
     blueprint: MapToBlueprint<T>
@@ -142,7 +153,7 @@ function compileProperty<V>(value: V): DynamicProperty<V> {
         // SHORT-CIRCUIT: If the whole object is static (like a Vector3),
         // wrap it once and stop. No "Static Inception."
         if (isStaticData(value)) {
-            return { kind: SPEC_KINDS.STATIC, value };
+            return {kind: SPEC_KINDS.STATIC, value};
         }
 
         // Otherwise, it's a Branch: recursively compile its children
@@ -151,11 +162,11 @@ function compileProperty<V>(value: V): DynamicProperty<V> {
             dynamicBranch[key] = compileProperty(value[key]);
         }
 
-        return { kind: SPEC_KINDS.BRANCH, value: dynamicBranch };
+        return {kind: SPEC_KINDS.BRANCH, value: dynamicBranch};
     }
 
     // 3. Leaf Primitives
-    return { kind: SPEC_KINDS.STATIC, value };
+    return {kind: SPEC_KINDS.STATIC, value};
 }
 
 /**

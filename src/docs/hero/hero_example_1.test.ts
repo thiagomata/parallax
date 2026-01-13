@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
-import { createMockP5 } from "../../scene/mock/mock_p5.mock.ts";
+import {describe, expect, it} from 'vitest';
+import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
-import { heroExample1 } from "./hero_example_1.ts";
+import {heroExample1} from "./hero_example_1.ts";
 import {resolve} from "../../scene/resolver.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 
@@ -30,7 +30,7 @@ describe('Hero Demo Integration: World Animation', () => {
 
         // Size logic: cos(0) * 50 + 100 = 150
         expect(resolved0.size).toBe(150);
-        expect(resolved0.position).toMatchObject({ x: 0, y: 0, z: 0 });
+        expect(resolved0.position).toMatchObject({x: 0, y: 0, z: 0});
 
         // --- TEST AT 25% PROGRESS (T = 2500ms) ---
         mockP5.millis.mockReturnValue(2500);
@@ -70,8 +70,8 @@ describe('Hero Demo Integration: World Animation', () => {
         const resolved = resolve(backElement!, world.getCurrentSceneState());
 
         // Verify the resolved values match the blueprint for static objects
-        expect(resolved.position).toMatchObject({ x: -100, y: 0, z: -200 });
-        expect(resolved.fillColor).toMatchObject({ green: 255 });
+        expect(resolved.position).toMatchObject({x: -100, y: 0, z: -200});
+        expect(resolved.fillColor).toMatchObject({green: 255});
     });
 
     it('should verify p5 rendering side effects', async () => {

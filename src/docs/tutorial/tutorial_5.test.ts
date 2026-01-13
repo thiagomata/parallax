@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { tutorial_5 } from './tutorial_5';
-import { createMockP5 } from "../../scene/mock/mock_p5.mock.ts";
+import {describe, expect, it} from 'vitest';
+import {tutorial_5} from './tutorial_5';
+import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
-import { ASSET_STATUS, type ResolvedBox, type ResolvedText } from "../../scene/types.ts";
-import { resolve } from "../../scene/resolver.ts";
+import {ASSET_STATUS, type ResolvedBox, type ResolvedText} from "../../scene/types.ts";
+import {resolve} from "../../scene/resolver.ts";
 
 describe('Tutorial 5 Execution Test: Assets & Hydration', () => {
 

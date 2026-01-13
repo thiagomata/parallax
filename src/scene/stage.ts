@@ -1,5 +1,11 @@
 import type {
-    AssetLoader, GraphicProcessor, GraphicsBundle, MapToBlueprint, RenderableElement, ResolvedElement, SceneState
+    AssetLoader,
+    GraphicProcessor,
+    GraphicsBundle,
+    MapToBlueprint,
+    RenderableElement,
+    ResolvedElement,
+    SceneState
 } from "./types.ts";
 import {AssetRegistry} from "./asset_registry.ts";
 import {resolveProperty} from "./resolver.ts";

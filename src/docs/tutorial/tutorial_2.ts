@@ -1,9 +1,9 @@
 import p5 from 'p5';
-import { DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState } from "../../scene/types.ts";
-import { World } from "../../scene/world.ts";
-import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
-import { SceneManager } from "../../scene/scene_manager.ts";
-import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
+import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState} from "../../scene/types.ts";
+import {World} from "../../scene/world.ts";
+import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
+import {SceneManager} from "../../scene/scene_manager.ts";
+import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 
 export const tutorial_2 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
     let gp: P5GraphicProcessor;
@@ -30,7 +30,7 @@ export const tutorial_2 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
         // We use the blueprint functions to define behavior over time
         world.addBox('pulsing-box', {
             type: ELEMENT_TYPES.BOX,
-            position: { x: 0, y: 0, z: 0 },
+            position: {x: 0, y: 0, z: 0},
 
             // Dynamic Size: Pulse between 50 and 150
             size: (state: SceneState) => {
@@ -53,7 +53,7 @@ export const tutorial_2 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
                 },
                 alpha: 1.0
             },
-            strokeColor: {red:0,green:0,blue:0,alpha:1.0 },
+            strokeColor: {red: 0, green: 0, blue: 0, alpha: 1.0},
         });
     };
 

@@ -1,9 +1,9 @@
 import p5 from 'p5';
-import { World } from "../../scene/world.ts";
-import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
-import { SceneManager } from "../../scene/scene_manager.ts";
-import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
-import { ELEMENT_TYPES, DEFAULT_SETTINGS } from "../../scene/types.ts";
+import {World} from "../../scene/world.ts";
+import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
+import {SceneManager} from "../../scene/scene_manager.ts";
+import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
+import {DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
 
 export const tutorial_1 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
     let gp: P5GraphicProcessor;
@@ -35,9 +35,9 @@ export const tutorial_1 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
                 y: 0.25 * Math.PI,
                 z: 0
             },
-            position: { x: 0, y: 0, z: 0 },
-            fillColor: { red: 100, green: 100, blue: 255 },
-            strokeColor: { red: 255, green: 255, blue: 255 },
+            position: {x: 0, y: 0, z: 0},
+            fillColor: {red: 100, green: 100, blue: 255},
+            strokeColor: {red: 255, green: 255, blue: 255},
         });
     };
 

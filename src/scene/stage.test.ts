@@ -1,14 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Stage } from './stage.ts';
-import { ChaosLoader } from './mock/mock_asset_loader.mock.ts';
-import { createMockState } from './mock/mock_scene_state.mock.ts';
-import { ELEMENT_TYPES, type GraphicProcessor, type Vector3 } from './types.ts';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {Stage} from './stage.ts';
+import {ChaosLoader} from './mock/mock_asset_loader.mock.ts';
+import {createMockState} from './mock/mock_scene_state.mock.ts';
+import {ELEMENT_TYPES, type GraphicProcessor, type Vector3} from './types.ts';
 
 describe('Stage (Spatial Orchestration)', () => {
     let stage: Stage<any>;
     let loader: ChaosLoader<any>;
     let mockGP: GraphicProcessor<any>;
-    const mockState = createMockState({ x: 0, y: 0, z: 0 });
+    const mockState = createMockState({x: 0, y: 0, z: 0});
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -35,7 +35,7 @@ describe('Stage (Spatial Orchestration)', () => {
     it('should register and render an element', () => {
         stage.add('box-1', {
             type: ELEMENT_TYPES.BOX,
-            position: { x: 10, y: 0, z: 0 },
+            position: {x: 10, y: 0, z: 0},
             size: 5
         });
 
@@ -43,14 +43,14 @@ describe('Stage (Spatial Orchestration)', () => {
 
         // Verify the GP was reached
         expect(mockGP.drawBox).toHaveBeenCalled();
-        expect(mockGP.translate).toHaveBeenCalledWith({ x: 10, y: 0, z: 0 });
+        expect(mockGP.translate).toHaveBeenCalledWith({x: 10, y: 0, z: 0});
     });
 
     it('should sort elements by distance (Painter Algorithm)', () => {
         // Elements are added in "Near then Far" order
         // But should be rendered "Far then Near"
-        const nearPos = { x: 0, y: 0, z: 50 };
-        const farPos = { x: 0, y: 0, z: 500 };
+        const nearPos = {x: 0, y: 0, z: 50};
+        const farPos = {x: 0, y: 0, z: 500};
 
         stage.add('near', {
             type: ELEMENT_TYPES.BOX,
@@ -79,27 +79,27 @@ describe('Stage (Spatial Orchestration)', () => {
         // Proof that resolveProperty is working inside the sort
         stage.add('dynamic-box', {
             type: ELEMENT_TYPES.BOX,
-            position: (s: any) => ({ x: s.playback.now, y: 0, z: 0 }),
+            position: (s: any) => ({x: s.playback.now, y: 0, z: 0}),
             size: 1
         });
 
         const customState = {
             ...mockState,
-            playback: { ...mockState.playback, now: 999 }
+            playback: {...mockState.playback, now: 999}
         };
 
         stage.render(mockGP, customState);
 
-        expect(mockGP.translate).toHaveBeenCalledWith({ x: 999, y: 0, z: 0 });
+        expect(mockGP.translate).toHaveBeenCalledWith({x: 999, y: 0, z: 0});
     });
 
     it('should maintain single instances even with multiple add calls (Idempotency)', () => {
         const spy = vi.spyOn(loader, 'hydrateTexture');
         const bluePrint = {
             type: ELEMENT_TYPES.BOX,
-            position: { x: 0, y: 0, z: 0 },
+            position: {x: 0, y: 0, z: 0},
             size: 1,
-            texture: { path: 'shared.png', width: 1, height: 1 }
+            texture: {path: 'shared.png', width: 1, height: 1}
         };
 
         stage.add('unique-id', bluePrint);

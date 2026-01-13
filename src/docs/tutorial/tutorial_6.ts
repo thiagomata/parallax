@@ -9,7 +9,7 @@ export const tutorial_6 = (p: p5, loader: P5AssetLoader | null = null): World<P5
     let gp: P5GraphicProcessor;
     const manager = new SceneManager({
         ...DEFAULT_SETTINGS,
-        playback: { ...DEFAULT_SETTINGS.playback, duration: 5000, isLoop: true }
+        playback: {...DEFAULT_SETTINGS.playback, duration: 5000, isLoop: true}
     });
 
     loader = loader ?? new P5AssetLoader(p);
@@ -24,8 +24,8 @@ export const tutorial_6 = (p: p5, loader: P5AssetLoader | null = null): World<P5
             type: ELEMENT_TYPES.FLOOR,
             width: 500,
             depth: 500,
-            position: { x: 0, y: 100, z: 0 },
-            fillColor: { red: 100, green: 100, blue: 100 },
+            position: {x: 0, y: 100, z: 0},
+            fillColor: {red: 100, green: 100, blue: 100},
             texture: {
                 path: '/parallax/img/stars.jpg',
                 width: 100,

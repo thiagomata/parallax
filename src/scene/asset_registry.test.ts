@@ -1,11 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AssetRegistry } from './asset_registry';
-import {
-    ASSET_STATUS,
-    ELEMENT_TYPES,
-    type AssetLoader,
-} from './types';
-import type { MockBundle } from "./mock/mock_type.mock.ts";
+import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {AssetRegistry} from './asset_registry';
+import {ASSET_STATUS, type AssetLoader, ELEMENT_TYPES,} from './types';
+import type {MockBundle} from "./mock/mock_type.mock.ts";
 
 /**
  * Mocking the Loader to observe Phase 2 triggers
@@ -13,11 +9,11 @@ import type { MockBundle } from "./mock/mock_type.mock.ts";
 const createMockLoader = (): AssetLoader<MockBundle> => ({
     hydrateTexture: vi.fn().mockResolvedValue({
         status: ASSET_STATUS.READY,
-        value: { internalRef: { id: 'tex-1' } }
+        value: {internalRef: {id: 'tex-1'}}
     }),
     hydrateFont: vi.fn().mockResolvedValue({
         status: ASSET_STATUS.READY,
-        value: { internalRef: { name: 'Arial' } }
+        value: {internalRef: {name: 'Arial'}}
     }),
 });
 
@@ -35,9 +31,9 @@ describe('AssetRegistry', () => {
             const id = 'textured-box';
             const blueprint = {
                 type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
+                position: {x: 0, y: 0, z: 0},
                 size: 10,
-                texture: { path: 'grass.png', width: 64, height: 64 }
+                texture: {path: 'grass.png', width: 64, height: 64}
             };
 
             const element = registry.register(id, blueprint);
@@ -56,8 +52,8 @@ describe('AssetRegistry', () => {
             const blueprint = {
                 type: ELEMENT_TYPES.BOX,
                 size: 5,
-                position: { x: 0, y: 0, z: 0 },
-                texture: { path: 'repeat.png', width: 1, height: 1 }
+                position: {x: 0, y: 0, z: 0},
+                texture: {path: 'repeat.png', width: 1, height: 1}
             };
 
             const first = registry.register('item-1', blueprint);
@@ -78,13 +74,13 @@ describe('AssetRegistry', () => {
             registry.register('box-1', {
                 type: ELEMENT_TYPES.BOX,
                 size: 1,
-                position: { x: 0, y: 0, z: 0 }
+                position: {x: 0, y: 0, z: 0}
             });
             registry.register('text-1', {
                 type: ELEMENT_TYPES.TEXT,
                 text: 'hi',
                 size: 12,
-                position: { x: 0, y: 0, z: 0 }
+                position: {x: 0, y: 0, z: 0}
             });
 
             const all = Array.from(registry.all());
@@ -99,7 +95,7 @@ describe('AssetRegistry', () => {
 
     describe('Lifecycle: Removal', () => {
         it('should clean up the registry completely on remove', () => {
-            registry.register('target', { type: ELEMENT_TYPES.BOX, size: 1, position: {x:0,y:0,z:0} });
+            registry.register('target', {type: ELEMENT_TYPES.BOX, size: 1, position: {x: 0, y: 0, z: 0}});
             expect(registry.get('target')).toBeDefined();
 
             registry.remove('target');

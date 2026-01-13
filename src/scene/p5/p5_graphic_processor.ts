@@ -4,15 +4,17 @@ import {
     type AssetLoader,
     type ColorRGBA,
     type ElementAssets,
+    type GraphicProcessor,
     type ResolvedBaseVisual,
     type ResolvedBox,
+    type ResolvedFloor,
     type ResolvedPanel,
+    type ResolvedSphere,
     type ResolvedText,
-    type GraphicProcessor,
     type SceneState,
-    type Vector3, type ResolvedSphere, type ResolvedFloor
+    type Vector3
 } from '../types';
-import type { P5Bundler } from './p5_asset_loader';
+import type {P5Bundler} from './p5_asset_loader';
 
 export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     public readonly loader: AssetLoader<P5Bundler>;
@@ -24,25 +26,46 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     }
 
     // --- Timing ---
-    millis(): number { return this.p.millis(); }
-    deltaTime(): number { return this.p.deltaTime; }
-    frameCount(): number { return this.p.frameCount; }
+    millis(): number {
+        return this.p.millis();
+    }
+
+    deltaTime(): number {
+        return this.p.deltaTime;
+    }
+
+    frameCount(): number {
+        return this.p.frameCount;
+    }
 
     // --- Transformations ---
     setCamera(pos: Vector3, lookAt: Vector3): void {
         this.p.camera(pos.x, pos.y, pos.z, lookAt.x, lookAt.y, lookAt.z, 0, 1, 0);
     }
 
-    push(): void { this.p.push(); }
-    pop(): void { this.p.pop(); }
+    push(): void {
+        this.p.push();
+    }
+
+    pop(): void {
+        this.p.pop();
+    }
 
     translate(pos: Partial<Vector3>): void {
         this.p.translate(pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
     }
 
-    rotateX(a: number): void { this.p.rotateX(a); }
-    rotateY(a: number): void { this.p.rotateY(a); }
-    rotateZ(a: number): void { this.p.rotateZ(a); }
+    rotateX(a: number): void {
+        this.p.rotateX(a);
+    }
+
+    rotateY(a: number): void {
+        this.p.rotateY(a);
+    }
+
+    rotateZ(a: number): void {
+        this.p.rotateZ(a);
+    }
 
     // --- Styling ---
     fill(color: ColorRGBA, alpha: number = 1): void {
@@ -51,7 +74,9 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.fill(color.red, color.green, color.blue, finalAlpha);
     }
 
-    noFill(): void { this.p.noFill(); }
+    noFill(): void {
+        this.p.noFill();
+    }
 
     stroke(color: ColorRGBA, weight: number = 1, globalAlpha: number = 1): void {
         const baseAlpha = color.alpha ?? 1;
@@ -60,7 +85,9 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.stroke(color.red, color.green, color.blue, finalAlpha);
     }
 
-    noStroke(): void { this.p.noStroke(); }
+    noStroke(): void {
+        this.p.noStroke();
+    }
 
     // --- Drawing Implementation ---
     drawText(props: ResolvedText, assets: ElementAssets<P5Bundler>, state: SceneState): void {
@@ -143,7 +170,9 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.pop();
     }
 
-    plane(w: number, h: number): void { this.p.plane(w, h); }
+    plane(w: number, h: number): void {
+        this.p.plane(w, h);
+    }
 
     // --- Internal Helpers ---
     private drawTexture(assets: ElementAssets<P5Bundler>, props: ResolvedBaseVisual, state: SceneState) {
@@ -209,12 +238,30 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     }
 
     // --- Utilities ---
-    dist(v1: Vector3, v2: Vector3): number { return this.p.dist(v1.x, v1.y, v1.z, v2.x, v2.y, v2.z); }
-    map(v: number, s1: number, st1: number, s2: number, st2: number, c?: boolean): number { return this.p.map(v, s1, st1, s2, st2, c); }
-    lerp(s: number, e: number, a: number): number { return this.p.lerp(s, e, a); }
-    text(s: string, pos: Partial<Vector3>): void { this.p.text(s, pos.x ?? 0, pos.y ?? 0, pos.z ?? 0); }
-    drawLabel(s: string, pos: Partial<Vector3>): void { this.text(s, pos); }
-    drawHUDText(s: string, x: number, y: number): void { this.p.text(s, x, y); }
+    dist(v1: Vector3, v2: Vector3): number {
+        return this.p.dist(v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+    }
+
+    map(v: number, s1: number, st1: number, s2: number, st2: number, c?: boolean): number {
+        return this.p.map(v, s1, st1, s2, st2, c);
+    }
+
+    lerp(s: number, e: number, a: number): number {
+        return this.p.lerp(s, e, a);
+    }
+
+    text(s: string, pos: Partial<Vector3>): void {
+        this.p.text(s, pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
+    }
+
+    drawLabel(s: string, pos: Partial<Vector3>): void {
+        this.text(s, pos);
+    }
+
+    drawHUDText(s: string, x: number, y: number): void {
+        this.p.text(s, x, y);
+    }
+
     drawCrosshair(pos: Partial<Vector3>, size: number): void {
         this.push();
         this.translate(pos);

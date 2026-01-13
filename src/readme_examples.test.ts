@@ -1,12 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import {beforeEach, describe, expect, it} from 'vitest';
 import {SceneManager} from "./scene/scene_manager.ts";
-import {
-    createBlueprint,
-    DEFAULT_SETTINGS,
-    ELEMENT_TYPES,
-    type ResolvedBox,
-    type SceneState,
-} from "./scene/types.ts";
+import {createBlueprint, DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState,} from "./scene/types.ts";
 import {createRenderable, resolve} from "./scene/resolver.ts";
 import {ChaosLoader} from "./scene/mock/mock_asset_loader.mock.ts";
 
@@ -19,7 +13,7 @@ describe('README Examples Validation', () => {
     });
 
     it('should validate the Car, Nudge, and Stick modifier examples', () => {
-        const playerPos = { x: 100, y: 50, z: 0 };
+        const playerPos = {x: 100, y: 50, z: 0};
 
         // Example: Car Modifier
         manager.addCarModifier({
@@ -28,7 +22,7 @@ describe('README Examples Validation', () => {
             active: true,
             getCarPosition: (_current, _state) => ({
                 success: true,
-                value: { position: playerPos, name: "player" }
+                value: {position: playerPos, name: "player"}
             })
         });
 
@@ -38,7 +32,7 @@ describe('README Examples Validation', () => {
             active: true,
             getNudge: (_base, state) => ({
                 success: true,
-                value: { y: Math.sin(state.playback.now * 0.002) * 15 }
+                value: {y: Math.sin(state.playback.now * 0.002) * 15}
             })
         });
 
@@ -49,7 +43,7 @@ describe('README Examples Validation', () => {
             priority: 1,
             getStick: (camPos) => ({
                 success: true,
-                value: { yaw: Math.atan2(-camPos.x, camPos.z), pitch: 0, distance: 1000, priority: 1 }
+                value: {yaw: Math.atan2(-camPos.x, camPos.z), pitch: 0, distance: 1000, priority: 1}
             })
         });
 
@@ -66,9 +60,9 @@ describe('README Examples Validation', () => {
         // 1. Example 1: Static & Computed Props
         const blueprint = createBlueprint<ResolvedBox>({
             type: ELEMENT_TYPES.BOX,
-            position: { x: 0, y: 0, z: 0 },
+            position: {x: 0, y: 0, z: 0},
             size: (s: SceneState) => 50 + (s.playback.progress * 20),
-            fillColor: { red: 255, green: 0, blue: 0 }
+            fillColor: {red: 255, green: 0, blue: 0}
         });
 
         // We must wrap the blueprint into a Renderable to "compile" the specs

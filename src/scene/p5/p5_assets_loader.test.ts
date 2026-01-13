@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
 import p5 from 'p5';
-import { P5AssetLoader } from './p5_asset_loader';
-import { ASSET_STATUS } from '../types';
+import {P5AssetLoader} from './p5_asset_loader';
+import {ASSET_STATUS} from '../types';
 
 describe('P5AssetLoader', () => {
     let loader: P5AssetLoader;
@@ -13,12 +13,13 @@ describe('P5AssetLoader', () => {
             loadFont: vi.fn(),
         };
         loader = new P5AssetLoader(mockP5 as unknown as p5);
-        vi.spyOn(console, 'error').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {
+        });
     });
 
     describe('Caching & Deduplication', () => {
         it('should return the same promise and only call p5 once for duplicate paths', async () => {
-            const ref = { path: 'shared/sprite.png', width: 32, height: 32 };
+            const ref = {path: 'shared/sprite.png', width: 32, height: 32};
 
             // Mock a delayed response
             mockP5.loadImage.mockImplementation((_path: any, success: (arg0: {}) => any) => {
@@ -38,10 +39,13 @@ describe('P5AssetLoader', () => {
 
     describe('hydrateTexture', () => {
         it('should resolve with READY status when loadImage succeeds', async () => {
-            const ref = { path: 'assets/hero.png', width: 64, height: 64 };
-            const mockImg = { width: 64, height: 64 };
+            const ref = {path: 'assets/hero.png', width: 64, height: 64};
+            const mockImg = {width: 64, height: 64};
 
-            mockP5.loadImage.mockImplementation((_path: any, successCb: (arg0: { width: number; height: number; }) => any) => successCb(mockImg));
+            mockP5.loadImage.mockImplementation((_path: any, successCb: (arg0: {
+                width: number;
+                height: number;
+            }) => any) => successCb(mockImg));
 
             const result = await loader.hydrateTexture(ref);
 
@@ -53,7 +57,7 @@ describe('P5AssetLoader', () => {
         });
 
         it('should resolve with ERROR status when loadImage fails', async () => {
-            const ref = { path: 'assets/broken.png', width: 0, height: 0 };
+            const ref = {path: 'assets/broken.png', width: 0, height: 0};
 
             // Trigger the error callback
             mockP5.loadImage.mockImplementation((_path: any, _success: any, errorCb: (arg0: Error) => any) => errorCb(new Error('404')));
@@ -67,7 +71,7 @@ describe('P5AssetLoader', () => {
 
     describe('hydrateFont', () => {
         it('should deduplicate font loading', () => {
-            const ref = { name: 'Roboto', path: 'fonts/roboto.ttf' };
+            const ref = {name: 'Roboto', path: 'fonts/roboto.ttf'};
 
             loader.hydrateFont(ref);
             loader.hydrateFont(ref);
@@ -76,10 +80,12 @@ describe('P5AssetLoader', () => {
         });
 
         it('should resolve with READY status when loadFont succeeds', async () => {
-            const ref = { name: 'Roboto', path: 'fonts/roboto.ttf' };
-            const mockFont = { name: 'Roboto' };
+            const ref = {name: 'Roboto', path: 'fonts/roboto.ttf'};
+            const mockFont = {name: 'Roboto'};
 
-            mockP5.loadFont.mockImplementation((_path: any, successCb: (arg0: { name: string; }) => any) => successCb(mockFont));
+            mockP5.loadFont.mockImplementation((_path: any, successCb: (arg0: {
+                name: string;
+            }) => any) => successCb(mockFont));
 
             const result = await loader.hydrateFont(ref);
 

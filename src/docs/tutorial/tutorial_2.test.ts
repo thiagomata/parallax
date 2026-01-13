@@ -1,9 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { tutorial_2 } from './tutorial_2';
-import { SceneManager } from "../../scene/scene_manager.ts";
-import { DEFAULT_SETTINGS, type ResolvedBox } from "../../scene/types.ts";
-import { resolve } from "../../scene/resolver.ts"; // The new Resolver
-import { createMockP5 } from "../../scene/mock/mock_p5.mock.ts";
+import {describe, expect, it} from 'vitest';
+import {tutorial_2} from './tutorial_2';
+import {SceneManager} from "../../scene/scene_manager.ts";
+import {DEFAULT_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
+import {resolve} from "../../scene/resolver.ts"; // The new Resolver
+import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 
 describe('Tutorial 2: Progression Integration', () => {

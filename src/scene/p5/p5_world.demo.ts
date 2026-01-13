@@ -1,11 +1,11 @@
 import p5 from 'p5';
-import { World } from '../world';
-import { P5GraphicProcessor } from './p5_graphic_processor';
-import { P5AssetLoader, type P5Bundler } from './p5_asset_loader';
-import { ELEMENT_TYPES, type SceneState, type Vector3, DEFAULT_SETTINGS } from "../types.ts";
-import { SceneManager } from "../scene_manager.ts";
-import { OrbitModifier } from "../modifiers/orbit_modifier.ts";
-import { CenterFocusModifier } from "../modifiers/center_focus_modifier.ts";
+import {World} from '../world';
+import {P5GraphicProcessor} from './p5_graphic_processor';
+import {P5AssetLoader, type P5Bundler} from './p5_asset_loader';
+import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "../types.ts";
+import {SceneManager} from "../scene_manager.ts";
+import {OrbitModifier} from "../modifiers/orbit_modifier.ts";
+import {CenterFocusModifier} from "../modifiers/center_focus_modifier.ts";
 
 new p5((p: p5) => {
     let world: World<P5Bundler>;
@@ -44,9 +44,9 @@ new p5((p: p5) => {
         world.addBox('back', {
             type: ELEMENT_TYPES.BOX,
             size: 200,
-            position: { x: -100, y: 0, z: -200 },
-            fillColor: { red: 0, green: 255, blue: 0, alpha: 1.0 },
-            strokeColor: { red: 0, green: 0, blue: 0, alpha: 1.0 },
+            position: {x: -100, y: 0, z: -200},
+            fillColor: {red: 0, green: 255, blue: 0, alpha: 1.0},
+            strokeColor: {red: 0, green: 0, blue: 0, alpha: 1.0},
             strokeWidth: 1,
         });
 
@@ -63,17 +63,17 @@ new p5((p: p5) => {
                 y: (Math.cos(2 * Math.PI * state.playback.progress) * 100) - 100,
                 z: 0,
             }),
-            fillColor: { red: 255, green: 0, blue: 0, alpha: 0.5 },
-            strokeColor: { red: 0, green: 0, blue: 0, alpha: 1.0 },
+            fillColor: {red: 255, green: 0, blue: 0, alpha: 0.5},
+            strokeColor: {red: 0, green: 0, blue: 0, alpha: 1.0},
             strokeWidth: 1,
         });
 
         world.addBox('front', {
             type: ELEMENT_TYPES.BOX,
             size: 100,
-            position: { x: 100, y: 0, z: 200 },
-            fillColor: { red: 0, green: 0, blue: 255, alpha: 1.0 },
-            strokeColor: { red: 0, green: 0, blue: 0, alpha: 1.0 },
+            position: {x: 100, y: 0, z: 200},
+            fillColor: {red: 0, green: 0, blue: 255, alpha: 1.0},
+            strokeColor: {red: 0, green: 0, blue: 0, alpha: 1.0},
             strokeWidth: 1,
         });
 
@@ -81,9 +81,9 @@ new p5((p: p5) => {
             type: ELEMENT_TYPES.TEXT,
             text: "HELLO WORLD",
             size: 40,
-            position: { x: 50, y: 0, z: 0 },
-            font: { name: 'Roboto', path: '/parallax/fonts/Roboto-Regular.ttf' },
-            fillColor: { red: 255, green: 0, blue: 255, alpha: 1 }
+            position: {x: 50, y: 0, z: 0},
+            font: {name: 'Roboto', path: '/parallax/fonts/Roboto-Regular.ttf'},
+            fillColor: {red: 255, green: 0, blue: 255, alpha: 1}
         });
     };
 

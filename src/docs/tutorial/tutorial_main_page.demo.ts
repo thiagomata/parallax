@@ -1,18 +1,14 @@
-import { World } from "../../scene/world.ts";
-import { SceneManager } from "../../scene/scene_manager.ts";
-import { resolve } from "../../scene/resolver.ts"; // New Manifest-compliant resolver
-import {
-    DEFAULT_SETTINGS,
-    ELEMENT_TYPES,
-    ASSET_STATUS
-} from "../../scene/types.ts";
-import { P5AssetLoader } from "../../scene/p5/p5_asset_loader.ts";
-import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
+import {World} from "../../scene/world.ts";
+import {SceneManager} from "../../scene/scene_manager.ts";
+import {resolve} from "../../scene/resolver.ts"; // New Manifest-compliant resolver
+import {ASSET_STATUS, DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
+import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
+import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 
 // libs
 import p5 from 'p5';
 import Prism from 'prismjs';
-import { transform } from 'sucrase';
+import {transform} from 'sucrase';
 
 // Styles & Highlighting
 import 'prismjs/themes/prism-tomorrow.css';
@@ -21,15 +17,15 @@ import 'prismjs/components/prism-typescript';
 import 'prismjs/components/prism-javascript';
 
 // Tutorial Steps
-import { tutorial_1 } from './tutorial_1.ts';
+import {tutorial_1} from './tutorial_1.ts';
 import step1Source from './tutorial_1.ts?raw';
-import { tutorial_2 } from './tutorial_2.ts';
+import {tutorial_2} from './tutorial_2.ts';
 import step2Source from './tutorial_2.ts?raw';
-import { tutorial_3 } from './tutorial_3.ts';
+import {tutorial_3} from './tutorial_3.ts';
 import step3Source from './tutorial_3.ts?raw';
-import { tutorial_4 } from './tutorial_4.ts';
+import {tutorial_4} from './tutorial_4.ts';
 import step4Source from './tutorial_4.ts?raw';
-import { tutorial_5 } from './tutorial_5.ts';
+import {tutorial_5} from './tutorial_5.ts';
 import step5Source from './tutorial_5.ts?raw';
 import tutorial_6 from "./tutorial_6.ts";
 import step6Source from './tutorial_6.ts?raw';

@@ -2,10 +2,13 @@ import type {SceneManager} from "./scene_manager.ts";
 import type {
     AssetLoader,
     BlueprintBox,
-    BlueprintFloor, BlueprintPanel, BlueprintSphere,
+    BlueprintFloor,
+    BlueprintPanel,
+    BlueprintSphere,
     BlueprintText,
     GraphicProcessor,
-    GraphicsBundle, RenderableElement,
+    GraphicsBundle,
+    RenderableElement,
     SceneState
 } from "./types.ts";
 import {Stage} from "./stage.ts";
@@ -79,13 +82,13 @@ export class World<TBundle extends GraphicsBundle> {
         const log = state.debugStateLog;
 
         if (log.car.x !== undefined) {
-            gp.drawLabel(`CAR: ${log.car.name}`, { x: log.car.x, y: log.car.y, z: log.car.z });
+            gp.drawLabel(`CAR: ${log.car.name}`, {x: log.car.x, y: log.car.y, z: log.car.z});
         }
 
         log.nudges.forEach(nudge => {
             if (nudge.x !== undefined) {
-                gp.drawCrosshair({ x: nudge.x, y: nudge.y, z: nudge.z }, 5);
-                gp.text(`Nudge: ${nudge.name}`, { x: nudge.x, y: nudge.y, z: nudge.z });
+                gp.drawCrosshair({x: nudge.x, y: nudge.y, z: nudge.z}, 5);
+                gp.text(`Nudge: ${nudge.name}`, {x: nudge.x, y: nudge.y, z: nudge.z});
             }
         });
 

@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import { tutorial_1 } from './tutorial_1';
-import { World } from "../../scene/world";
-import { SceneManager } from "../../scene/scene_manager";
-import { ELEMENT_TYPES, type ResolvedBox, type SceneState, DEFAULT_SETTINGS } from "../../scene/types";
-import { resolve } from "../../scene/resolver"; // Using the Manifest-compliant resolver
-import { createMockGraphicProcessor } from "../../scene/mock/mock_graphic_processor.mock.ts";
-import { createMockP5 } from "../../scene/mock/mock_p5.mock.ts";
-import { P5AssetLoader } from "../../scene/p5/p5_asset_loader.ts";
+import {describe, expect, it} from 'vitest';
+import {tutorial_1} from './tutorial_1';
+import {World} from "../../scene/world";
+import {SceneManager} from "../../scene/scene_manager";
+import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState} from "../../scene/types";
+import {resolve} from "../../scene/resolver"; // Using the Manifest-compliant resolver
+import {createMockGraphicProcessor} from "../../scene/mock/mock_graphic_processor.mock.ts";
+import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
+import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import p5 from "p5";
 
 describe('Tutorial 1: Foundation & Engine Integration', () => {
@@ -22,8 +22,8 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
             world.addBox('test-box', {
                 type: ELEMENT_TYPES.BOX,
                 size: 100,
-                position: { x: 10, y: 20, z: 30 },
-                fillColor: { red: 100, green: 100, blue: 255 },
+                position: {x: 10, y: 20, z: 30},
+                fillColor: {red: 100, green: 100, blue: 255},
             });
 
             const state = world.getCurrentSceneState();
@@ -42,7 +42,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
             world.addBox('dynamic-box', {
                 type: ELEMENT_TYPES.BOX,
                 size: (state: SceneState) => state.playback.now > 1000 ? 200 : 100,
-                position: { x: 0, y: 0, z: 0 }
+                position: {x: 0, y: 0, z: 0}
             });
 
             // T = 0
@@ -51,7 +51,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
 
             // The first draw should be size 100
             expect(mockGP.drawBox).toHaveBeenCalledWith(
-                expect.objectContaining({ size: 100 }),
+                expect.objectContaining({size: 100}),
                 expect.anything(),
                 expect.anything()
             );
@@ -62,7 +62,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
 
             // The last draw should be size 200
             expect(mockGP.drawBox).toHaveBeenLastCalledWith(
-                expect.objectContaining({ size: 200 }),
+                expect.objectContaining({size: 200}),
                 expect.anything(),
                 expect.anything()
             );
@@ -79,7 +79,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
 
             // Verify the specific content defined in tutorial_1.ts
             const element = world.getElement('box');
-            if(!element) throw new Error("Tutorial box missing");
+            if (!element) throw new Error("Tutorial box missing");
 
             // Use our deterministic resolver
             const resolved = resolve(element, world.getCurrentSceneState()) as ResolvedBox;

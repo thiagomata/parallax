@@ -36,9 +36,9 @@ const mockNudge = (val: Partial<Vector3>, active: boolean = true): NudgeModifier
     ),
 });
 
-const createMockSettings = (pos: Vector3 = { x: 0, y: 0, z: 0 }): SceneSettings => ({
+const createMockSettings = (pos: Vector3 = {x: 0, y: 0, z: 0}): SceneSettings => ({
     ...DEFAULT_SETTINGS,
-    camera: { ...DEFAULT_SETTINGS.camera, position: pos }
+    camera: {...DEFAULT_SETTINGS.camera, position: pos}
 });
 
 const mockStick = (
@@ -536,7 +536,7 @@ it('should completely reset spatial logic after clearModifiers', () => {
         name: "Wanderer",
         priority: 100,
         active: true,
-        getCarPosition: () => ({ success: true, value: { position: { x: 999, y: 999, z: 999 }, name: "far" } })
+        getCarPosition: () => ({success: true, value: {position: {x: 999, y: 999, z: 999}, name: "far"}})
     });
 
     const stateWithModifier = manager.calculateScene(1000, 16, 60, manager.initialState());
@@ -559,7 +559,7 @@ it('should completely reset spatial logic after clearModifiers', () => {
         name: "Wanderer",
         priority: 100,
         active: true,
-        getCarPosition: () => ({ success: true, value: { position: { x: 999, y: 999, z: 999 }, name: "far" } })
+        getCarPosition: () => ({success: true, value: {position: {x: 999, y: 999, z: 999}, name: "far"}})
     });
 
     const stateWithModifier = manager.calculateScene(1000, 16, 60, manager.initialState());

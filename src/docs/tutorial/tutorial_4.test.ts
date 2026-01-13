@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
-import { tutorial_4 } from './tutorial_4';
-import { SceneManager } from "../../scene/scene_manager.ts";
-import { createMockP5 } from "../../scene/mock/mock_p5.mock.ts";
+import {describe, expect, it} from 'vitest';
+import {tutorial_4} from './tutorial_4';
+import {SceneManager} from "../../scene/scene_manager.ts";
+import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 
 describe('Tutorial 4: SceneManager & Camera Injection', () => {
@@ -40,6 +40,6 @@ describe('Tutorial 4: SceneManager & Camera Injection', () => {
         expect(state50.camera.position.z).toBeCloseTo(-800, 0);
 
         // Ensure the CenterFocusModifier is keeping the camera pointed at origin
-        expect(state50.camera.lookAt).toMatchObject({ x: 0, y: 0, z: 0 });
+        expect(state50.camera.lookAt).toMatchObject({x: 0, y: 0, z: 0});
     });
 });

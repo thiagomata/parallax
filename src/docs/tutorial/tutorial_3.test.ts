@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { tutorial_3 } from './tutorial_3';
-import { SceneManager } from "../../scene/scene_manager.ts";
-import { DEFAULT_SETTINGS, type ResolvedBox } from "../../scene/types.ts";
-import { resolve } from "../../scene/resolver.ts"; // The surgical resolver
-import { createMockP5 } from "../../scene/mock/mock_p5.mock.ts";
+import {describe, expect, it} from 'vitest';
+import {tutorial_3} from './tutorial_3';
+import {SceneManager} from "../../scene/scene_manager.ts";
+import {DEFAULT_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
+import {resolve} from "../../scene/resolver.ts"; // The surgical resolver
+import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 
 describe('Tutorial 3 Integration: Computed Orbit', () => {

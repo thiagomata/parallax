@@ -8,10 +8,14 @@ export function createMockP5() {
         plane: vi.fn(),
         pop: vi.fn(),
         loadImage: vi.fn(
-            (_args, success, _failure) => {success()}
+            (_args, success, _failure) => {
+                success()
+            }
         ),
         loadFont: vi.fn(
-            (_args, success, _failure) => {success()}
+            (_args, success, _failure) => {
+                success()
+            }
         ),
         createCanvas: vi.fn(),
         background: vi.fn(),

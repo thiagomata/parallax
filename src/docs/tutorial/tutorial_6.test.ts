@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import {describe, expect, it} from 'vitest';
 import tutorial_6 from './tutorial_6';
-import { createMockP5 } from "../../scene/mock/mock_p5.mock.ts";
+import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
-import { type ResolvedSphere, type ResolvedFloor } from "../../scene/types.ts";
-import { resolve } from "../../scene/resolver.ts";
+import {type ResolvedFloor, type ResolvedSphere} from "../../scene/types.ts";
+import {resolve} from "../../scene/resolver.ts";
 
 describe('Tutorial 6: Hybrid Property Resolution', () => {
 

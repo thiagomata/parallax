@@ -1,9 +1,9 @@
 import p5 from 'p5';
-import { DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState } from "../../scene/types.ts";
-import { World } from "../../scene/world.ts";
-import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
-import { SceneManager } from "../../scene/scene_manager.ts";
-import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
+import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState} from "../../scene/types.ts";
+import {World} from "../../scene/world.ts";
+import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
+import {SceneManager} from "../../scene/scene_manager.ts";
+import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 
 export const tutorial_5 = (p: p5): World<P5Bundler> => {
     let gp: P5GraphicProcessor;
@@ -33,7 +33,7 @@ export const tutorial_5 = (p: p5): World<P5Bundler> => {
         world.addBox('textured-box', {
             type: ELEMENT_TYPES.BOX,
             size: 150,
-            position: { x: 0, y: 0, z: -100 },
+            position: {x: 0, y: 0, z: -100},
             strokeWidth: 0,
             rotate: (state: SceneState) => ({
                 x: 0,
@@ -52,12 +52,12 @@ export const tutorial_5 = (p: p5): World<P5Bundler> => {
             type: ELEMENT_TYPES.TEXT,
             text: "TEXTURES",
             size: 30,
-            position: { x: -30, y: 0, z: 50 },
+            position: {x: -30, y: 0, z: 50},
             font: {
                 name: 'Roboto',
                 path: '/parallax/fonts/Roboto-Regular.ttf'
             },
-            fillColor: { red: 0, green: 229, blue: 255 }
+            fillColor: {red: 0, green: 229, blue: 255}
         });
 
         // 4. PHASE 2: HYDRATION (Optional Wait)
