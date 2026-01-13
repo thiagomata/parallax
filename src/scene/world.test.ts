@@ -27,7 +27,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             calculateScene: vi.fn().mockReturnValue(initialState),
         } as unknown as SceneManager;
 
-        mockGP = createMockGraphicProcessor();
+        mockGP = createMockGraphicProcessor<any>();
 
         // Injecting the stage via constructor
         world = new World(mockManager, loader, stage);
