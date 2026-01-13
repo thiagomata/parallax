@@ -1,5 +1,5 @@
 import p5 from 'p5';
-import { DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3 } from "../../scene/types.ts";
+import {type AssetLoader, DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "../../scene/types.ts";
 import { World } from "../../scene/world.ts";
 import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
 import { SceneManager } from "../../scene/scene_manager.ts";
@@ -7,9 +7,8 @@ import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts
 import { OrbitModifier } from "../../scene/modifiers/orbit_modifier.ts";
 import { CenterFocusModifier } from "../../scene/modifiers/center_focus_modifier.ts";
 
-export const heroExample1 = (p: p5): World<P5Bundler> => {
+export const heroExample1 = (p: p5, loader: AssetLoader<P5Bundler> | null = null): World<P5Bundler> => {
     let gp: P5GraphicProcessor;
-    let loader: P5AssetLoader;
 
     // 1. Initialize Temporal Phase (SceneManager)
     const manager = new SceneManager({
@@ -28,7 +27,7 @@ export const heroExample1 = (p: p5): World<P5Bundler> => {
 
     // 2. Initialize World with the Bridge Loader
     // We create the loader here so we can pass it to the World/Stage
-    loader = new P5AssetLoader(p);
+    loader = loader ?? new P5AssetLoader(p);
     const world = new World<P5Bundler>(manager, loader);
 
     p.setup = () => {

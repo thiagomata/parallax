@@ -76,4 +76,19 @@ export class P5AssetLoader implements AssetLoader<P5Bundler> {
         this.fontCache.set(ref.path, promise);
         return promise;
     }
+
+    /**
+     * Resolves when every asset currently in the cache has finished loading
+     * (either READY or ERROR). This ensures the "Stage" is fully hydrated.
+     */
+    public async waitForAllAssets(): Promise<void> {
+        // Collect all promises from both caches
+        const allPending = [
+            ...this.textureCache.values(),
+            ...this.fontCache.values()
+        ];
+
+        // Wait for all to settle
+        await Promise.all(allPending);
+    }
 }

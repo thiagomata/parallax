@@ -32,7 +32,9 @@ export const createRenderable =
 
     if (blueprint.font) {
         loader.hydrateFont(blueprint.font)
-            .then(asset => assets.font = asset);
+            .then(asset => {
+                assets.font = asset
+        });
     }
 
     return {
@@ -60,6 +62,14 @@ export const createRenderable =
                     case ELEMENT_TYPES.TEXT:
                         gp.drawText(resolved, this.assets, state);
                         break;
+                    case ELEMENT_TYPES.SPHERE:
+                        gp.drawSphere(resolved, this.assets, state);
+                        break;
+                    case ELEMENT_TYPES.FLOOR:
+                        gp.drawFloor(resolved, this.assets, state);
+                        break;
+                    default:
+                        throw new Error(`Unknown type ${resolved.type}`);
                 }
             }
 

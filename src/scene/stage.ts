@@ -1,5 +1,5 @@
 import type {
-    AssetLoader, GraphicProcessor, GraphicsBundle, MapToBlueprint, ResolvedElement, SceneState
+    AssetLoader, GraphicProcessor, GraphicsBundle, MapToBlueprint, RenderableElement, ResolvedElement, SceneState
 } from "./types.ts";
 import {AssetRegistry} from "./asset_registry.ts";
 import {resolveProperty} from "./resolver.ts";
@@ -13,6 +13,14 @@ export class Stage<TBundle extends GraphicsBundle> {
 
     public add<T extends ResolvedElement>(id: string, blueprint: MapToBlueprint<T>): void {
         this.registry.register<T>(id, blueprint);
+    }
+
+    public remove(id: string): void {
+        this.registry.remove(id);
+    }
+
+    public getElement(id: string): RenderableElement<any, TBundle> | undefined {
+        return this.registry.get(id);
     }
 
     public render(gp: GraphicProcessor<TBundle>, state: SceneState): void {

@@ -10,7 +10,7 @@ import {
     type ResolvedText,
     type GraphicProcessor,
     type SceneState,
-    type Vector3
+    type Vector3, type ResolvedSphere, type ResolvedFloor
 } from '../types';
 import type { P5Bundler } from './p5_asset_loader';
 
@@ -96,6 +96,18 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.pop();
     }
 
+    drawSphere(props: ResolvedSphere, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.push();
+        this.translate(props.position);
+        this.rotate(props.rotate);
+
+        this.drawTexture(assets, props, state);
+        this.drawStroke(props, state);
+
+        this.p.sphere(props.radius);
+        this.pop();
+    }
+
     drawPanel(props: ResolvedPanel, assets: ElementAssets<P5Bundler>, state: SceneState): void {
         this.push();
         this.translate(props.position);
@@ -105,6 +117,29 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.drawStroke(props, state);
 
         this.p.plane(props.width, props.height);
+        this.pop();
+    }
+
+    drawFloor(props: ResolvedFloor, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.push();
+
+        // 1. Position the center of the floor
+        this.translate(props.position);
+
+        // 2. Base Rotation: Orient to the XZ plane (Standard Floor Behavior)
+        this.p.rotateX(this.p.HALF_PI);
+
+        // 3. User Rotation: Apply any additional offsets from the blueprint
+        this.rotate(props.rotate);
+
+        // 4. Visual Styles
+        this.drawTexture(assets, props, state);
+        this.drawStroke(props, state);
+
+        // 5. Execution: A floor is a plane with specific width and depth
+        // Note: p5.plane takes (width, height). In floor context, height = depth.
+        this.p.plane(props.width, props.depth);
+
         this.pop();
     }
 

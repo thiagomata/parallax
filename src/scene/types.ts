@@ -131,9 +131,13 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
     noFill(): void;
     stroke(color: ColorRGBA, weight: number, globalAlpha?: number): void;
     noStroke(): void;
+
     drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: SceneState): void;
     drawBox(props: ResolvedBox, assets: ElementAssets<TBundle>, state: SceneState): void;
+    drawSphere(resolved: ResolvedSphere, assets: ElementAssets<TBundle>, state: SceneState): void;
+    drawFloor(resolved: ResolvedFloor, assets: ElementAssets<TBundle>, state: SceneState): void;
     drawPanel(props: ResolvedPanel, assets: ElementAssets<TBundle>, state: SceneState): void;
+
     plane(width: number, height: number): void;
     dist(v1: Vector3, v2: Vector3): number;
     map(val: number, s1: number, st1: number, s2: number, st2: number, clamp?: boolean): number;
@@ -145,6 +149,7 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
     millis(): number;
     deltaTime(): number;
     frameCount(): number;
+
 }
 
 /**

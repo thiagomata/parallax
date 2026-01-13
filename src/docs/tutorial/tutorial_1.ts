@@ -1,0 +1,53 @@
+import p5 from 'p5';
+import { World } from "../../scene/world.ts";
+import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
+import { SceneManager } from "../../scene/scene_manager.ts";
+import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
+import { ELEMENT_TYPES, DEFAULT_SETTINGS } from "../../scene/types.ts";
+
+export const tutorial_1 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
+    let gp: P5GraphicProcessor;
+    let world: World<P5Bundler>;
+
+    // 1. Scene Orchestration
+    const activeManager = manager ?? new SceneManager(DEFAULT_SETTINGS);
+
+    // 2. Asset Pipeline
+    // We create the loader here to pass it to the World/Stage
+    const loader = new P5AssetLoader(p);
+
+    // 3. World Initialization
+    world = new World<P5Bundler>(activeManager, loader);
+
+    p.setup = () => {
+        p.createCanvas(500, 400, p.WEBGL);
+
+        // 4. Bridge Initialization
+        gp = new P5GraphicProcessor(p, loader);
+
+        // 5. PHASE 1: REGISTRATION
+        // Using the "Extreme Typed" addBox method (no manual toProps/casting)
+        world.addBox('box', {
+            type: ELEMENT_TYPES.BOX,
+            size: 100,
+            rotate: {
+                x: -0.25 * Math.PI,
+                y: 0.25 * Math.PI,
+                z: 0
+            },
+            position: { x: 0, y: 0, z: 0 },
+            fillColor: { red: 100, green: 100, blue: 255 },
+            strokeColor: { red: 255, green: 255, blue: 255 },
+        });
+    };
+
+    p.draw = () => {
+        p.background(20);
+
+        // 6. PHASE 3: THE FRAME LOOP
+        // Handles state calc, camera placement, and rendering
+        world.step(gp);
+    };
+
+    return world;
+};
