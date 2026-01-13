@@ -1,9 +1,6 @@
 import {expect, it} from 'vitest';
 import {FallbackNudge} from './fallback_nudge';
-import {
-    type NudgeModifier,
-    type Vector3
-} from './types';
+import {type NudgeModifier, type Vector3} from './types';
 import {createMockState} from "./mock/mock_scene_state.mock.ts";
 
 const mockNudge = (val: Partial<Vector3>, shouldError = false): NudgeModifier => ({

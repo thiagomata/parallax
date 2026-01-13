@@ -1,166 +1,99 @@
-import {
-    ASSET_STATUS,
-    type AssetLoader,
-    type FontAsset,
-    type GraphicProcessor,
-    type RenderableElement,
-    type SceneElementProps,
-    type SceneState,
-    type TextureAsset
-} from "./types.ts";
 import type {SceneManager} from "./scene_manager.ts";
-import {createRenderable, resolve} from "./create_renderable.ts";
+import type {
+    AssetLoader,
+    BlueprintBox,
+    BlueprintFloor,
+    BlueprintPanel,
+    BlueprintSphere,
+    BlueprintText,
+    GraphicProcessor,
+    GraphicsBundle,
+    RenderableElement,
+    SceneState
+} from "./types.ts";
+import {Stage} from "./stage.ts";
 
-export class World {
-    private registry: Map<string, RenderableElement> = new Map();
+export class World<TBundle extends GraphicsBundle> {
+    public readonly stage: Stage<TBundle>;
     private sceneManager: SceneManager;
-    private textureCache: Map<string, Promise<TextureAsset>> = new Map();
-    private fontCache: Map<string, Promise<FontAsset>> = new Map();
     private sceneState: SceneState;
 
-    constructor(sceneManager: SceneManager) {
+    constructor(sceneManager: SceneManager, loader: AssetLoader<TBundle>, stage?: Stage<TBundle>) {
         this.sceneManager = sceneManager;
-        this.sceneState = this.sceneManager.initialState()
+        this.sceneState = sceneManager.initialState();
+        this.stage = stage ?? new Stage<TBundle>(loader);
     }
 
-    public getSceneState(): SceneState {
+    public getCurrentSceneState(): SceneState {
         return this.sceneState;
     }
 
-
-    public clear(): void {
-        this.registry.clear();
+    public addBox(id: string, blueprint: BlueprintBox): void {
+        this.stage.add(id, blueprint);
     }
 
-    /**
-     * STEP 1: Add a "Spec" to the world.
-     * This creates the object, but it is not "Ready" yet.
-     */
-    public addElement(id: string, props: SceneElementProps): void {
-        const element = createRenderable(id, props);
-        this.registry.set(id, element);
+    public addSphere(id: string, blueprint: BlueprintSphere): void {
+        this.stage.add(id, blueprint);
+    }
+
+    public addText(id: string, blueprint: BlueprintText): void {
+        this.stage.add(id, blueprint);
+    }
+
+    public addFloor(id: string, blueprint: BlueprintFloor): void {
+        this.stage.add(id, blueprint);
+    }
+
+    public addPanel(id: string, blueprint: BlueprintPanel): void {
+        this.stage.add(id, blueprint);
+    }
+
+    public getElement(id: string): RenderableElement<any, TBundle> | undefined {
+        return this.stage.getElement(id);
     }
 
     public removeElement(id: string): void {
-        this.registry.delete(id);
+        this.stage.remove(id);
     }
 
-    public getElement(id: string): RenderableElement | undefined {
-        return this.registry.get(id);
-    }
-
-    /**
-     * STEP 2: The "Casting" / Hydration.
-     * This takes all elements in storage and fills their asset slots.
-     */
-    public async hydrate(loader: AssetLoader): Promise<void> {
-        const elements = Array.from(this.registry.values());
-
-        const tasksLoadTextures = elements.map(async (el) => {
-            if (el.assets.texture) return;
-
-            const textureRef = el.props.texture;
-            if (textureRef) {
-                // If this path isn't being loaded yet, start it
-                if (!this.textureCache.has(textureRef.path)) {
-                    this.textureCache.set(textureRef.path, loader.hydrateTexture(textureRef));
-                }
-
-                // Wait for the shared promise (deduplication)
-                el.assets.texture = await this.textureCache.get(textureRef.path)!;
-            } else {
-                el.assets.texture = {
-                    status: ASSET_STATUS.READY,
-                    value: null,
-                };
-            }
-        });
-
-
-        const tasksLoadFonts = elements.map(async (el) => {
-            if (el.assets.font) return;
-
-            const fontRef = el.props.font;
-            if (fontRef) {
-                // If this path isn't being loaded yet, start it
-                if (!this.fontCache.has(fontRef.path)) {
-                    this.fontCache.set(fontRef.path, loader.hydrateFont(fontRef));
-                }
-
-                // Wait for the shared promise (deduplication)
-                el.assets.font = await this.fontCache.get(fontRef.path)!;
-            } else {
-                el.assets.font = {
-                    status: ASSET_STATUS.READY,
-                    value: null,
-                };
-            }
-        });
-
-        await Promise.all(tasksLoadTextures.concat(tasksLoadFonts));
-    }
-
-    /**
-     * STEP 3 & 4: The Game Loop.
-     * Coordinates the Manager's camera and the Renderables.
-     */
-    public step(graphicProcessor: GraphicProcessor): void {
-        // 1. Get the current Perspective from the SceneManager
-        const state = this.sceneManager.calculateScene(
-            graphicProcessor.millis(),       // Total time elapsed
-            graphicProcessor.deltaTime(),    // Time since last frame (important for smooth motion)
-            graphicProcessor.frameCount(),   // The current frame number,
-            this.sceneState,
+    public step(gp: GraphicProcessor<TBundle>): void {
+        // 1. Advance Physics/Logic (Temporal)
+        this.sceneState = this.sceneManager.calculateScene(
+            gp.millis(),
+            gp.deltaTime(),
+            gp.frameCount(),
+            this.sceneState
         );
 
-        // 2. Set the Global Camera on the Engine
-        graphicProcessor.setCamera(state.camera.position, state.camera.lookAt);
+        // 2. Global View Setup
+        gp.setCamera(this.sceneState.camera.position, this.sceneState.camera.lookAt);
 
-        // 3. Draw every object in storage (Sorted for Alpha Blending)
-        // We create a sortable array from the registry
-        const renderQueue = Array.from(this.registry.values())
-            .map(element => ({
-                element,
-                // Calculate distance from camera to the element's position
-                distance: graphicProcessor.dist(state.camera.position, resolve(element.props.position, state)!)
-            }))
-            // Sort Descending: Furthest distance first (Painter's Algorithm)
-            .sort((a, b) => b.distance - a.distance);
+        // 3. Delegate Rendering to the Stage (Spatial)
+        this.stage.render(gp, this.sceneState);
 
-        // 4. Execute the sorted render calls
-        renderQueue.forEach(({element}) => {
-            element.render(graphicProcessor, state);
-        });
-
-        // 5. Handle Debug Logging (Usually drawn last/on top)
-        if (state.settings.debug) {
-            this.renderDebugInfo(graphicProcessor, state);
+        // 4. Overlay Debug
+        if (this.sceneState.settings.debug) {
+            this.renderDebug(gp, this.sceneState);
         }
-        this.sceneState = state;
     }
 
-    private renderDebugInfo(graphicProcessor: GraphicProcessor, state: SceneState) {
+    private renderDebug(gp: GraphicProcessor<TBundle>, state: SceneState) {
         if (!state.debugStateLog) return;
+        const log = state.debugStateLog;
 
-        const log = state.debugStateLog
-
-        // 1. Draw the "Car" status at its coordinates
         if (log.car.x !== undefined) {
-            graphicProcessor.drawLabel(`CAR: ${log.car.name}`, {x: log.car.x, y: log.car.y, z: log.car.z});
+            gp.drawLabel(`CAR: ${log.car.name}`, {x: log.car.x, y: log.car.y, z: log.car.z});
         }
 
-        // 2. Iterate through Nudges (the new version of your elementsSummary loop)
         log.nudges.forEach(nudge => {
             if (nudge.x !== undefined) {
-                graphicProcessor.drawCrosshair({x: nudge.x, y: nudge.y, z: nudge.z}, 5);
-                graphicProcessor.text(`Nudge: ${nudge.name}`, {x: nudge.x, y: nudge.y, z: nudge.z});
+                gp.drawCrosshair({x: nudge.x, y: nudge.y, z: nudge.z}, 5);
+                gp.text(`Nudge: ${nudge.name}`, {x: nudge.x, y: nudge.y, z: nudge.z});
             }
         });
 
-        // 3. Handle Errors visually
         log.errors.forEach((err, i) => {
-            // Draw errors at the top of the screen in 2D space
-            graphicProcessor.drawHUDText(`Error: ${err.message}`, 20, 20 + (i * 20));
+            gp.drawHUDText(`Error: ${err.message}`, 20, 20 + (i * 20));
         });
     }
 }

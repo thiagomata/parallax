@@ -1,6 +1,10 @@
 import {
-    type CarModifier, DEFAULT_SETTINGS,
-    type NudgeModifier, type ScenePlaybackState, type SceneCameraState, type SceneSettings,
+    type CarModifier,
+    DEFAULT_SETTINGS,
+    type NudgeModifier,
+    type SceneCameraState,
+    type ScenePlaybackState,
+    type SceneSettings,
     type SceneState,
     type SceneStateDebugLog,
     type StickModifier,
@@ -76,7 +80,7 @@ export class SceneManager {
                 pitch: 0,
                 direction: this.calculateDirection({
                     yaw: 0,
-                    pitch:0,
+                    pitch: 0,
                     distance: this.stickDistance,
                     priority: 0,
                 }),
@@ -86,7 +90,7 @@ export class SceneManager {
     }
 
     public calculateScene(millis: number, deltaTime: number, frameCount: number, previousState: SceneState): SceneState {
-    // public calculateScene(): SceneState {
+        // public calculateScene(): SceneState {
         let basePos: Vector3 = {...this.settings.camera.position};
         const debugLog = this.isDebug ? this.createEmptyDebugLog() : null;
 

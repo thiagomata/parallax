@@ -1,22 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import {beforeEach, describe, expect, it} from 'vitest';
 import {SceneManager} from "./scene/scene_manager.ts";
-import {createRenderable, resolve, toProps} from "./scene/create_renderable.ts";
-import {
-    DEFAULT_SETTINGS,
-    ELEMENT_TYPES,
-    type ResolvedBoxProps,
-    type SceneState,
-} from "./scene/types.ts";
+import {createBlueprint, DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState,} from "./scene/types.ts";
+import {createRenderable, resolve} from "./scene/resolver.ts";
+import {ChaosLoader} from "./scene/mock/mock_asset_loader.mock.ts";
 
 describe('README Examples Validation', () => {
 
     let manager: SceneManager;
+    let assetLoader = new ChaosLoader();
     beforeEach(() => {
         manager = new SceneManager(DEFAULT_SETTINGS);
     });
 
     it('should validate the Car, Nudge, and Stick modifier examples', () => {
-        const playerPos = { x: 100, y: 50, z: 0 };
+        const playerPos = {x: 100, y: 50, z: 0};
 
         // Example: Car Modifier
         manager.addCarModifier({
@@ -25,7 +22,7 @@ describe('README Examples Validation', () => {
             active: true,
             getCarPosition: (_current, _state) => ({
                 success: true,
-                value: { position: playerPos, name: "player" }
+                value: {position: playerPos, name: "player"}
             })
         });
 
@@ -35,7 +32,7 @@ describe('README Examples Validation', () => {
             active: true,
             getNudge: (_base, state) => ({
                 success: true,
-                value: { y: Math.sin(state.playback.now * 0.002) * 15 }
+                value: {y: Math.sin(state.playback.now * 0.002) * 15}
             })
         });
 
@@ -46,7 +43,7 @@ describe('README Examples Validation', () => {
             priority: 1,
             getStick: (camPos) => ({
                 success: true,
-                value: { yaw: Math.atan2(-camPos.x, camPos.z), pitch: 0, distance: 1000, priority: 1 }
+                value: {yaw: Math.atan2(-camPos.x, camPos.z), pitch: 0, distance: 1000, priority: 1}
             })
         });
 
@@ -60,43 +57,35 @@ describe('README Examples Validation', () => {
     it('should validate the Recursive Spec Resolution examples', () => {
         const state = manager.initialState();
 
-        // Example 1: Static & Computed Props
-        // Added 'position' as it is required by SceneElementProps
-        const props = toProps({
+        // 1. Example 1: Static & Computed Props
+        const blueprint = createBlueprint<ResolvedBox>({
             type: ELEMENT_TYPES.BOX,
-            position: { x: 0, y: 0, z: 0 },
+            position: {x: 0, y: 0, z: 0},
             size: (s: SceneState) => 50 + (s.playback.progress * 20),
-            fillColor: { red: 255, green: 0, blue: 0 }
+            fillColor: {red: 255, green: 0, blue: 0}
         });
 
-        // Example 2: Deep Resolution (Granular)
-        const granularProps = toProps({
+        // We must wrap the blueprint into a Renderable to "compile" the specs
+        const element = createRenderable('test-id', blueprint, assetLoader);
+        const elementResolved = resolve(element, state);
+
+        // 2. Example 2: Deep Resolution (Granular)
+        const granularBlueprint = createBlueprint<ResolvedBox>({
             type: ELEMENT_TYPES.BOX,
             position: {
-                x: (_s: SceneState) => 100, // Prefixed with _ to satisfy unused variable check
+                x: (_s: SceneState) => 100,
                 y: 0,
                 z: 0
             },
             size: 10
         });
 
-        // 1. Validate factory creation (TS6133 fix: we use 'element' below)
-        const element = createRenderable('test-id', props);
-        const elementResolved = resolve(element, state) as unknown as ResolvedBoxProps;
-
-        // 2. Validate standalone resolution utility
-        const resolved = resolve(props, state) as ResolvedBoxProps;
-        const granularResolved = resolve(granularProps, state) as ResolvedBoxProps;
+        const granularElement = createRenderable('granular-id', granularBlueprint, assetLoader);
+        const granularResolved = resolve(granularElement, state);
 
         // Assertions
-        expect(elementResolved.id).toBe('test-id');
-        expect(resolved.size).toBe(50);
-
-        // TS18048 fix: resolved.fillColor is now guaranteed by the types and the factory
-        if (resolved.fillColor) {
-            expect(resolved.fillColor.red).toBe(255);
-        }
-
+        expect(elementResolved.size).toBe(50);
+        expect(elementResolved.fillColor?.red).toBe(255);
         expect(granularResolved.position.x).toBe(100);
     });
 });

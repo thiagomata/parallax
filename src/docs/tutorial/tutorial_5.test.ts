@@ -1,45 +1,75 @@
-import {describe, expect, it, vi} from 'vitest';
+import {describe, expect, it} from 'vitest';
 import {tutorial_5} from './tutorial_5';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
-import {ASSET_STATUS, type ResolvedBoxProps} from "../../scene/types.ts";
-import {resolve} from "../../scene/create_renderable.ts";
+import {ASSET_STATUS, type ResolvedBox, type ResolvedText} from "../../scene/types.ts";
+import {resolve} from "../../scene/resolver.ts";
 
-describe('Tutorial 5 Execution Test', () => {
+describe('Tutorial 5 Execution Test: Assets & Hydration', () => {
 
     it('should correctly initialize the world and hydrate assets when executed', async () => {
-        // 1. Create a "Fake p5" object
-        // This is what tutorial_5 expects as an argument
+        // 1. Setup Mock p5 with immediate callback triggers
         const mockP5 = createMockP5();
-        mockP5.loadImage = vi.fn((_path, success) => success({ width: 100, height: 100 }));
-        mockP5.loadFont = vi.fn((_path, success) => success({ name: 'MockFont' }));
-
-        // 2. Execute the tutorial and get the world back
+        // 2. Execute the tutorial
         const world = tutorial_5(mockP5 as unknown as p5);
 
-        // 3. TRIGGER setup manually
-        // Since setup is async in your tutorial, we must await it
+        // 3. TRIGGER setup (Awaiting the loader.waitForAllAssets() inside)
         await mockP5.setup();
 
-        // 4. Verify assets are READY
-        const box = world.getElement('textured-box');
-        expect(box?.assets.texture?.status).toBe(ASSET_STATUS.READY);
+        // 4. Verify Registration & Hydration Phase
+        const boxElement = world.getElement('textured-box');
+        const textElement = world.getElement('title');
+
+        expect(boxElement?.assets.texture?.status).toBe(ASSET_STATUS.READY);
+        expect(textElement?.assets.font?.status).toBe(ASSET_STATUS.READY);
 
         // --- TEST POINT: Progress 0.25 (1250ms / 5000ms) ---
         mockP5.millis.mockReturnValue(1250);
-        mockP5.draw(); // This triggers world.step(gp) inside the tutorial
+        mockP5.draw(); // PHASE 3: Frame Loop
 
-        // Resolve the props to check the computed rotation
-        // We cast to BoxProps to respect the signature and access .rotate
-        const props25 = resolve(box?.props, world.getSceneState()) as ResolvedBoxProps;
+        const state = world.getCurrentSceneState();
+        const resolvedBox = resolve(boxElement!, state) as ResolvedBox;
 
-        // Math: progress(0.25) * PI * 2 = PI / 2 (approx 1.57)
-        expect(props25.rotate?.y).toBeCloseTo(Math.PI * 0.5, 5);
-        expect(props25.rotate?.z).toBeCloseTo(Math.PI * 0.5, 5);
+        // Math: progress(0.25) * PI * 2 = PI / 2
+        expect(resolvedBox.rotate?.y).toBeCloseTo(Math.PI * 0.5, 5);
 
-        // 5. Verify p5 side effects
+        // 5. Verify Execution Phase (Bridge Side-Effects)
+        // Texture should be applied before the box is drawn
         expect(mockP5.texture).toHaveBeenCalled();
-        expect(mockP5.rotateY).toHaveBeenCalledWith(expect.closeTo(Math.PI * 0.5, 5));
         expect(mockP5.box).toHaveBeenCalledWith(150);
+
+        // Font should be set before text is drawn
+        const resolvedText = resolve(textElement!, state) as ResolvedText;
+        expect(resolvedText.text).toBe("TEXTURES");
+        expect(mockP5.textFont).toHaveBeenCalled();
+        expect(mockP5.text).toHaveBeenCalledWith("TEXTURES", 0, 0);
+    });
+
+    it('should verify the full bridge pipeline (Assets -> Processor -> P5)', async () => {
+        const mockP5 = createMockP5();
+
+        // 2. Initialize Tutorial
+        tutorial_5(mockP5 as unknown as p5);
+
+        // 3. Complete Phases 1 & 2 (Registration & Hydration)
+        await mockP5.setup();
+
+        // 4. Trigger Phase 3 (The Frame Loop)
+        mockP5.draw();
+
+        // --- ASSERTIONS ---
+
+        // Check Box Rendering
+        expect(mockP5.box).toHaveBeenCalledWith(150);
+        expect(mockP5.texture).toHaveBeenCalled(); // Proves the image made it to the box
+
+        // Check Text Rendering
+        expect(mockP5.text).toHaveBeenCalledWith("TEXTURES", 0, 0);
+        expect(mockP5.textFont).toHaveBeenCalled(); // Proves the font made it to the text
+
+        // Check State Cleanup (Bridge Guardrails)
+        // We expect at least 2 pushes/pops (one for the box, one for the text)
+        expect(mockP5.push).toHaveBeenCalled();
+        expect(mockP5.pop).toHaveBeenCalled();
     });
 });

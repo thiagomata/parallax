@@ -4,64 +4,91 @@ import {
     type AssetLoader,
     type FontAsset,
     type FontRef,
+    type GraphicsBundle,
     type TextureAsset,
-    type TextureRef
+    type TextureRef,
 } from '../types';
 
-export class P5AssetLoader implements AssetLoader {
+export interface P5Bundler extends GraphicsBundle {
+    readonly texture: p5.Image;
+    readonly font: p5.Font;
+}
+
+export class P5AssetLoader implements AssetLoader<P5Bundler> {
     private p: p5;
+    private textureCache = new Map<string, Promise<TextureAsset<P5Bundler['texture']>>>();
+    private fontCache = new Map<string, Promise<FontAsset<P5Bundler['font']>>>();
 
     constructor(p: p5) {
         this.p = p;
     }
 
-    public async hydrateTexture(ref: TextureRef): Promise<TextureAsset> {
-        return new Promise((resolve) => {
+    public hydrateTexture(ref: TextureRef): Promise<TextureAsset<P5Bundler['texture']>> {
+        const cached = this.textureCache.get(ref.path);
+        if (cached) return cached;
+
+        const promise = new Promise<TextureAsset<P5Bundler['texture']>>((resolve) => {
             this.p.loadImage(
                 ref.path,
-                (img) => {
-                    resolve({
+                (img) => resolve(
+                    {
                         status: ASSET_STATUS.READY,
-                        value: {
-                            internalRef: img,
-                            texture: ref
-                        },
-                    });
-                },
-                (err) => {
-                    console.error(`Failed to load texture: ${ref.path}`, err);
-                    resolve({
+                        value: {texture: ref, internalRef: img}
+                    }
+                ),
+                () => resolve(
+                    {
                         status: ASSET_STATUS.ERROR,
                         value: null,
-                        error: `Could not load image at ${ref.path}`
-                    });
-                }
+                        error: `Load failed: ${ref.path}`
+                    }
+                )
             );
         });
+
+        this.textureCache.set(ref.path, promise);
+        return promise;
     }
 
-    public async hydrateFont(ref: FontRef): Promise<FontAsset> {
-        return new Promise((resolve) => {
+    public hydrateFont(ref: FontRef): Promise<FontAsset<P5Bundler['font']>> {
+        const cached = this.fontCache.get(ref.path);
+        if (cached) return cached;
+
+        const promise = new Promise<FontAsset<P5Bundler['font']>>((resolve) => {
             this.p.loadFont(
                 ref.path,
-                (font) => {
-                    resolve({
+                (fnt) => resolve(
+                    {
                         status: ASSET_STATUS.READY,
-                        value: {
-                            internalRef: font,
-                            font: ref
-                        },
-                    });
-                },
-                (err: any) => {
-                    console.error(`Failed to load font: ${ref.path}`, err);
-                    resolve({
+                        value: {font: ref, internalRef: fnt}
+                    }
+                ),
+                () => resolve(
+                    {
                         status: ASSET_STATUS.ERROR,
                         value: null,
-                        error: `Could not load font at ${ref.path}`
-                    });
-                }
+                        error: "Load failed"
+                    }
+                )
             );
         });
+
+        this.fontCache.set(ref.path, promise);
+        return promise;
+    }
+
+    /**
+     * Resolves when every asset currently in the cache has finished loading
+     * (either READY or ERROR). This ensures the "Stage" is fully hydrated.
+     */
+    public async waitForAllAssets(): Promise<void> {
+        // Collect all promises from both caches
+        const allPending = [
+            ...this.textureCache.values(),
+            ...this.fontCache.values()
+        ];
+
+        // Wait for all to settle
+        await Promise.all(allPending);
     }
 }

@@ -4,13 +4,29 @@ export function createMockP5() {
     let mockP5 = {
         fill: vi.fn(),
         box: vi.fn(),
+        sphere: vi.fn(),
+        plane: vi.fn(),
         pop: vi.fn(),
-        loadImage: vi.fn(),
-        loadFont: vi.fn(),
+        loadImage: vi.fn(
+            (_args, success, _failure) => {
+                success()
+            }
+        ),
+        loadFont: vi.fn(
+            (_args, success, _failure) => {
+                success()
+            }
+        ),
         createCanvas: vi.fn(),
         background: vi.fn(),
         camera: vi.fn(),
-        dist: vi.fn(),
+        dist: vi.fn(
+            (v1x, v1y, v1z, v2x, v2y, v2z) => {
+                return Math.sqrt(
+                    Math.pow(v2x - v1x, 2) + Math.pow(v2y - v1y, 2) + Math.pow(v2z - v1z, 2)
+                )
+            }
+        ),
         push: vi.fn(),
         translate: vi.fn(),
         millis: vi.fn(),
@@ -21,6 +37,9 @@ export function createMockP5() {
         strokeWidth: vi.fn(),
         noStroke: vi.fn(),
         stroke: vi.fn(),
+        noTint: vi.fn(),
+        noFill: vi.fn(),
+        line: vi.fn(),
         texture: vi.fn(),
         textureMode: vi.fn(),
         textFont: vi.fn(),
@@ -29,6 +48,7 @@ export function createMockP5() {
         text: vi.fn(),
         tint: vi.fn(),
         WEBGL: 'webgl',
+        NORMAL: 'normal',
         setup: undefined as any,
         draw: undefined as any,
     };

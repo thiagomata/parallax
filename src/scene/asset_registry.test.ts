@@ -1,115 +1,107 @@
-import {beforeEach, describe, expect, it} from 'vitest';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {AssetRegistry} from './asset_registry';
-import {ASSET_STATUS, type BoxProps, ELEMENT_TYPES, type TextProps} from './types';
-import {toProps} from "./create_renderable.ts";
+import {ASSET_STATUS, type AssetLoader, ELEMENT_TYPES,} from './types';
+import type {MockBundle} from "./mock/mock_type.mock.ts";
+
+/**
+ * Mocking the Loader to observe Phase 2 triggers
+ */
+const createMockLoader = (): AssetLoader<MockBundle> => ({
+    hydrateTexture: vi.fn().mockResolvedValue({
+        status: ASSET_STATUS.READY,
+        value: {internalRef: {id: 'tex-1'}}
+    }),
+    hydrateFont: vi.fn().mockResolvedValue({
+        status: ASSET_STATUS.READY,
+        value: {internalRef: {name: 'Arial'}}
+    }),
+});
 
 describe('AssetRegistry', () => {
-    // We use 'string' and 'number' as dummy types for TTexture and TFont
-    let registry: AssetRegistry<string, number>;
+    let loader: AssetLoader<MockBundle>;
+    let registry: AssetRegistry<MockBundle>;
 
     beforeEach(() => {
-        registry = new AssetRegistry<string, number>();
+        loader = createMockLoader();
+        registry = new AssetRegistry<MockBundle>(loader);
     });
 
-    describe('defineShape', () => {
-        it('should initialize with PENDING status if a texture is provided', () => {
+    describe('register', () => {
+        it('should create a RenderableElement and trigger texture hydration', () => {
             const id = 'textured-box';
-            const props = toProps({
+            const blueprint = {
                 type: ELEMENT_TYPES.BOX,
                 position: {x: 0, y: 0, z: 0},
                 size: 10,
                 texture: {path: 'grass.png', width: 64, height: 64}
-            }) as BoxProps;
+            };
 
-            const spec = registry.defineShape(id, props);
+            const element = registry.register(id, blueprint);
 
-            expect(spec.id).toBe(id);
-            expect(spec.asset.status).toBe(ASSET_STATUS.PENDING);
-            expect(spec.asset.value).toBeNull();
+            // Phase 1: Identity & Structure
+            expect(element.id).toBe(id);
+            // Verify that the 'type' static key was preserved correctly (no kind: static)
+            expect(element.dynamic.type).toBe(ELEMENT_TYPES.BOX);
+
+            // Phase 2: Asset Hydration Triggered
+            expect(element.assets.texture?.status).toBe(ASSET_STATUS.PENDING);
+            expect(loader.hydrateTexture).toHaveBeenCalledWith(blueprint.texture);
         });
 
-        it('should initialize with READY status if NO texture is provided', () => {
-            const props = toProps({
+        it('should return the existing instance and PREVENT re-hydration if ID is already registered', () => {
+            const blueprint = {
                 type: ELEMENT_TYPES.BOX,
+                size: 5,
                 position: {x: 0, y: 0, z: 0},
-                size: 10
-            }) as BoxProps;
+                texture: {path: 'repeat.png', width: 1, height: 1}
+            };
 
-            const spec = registry.defineShape('plain-box', props);
+            const first = registry.register('item-1', blueprint);
 
-            expect(spec.asset.status).toBe(ASSET_STATUS.READY);
-            expect(spec.asset.value).toBeNull();
-        });
+            // Reset mock to see if second call triggers it again
+            vi.mocked(loader.hydrateTexture).mockClear();
 
-        it('should return the existing spec if the ID is already defined', () => {
-            const props = toProps(
-                {type: ELEMENT_TYPES.BOX, position: {x: 0, y: 0, z: 0}, size: 5}
-            ) as BoxProps;
-            const first = registry.defineShape('item-1', props);
-            const second = registry.defineShape('item-1', props);
+            const second = registry.register('item-1', blueprint);
 
-            expect(first).toBe(second); // Identity check
+            expect(first).toBe(second);
+            // CRITICAL: Respecting efficiency - don't re-hydrate what is already alive
+            expect(loader.hydrateTexture).not.toHaveBeenCalled();
         });
     });
 
-    describe('defineText', () => {
-        it('should initialize with PENDING status if a font is provided', () => {
-            const props = toProps({
-                type: ELEMENT_TYPES.TEXT,
-                text: 'Hello',
-                size: 12,
-                position: {x: 0, y: 0, z: 0},
-                font: {name: 'Roboto', path: 'roboto.ttf'}
-            }) as TextProps;
-
-            const spec = registry.defineText('label-1', props);
-
-            expect(spec.asset.status).toBe(ASSET_STATUS.PENDING);
-        });
-
-        it('should initialize with READY status if NO font is provided', () => {
-            const props = toProps({
-                type: ELEMENT_TYPES.TEXT,
-                text: 'No Font',
-                size: 12,
-                position: {x: 0, y: 0, z: 0}
-            }) as TextProps;
-
-            const spec = registry.defineText('plain-text', props);
-
-            expect(spec.asset.status).toBe(ASSET_STATUS.READY);
-        });
-    });
-
-    describe('Retrieval and Iteration', () => {
-        it('should retrieve shapes and texts by ID', () => {
-            registry.defineShape('box-1',
-                toProps({type: ELEMENT_TYPES.BOX, size: 1, position: {x: 0, y: 0, z: 0}})
-            );
-            registry.defineText('txt-1',
-                toProps({type: ELEMENT_TYPES.TEXT, text: 'hi', size: 1, position: {x: 0, y: 0, z: 0}})
-            );
-
-            expect(registry.getShape('box-1')).toBeDefined();
-            expect(registry.getText('txt-1')).toBeDefined();
-        });
-
-        it('should provide an iterator over all combined specs', () => {
-            registry.defineShape('s1', toProps({type: ELEMENT_TYPES.BOX, size: 1, position: {x: 0, y: 0, z: 0}}));
-            registry.defineShape('s2', toProps({type: ELEMENT_TYPES.BOX, size: 1, position: {x: 0, y: 0, z: 0}}));
-            registry.defineText('t1', toProps({
-                type: ELEMENT_TYPES.TEXT,
-                text: 'a',
+    describe('Collection Integrity', () => {
+        it('should correctly store heterogeneous RenderableElements', () => {
+            registry.register('box-1', {
+                type: ELEMENT_TYPES.BOX,
                 size: 1,
                 position: {x: 0, y: 0, z: 0}
-            }));
+            });
+            registry.register('text-1', {
+                type: ELEMENT_TYPES.TEXT,
+                text: 'hi',
+                size: 12,
+                position: {x: 0, y: 0, z: 0}
+            });
 
-            const allSpecs = Array.from(registry.all());
+            const all = Array.from(registry.all());
 
-            expect(allSpecs).toHaveLength(3);
-            // Verify we have both types in the stream
-            expect(allSpecs.some(s => s.id === 's1')).toBe(true);
-            expect(allSpecs.some(s => s.id === 't1')).toBe(true);
+            // Verify we have RenderableElement objects, not Resolved objects
+            expect(all[0]).toHaveProperty('render');
+            expect(all[0]).toHaveProperty('dynamic');
+            expect(all[1]).toHaveProperty('assets');
+            expect(all).toHaveLength(2);
+        });
+    });
+
+    describe('Lifecycle: Removal', () => {
+        it('should clean up the registry completely on remove', () => {
+            registry.register('target', {type: ELEMENT_TYPES.BOX, size: 1, position: {x: 0, y: 0, z: 0}});
+            expect(registry.get('target')).toBeDefined();
+
+            registry.remove('target');
+
+            expect(registry.get('target')).toBeUndefined();
+            expect(Array.from(registry.all())).toHaveLength(0);
         });
     });
 });

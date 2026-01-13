@@ -1,86 +1,95 @@
-import { describe, it, expect } from 'vitest';
-import { tutorial_1 } from './tutorial_1';
-import { World } from "../../scene/world";
-import { SceneManager } from "../../scene/scene_manager";
-import {type BoxProps, ELEMENT_TYPES, type ResolvedBoxProps, type SceneState} from "../../scene/types";
-import { toProps, resolve } from "../../scene/create_renderable";
-import { createMockGraphicProcessor } from "../../scene/mock/mock_graphic_processor.mock.ts";
+import {describe, expect, it} from 'vitest';
+import {tutorial_1} from './tutorial_1';
+import {World} from "../../scene/world";
+import {SceneManager} from "../../scene/scene_manager";
+import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState} from "../../scene/types";
+import {resolve} from "../../scene/resolver"; // Using the Manifest-compliant resolver
+import {createMockGraphicProcessor} from "../../scene/mock/mock_graphic_processor.mock.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
+import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import p5 from "p5";
 
 describe('Tutorial 1: Foundation & Engine Integration', () => {
 
-    // --- SECTION 1: ENGINE UNIT TESTS (Your Original Tests) ---
-    // These ensure the core "World" class respects property resolution logic.
     describe('Engine Mechanics', () => {
-        it('should correctly resolve static box properties in the scene state', () => {
-            const manager = new SceneManager();
-            const world = new World(manager);
+        it('should correctly register and find elements in the world', () => {
+            const mockP5 = createMockP5();
+            const loader = new P5AssetLoader(mockP5 as unknown as p5);
+            const manager = new SceneManager(DEFAULT_SETTINGS);
+            const world = new World(manager, loader);
 
-            const boxProps = toProps({
+            // Use the new extreme typed method instead of addElement/toProps
+            world.addBox('test-box', {
                 type: ELEMENT_TYPES.BOX,
                 size: 100,
-                position: { x: 10, y: 20, z: 30 },
-                fillColor: { red: 100, green: 100, blue: 255 },
-            }) as BoxProps;
+                position: {x: 10, y: 20, z: 30},
+                fillColor: {red: 100, green: 100, blue: 255},
+            });
 
-            world.addElement('test-box', boxProps);
-            const state = world.getSceneState();
+            const state = world.getCurrentSceneState();
 
             expect(state.settings.window.width).toBe(800);
             expect(world.getElement('test-box')).toBeDefined();
         });
 
         it('should resolve computed properties dynamically during world.step', () => {
-            const manager = new SceneManager();
-            const world = new World(manager);
+            const mockP5 = createMockP5();
+            const loader = new P5AssetLoader(mockP5 as unknown as p5);
+            const manager = new SceneManager(DEFAULT_SETTINGS);
+            const world = new World(manager, loader);
             const mockGP = createMockGraphicProcessor();
 
-            world.addElement('dynamic-box', toProps({
+            world.addBox('dynamic-box', {
                 type: ELEMENT_TYPES.BOX,
                 size: (state: SceneState) => state.playback.now > 1000 ? 200 : 100,
-                position: { x: 0, y: 0, z: 0 }
-            }) as BoxProps);
+                position: {x: 0, y: 0, z: 0}
+            });
 
+            // T = 0
             mockGP.millis.mockReturnValue(0);
             world.step(mockGP);
+
+            // The first draw should be size 100
             expect(mockGP.drawBox).toHaveBeenCalledWith(
-                expect.objectContaining({ size: 100 }),
+                expect.objectContaining({size: 100}),
                 expect.anything(),
                 expect.anything()
             );
 
+            // T = 2000
             mockGP.millis.mockReturnValue(2000);
             world.step(mockGP);
+
+            // The last draw should be size 200
             expect(mockGP.drawBox).toHaveBeenLastCalledWith(
-                expect.objectContaining({ size: 200 }),
+                expect.objectContaining({size: 200}),
                 expect.anything(),
                 expect.anything()
             );
         });
     });
 
-    // --- SECTION 2: DOCUMENTATION INTEGRATION (The New Pattern) ---
-    // These ensure that the actual tutorial code is bug-free and wires up correctly.
     describe('Tutorial Function Execution', () => {
         it('should initialize the tutorial world and render with p5', async () => {
             const mockP5 = createMockP5();
 
-            // Execute actual tutorial
+            // Execute actual tutorial logic
             const world = tutorial_1(mockP5 as unknown as p5);
-            await mockP5.setup();
+            mockP5.setup(); // Triggers registration
 
             // Verify the specific content defined in tutorial_1.ts
             const element = world.getElement('box');
-            if(!element) throw new Error("Tutorial box missing");
+            if (!element) throw new Error("Tutorial box missing");
 
-            const resolved = resolve(element.props, world.getSceneState()) as ResolvedBoxProps;
+            // Use our deterministic resolver
+            const resolved = resolve(element, world.getCurrentSceneState()) as ResolvedBox;
             expect(resolved.size).toBe(100);
             expect(resolved.fillColor?.blue).toBe(255);
 
-            // Verify the render loop actually hits p5
+            // Verify the render loop actually hits p5 via the Bridge
             mockP5.draw();
             expect(mockP5.box).toHaveBeenCalledWith(100);
+            // p5 fill uses 0-255 for RGBA
             expect(mockP5.fill).toHaveBeenCalledWith(100, 100, 255, 255);
         });
     });

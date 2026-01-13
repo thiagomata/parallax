@@ -1,40 +1,39 @@
 import {World} from "../../scene/world.ts";
 import {SceneManager} from "../../scene/scene_manager.ts";
-import {toProps} from "../../scene/create_renderable.ts";
-import {DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
+import {resolve} from "../../scene/resolver.ts"; // New Manifest-compliant resolver
+import {ASSET_STATUS, DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 
 // libs
 import p5 from 'p5';
 import Prism from 'prismjs';
+import {transform} from 'sucrase';
 
-// Syntax Highlighting Support
+// Styles & Highlighting
 import 'prismjs/themes/prism-tomorrow.css';
 import '../style/style.css';
 import 'prismjs/components/prism-typescript';
 import 'prismjs/components/prism-javascript';
-import {transform} from 'sucrase';
 
 // Tutorial Steps
 import {tutorial_1} from './tutorial_1.ts';
 import step1Source from './tutorial_1.ts?raw';
-
 import {tutorial_2} from './tutorial_2.ts';
 import step2Source from './tutorial_2.ts?raw';
-
 import {tutorial_3} from './tutorial_3.ts';
 import step3Source from './tutorial_3.ts?raw';
-
 import {tutorial_4} from './tutorial_4.ts';
 import step4Source from './tutorial_4.ts?raw';
-
 import {tutorial_5} from './tutorial_5.ts';
 import step5Source from './tutorial_5.ts?raw';
+import tutorial_6 from "./tutorial_6.ts";
+import step6Source from './tutorial_6.ts?raw';
 
 /**
- * [2026-01-07] Respecting signatures:
- * We expose the engine to the window so the dynamic code can resolve types.
+ * ARCHITECTURAL EXPOSURE
+ * We bind the core engine classes to the window so the transpiled
+ * 'live-editor' code can find them via the fake 'require'.
  */
 Object.assign(window, {
     World,
@@ -43,15 +42,13 @@ Object.assign(window, {
     P5GraphicProcessor,
     ELEMENT_TYPES,
     DEFAULT_SETTINGS,
-    toProps,
-    p5 // Also expose p5 for static method access if needed
+    ASSET_STATUS,
+    resolve, // Expose for users who want to debug element state in console
+    p5
 });
 
 type P5Sketch = (p: p5) => void;
 
-/**
- * Manages the lifecycle of a tutorial step
- */
 function renderStep(containerId: string, title: string, initialSketch: P5Sketch, source: string) {
     const root = document.getElementById('tutorial-root');
     if (!root) return;
@@ -87,94 +84,52 @@ function renderStep(containerId: string, title: string, initialSketch: P5Sketch,
     `;
     root.appendChild(section);
 
-    // Initial state
     let currentP5 = new p5(initialSketch, document.getElementById(`canvas-${containerId}`)!);
     const codeElem = document.getElementById(`code-${containerId}`)! as HTMLElement;
 
     const executeUpdate = () => {
         const rawText = codeElem.innerText;
         const errorDiv = document.getElementById(`error-${containerId}`)!;
-
-        // Reset UI
         errorDiv.style.display = 'none';
-        errorDiv.innerText = '';
 
         try {
-            // --- PHASE 1: TRANSPILE (Check if TS is valid) ---
-            // If the user has a syntax error, Sucrase throws here.
+            // Transpile TS -> JS for the browser
             const compiledCode = transform(rawText, {
                 transforms: ['typescript', 'imports'],
             }).code;
 
-            // --- PHASE 2: EXTRACT FUNCTION ---
             const fnMatch = rawText.match(/export\s+(?:const|function)\s+([a-zA-Z0-9_]+)/);
             const fnName = fnMatch ? fnMatch[1] : null;
             if (!fnName) throw new Error("No exported function found.");
 
-            // --- PHASE 3: FACTORY & WRAPPER ---
-            const factory = new Function('require', 'exports', 'p', compiledCode);
+            // The 'Fake Require' maps imports in the editor to the window objects we exposed
+            const factory = new Function('require', 'exports', compiledCode);
             const fakeExports: any = {};
-            const fakeRequire = () => window;
+            const fakeRequire = (_name: string) => window;
 
-            factory.call(window, fakeRequire, fakeExports, null);
-            const originalSketch = fakeExports[fnName];
+            factory(fakeRequire, fakeExports);
+            const updatedSketch = fakeExports[fnName];
 
-            // We wrap the sketch to catch runtime errors (e.g., calling undefined functions)
-            const safeSketch = (p: p5) => {
-                try {
-                    originalSketch(p);
-                } catch (runtimeError: any) {
-                    showUIError(runtimeError, "Runtime");
-                }
-            };
-
-            // --- PHASE 4: UPDATE P5 ---
             currentP5.remove();
-            currentP5 = new p5(safeSketch, document.getElementById(`canvas-${containerId}`)!);
+            currentP5 = new p5(updatedSketch, document.getElementById(`canvas-${containerId}`)!);
 
-        } catch (compileError: any) {
-            // This catches the Sucrase SyntaxError you just saw
-            showUIError(compileError, "Syntax/TypeScript");
-        }
-
-        function showUIError(e: any, type: string) {
-            // Sucrase errors usually include a line number in e.loc
-            const line = e.loc ? ` at line ${e.loc.line}` : "";
-            errorDiv.innerText = `⚠️ ${type} Error${line}: ${e.message}`;
+        } catch (e: any) {
+            errorDiv.innerText = `⚠️ Error: ${e.message}`;
             errorDiv.style.display = 'block';
-
-            // Shake the error box to alert the user
-            errorDiv.classList.remove('shake');
-            void errorDiv.offsetWidth; // trigger reflow
-            errorDiv.classList.add('shake');
         }
     };
 
-    // Event Listeners
     document.getElementById(`run-${containerId}`)?.addEventListener('click', executeUpdate);
-
     document.getElementById(`reset-${containerId}`)?.addEventListener('click', () => {
         codeElem.innerHTML = Prism.highlight(source, Prism.languages.typescript, 'typescript');
         executeUpdate();
     });
-
-    document.getElementById(`fs-${containerId}`)?.addEventListener('click', () => {
-        const canvasContainer = document.getElementById(`canvas-${containerId}`);
-        // p5 always creates a canvas element inside the provided node
-        const canvas = canvasContainer?.querySelector('canvas');
-
-        if (canvas) {
-            if (canvas.requestFullscreen) {
-                canvas.requestFullscreen();
-            } else if ((canvas as any).webkitRequestFullscreen) { /* Safari support */
-                (canvas as any).webkitRequestFullscreen();
-            }
-        }
-    });
 }
 
-renderStep('tutorial-1', '1. The Foundation', tutorial_1, step1Source);
-renderStep('tutorial-2', '2. Animation', tutorial_2, step2Source);
-renderStep('tutorial-3', '3. Movement', tutorial_3, step3Source);
-renderStep('tutorial-4', '4. Camera', tutorial_4, step4Source);
-renderStep('tutorial-5', '5. Stick and Nudge', tutorial_5, step5Source);
+// Initialize the updated Curriculum
+renderStep('tutorial-1', '1. The Foundation (Registration)', tutorial_1, step1Source);
+renderStep('tutorial-2', '2. Animation (Temporal Phase)', tutorial_2, step2Source);
+renderStep('tutorial-3', '3. Movement (Spatial Orbit)', tutorial_3, step3Source);
+renderStep('tutorial-4', '4. Camera (Modifiers)', tutorial_4, step4Source);
+renderStep('tutorial-5', '5. Textures & Fonts (Hydration)', tutorial_5, step5Source);
+renderStep('tutorial-6', '6. Integrated Scene (Hybrid Props)', tutorial_6, step6Source);

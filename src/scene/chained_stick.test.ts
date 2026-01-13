@@ -1,8 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {ChainedStick} from "./chained_stick";
-import {
-    type StickModifier
-} from "./types";
+import {type StickModifier} from "./types";
 import {createMockState} from "./mock/mock_scene_state.mock.ts";
 
 describe("ChainedStick Decorator", () => {

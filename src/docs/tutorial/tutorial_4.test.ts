@@ -4,35 +4,42 @@ import {SceneManager} from "../../scene/scene_manager.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 
-describe('Tutorial 4: SceneManager Injection', () => {
+describe('Tutorial 4: SceneManager & Camera Injection', () => {
 
-    it('should drive the tutorial using a controlled manager', async () => {
+    it('should drive the tutorial using a controlled manager and modifiers', async () => {
         const mockP5 = createMockP5();
 
-        mockP5.millis.mockReturnValue(0);
-
-        // 1. Create and configure the manager in the test
+        // 1. Initialize manager (The Temporal/Camera Brain)
         const manager = new SceneManager();
-        // Note: No need for mockGP anymore!
 
+        // 2. Execute tutorial logic
+        // We pass our manager to control time and modifiers from the test
         const world = tutorial_4(mockP5 as unknown as p5, manager);
-        await mockP5.setup();
+        mockP5.setup(); // Triggers registration and modifier attachment
 
-        // --- TEST POINT: T=0 ---
+        // --- TEST POINT: T=0ms (Start of Orbit) ---
         mockP5.millis.mockReturnValue(0);
-        mockP5.draw();
+        mockP5.draw(); // PHASE 3: Calculate state -> Render
 
-        // 1. Verify Camera State in the World
-        expect(world.getSceneState().camera.position.z).toBe(800);
+        const state0 = world.getCurrentSceneState();
 
-        // 2. Verify p5 drawing activity
-        // If there are 5 boxes, p5.box() should have been called 5 times
+        // Orbit starting position at distance 800
+        expect(state0.camera.position.z).toBeCloseTo(800, 0);
+
+        // Verify the 5 boxes registered in the loop were drawn
         expect(mockP5.box).toHaveBeenCalledTimes(5);
 
-        // --- TEST POINT: T=2500 ---
+        // --- TEST POINT: T=2500ms (Halfway through 5s orbit) ---
+        // At 50% progress, the camera should be on the opposite side (z = -800)
         mockP5.millis.mockReturnValue(2500);
         mockP5.draw();
 
-        expect(world.getSceneState().camera.position.z).toBeCloseTo(-800, 5);
+        const state50 = world.getCurrentSceneState();
+
+        // OrbitModifier: cos(PI) * 800 = -800
+        expect(state50.camera.position.z).toBeCloseTo(-800, 0);
+
+        // Ensure the CenterFocusModifier is keeping the camera pointed at origin
+        expect(state50.camera.lookAt).toMatchObject({x: 0, y: 0, z: 0});
     });
 });

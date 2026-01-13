@@ -11,7 +11,10 @@ export class OrbitModifier implements CarModifier {
         this.radius = radius;
     }
 
-    getCarPosition(_initialCam: Vector3, currentState: SceneState): FailableResult<{ name: string; position: Vector3 }> {
+    getCarPosition(_initialCam: Vector3, currentState: SceneState): FailableResult<{
+        name: string;
+        position: Vector3
+    }> {
         const circularProgress = currentState.playback.progress * 2 * Math.PI;
 
         // Exactly the same math as the dummy

@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { tutorial_2 } from './tutorial_2';
-import { SceneManager } from "../../scene/scene_manager.ts";
-import {DEFAULT_SETTINGS, type ResolvedBoxProps} from "../../scene/types.ts";
-import { resolve } from "../../scene/create_renderable.ts";
+import {describe, expect, it} from 'vitest';
+import {tutorial_2} from './tutorial_2';
+import {SceneManager} from "../../scene/scene_manager.ts";
+import {DEFAULT_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
+import {resolve} from "../../scene/resolver.ts"; // The new Resolver
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 
@@ -12,36 +12,57 @@ describe('Tutorial 2: Progression Integration', () => {
         const mockP5 = createMockP5();
         mockP5.millis.mockReturnValue(0);
 
-        // 1. Inject a manager with 4000ms duration to keep your existing math
+        // 1. Inject a manager with 4000ms duration for predictable math
         const manager = new SceneManager({
             ...DEFAULT_SETTINGS,
-            playback: { ...DEFAULT_SETTINGS.playback, duration: 4000 }
+            playback: {
+                ...DEFAULT_SETTINGS.playback,
+                duration: 4000,
+                isLoop: true
+            }
         });
 
         // 2. Execute the actual tutorial function
         const world = tutorial_2(mockP5 as unknown as p5, manager);
-        await mockP5.setup();
+        mockP5.setup(); // Triggers registration phase
 
-        // --- TEST POINT A: Progress 0.0 ---
-        mockP5.draw(); // Calls world.step internally
+        // --- TEST POINT A: Progress 0.0 (T = 0ms) ---
+        mockP5.draw(); // Calculates state and steps world
 
-        const element0 = world.getElement('pulsing-box');
-        const props0 = resolve(element0?.props, world.getSceneState()) as unknown as ResolvedBoxProps;
+        const element = world.getElement('pulsing-box');
+        if (!element) throw new Error("Pulsing box not registered");
 
+        const props0 = resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+
+        // Size: 100 + sin(0) * 50 = 100
         expect(props0.size).toBe(100);
-        expect(props0.fillColor?.blue).toBe(255);
+        // Blue: 127 + 127 * cos(0) = 254 (or ~255)
+        expect(props0.fillColor?.blue).toBeCloseTo(254, 0);
 
-        // --- TEST POINT B: Progress 0.25 (1000ms / 4000ms) ---
+        // --- TEST POINT B: Progress 0.25 (T = 1000ms / 4000ms) ---
         mockP5.millis.mockReturnValue(1000);
         mockP5.draw();
 
-        const props25 = resolve(element0?.props, world.getSceneState()) as unknown as ResolvedBoxProps;
+        const props25 = resolve(element, world.getCurrentSceneState()) as ResolvedBox;
 
+        // Size: 100 + sin(PI/2) * 50 = 150
         expect(props25.size).toBe(150);
+        // Rotation: PI * 2 * 0.25 = PI/2
         expect(props25.rotate?.y).toBeCloseTo(Math.PI * 0.5, 5);
-        expect(props25.fillColor?.blue).toBeCloseTo(0, 5);
+        // Blue: 127 + 127 * cos(PI/2) = 127
+        expect(props25.fillColor?.blue).toBeCloseTo(127, 0);
 
-        // 3. Verify side-effect: Did p5 actually draw it?
+        // --- TEST POINT C: Progress 0.5 (T = 2000ms) ---
+        mockP5.millis.mockReturnValue(2000);
+        mockP5.draw();
+
+        const props50 = resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+        // Size: 100 + sin(PI) * 50 = 100
+        expect(props50.size).toBeCloseTo(100, 5);
+        // Blue: 127 + 127 * cos(PI) = 0
+        expect(props50.fillColor?.blue).toBeCloseTo(0, 0);
+
+        // 3. Verify side-effect: The Bridge called p5
         expect(mockP5.box).toHaveBeenCalled();
     });
 });
