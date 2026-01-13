@@ -80,7 +80,7 @@ export const createRenderable =
                             gp.drawFloor(resolved, this.assets, state);
                             break;
                         default:
-                            throw new Error(`Unknown type ${resolved.type}`);
+                            throw new Error(`Unknown type ${resolved}`);
                     }
                 }
 
