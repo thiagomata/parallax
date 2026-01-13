@@ -1,51 +1,56 @@
-import type {
-    GraphicsBundle,
-    AssetLoader,
-    BlueprintElement,
-    RenderableElement,
-} from "./types";
-import {createRenderable} from "./resolver.ts";
+import {
+    type GraphicsBundle,
+    type AssetLoader,
+    type RenderableElement,
+    type ResolvedElement
+} from "./types.ts";
+import { createRenderable } from "./resolver.ts";
 
 export class AssetRegistry<TBundle extends GraphicsBundle> {
-    // We store the fully-formed Renderables, which include:
-    // 1. The Blueprint (Intent)
-    // 2. The Dynamic Plan (Phase 1)
-    // 3. The Asset Containers (Phase 2)
-    private elements = new Map<string, RenderableElement<TBundle>>();
-    private readonly loader: AssetLoader<TBundle>;
+    // The ONLY list: A map of IDs to the actual Renderable instances
+    private elements: Map<string, RenderableElement<any, TBundle>> = new Map();
+    private loader: AssetLoader<TBundle>;
 
     constructor(loader: AssetLoader<TBundle>) {
         this.loader = loader;
     }
 
-    /**
-     * Define or retrieve a renderable element.
-     * This triggers Phase 1 (Compiling to Dynamic) and Phase 2 (Async Hydration).
-     */
-    register(id: string, blueprint: BlueprintElement): RenderableElement<TBundle> {
+    public register<T extends ResolvedElement>(
+        id: string,
+        blueprint: any
+    ): RenderableElement<T, TBundle> {
+        // 1. Check if we already have this instance
         const existing = this.elements.get(id);
-        if (existing) return existing;
 
-        // Use our resolver utility to build the self-hydrating element
-        const element = createRenderable(id, blueprint, this.loader);
+        if (existing) {
+            // Return the existing Single Source of Truth
+            // We cast because the Map stores 'any' to support multiple element types
+            return existing as RenderableElement<T, TBundle>;
+        }
 
-        this.elements.set(id, element);
-        return element;
+        // 2. Only create a new one if it doesn't exist
+        // This triggers the createRenderable factory (Phase 1)
+        // and the loader hydration (Phase 2) exactly once.
+        const renderable = createRenderable<T, TBundle>(id, blueprint, this.loader);
+
+        // 3. Store the instance
+        this.elements.set(id, renderable);
+
+        return renderable;
     }
 
-    get(id: string): RenderableElement<TBundle> | undefined {
+    public get(id: string): RenderableElement<any, TBundle> | undefined {
         return this.elements.get(id);
     }
 
     /**
-     * Phase 3 Feed:
-     * Provides the list of elements for the World's frame loop.
+     * For the Frame Loop (Phase 3)
      */
-    all(): IterableIterator<RenderableElement<TBundle>> {
+    public all(): IterableIterator<RenderableElement<any, TBundle>> {
         return this.elements.values();
     }
 
-    remove(id: string) {
+    public remove(id: string): void {
         this.elements.delete(id);
     }
 }

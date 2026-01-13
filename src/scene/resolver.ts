@@ -4,35 +4,25 @@ import {
     type GraphicProcessor,
     type RenderableElement,
     type ResolvedElement,
-    type BlueprintElement,
     type SceneState,
     type DynamicProperty,
-    type MapToDynamic,
     type GraphicsBundle,
     type DynamicElement,
-    type Unwrapped, type AssetLoader, type ElementAssets, ASSET_STATUS,
+    type Unwrapped, type AssetLoader, type ElementAssets, ASSET_STATUS, type MapToBlueprint, type MapToDynamic,
 } from "./types";
 
-/**
- * PHASE 1 & 2: REGISTRATION & HYDRATION
- */
-export const createRenderable = <TBundle extends GraphicsBundle>(
+export const createRenderable =
+    <T extends ResolvedElement, TBundle extends GraphicsBundle>(
     id: string,
-    blueprint: BlueprintElement,
+    blueprint: MapToBlueprint<T>,
     loader: AssetLoader<TBundle>
-): RenderableElement<TBundle> => {
+): RenderableElement<T, TBundle> => {
 
-    const dynamic = toDynamic(blueprint) as DynamicElement;
+    const dynamic = toDynamic(blueprint) as DynamicElement<T>;
 
-    // Determine Initial States:
-    // If no ref exists, we are READY (null). If it exists, we are PENDING.
     const assets: ElementAssets<TBundle> = {
-        texture: blueprint.texture
-            ? { status: ASSET_STATUS.PENDING, value: null }
-            : { status: ASSET_STATUS.READY, value: null },
-        font: blueprint.font
-            ? { status: ASSET_STATUS.PENDING, value: null }
-            : { status: ASSET_STATUS.READY, value: null }
+        texture: blueprint.texture ? { status: ASSET_STATUS.PENDING, value: null } : { status: ASSET_STATUS.READY, value: null },
+        font: blueprint.font ? { status: ASSET_STATUS.PENDING, value: null } : { status: ASSET_STATUS.READY, value: null }
     };
 
     if (blueprint.texture) {
@@ -47,12 +37,11 @@ export const createRenderable = <TBundle extends GraphicsBundle>(
 
     return {
         id,
-        blueprint,
         dynamic,
         assets,
 
         render(gp: GraphicProcessor<TBundle>, state: SceneState) {
-            const resolved = resolve(this.dynamic, state) as ResolvedElement;
+            const resolved = resolve(this, state)
 
             gp.push();
             gp.translate(resolved.position);
@@ -79,65 +68,101 @@ export const createRenderable = <TBundle extends GraphicsBundle>(
     };
 };
 
-/**
- * Deep Blueprint-to-Dynamic Compiler
- */
-export function toDynamic<T>(blueprint: T): MapToDynamic<T> {
-    // 1. Root level functions
-    if (typeof blueprint === "function") {
-        return {
-            kind: SPEC_KINDS.COMPUTED,
-            compute: blueprint as (state: SceneState) => any,
-        } as unknown as MapToDynamic<T>;
-    }
+export function toDynamic<T extends ResolvedElement>(
+    blueprint: MapToBlueprint<T>
+): MapToDynamic<T> {
+    const dynamic = {} as any;
 
-    // 2. Branching Objects
-    if (blueprint && typeof blueprint === "object" && !Array.isArray(blueprint)) {
-        const dynamic = {} as any;
+    for (const key in blueprint) {
+        if (!Object.prototype.hasOwnProperty.call(blueprint, key)) continue;
 
-        for (const key in blueprint) {
-            if (!Object.prototype.hasOwnProperty.call(blueprint, key)) continue;
+        const value = blueprint[key];
 
-            const value = blueprint[key];
-
-            // Static key exceptions (Maintain identity)
-            if (key === "type" || key === "texture" || key === "font") {
-                dynamic[key] = value;
-                continue;
-            }
-
-            if (typeof value === "function") {
-                dynamic[key] = { kind: SPEC_KINDS.COMPUTED, compute: value };
-            } else if (value && typeof value === "object" && !Array.isArray(value)) {
-                // Nest as a branch to allow individual property resolution later
-                dynamic[key] = { kind: SPEC_KINDS.BRANCH, value: toDynamic(value) };
-            } else {
-                dynamic[key] = { kind: SPEC_KINDS.STATIC, value };
-            }
+        // Identity Keys: Respect the Manifest (Asset Preservation)
+        if (key === "type" || key === "texture" || key === "font") {
+            dynamic[key] = value;
+            continue;
         }
 
-        return dynamic as MapToDynamic<T>;
+        // Map every other property to its DynamicProperty plan
+        dynamic[key] = compileProperty(value);
+    }
+
+    return dynamic as MapToDynamic<T>;
+}
+
+
+export type UnwrappedElement<E> = E extends RenderableElement<infer T, any> ? T : never;
+
+export function resolve<E extends RenderableElement<any, any>>(
+    element: E,
+    state: SceneState
+): UnwrappedElement<E> {
+    // We unwrap the 'dynamic' property, which is DynamicElement<T>
+    // The result is T, which matches UnwrappedElement<E>
+    return loopResolve(element.dynamic, state) as UnwrappedElement<E>;
+}
+
+export function resolveProperty<V>(
+    prop: DynamicProperty<V>,
+    state: SceneState
+): V {
+    return loopResolve(prop, state) as V;
+}
+
+function isStaticData(val: any): boolean {
+    if (typeof val === 'function') return false;
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+        return Object.values(val).every(isStaticData);
+    }
+    return true;
+}
+
+function compileProperty<V>(value: V): DynamicProperty<V> {
+    // 1. Function -> Computed
+    if (typeof value === 'function') {
+        return {
+            kind: SPEC_KINDS.COMPUTED,
+            compute: value as (state: SceneState) => any
+        };
+    }
+
+    // 2. Objects
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+        // SHORT-CIRCUIT: If the whole object is static (like a Vector3),
+        // wrap it once and stop. No "Static Inception."
+        if (isStaticData(value)) {
+            return { kind: SPEC_KINDS.STATIC, value };
+        }
+
+        // Otherwise, it's a Branch: recursively compile its children
+        const dynamicBranch: any = {};
+        for (const key in value) {
+            dynamicBranch[key] = compileProperty(value[key]);
+        }
+
+        return { kind: SPEC_KINDS.BRANCH, value: dynamicBranch };
     }
 
     // 3. Leaf Primitives
-    return { kind: SPEC_KINDS.STATIC, value: blueprint } as unknown as MapToDynamic<T>;
+    return { kind: SPEC_KINDS.STATIC, value };
 }
 
 /**
  * PHASE 3 (Moment 2): THE RESOLUTION SIEVE
  * A pure function that recursively unwraps the Dynamic execution plan into Resolved data.
  */
-export function resolve<T>(src: T, state: SceneState): Unwrapped<T> {
+function loopResolve<T>(src: T, state: SceneState): Unwrapped<T> {
     // 1. Handle DynamicProperty (The Container)
     if (isDynamicProperty(src)) {
         switch (src.kind) {
             case SPEC_KINDS.STATIC:
                 return src.value as Unwrapped<T>;
             case SPEC_KINDS.BRANCH:
-                return resolve(src.value, state) as Unwrapped<T>;
+                return loopResolve(src.value, state) as Unwrapped<T>;
             case SPEC_KINDS.COMPUTED:
                 // Recursive call handles computed functions that return objects or other properties
-                return resolve(src.compute(state), state) as Unwrapped<T>;
+                return loopResolve(src.compute(state), state) as Unwrapped<T>;
         }
     }
 
@@ -146,7 +171,7 @@ export function resolve<T>(src: T, state: SceneState): Unwrapped<T> {
         const result = {} as any;
         for (const key in src) {
             if (Object.prototype.hasOwnProperty.call(src, key)) {
-                result[key] = resolve(src[key], state);
+                result[key] = loopResolve(src[key], state);
             }
         }
         return result as Unwrapped<T>;

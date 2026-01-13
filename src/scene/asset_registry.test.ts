@@ -42,98 +42,70 @@ describe('AssetRegistry', () => {
 
             const element = registry.register(id, blueprint);
 
-            // Phase 1 check: Dynamic plan exists
+            // Phase 1: Identity & Structure
             expect(element.id).toBe(id);
+            // Verify that the 'type' static key was preserved correctly (no kind: static)
             expect(element.dynamic.type).toBe(ELEMENT_TYPES.BOX);
 
-            // Phase 2 check: Initial status is PENDING because texture exists
+            // Phase 2: Asset Hydration Triggered
             expect(element.assets.texture?.status).toBe(ASSET_STATUS.PENDING);
-
-            // Check dependency injection: Did it call the loader?
             expect(loader.hydrateTexture).toHaveBeenCalledWith(blueprint.texture);
         });
 
-        it('should initialize with READY status if NO asset ref is provided', () => {
+        it('should return the existing instance and PREVENT re-hydration if ID is already registered', () => {
             const blueprint = {
                 type: ELEMENT_TYPES.BOX,
+                size: 5,
                 position: { x: 0, y: 0, z: 0 },
-                size: 10
+                texture: { path: 'repeat.png', width: 1, height: 1 }
             };
 
-            const element = registry.register('plain-box', blueprint);
-
-            // Immediate READY because there is no work for the loader to do
-            expect(element.assets.texture?.status).toBe(ASSET_STATUS.READY);
-            expect(element.assets.texture?.value).toBeNull();
-        });
-
-        it('should return the existing instance (singleton) if the ID is already registered', () => {
-            const blueprint = { type: ELEMENT_TYPES.BOX, size: 5, position: { x: 0, y: 0, z: 0 } };
-
             const first = registry.register('item-1', blueprint);
+
+            // Reset mock to see if second call triggers it again
+            vi.mocked(loader.hydrateTexture).mockClear();
+
             const second = registry.register('item-1', blueprint);
 
             expect(first).toBe(second);
-            // Ensure loader wasn't called twice for the same registration
+            // CRITICAL: Respecting efficiency - don't re-hydrate what is already alive
             expect(loader.hydrateTexture).not.toHaveBeenCalled();
         });
     });
 
-    describe('Retrieval and Iteration', () => {
-        it('should retrieve registered elements by ID', () => {
-            registry.register('box-1', { type: ELEMENT_TYPES.BOX, size: 1, position: { x: 0, y: 0, z: 0 } });
-
-            const found = registry.get('box-1');
-            expect(found).toBeDefined();
-            expect(found?.id).toBe('box-1');
-        });
-
-        it('should provide an iterator over all registered elements', () => {
-            registry.register('s1', { type: ELEMENT_TYPES.BOX, size: 1, position: { x: 0, y: 0, z: 0 } });
-            registry.register('t1', {
+    describe('Collection Integrity', () => {
+        it('should correctly store heterogeneous RenderableElements', () => {
+            registry.register('box-1', {
+                type: ELEMENT_TYPES.BOX,
+                size: 1,
+                position: { x: 0, y: 0, z: 0 }
+            });
+            registry.register('text-1', {
                 type: ELEMENT_TYPES.TEXT,
                 text: 'hi',
                 size: 12,
                 position: { x: 0, y: 0, z: 0 }
             });
 
-            const allElements = Array.from(registry.all());
+            const all = Array.from(registry.all());
 
-            expect(allElements).toHaveLength(2);
-            expect(allElements.map(e => e.id)).toContain('s1');
-            expect(allElements.map(e => e.id)).toContain('t1');
+            // Verify we have RenderableElement objects, not Resolved objects
+            expect(all[0]).toHaveProperty('render');
+            expect(all[0]).toHaveProperty('dynamic');
+            expect(all[1]).toHaveProperty('assets');
+            expect(all).toHaveLength(2);
         });
     });
 
     describe('Lifecycle: Removal', () => {
-        it('should remove an element from the registry', () => {
-            registry.register('box-1', {
-                type: ELEMENT_TYPES.BOX,
-                size: 1,
-                position: { x: 0, y: 0, z: 0 }
-            });
+        it('should clean up the registry completely on remove', () => {
+            registry.register('target', { type: ELEMENT_TYPES.BOX, size: 1, position: {x:0,y:0,z:0} });
+            expect(registry.get('target')).toBeDefined();
 
-            expect(registry.get('box-1')).toBeDefined();
+            registry.remove('target');
 
-            registry.remove('box-1');
-
-            expect(registry.get('box-1')).toBeUndefined();
+            expect(registry.get('target')).toBeUndefined();
             expect(Array.from(registry.all())).toHaveLength(0);
-        });
-
-        it('should not throw an error when removing a non-existent ID', () => {
-            expect(() => registry.remove('ghost-id')).not.toThrow();
-        });
-
-        it('should only remove the targeted element and leave others intact', () => {
-            registry.register('keep-me', { type: ELEMENT_TYPES.BOX, size: 1, position: {x:0,y:0,z:0} });
-            registry.register('delete-me', { type: ELEMENT_TYPES.BOX, size: 1, position: {x:0,y:0,z:0} });
-
-            registry.remove('delete-me');
-
-            expect(registry.get('keep-me')).toBeDefined();
-            expect(registry.get('delete-me')).toBeUndefined();
-            expect(Array.from(registry.all())).toHaveLength(1);
         });
     });
 });

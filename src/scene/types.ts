@@ -180,42 +180,46 @@ export interface ResolvedBaseVisual {
     readonly texture?: TextureRef;
     readonly font?: FontRef;
 }
+export type DynamicElement<T extends ResolvedElement> = MapToDynamic<T>;
+
 
 export interface ResolvedBox extends ResolvedBaseVisual { readonly type: typeof ELEMENT_TYPES.BOX; readonly size: number; }
 export type BlueprintBox = MapToBlueprint<ResolvedBox>;
-export type DynamicBox = MapToDynamic<ResolvedBox>;
+export type DynamicBox = DynamicElement<ResolvedBox>;
 
 export interface ResolvedPanel extends ResolvedBaseVisual { readonly type: typeof ELEMENT_TYPES.PANEL; readonly width: number; readonly height: number; }
 export type BlueprintPanel = MapToBlueprint<ResolvedPanel>;
-export type DynamicPanel = MapToDynamic<ResolvedPanel>;
+export type DynamicPanel = DynamicElement<ResolvedPanel>;
 
 export interface ResolvedSphere extends ResolvedBaseVisual { readonly type: typeof ELEMENT_TYPES.SPHERE; readonly radius: number; readonly detail?: number; }
 export type BlueprintSphere = MapToBlueprint<ResolvedSphere>;
-export type DynamicSphere = MapToDynamic<ResolvedSphere>;
+export type DynamicSphere = DynamicElement<ResolvedSphere>;
 
 export interface ResolvedFloor extends ResolvedBaseVisual { readonly type: typeof ELEMENT_TYPES.FLOOR; readonly width: number; readonly depth: number; }
 export type BlueprintFloor = MapToBlueprint<ResolvedFloor>;
-export type DynamicFloor = MapToDynamic<ResolvedFloor>;
+export type DynamicFloor = DynamicElement<ResolvedFloor>;
 
 export interface ResolvedText extends ResolvedBaseVisual { readonly type: typeof ELEMENT_TYPES.TEXT; readonly text: string; readonly size: number; }
 export type BlueprintText = MapToBlueprint<ResolvedText>;
-export type DynamicText = MapToDynamic<ResolvedText>;
+export type DynamicText = DynamicElement<ResolvedText>;
 
 export type BlueprintElement = BlueprintBox | BlueprintPanel | BlueprintSphere | BlueprintFloor | BlueprintText;
-export type DynamicElement = DynamicBox | DynamicPanel | DynamicSphere | DynamicFloor | DynamicText;
 export type ResolvedElement = ResolvedBox | ResolvedPanel | ResolvedSphere | ResolvedFloor | ResolvedText;
 
 /**
  * WORLD INTERFACES
  */
+
 export interface Renderable<TBundle extends GraphicsBundle = GraphicsBundle> {
     readonly id: string;
     render(gp: GraphicProcessor<TBundle>, state: SceneState): void;
 }
 
-export interface RenderableElement<TBundle extends GraphicsBundle = GraphicsBundle> extends Renderable<TBundle> {
-    readonly blueprint: BlueprintElement;
-    readonly dynamic: DynamicElement; // Renamed from props to reflect execution plan
+export interface RenderableElement<
+    T extends ResolvedElement = ResolvedElement,
+    TBundle extends GraphicsBundle = GraphicsBundle
+> extends Renderable<TBundle> {
+    readonly dynamic: DynamicElement<T>;
     assets: ElementAssets<TBundle>;
 }
 

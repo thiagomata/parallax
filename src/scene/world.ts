@@ -1,87 +1,40 @@
-import {
-    type GraphicProcessor,
-    type BlueprintElement,
-    type SceneState,
-    type GraphicsBundle,
-    type AssetLoader
-} from "./types.ts";
-import type { SceneManager } from "./scene_manager.ts";
-import { AssetRegistry } from "./asset_registry.ts";
-import {resolve} from "./create_renderable.ts"; // The new factory/store
+import type {SceneManager} from "./scene_manager.ts";
+import type {AssetLoader, GraphicProcessor, GraphicsBundle, SceneState} from "./types.ts";
+import {Stage} from "./stage.ts";
 
 export class World<TBundle extends GraphicsBundle> {
-    private registry: AssetRegistry<TBundle>;
+    private stage: Stage<TBundle>;
     private sceneManager: SceneManager;
     private sceneState: SceneState;
 
-    constructor(sceneManager: SceneManager, loader: AssetLoader<TBundle>) {
+    constructor(sceneManager: SceneManager, loader: AssetLoader<TBundle>, stage?: Stage<TBundle>) {
         this.sceneManager = sceneManager;
-        this.sceneState = this.sceneManager.initialState();
-        // The World owns the Registry, passing the Loader down for Phase 1/2
-        this.registry = new AssetRegistry<TBundle>(loader);
+        this.sceneState = sceneManager.initialState();
+        this.stage = stage ?? new Stage<TBundle>(loader);
     }
 
-    public getSceneState(): SceneState {
-        return this.sceneState;
-    }
-
-    /**
-     * PHASE 1 & 2: REGISTRATION & HYDRATION
-     * Delegation: We tell the registry to handle the Blueprint.
-     * The Registry/createRenderable logic handles the async loading internally.
-     */
-    public addElement(id: string, blueprint: BlueprintElement): void {
-        this.registry.register(id, blueprint);
-    }
-
-    public removeElement(id: string): void {
-        // Registry handles the deletion of the Renderable instance
-        this.registry.remove?.(id);
-    }
-
-    /**
-     * PHASE 3: THE FRAME LOOP
-     * Orchestrates SceneManager calculation and GraphicProcessor execution.
-     */
     public step(gp: GraphicProcessor<TBundle>): void {
-        // 1. Calculate Scene State (The execution context)
-        const state = this.sceneManager.calculateScene(
+        // 1. Advance Physics/Logic (Temporal)
+        this.sceneState = this.sceneManager.calculateScene(
             gp.millis(),
             gp.deltaTime(),
             gp.frameCount(),
             this.sceneState
         );
 
-        // 2. Global Perspective Setup
-        gp.setCamera(state.camera.position, state.camera.lookAt);
+        // 2. Global View Setup
+        gp.setCamera(this.sceneState.camera.position, this.sceneState.camera.lookAt);
 
-        // 3. Painter's Algorithm: Sort Render Queue
-        // We resolve position only once during sorting for efficiency.
-        const renderQueue = Array.from(this.registry.all())
-            .map(element => {
-                const resolvedPos = resolve(element.dynamic.position, state);
-                return {
-                    element,
-                    distance: gp.dist(state.camera.position, resolvedPos)
-                };
-            })
-            .sort((a, b) => b.distance - a.distance);
+        // 3. Delegate Rendering to the Stage (Spatial)
+        this.stage.render(gp, this.sceneState);
 
-        // 4. Execution of presentation logic
-        renderQueue.forEach(({ element }) => {
-            element.render(gp, state);
-        });
-
-        // 5. Overlay: Debug Data
-        if (state.settings.debug) {
-            this.renderDebugInfo(gp, state);
+        // 4. Overlay Debug
+        if (this.sceneState.settings.debug) {
+            this.renderDebug(gp, this.sceneState);
         }
-
-        // Cycle the state
-        this.sceneState = state;
     }
 
-    private renderDebugInfo(gp: GraphicProcessor<TBundle>, state: SceneState) {
+    private renderDebug(gp: GraphicProcessor<TBundle>, state: SceneState) {
         if (!state.debugStateLog) return;
         const log = state.debugStateLog;
 

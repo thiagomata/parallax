@@ -1,36 +1,28 @@
-import type {AssetLoader, GraphicProcessor, RenderableElement, SceneState} from "./types.ts";
+import type {
+    AssetLoader, GraphicProcessor, GraphicsBundle, MapToBlueprint, ResolvedElement, SceneState
+} from "./types.ts";
+import {AssetRegistry} from "./asset_registry.ts";
+import {resolveProperty} from "./resolver.ts";
 
-export class Stage {
-    private registry: Map<string, RenderableElement> = new Map();
+export class Stage<TBundle extends GraphicsBundle> {
+    private registry: AssetRegistry<TBundle>;
 
-    /**
-     * Add a Spec to the storage
-     */
-    public add(element: RenderableElement) {
-        this.registry.set(element.id, element);
+    constructor(loader: AssetLoader<TBundle>) {
+        this.registry = new AssetRegistry<TBundle>(loader);
     }
 
-    /**
-     * The Casting process: Iterates through storage and hydrates assets
-     */
-    public async hydrateAll(loader: AssetLoader) {
-        const elements = Array.from(this.registry.values());
-
-        // We process all "orders" in the storage
-        await Promise.all(elements.map(async (el) => {
-            if (el.blueprint.texture && !el.assets.texture) {
-                el.assets.texture = await loader.hydrateTexture(el.blueprint.texture);
-            }
-            if (el.blueprint.font && !el.assets.font) {
-                el.assets.font = await loader.hydrateFont(el.blueprint.font);
-            }
-        }));
+    public add<T extends ResolvedElement>(id: string, blueprint: MapToBlueprint<T>): void {
+        this.registry.register<T>(id, blueprint);
     }
 
-    /**
-     * The Game Loop: Replays what is in storage
-     */
-    public render(gp: GraphicProcessor, state: SceneState) {
-        this.registry.forEach(el => el.render(gp, state));
+    public render(gp: GraphicProcessor<TBundle>, state: SceneState): void {
+        // Optimized Painter's Algorithm: Sort far-to-near
+        const renderQueue = Array.from(this.registry.all())
+            .map(element => ({
+                element, distance: gp.dist(state.camera.position, resolveProperty(element.dynamic.position, state))
+            }))
+            .sort((a, b) => b.distance - a.distance);
+
+        renderQueue.forEach(({element}) => element.render(gp, state));
     }
 }

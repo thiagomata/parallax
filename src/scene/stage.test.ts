@@ -1,104 +1,111 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {Stage} from './stage';
-import {ASSET_STATUS, type AssetLoader, type GraphicProcessor, type RenderableElement} from './types';
-import {createMockState} from "./mock/mock_scene_state.mock.ts";
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Stage } from './stage.ts';
+import { ChaosLoader } from './mock/mock_asset_loader.mock.ts';
+import { createMockState } from './mock/mock_scene_state.mock.ts';
+import { ELEMENT_TYPES, type GraphicProcessor, type Vector3 } from './types.ts';
 
-describe('Stage', () => {
-    let stage: Stage;
-    let mockLoader: AssetLoader;
-    let mockGP: GraphicProcessor<unknown, unknown>;
-    const mockState = createMockState();
+describe('Stage (Spatial Orchestration)', () => {
+    let stage: Stage<any>;
+    let loader: ChaosLoader<any>;
+    let mockGP: GraphicProcessor<any>;
+    const mockState = createMockState({ x: 0, y: 0, z: 0 });
 
     beforeEach(() => {
-        stage = new Stage();
+        vi.clearAllMocks();
+        loader = new ChaosLoader();
+        stage = new Stage(loader);
 
-        // Mocking the AssetLoader
-        mockLoader = {
-            hydrateTexture: vi.fn(),
-            hydrateFont: vi.fn(),
-        };
-
-        // Mocking GraphicProcessor
         mockGP = {
+            // Real distance formula for sorting accuracy
+            dist: (v1: Vector3, v2: Vector3) => Math.sqrt(
+                Math.pow(v2.x - v1.x, 2) + Math.pow(v2.y - v1.y, 2) + Math.pow(v2.z - v1.z, 2)
+            ),
+            setCamera: vi.fn(),
+            translate: vi.fn(),
             push: vi.fn(),
             pop: vi.fn(),
-            // ... rest of interface
-        } as unknown as GraphicProcessor;
+            drawBox: vi.fn(),
+            // Mock other required GP methods
+            millis: vi.fn(),
+            deltaTime: vi.fn(),
+            frameCount: vi.fn(),
+        } as unknown as GraphicProcessor<any>;
     });
 
-    it('should add elements to the registry', () => {
-        const el = {id: 'test-1', props: {}, assets: {}, render: vi.fn()} as unknown as RenderableElement;
-        stage.add(el);
-
-        // Accessing private registry for the sake of the test coverage check
-        expect((stage as any).registry.get('test-1')).toBe(el);
-    });
-
-    describe('hydrateAll', () => {
-        it('should hydrate texture if it exists in props and is missing in assets', async () => {
-            const textureRef = {path: 'tex.png', width: 10, height: 10};
-            const el = {
-                id: 'el-1',
-                props: {texture: textureRef},
-                assets: {} // missing texture asset
-            } as unknown as RenderableElement;
-
-            const mockAsset = {status: ASSET_STATUS.READY, value: {texture: textureRef, internalRef: {}}};
-            vi.mocked(mockLoader.hydrateTexture).mockResolvedValue(mockAsset as any);
-
-            stage.add(el);
-            await stage.hydrateAll(mockLoader);
-
-            expect(mockLoader.hydrateTexture).toHaveBeenCalledWith(textureRef);
-            expect(el.assets.texture).toBe(mockAsset);
+    it('should register and render an element', () => {
+        stage.add('box-1', {
+            type: ELEMENT_TYPES.BOX,
+            position: { x: 10, y: 0, z: 0 },
+            size: 5
         });
-
-        it('should hydrate font if it exists in props and is missing in assets', async () => {
-            // Note: I spotted a logic check in your Font hydration:
-            // current: if (el.props.font && el.assets.font)
-            // should likely be: if (el.props.font && !el.assets.font)
-            const fontRef = {name: 'Arial', path: 'arial.ttf'};
-            const el = {
-                id: 'el-font',
-                props: {font: fontRef},
-                assets: {}
-            } as unknown as RenderableElement;
-
-            const mockFontAsset = {status: ASSET_STATUS.READY, value: {font: fontRef, internalRef: {}}};
-            vi.mocked(mockLoader.hydrateFont).mockResolvedValue(mockFontAsset as any);
-
-            stage.add(el);
-            await stage.hydrateAll(mockLoader);
-
-            // If your logic uses '&& el.assets.font', this expectation will fail (coverage gap!)
-            // If you fix it to '!el.assets.font', it will pass.
-            expect(mockLoader.hydrateFont).toHaveBeenCalledWith(fontRef);
-        });
-
-        it('should skip hydration if asset is already present', async () => {
-            const el = {
-                id: 'ready-el',
-                props: {texture: {path: 'already.png'}},
-                assets: {texture: {status: ASSET_STATUS.READY}}
-            } as unknown as RenderableElement;
-
-            stage.add(el);
-            await stage.hydrateAll(mockLoader);
-
-            expect(mockLoader.hydrateTexture).not.toHaveBeenCalled();
-        });
-    });
-
-    it('should trigger render on all elements in storage', () => {
-        const el1 = {id: '1', render: vi.fn(), props: {}, assets: {}} as unknown as RenderableElement;
-        const el2 = {id: '2', render: vi.fn(), props: {}, assets: {}} as unknown as RenderableElement;
-
-        stage.add(el1);
-        stage.add(el2);
 
         stage.render(mockGP, mockState);
 
-        expect(el1.render).toHaveBeenCalledWith(mockGP, mockState);
-        expect(el2.render).toHaveBeenCalledWith(mockGP, mockState);
+        // Verify the GP was reached
+        expect(mockGP.drawBox).toHaveBeenCalled();
+        expect(mockGP.translate).toHaveBeenCalledWith({ x: 10, y: 0, z: 0 });
+    });
+
+    it('should sort elements by distance (Painter Algorithm)', () => {
+        // Elements are added in "Near then Far" order
+        // But should be rendered "Far then Near"
+        const nearPos = { x: 0, y: 0, z: 50 };
+        const farPos = { x: 0, y: 0, z: 500 };
+
+        stage.add('near', {
+            type: ELEMENT_TYPES.BOX,
+            position: nearPos,
+            size: 1
+        });
+
+        stage.add('far', {
+            type: ELEMENT_TYPES.BOX,
+            position: farPos,
+            size: 1
+        });
+
+        stage.render(mockGP, mockState);
+
+        const translateCalls = vi.mocked(mockGP.translate).mock.calls;
+
+        // Check invocation order:
+        // Index 0 should be the FAR element (dist 500)
+        // Index 1 should be the NEAR element (dist 50)
+        expect(translateCalls[0][0]).toEqual(farPos);
+        expect(translateCalls[1][0]).toEqual(nearPos);
+    });
+
+    it('should resolve dynamic positions during the sorting phase', () => {
+        // Proof that resolveProperty is working inside the sort
+        stage.add('dynamic-box', {
+            type: ELEMENT_TYPES.BOX,
+            position: (s: any) => ({ x: s.playback.now, y: 0, z: 0 }),
+            size: 1
+        });
+
+        const customState = {
+            ...mockState,
+            playback: { ...mockState.playback, now: 999 }
+        };
+
+        stage.render(mockGP, customState);
+
+        expect(mockGP.translate).toHaveBeenCalledWith({ x: 999, y: 0, z: 0 });
+    });
+
+    it('should maintain single instances even with multiple add calls (Idempotency)', () => {
+        const spy = vi.spyOn(loader, 'hydrateTexture');
+        const bluePrint = {
+            type: ELEMENT_TYPES.BOX,
+            position: { x: 0, y: 0, z: 0 },
+            size: 1,
+            texture: { path: 'shared.png', width: 1, height: 1 }
+        };
+
+        stage.add('unique-id', bluePrint);
+        stage.add('unique-id', bluePrint);
+
+        // Registry should return the existing element rather than creating/hydrating again
+        expect(spy).toHaveBeenCalledTimes(1);
     });
 });

@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {SceneManager} from "./scene/scene_manager.ts";
 import {
+    createBlueprint,
     DEFAULT_SETTINGS,
-    ELEMENT_TYPES, type GraphicProcessor,
+    ELEMENT_TYPES,
+    type ResolvedBox,
     type SceneState,
 } from "./scene/types.ts";
 import {createRenderable, resolve} from "./scene/resolver.ts";
@@ -61,46 +63,35 @@ describe('README Examples Validation', () => {
     it('should validate the Recursive Spec Resolution examples', () => {
         const state = manager.initialState();
 
-        // Example 1: Static & Computed Props
-        // Added 'position' as it is required by SceneElementProps
-        const props = ({
+        // 1. Example 1: Static & Computed Props
+        const blueprint = createBlueprint<ResolvedBox>({
             type: ELEMENT_TYPES.BOX,
             position: { x: 0, y: 0, z: 0 },
             size: (s: SceneState) => 50 + (s.playback.progress * 20),
             fillColor: { red: 255, green: 0, blue: 0 }
         });
 
-        // Example 2: Deep Resolution (Granular)
-        const granularProps = ({
+        // We must wrap the blueprint into a Renderable to "compile" the specs
+        const element = createRenderable('test-id', blueprint, assetLoader);
+        const elementResolved = resolve(element, state);
+
+        // 2. Example 2: Deep Resolution (Granular)
+        const granularBlueprint = createBlueprint<ResolvedBox>({
             type: ELEMENT_TYPES.BOX,
             position: {
-                x: (_s: SceneState) => 100, // Prefixed with _ to satisfy unused variable check
+                x: (_s: SceneState) => 100,
                 y: 0,
                 z: 0
             },
             size: 10
         });
 
-        // 1. Validate factory creation (TS6133 fix: we use 'element' below)
-        const element = createRenderable(
-            'test-id',
-            props,
-            assetLoader
-        );
-        const elementResolved = resolve(element, state);
-
-        // 2. Validate standalone resolution utility
-        const resolved = resolve(props, state);
-        const granularResolved = resolve(granularProps, state);
+        const granularElement = createRenderable('granular-id', granularBlueprint, assetLoader);
+        const granularResolved = resolve(granularElement, state);
 
         // Assertions
-        expect(elementResolved.id).toBe('test-id');
-        expect(resolved.size).toBe(50);
-
-        if (resolved.fillColor) {
-            expect(resolved.fillColor.red).toBe(255);
-        }
-
+        expect(elementResolved.size).toBe(50);
+        expect(elementResolved.fillColor?.red).toBe(255);
         expect(granularResolved.position.x).toBe(100);
     });
 });
