@@ -4,6 +4,7 @@ import p5 from "p5";
 import {heroExample1} from "./hero_example_1.ts";
 import {resolve} from "../../scene/resolver.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
+import type {ResolvedCylinder} from "../../scene/types.ts";
 
 describe('Hero Demo Integration: World Animation', () => {
 
@@ -23,13 +24,9 @@ describe('Hero Demo Integration: World Animation', () => {
         const state0 = world.getCurrentSceneState();
         // We get the element from the world's internal registry
         const midElement0 = world.getElement('mid');
+        const resolved0 = resolve(midElement0!, state0) as ResolvedCylinder;
 
-        const resolved0 = resolve(midElement0!, state0);
-        // Use the element's own internal resolution logic (No 'any' needed)
-        // const resolved0 = midElement0?.render(gp, state0)! as ResolvedBox;
-
-        // Size logic: cos(0) * 50 + 100 = 150
-        expect(resolved0.size).toBe(150);
+        expect(resolved0.radius).toBe(100);
         expect(resolved0.position).toMatchObject({x: 0, y: 0, z: 0});
 
         // --- TEST AT 25% PROGRESS (T = 2500ms) ---
@@ -40,8 +37,7 @@ describe('Hero Demo Integration: World Animation', () => {
         const resolved25 = resolve(midElement0!, state25);
         // const resolved25 = midElement0?.resolve(state25) as ResolvedBox;
 
-        // Size logic: cos(PI/2) * 50 + 100 = 100
-        expect(resolved25.size).toBeCloseTo(100, 5);
+        expect(resolved25.radius).toBeCloseTo(50, 5);
         expect(resolved25.position.y).toBeCloseTo(-100, 5);
         expect(resolved25.rotate?.z).toBeCloseTo(Math.PI / 2, 5);
 
@@ -54,7 +50,7 @@ describe('Hero Demo Integration: World Animation', () => {
         const resolved50 = resolve(midElement0!, state50);
 
         // Size logic: cos(PI) * 50 + 100 = 50
-        expect(resolved50.size).toBeCloseTo(50, 5);
+        expect(resolved50.radius).toBeCloseTo(0, 5);
         expect(resolved50.position.y).toBeCloseTo(-200, 5);
     });
 
@@ -87,7 +83,9 @@ describe('Hero Demo Integration: World Animation', () => {
         mockP5.draw();
 
         // Verify the Bridge Pattern: World -> Processor -> P5
-        expect(mockP5.box).toHaveBeenCalledTimes(3);
+        expect(mockP5.cylinder).toHaveBeenCalledTimes(1);
+        expect(mockP5.torus).toHaveBeenCalledTimes(1);
+        expect(mockP5.beginShape).toHaveBeenCalledTimes(1);
         expect(mockP5.text).toHaveBeenCalledTimes(1);
         expect(mockP5.push).toHaveBeenCalled();
         expect(mockP5.pop).toHaveBeenCalled();

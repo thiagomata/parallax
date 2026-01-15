@@ -2,11 +2,29 @@ import {describe, expect, it, vi} from 'vitest';
 import {
     type AssetLoader,
     type DynamicBox,
+    type DynamicCone,
+    type DynamicCylinder,
+    type DynamicElliptical,
+    type DynamicFloor,
+    type DynamicPanel,
     type DynamicProperty,
+    type DynamicPyramid,
+    type DynamicSphere,
+    type DynamicText,
+    type DynamicTorus,
     ELEMENT_TYPES,
     type GraphicProcessor,
     type GraphicsBundle,
     type ResolvedBox,
+    type ResolvedCone,
+    type ResolvedCylinder,
+    type ResolvedElliptical,
+    type ResolvedFloor,
+    type ResolvedPanel,
+    type ResolvedPyramid,
+    type ResolvedSphere,
+    type ResolvedText,
+    type ResolvedTorus,
     type SceneState,
     SPEC_KINDS,
     type Vector3
@@ -52,8 +70,30 @@ describe('Parallax Engine Type Coherence Test', () => {
         }
     };
 
+    /**
+     * The Logic Simulation (What the Resolver will actually do)
+     * We simulate the recursion to ensure the types 'snap' together.
+     */
+    const resolveValue = <T>(prop: DynamicProperty<T>): T => {
+        if (prop.kind === SPEC_KINDS.STATIC) return prop.value;
+        if (prop.kind === SPEC_KINDS.COMPUTED) {
+            // In reality, this could return another DynamicProperty (recursion)
+            // But for the test, we assume a single level.
+            const result = prop.compute(mockState);
+            return result as T;
+        }
+        if (prop.kind === SPEC_KINDS.BRANCH) {
+            const branchResult: any = {};
+            for (const key in prop.value) {
+                branchResult[key] = resolveValue((prop.value as any)[key]);
+            }
+            return branchResult as T;
+        }
+        throw new Error("Unknown kind");
+    };
+
     it('should resolve deep nested computed values within branches', () => {
-        // 1. Setup the Complex Dynamic Plan
+        // Setup the Complex Dynamic Plan
         const boxDynamic: DynamicBox = {
             type: ELEMENT_TYPES.BOX,
             size: {
@@ -73,36 +113,15 @@ describe('Parallax Engine Type Coherence Test', () => {
             }
         };
 
-        /**
-         * 2. The Logic Simulation (What the Resolver will actually do)
-         * We simulate the recursion to ensure the types 'snap' together.
-         */
-        const resolveValue = <T>(prop: DynamicProperty<T>): T => {
-            if (prop.kind === SPEC_KINDS.STATIC) return prop.value;
-            if (prop.kind === SPEC_KINDS.COMPUTED) {
-                // In reality, this could return another DynamicProperty (recursion)
-                // But for the test, we assume a single level.
-                const result = prop.compute(mockState);
-                return result as T;
-            }
-            if (prop.kind === SPEC_KINDS.BRANCH) {
-                const branchResult: any = {};
-                for (const key in prop.value) {
-                    branchResult[key] = resolveValue((prop.value as any)[key]);
-                }
-                return branchResult as T;
-            }
-            throw new Error("Unknown kind");
-        };
 
-        // 3. Execution Phase
+        // Execution Phase
         const resolvedBox: ResolvedBox = {
             type: boxDynamic.type,
             size: resolveValue(boxDynamic.size),
             position: resolveValue(boxDynamic.position) // This must resolve to Vector3 {x,y,z}
         };
 
-        // 4. Verification
+        //  Verification
         expect(resolvedBox.position.z).toBe(2); // 0.2 progress * 10
         expect(resolvedBox.size).toBe(20);      // 0.2 progress * 100
 
@@ -132,5 +151,176 @@ describe('Parallax Engine Type Coherence Test', () => {
         };
 
         expect(processor.loader).toBeDefined();
+    });
+
+
+    describe('Shapes Type Tests', () => {
+
+        it('Box resolves correctly', () => {
+            const dynamic: DynamicBox = {
+                type: ELEMENT_TYPES.BOX,
+                position: { kind: SPEC_KINDS.STATIC, value: { x: 1, y: 2, z: 3 } },
+                size: { kind: SPEC_KINDS.COMPUTED, compute: () => 10 },
+            };
+            const resolved: ResolvedBox = {
+                type: dynamic.type,
+                position: resolveValue(dynamic.position),
+                size: resolveValue(dynamic.size),
+            };
+            expect(resolved.size).toBe(10);
+            expect(resolved.position.z).toBe(3);
+        });
+
+        it('Panel resolves correctly', () => {
+            const dynamic: DynamicPanel = {
+                type: ELEMENT_TYPES.PANEL,
+                position: { kind: SPEC_KINDS.STATIC, value: { x: 0, y: 0, z: 0 } },
+                width: { kind: SPEC_KINDS.STATIC, value: 100 },
+                height: { kind: SPEC_KINDS.COMPUTED, compute: () => 50 },
+            };
+            const resolved: ResolvedPanel = {
+                type: dynamic.type,
+                position: resolveValue(dynamic.position),
+                width: resolveValue(dynamic.width),
+                height: resolveValue(dynamic.height),
+            };
+            expect(resolved.width).toBe(100);
+            expect(resolved.height).toBe(50);
+        });
+
+        it('Sphere resolves correctly', () => {
+            const dynamic: DynamicSphere = {
+                type: ELEMENT_TYPES.SPHERE,
+                position: { kind: SPEC_KINDS.STATIC, value: { x: 0, y: 0, z: 0 } },
+                radius: { kind: SPEC_KINDS.STATIC, value: 8 },
+            };
+            const resolved: ResolvedSphere = {
+                type: dynamic.type,
+                position: resolveValue(dynamic.position),
+                radius: resolveValue(dynamic.radius),
+            };
+            expect(resolved.radius).toBe(8);
+        });
+
+        it('Floor resolves correctly', () => {
+            const dynamic: DynamicFloor = {
+                type: ELEMENT_TYPES.FLOOR,
+                position: { kind: SPEC_KINDS.STATIC, value: { x: 0, y: -1, z: 0 } },
+                width: { kind: SPEC_KINDS.STATIC, value: 500 },
+                depth: { kind: SPEC_KINDS.STATIC, value: 300 },
+            };
+            const resolved: ResolvedFloor = {
+                type: dynamic.type,
+                position: resolveValue(dynamic.position),
+                width: resolveValue(dynamic.width),
+                depth: resolveValue(dynamic.depth),
+            };
+            expect(resolved.width).toBe(500);
+            expect(resolved.depth).toBe(300);
+        });
+
+        it('Text resolves correctly', () => {
+            const dynamic: DynamicText = {
+                type: ELEMENT_TYPES.TEXT,
+                position: { kind: SPEC_KINDS.STATIC, value: {x:0,y:0,z:0}},
+                text: { kind: SPEC_KINDS.STATIC, value: 'Hello' },
+                size: { kind: SPEC_KINDS.STATIC, value: 12 },
+            };
+            const resolved: ResolvedText = {
+                type: dynamic.type,
+                position: resolveValue(dynamic.position),
+                text: resolveValue(dynamic.text),
+                size: resolveValue(dynamic.size),
+            };
+            expect(resolved.text).toBe('Hello');
+            expect(resolved.size).toBe(12);
+        });
+        it('Pyramid resolves correctly', () => {
+            const dynamic: DynamicPyramid = {
+                type: ELEMENT_TYPES.PYRAMID,
+                position: { kind: SPEC_KINDS.STATIC, value: {x:0,y:0,z:0}},
+                baseSize: { kind: SPEC_KINDS.COMPUTED, compute: () => 10 },
+                height: { kind: SPEC_KINDS.STATIC, value: 20 },
+            };
+            const resolved: ResolvedPyramid = {
+                type: dynamic.type,
+                position: resolveValue(dynamic.position),
+                baseSize: resolveValue(dynamic.baseSize),
+                height: resolveValue(dynamic.height),
+            };
+            expect(resolved.baseSize).toBe(10);
+            expect(resolved.height).toBe(20);
+        });
+
+        it('Cylinder resolves correctly', () => {
+            const dynamic: DynamicCylinder = {
+                type: ELEMENT_TYPES.CYLINDER,
+                position: { kind: SPEC_KINDS.STATIC, value: {x:0,y:0,z:0}},
+                radius: { kind: SPEC_KINDS.STATIC, value: 5 },
+                height: { kind: SPEC_KINDS.COMPUTED, compute: () => 15 }
+            };
+            const resolved: ResolvedCylinder = {
+                type: dynamic.type,
+                position: resolveValue(dynamic.position),
+                radius: resolveValue(dynamic.radius),
+                height: resolveValue(dynamic.height)
+            };
+            expect(resolved.radius).toBe(5);
+            expect(resolved.height).toBe(15);
+        });
+
+        it('Cone resolves correctly', () => {
+            const dynamic: DynamicCone = {
+                type: ELEMENT_TYPES.CONE,
+                position: { kind: SPEC_KINDS.STATIC, value: {x:0,y:0,z:0}},
+                radius: { kind: SPEC_KINDS.STATIC, value: 4 },
+                height: { kind: SPEC_KINDS.STATIC, value: 12 }
+            };
+            const resolved: ResolvedCone = {
+                type: dynamic.type,
+                position: resolveValue(dynamic.position),
+                radius: resolveValue(dynamic.radius),
+                height: resolveValue(dynamic.height)
+            };
+            expect(resolved.radius).toBe(4);
+            expect(resolved.height).toBe(12);
+        });
+
+        it('Torus resolves correctly', () => {
+            const dynamic: DynamicTorus = {
+                type: ELEMENT_TYPES.TORUS,
+                position: { kind: SPEC_KINDS.STATIC, value: {x:0,y:0,z:0}},
+                radius: { kind: SPEC_KINDS.STATIC, value: 8 },
+                tubeRadius: { kind: SPEC_KINDS.STATIC, value: 2 }
+            };
+            const resolved: ResolvedTorus = {
+                type: dynamic.type,
+                position: resolveValue(dynamic.position),
+                radius: resolveValue(dynamic.radius),
+                tubeRadius: resolveValue(dynamic.tubeRadius)
+            };
+            expect(resolved.radius).toBe(8);
+            expect(resolved.tubeRadius).toBe(2);
+        });
+
+        it('Elliptical resolves correctly', () => {
+            const dynamic: DynamicElliptical = {
+                type: ELEMENT_TYPES.ELLIPTICAL,
+                position: { kind: SPEC_KINDS.STATIC, value: {x:0,y:0,z:0}},
+                rx: { kind: SPEC_KINDS.STATIC, value: 3 },
+                ry: { kind: SPEC_KINDS.STATIC, value: 4 },
+                rz: { kind: SPEC_KINDS.STATIC, value: 5 }
+            };
+            const resolved: ResolvedElliptical = {
+                type: dynamic.type,
+                position: resolveValue(dynamic.position),
+                rx: resolveValue(dynamic.rx),
+                ry: resolveValue(dynamic.ry),
+                rz: resolveValue(dynamic.rz)
+            };
+            expect(resolved.rx).toBe(3);
+            expect(resolved.ry).toBe(4);
+            expect(resolved.rz).toBe(5);
+        });
     });
 });
