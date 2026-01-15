@@ -225,15 +225,25 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
 
     noStroke(): void;
 
-    drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: SceneState): void;
-
     drawBox(props: ResolvedBox, assets: ElementAssets<TBundle>, state: SceneState): void;
+
+    drawPanel(props: ResolvedPanel, assets: ElementAssets<TBundle>, state: SceneState): void;
 
     drawSphere(resolved: ResolvedSphere, assets: ElementAssets<TBundle>, state: SceneState): void;
 
+    drawCone(resolved: ResolvedCone, assets: ElementAssets<TBundle>, state: SceneState): void;
+
+    drawPyramid(resolved: ResolvedPyramid, assets: ElementAssets<TBundle>, state: SceneState): void;
+
+    drawElliptical(resolved: ResolvedElliptical, assets: ElementAssets<TBundle>, state: SceneState): void;
+
+    drawCylinder(resolved: ResolvedCylinder, assets: ElementAssets<TBundle>, state: SceneState): void;
+
+    drawTorus(resolved: ResolvedTorus, assets: ElementAssets<TBundle>, state: SceneState): void;
+
     drawFloor(resolved: ResolvedFloor, assets: ElementAssets<TBundle>, state: SceneState): void;
 
-    drawPanel(props: ResolvedPanel, assets: ElementAssets<TBundle>, state: SceneState): void;
+    drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: SceneState): void;
 
     plane(width: number, height: number): void;
 
@@ -262,7 +272,19 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
 /**
  * DYNAMIC ENGINE CORE
  */
-export const ELEMENT_TYPES = {BOX: 'box', PANEL: 'panel', SPHERE: 'sphere', FLOOR: 'floor', TEXT: 'text'} as const;
+export const ELEMENT_TYPES = {
+    BOX: 'box',
+    PANEL: 'panel',
+    SPHERE: 'sphere',
+    CONE: 'cone',
+    PYRAMID: 'pyramid',
+    CYLINDER: 'cylinder',
+    TORUS: 'torus',
+    ELLIPTICAL: 'elliptical',
+    FLOOR: 'floor',
+    TEXT: 'text',
+} as const;
+
 export const SPEC_KINDS = {STATIC: 'static', COMPUTED: 'computed', BRANCH: 'branch'} as const;
 
 export type DynamicProperty<T> =
@@ -298,6 +320,7 @@ export interface ResolvedBaseVisual {
 
 export type DynamicElement<T extends ResolvedElement> = MapToDynamic<T>;
 
+// BOX
 
 export interface ResolvedBox extends ResolvedBaseVisual {
     readonly type: typeof ELEMENT_TYPES.BOX;
@@ -306,6 +329,8 @@ export interface ResolvedBox extends ResolvedBaseVisual {
 
 export type BlueprintBox = MapToBlueprint<ResolvedBox>;
 export type DynamicBox = DynamicElement<ResolvedBox>;
+
+// PANEL
 
 export interface ResolvedPanel extends ResolvedBaseVisual {
     readonly type: typeof ELEMENT_TYPES.PANEL;
@@ -316,6 +341,8 @@ export interface ResolvedPanel extends ResolvedBaseVisual {
 export type BlueprintPanel = MapToBlueprint<ResolvedPanel>;
 export type DynamicPanel = DynamicElement<ResolvedPanel>;
 
+//  SPHERE
+
 export interface ResolvedSphere extends ResolvedBaseVisual {
     readonly type: typeof ELEMENT_TYPES.SPHERE;
     readonly radius: number;
@@ -324,6 +351,73 @@ export interface ResolvedSphere extends ResolvedBaseVisual {
 
 export type BlueprintSphere = MapToBlueprint<ResolvedSphere>;
 export type DynamicSphere = DynamicElement<ResolvedSphere>;
+
+// CONE
+
+export interface ResolvedCone extends ResolvedBaseVisual {
+    readonly type: 'cone';
+    /** radius of the base circle */
+    readonly radius: number;
+    /** height along the Y axis */
+    readonly height: number;
+}
+
+export type BlueprintCone = MapToBlueprint<ResolvedCone>;
+export type DynamicCone = DynamicElement<ResolvedCone>;
+
+// PYRAMID
+
+export interface ResolvedPyramid extends ResolvedBaseVisual {
+    readonly type: typeof ELEMENT_TYPES.PYRAMID;
+    readonly baseSize: number;
+    readonly height: number;
+}
+
+export type BlueprintPyramid = MapToBlueprint<ResolvedPyramid>;
+export type DynamicPyramid = DynamicElement<ResolvedPyramid>;
+
+// CYLINDER
+
+export interface ResolvedCylinder extends ResolvedBaseVisual {
+    readonly type: typeof ELEMENT_TYPES.CYLINDER;
+    /** radius of the circular base */
+    readonly radius: number;
+    /** height along the Y axis */
+    readonly height: number;
+}
+
+export type BlueprintCylinder = MapToBlueprint<ResolvedCylinder>;
+export type DynamicCylinder = DynamicElement<ResolvedCylinder>;
+
+// TORUS
+
+export interface ResolvedTorus extends ResolvedBaseVisual {
+    readonly type: typeof ELEMENT_TYPES.TORUS;
+    /** distance from center to middle of the tube */
+    readonly radius: number;
+    /** radius of the tube */
+    readonly tubeRadius: number;
+}
+
+export type BlueprintTorus = MapToBlueprint<ResolvedTorus>;
+export type DynamicTorus = DynamicElement<ResolvedTorus>;
+
+// ELLIPTICAL
+
+export interface ResolvedElliptical extends ResolvedBaseVisual {
+    readonly type: typeof ELEMENT_TYPES.ELLIPTICAL;
+    /** radius along the X axis */
+    readonly rx: number;
+    /** radius along the Y axis */
+    readonly ry: number;
+    /** radius along the Z axis */
+    readonly rz: number;
+}
+
+export type BlueprintElliptical = MapToBlueprint<ResolvedElliptical>;
+export type DynamicElliptical = DynamicElement<ResolvedElliptical>;
+
+// FLOOR
 
 export interface ResolvedFloor extends ResolvedBaseVisual {
     readonly type: typeof ELEMENT_TYPES.FLOOR;
@@ -334,6 +428,8 @@ export interface ResolvedFloor extends ResolvedBaseVisual {
 export type BlueprintFloor = MapToBlueprint<ResolvedFloor>;
 export type DynamicFloor = DynamicElement<ResolvedFloor>;
 
+// TEXT
+
 export interface ResolvedText extends ResolvedBaseVisual {
     readonly type: typeof ELEMENT_TYPES.TEXT;
     readonly text: string;
@@ -343,8 +439,29 @@ export interface ResolvedText extends ResolvedBaseVisual {
 export type BlueprintText = MapToBlueprint<ResolvedText>;
 export type DynamicText = DynamicElement<ResolvedText>;
 
-export type BlueprintElement = BlueprintBox | BlueprintPanel | BlueprintSphere | BlueprintFloor | BlueprintText;
-export type ResolvedElement = ResolvedBox | ResolvedPanel | ResolvedSphere | ResolvedFloor | ResolvedText;
+export type BlueprintElement =
+    BlueprintBox        |
+    BlueprintPanel      |
+    BlueprintSphere     |
+    BlueprintCone       |
+    BlueprintPyramid    |
+    BlueprintElliptical |
+    BlueprintCylinder   |
+    BlueprintTorus      |
+    BlueprintFloor      |
+    BlueprintText       ;
+
+export type ResolvedElement =
+    ResolvedBox         |
+    ResolvedPanel       |
+    ResolvedSphere      |
+    ResolvedCone        |
+    ResolvedPyramid     |
+    ResolvedElliptical  |
+    ResolvedCylinder    |
+    ResolvedTorus       |
+    ResolvedFloor       |
+    ResolvedText        ;
 
 /**
  * WORLD INTERFACES

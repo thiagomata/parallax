@@ -6,11 +6,11 @@ import {
     type ElementAssets,
     type GraphicProcessor,
     type ResolvedBaseVisual,
-    type ResolvedBox,
+    type ResolvedBox, type ResolvedCone, type ResolvedCylinder, type ResolvedElliptical,
     type ResolvedFloor,
-    type ResolvedPanel,
+    type ResolvedPanel, type ResolvedPyramid,
     type ResolvedSphere,
-    type ResolvedText,
+    type ResolvedText, type ResolvedTorus,
     type SceneState,
     type Vector3
 } from '../types';
@@ -167,6 +167,78 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         // Note: p5.plane takes (width, height). In floor context, height = depth.
         this.p.plane(props.width, props.depth);
 
+        this.pop();
+    }
+
+    drawPyramid(props: ResolvedPyramid, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.push();
+        this.translate(props.position);
+        this.rotate(props.rotate);
+
+        this.drawTexture(assets, props, state);
+        this.drawStroke(props, state);
+
+        // Approximate pyramid: base centered at origin, use p.beginShape
+        const s = props.baseSize / 2;
+        this.p.beginShape(this.p.TRIANGLES);
+        // 4 triangular sides
+        this.p.vertex(-s, 0, -s); this.p.vertex(s, 0, -s); this.p.vertex(0, props.height, 0);
+        this.p.vertex(s, 0, -s); this.p.vertex(s, 0, s); this.p.vertex(0, props.height, 0);
+        this.p.vertex(s, 0, s); this.p.vertex(-s, 0, s); this.p.vertex(0, props.height, 0);
+        this.p.vertex(-s, 0, s); this.p.vertex(-s, 0, -s); this.p.vertex(0, props.height, 0);
+        // base
+        this.p.vertex(-s, 0, -s); this.p.vertex(s, 0, -s); this.p.vertex(s, 0, s);
+        this.p.vertex(s, 0, s); this.p.vertex(-s, 0, s); this.p.vertex(-s, 0, -s);
+        this.p.endShape();
+        this.pop();
+    }
+
+    drawCone(props: ResolvedCone, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.push();
+        this.translate(props.position);
+        this.rotate(props.rotate);
+
+        this.drawTexture(assets, props, state);
+        this.drawStroke(props, state);
+
+        this.p.cone(props.radius, props.height);
+        this.pop();
+    }
+
+    drawElliptical(props: ResolvedElliptical, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.push();
+        this.translate(props.position);
+        this.rotate(props.rotate);
+
+        this.drawTexture(assets, props, state);
+        this.drawStroke(props, state);
+
+        // p5 does not have ellipsoid axes control directly, but p.ellipsoid(rx, ry, rz) exists
+        this.p.ellipsoid(props.rx, props.ry, props.rz);
+        this.pop();
+    }
+
+    drawCylinder(props: ResolvedCylinder, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.push();
+        this.translate(props.position);
+        this.rotate(props.rotate);
+
+        this.drawTexture(assets, props, state);
+        this.drawStroke(props, state);
+
+        this.p.cylinder(props.radius, props.height);
+        this.pop();
+    }
+
+    drawTorus(props: ResolvedTorus, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.push();
+        this.translate(props.position);
+        this.rotate(props.rotate);
+
+        this.drawTexture(assets, props, state);
+        this.drawStroke(props, state);
+
+        this.p.torus(props.radius, props.tubeRadius);
         this.pop();
     }
 

@@ -63,6 +63,7 @@ export const createRenderable =
                 const far = state.settings.camera.far ?? 5000;
 
                 if (distance < far) {
+
                     switch (resolved.type) {
                         case ELEMENT_TYPES.BOX:
                             gp.drawBox(resolved, this.assets, state);
@@ -70,14 +71,29 @@ export const createRenderable =
                         case ELEMENT_TYPES.PANEL:
                             gp.drawPanel(resolved, this.assets, state);
                             break;
-                        case ELEMENT_TYPES.TEXT:
-                            gp.drawText(resolved, this.assets, state);
-                            break;
                         case ELEMENT_TYPES.SPHERE:
                             gp.drawSphere(resolved, this.assets, state);
                             break;
+                        case ELEMENT_TYPES.CONE:
+                            gp.drawCone(resolved, this.assets, state);
+                            break;
+                        case ELEMENT_TYPES.PYRAMID:
+                            gp.drawPyramid(resolved, this.assets, state);
+                            break;
+                        case ELEMENT_TYPES.ELLIPTICAL:
+                            gp.drawElliptical(resolved, this.assets, state);
+                            break;
+                        case ELEMENT_TYPES.CYLINDER:
+                            gp.drawCylinder(resolved, this.assets, state);
+                            break;
+                        case ELEMENT_TYPES.TORUS:
+                            gp.drawTorus(resolved, this.assets, state);
+                            break;
                         case ELEMENT_TYPES.FLOOR:
                             gp.drawFloor(resolved, this.assets, state);
+                            break;
+                        case ELEMENT_TYPES.TEXT:
+                            gp.drawText(resolved, this.assets, state);
                             break;
                         default:
                             throw new Error(`Unknown type ${resolved}`);
