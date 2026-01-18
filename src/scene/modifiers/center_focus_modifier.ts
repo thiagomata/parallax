@@ -8,6 +8,9 @@ export class CenterFocusModifier implements StickModifier {
     constructor() {
     }
 
+    tick() {
+    }
+
     getStick(cameraPos: Vector3): FailableResult<StickResult> {
         const distance = Math.sqrt(
             cameraPos.x ** 2 +

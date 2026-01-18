@@ -7,6 +7,8 @@ export class OrbitModifier implements CarModifier {
     active = true;
     private radius: number;
 
+    tick() {}
+
     constructor(_p5: p5, radius: number) {
         this.radius = radius;
     }
@@ -26,7 +28,7 @@ export class OrbitModifier implements CarModifier {
             success: true,
             value: {
                 name: this.name,
-                position: {x: camX, y: camY, z: camZ}
+                position: {x: camX, y: camY, z: camZ},
             }
         };
     }

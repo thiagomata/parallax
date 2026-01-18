@@ -68,6 +68,7 @@ export interface SceneSettings {
 }
 
 export interface SceneState {
+    sceneId: number;
     settings: SceneSettings;
     playback: ScenePlaybackState;
     camera: SceneCameraState;
@@ -121,26 +122,26 @@ export interface StickResult {
     readonly priority: number;
 }
 
-export interface CarModifier {
+export interface Modifier {
+    /** unique modifier name */
     name: string;
     active: boolean;
-    readonly priority: number;
+    /** Called exactly once per frame **/
+    tick(sceneId: number): void;
 
+}
+
+export interface CarModifier extends Modifier {
+    readonly priority: number;
     getCarPosition(initialCam: Vector3, currentState: SceneState): FailableResult<CarResult>;
 }
 
-export interface NudgeModifier {
-    name: string;
-    active: boolean;
-
+export interface NudgeModifier extends Modifier {
     getNudge(currentCarPos: Vector3, currentState: SceneState): FailableResult<Partial<Vector3>>;
 }
 
-export interface StickModifier {
-    name: string;
-    active: boolean;
+export interface StickModifier extends Modifier {
     readonly priority: number;
-
     getStick(finalPos: Vector3, currentState: SceneState): FailableResult<StickResult>;
 }
 

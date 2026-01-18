@@ -20,6 +20,7 @@ describe('README Examples Validation', () => {
             name: "FollowPlayer",
             priority: 10,
             active: true,
+            tick: () => {},
             getCarPosition: (_current, _state) => ({
                 success: true,
                 value: {position: playerPos, name: "player"}
@@ -30,6 +31,7 @@ describe('README Examples Validation', () => {
         manager.addNudgeModifier({
             name: "Breathing",
             active: true,
+            tick: () => {},
             getNudge: (_base, state) => ({
                 success: true,
                 value: {y: Math.sin(state.playback.now * 0.002) * 15}
@@ -41,6 +43,7 @@ describe('README Examples Validation', () => {
             name: "LookAtCenter",
             active: true,
             priority: 1,
+            tick: () => {},
             getStick: (camPos) => ({
                 success: true,
                 value: {yaw: Math.atan2(-camPos.x, camPos.z), pitch: 0, distance: 1000, priority: 1}

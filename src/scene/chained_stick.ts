@@ -5,6 +5,12 @@ export class ChainedStick implements StickModifier {
     public name: string;
     private chain: StickModifier[];
 
+    tick(sceneId: number): void {
+        for( const modifier of this.chain) {
+            modifier.tick(sceneId);
+        }
+    }
+
     constructor(priority: number, chain: StickModifier[]) {
         this.priority = priority;
         this.chain = chain;

@@ -8,6 +8,7 @@ describe("ChainedStick Decorator", () => {
         name: `${id}`,
         active: true,
         priority: priority, // The internal priority doesn't matter to the Manager, only the wrapper's priority
+        tick: () => {},
         getStick: () => ({
             value: {
                 yaw: val,
@@ -43,6 +44,7 @@ describe("ChainedStick Decorator", () => {
             name: "primary",
             active: true,
             priority: 10,
+            tick: () => {},
             getStick: () => ({success: false, error: "Hardware Disconnected"}),
         };
         const secondary = mockStick("secondary", 2);
@@ -77,12 +79,14 @@ describe("ChainedStick Decorator", () => {
             name: "primary",
             active: true,
             priority: 1,
+            tick: () => {},
             getStick: () => ({success: false, error: "Fail 1"}),
         };
         const secondary: StickModifier = {
             name: "secondary",
             active: true,
             priority: 1,
+            tick: () => {},
             getStick: () => ({success: false, error: "Fail 2"}),
         };
 

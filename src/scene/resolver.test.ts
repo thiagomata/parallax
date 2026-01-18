@@ -45,6 +45,7 @@ describe('createRenderable & Resolver Loop', () => {
 
     // Minimal mock state
     const mockState: SceneState = {
+        sceneId: 0,
         settings: {
             window: {width: 800, height: 600, aspectRatio: 1.33},
             camera: {position: mockOrigin, lookAt: mockOrigin},

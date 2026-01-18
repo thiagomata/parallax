@@ -1,6 +1,7 @@
 import {
     type CarModifier,
     DEFAULT_SETTINGS,
+    type Modifier,
     type NudgeModifier,
     type SceneCameraState,
     type ScenePlaybackState,
@@ -14,6 +15,7 @@ import {
 
 export class SceneManager {
     private settings: SceneSettings;
+    private modifiers: Map<string, Modifier> = new Map();
     private carModifiers: CarModifier[] = [];
     private nudgeModifiers: NudgeModifier[] = [];
     private stickModifiers: StickModifier[] = [];
@@ -25,6 +27,7 @@ export class SceneManager {
     }
 
     public clearModifiers(): void {
+        this.modifiers = new Map<string, Modifier>();
         this.carModifiers = [];
         this.nudgeModifiers = [];
         this.stickModifiers = [];
@@ -41,6 +44,8 @@ export class SceneManager {
     }
 
     public addCarModifier(carModifier: CarModifier): SceneManager {
+        this.addModifier(carModifier);
+
         // Append and Sort descending: Highest priority first.
         this.carModifiers = [...this.carModifiers, carModifier].sort(
             (a, b) => b.priority - a.priority
@@ -49,11 +54,13 @@ export class SceneManager {
     }
 
     public addNudgeModifier(nudgeModifier: NudgeModifier): SceneManager {
+        this.addModifier(nudgeModifier);
         this.nudgeModifiers.push(nudgeModifier);
         return this;
     }
 
     public addStickModifier(stickModifier: StickModifier): SceneManager {
+        this.addModifier(stickModifier);
         // Append and Sort descending: Highest priority first.
         this.stickModifiers = [...this.stickModifiers, stickModifier].sort(
             (a, b) => b.priority - a.priority
@@ -63,6 +70,7 @@ export class SceneManager {
 
     public initialState(): SceneState {
         return {
+            sceneId: 0,
             settings: this.settings,
             playback: {
                 now: 0,
@@ -90,7 +98,6 @@ export class SceneManager {
     }
 
     public calculateScene(millis: number, deltaTime: number, frameCount: number, previousState: SceneState): SceneState {
-        // public calculateScene(): SceneState {
         let basePos: Vector3 = {...this.settings.camera.position};
         const debugLog = this.isDebug ? this.createEmptyDebugLog() : null;
 
@@ -109,15 +116,22 @@ export class SceneManager {
                 delta: deltaTime,
                 progress: progress,
                 frameCount: frameCount,
-            } as ScenePlaybackState
+            } as ScenePlaybackState,
+            sceneId: previousState.sceneId + 1,
         } as SceneState
 
-        for (const m of this.carModifiers) {
-            if (!m.active) continue;
+        for (const modifier of this.modifiers.values()) {
+            if (modifier.active) {
+                modifier.tick(currentState.sceneId);
+            }
+        }
 
-            const res = m.getCarPosition(this.settings.camera.position, currentState);
+        for (const modifier of this.carModifiers) {
+            if (!modifier.active) continue;
+
+            const res = modifier.getCarPosition(this.settings.camera.position, currentState);
             if (!res.success && this.isDebug && debugLog) {
-                debugLog.errors.push({name: m.name, message: res.error});
+                debugLog.errors.push({name: modifier.name, message: res.error});
                 continue;
             }
 
@@ -126,7 +140,7 @@ export class SceneManager {
                 if (this.isDebug && debugLog) {
                     debugLog.car = {
                         name: res.value.name,
-                        priority: m.priority,
+                        priority: modifier.priority,
                         x: basePos.x,
                         y: basePos.y,
                         z: basePos.z,
@@ -145,16 +159,16 @@ export class SceneManager {
             priority: -1,
         };
 
-        for (const m of this.stickModifiers) {
-            if (!m.active) continue;
+        for (const modifier of this.stickModifiers) {
+            if (!modifier.active) continue;
 
-            const res = m.getStick(finalCamPos, currentState);
+            const res = modifier.getStick(finalCamPos, currentState);
             if (res.success) {
                 stickRes = res.value;
                 if (this.isDebug && debugLog) {
                     debugLog.stick = {
-                        name: m.name,
-                        priority: m.priority,
+                        name: modifier.name,
+                        priority: modifier.priority,
                         yaw: stickRes.yaw,
                         pitch: stickRes.pitch,
                         distance: stickRes.distance,
@@ -162,7 +176,7 @@ export class SceneManager {
                 }
                 break;
             } else if (this.isDebug && debugLog) {
-                debugLog.errors.push({name: m.name, message: res.error});
+                debugLog.errors.push({name: modifier.name, message: res.error});
             }
         }
 
@@ -188,6 +202,12 @@ export class SceneManager {
             } as SceneCameraState,
             debugStateLog: debugLog ?? undefined,
         } as SceneState;
+    }
+
+    private addModifier(modifier: Modifier) {
+        if (this.modifiers.has(modifier.name)) {
+            this.modifiers.set(modifier.name, modifier);
+        }
     }
 
     private processNudges(basePos: Vector3, debugLog: SceneStateDebugLog | null, currentState: SceneState): Vector3 {

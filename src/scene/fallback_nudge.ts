@@ -5,6 +5,8 @@ export class FallbackNudge implements NudgeModifier {
     private primary: NudgeModifier;
     private secondary: NudgeModifier;
 
+    tick(): void {}
+
     constructor(primary: NudgeModifier, secondary: NudgeModifier) {
         this.primary = primary;
         this.secondary = secondary;

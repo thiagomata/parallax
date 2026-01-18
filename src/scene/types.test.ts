@@ -55,6 +55,7 @@ interface P5Bundle extends GraphicsBundle {
 describe('Parallax Engine Type Coherence Test', () => {
 
     const mockState: SceneState = {
+        sceneId: 0,
         settings: {
             window: {width: 800, height: 600, aspectRatio: 1.33},
             camera: {position: {x: 0, y: 0, z: 500}, lookAt: {x: 0, y: 0, z: 0}},
