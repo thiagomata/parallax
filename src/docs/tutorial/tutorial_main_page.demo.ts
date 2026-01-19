@@ -27,8 +27,11 @@ import {tutorial_4} from './tutorial_4.ts';
 import step4Source from './tutorial_4.ts?raw';
 import {tutorial_5} from './tutorial_5.ts';
 import step5Source from './tutorial_5.ts?raw';
-import tutorial_6 from "./tutorial_6.ts";
+import {tutorial_6} from "./tutorial_6.ts";
 import step6Source from './tutorial_6.ts?raw';
+import {tutorial_7} from "./tutorial_7.ts";
+import step7Source from './tutorial_7.ts?raw';
+import {CameraModifier} from "../../scene/modifiers/camera_modifier.ts";
 
 /**
  * ARCHITECTURAL EXPOSURE
@@ -43,6 +46,7 @@ Object.assign(window, {
     ELEMENT_TYPES,
     DEFAULT_SETTINGS,
     ASSET_STATUS,
+    CameraModifier,
     resolve, // Expose for users who want to debug element state in console
     p5
 });
@@ -124,6 +128,17 @@ function renderStep(containerId: string, title: string, initialSketch: P5Sketch,
         codeElem.innerHTML = Prism.highlight(source, Prism.languages.typescript, 'typescript');
         executeUpdate();
     });
+
+    document.getElementById(`fs-${containerId}`)?.addEventListener('click', () => {
+        const canvasContainer = document.getElementById(`canvas-${containerId}`);
+        if (canvasContainer) {
+            if (canvasContainer.requestFullscreen) {
+                canvasContainer.requestFullscreen();
+            } else if ((canvasContainer as any).webkitRequestFullscreen) { /* Safari */
+                (canvasContainer as any).webkitRequestFullscreen();
+            }
+        }
+    });
 }
 
 // Initialize the updated Curriculum
@@ -133,3 +148,4 @@ renderStep('tutorial-3', '3. Movement (Spatial Orbit)', tutorial_3, step3Source)
 renderStep('tutorial-4', '4. Camera (Modifiers)', tutorial_4, step4Source);
 renderStep('tutorial-5', '5. Textures & Fonts (Hydration)', tutorial_5, step5Source);
 renderStep('tutorial-6', '6. Integrated Scene (Hybrid Props)', tutorial_6, step6Source);
+renderStep('tutorial-7', '7. Head Tracking', tutorial_7, step7Source);
