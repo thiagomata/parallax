@@ -120,7 +120,6 @@ export class SceneManager {
             sceneId: previousState.sceneId + 1,
         } as SceneState
 
-        debugger;
         for (const modifier of this.modifiers.values()) {
             if (modifier.active) {
                 modifier.tick(currentState.sceneId);
@@ -206,7 +205,6 @@ export class SceneManager {
     }
 
     private addModifier(modifier: Modifier) {
-        debugger;
         if (!this.modifiers.has(modifier.name)) {
             this.modifiers.set(modifier.name, modifier);
         }

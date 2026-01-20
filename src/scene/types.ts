@@ -485,3 +485,41 @@ export interface RenderableElement<
 export function createBlueprint<T>(blueprint: MapToBlueprint<T>): MapToBlueprint<T> {
     return blueprint;
 }
+
+export type TrackingStatus = 'IDLE' | 'INITIALIZING' | 'READY' | 'ERROR';
+
+export interface FaceGeometry {
+    nose: Vector3;
+    leftEye: Vector3;
+    rightEye: Vector3;
+    bounds: {
+        left: Vector3;
+        right: Vector3;
+        top: Vector3;
+        bottom: Vector3;
+    };
+}
+
+export interface FaceProvider {
+    getFace(): FaceGeometry | null
+    getStatus(): TrackingStatus;
+    init(): Promise<void>;
+}
+
+export interface ObserverConfig {
+    travelRange: number;   // X, Y limits
+    zTravelRange: number;  // Z depth limits
+    zoomRange: number;    // Sensitivity of head-size change
+    smoothing: number;    // 0.08 - the "latency" or "creaminess"
+    damping: number;      // Reduction of rotation intensity
+    lookDistance: number; // How far the focal point is
+}
+
+export const DEFAULT_OBSERVER_CONFIG: ObserverConfig = {
+    travelRange: 100,
+    zTravelRange: 100,
+    zoomRange: 0.1,
+    smoothing: 0.08,
+    damping: 0.5,
+    lookDistance: 1000
+};
