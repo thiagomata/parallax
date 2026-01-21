@@ -6,6 +6,7 @@ export class FaceFeatures {
     public readonly nudge: Vector3;
     public readonly stick: { yaw: number; pitch: number };
     public readonly face: FaceGeometry;
+    public static readonly SCREEN_CENTER = 0.5;
 
     constructor(data: FaceGeometry) {
         this.face = data;
@@ -30,8 +31,8 @@ export class FaceFeatures {
 
     private calculateNudge(): Vector3 {
         return {
-            x: 0.5 - this.midpoint.x,
-            y: this.midpoint.y - 0.5,
+            x: FaceFeatures.SCREEN_CENTER - this.midpoint.x,
+            y: this.midpoint.y - FaceFeatures.SCREEN_CENTER,
             z: 0
         };
     }

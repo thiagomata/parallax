@@ -59,6 +59,7 @@ export function createMockP5() {
         NORMAL: 'normal',
         setup: undefined as any,
         draw: undefined as any,
+        createCapture: vi.fn(),
     };
     mockP5.millis.mockReturnValue(0);
     return mockP5;

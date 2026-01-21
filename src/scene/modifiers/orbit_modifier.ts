@@ -6,11 +6,13 @@ export class OrbitModifier implements CarModifier {
     priority = 10;
     active = true;
     private radius: number;
+    private verticalBaseline: number;
 
     tick() {}
 
-    constructor(_p5: p5, radius: number) {
+    constructor(_p5: p5, radius: number, verticalBaseline: number = -400) {
         this.radius = radius;
+        this.verticalBaseline = verticalBaseline;
     }
 
     getCarPosition(_initialCam: Vector3, currentState: SceneState): FailableResult<{
@@ -22,7 +24,7 @@ export class OrbitModifier implements CarModifier {
         // Exactly the same math as the dummy
         const camX = Math.sin(circularProgress) * this.radius;
         const camZ = Math.cos(circularProgress) * this.radius;
-        const camY = -400 + Math.sin(circularProgress * 0.5) * 100;
+        const camY = this.verticalBaseline + Math.sin(circularProgress * 0.5) * 100;
 
         return {
             success: true,

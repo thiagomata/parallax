@@ -4,32 +4,35 @@ import {FaceParser} from "./face_parser.ts";
 describe('FaceParser', () => {
 
     // Helper to create a fake MediaPipe landmark array
-    const createMockLandmarks = () => {
+    const createMockLandmarks = (seed: number = 1000) => {
         // MediaPipe usually provides 478 points
         return Array.from({length: 478}, (_, i) => ({
-            x: i / 1000,
-            y: i / 1000,
-            z: i / 1000
+            x: i / seed,
+            y: i / seed,
+            z: i / seed
         }));
     };
 
-    it('should correctly map MediaPipe indices to semantic names', () => {
-        const raw = createMockLandmarks();
-        const result = FaceParser.parse(raw);
+    it.each([
+        { raw: createMockLandmarks(1000) },
+        { raw: createMockLandmarks(2000) },
+        { raw: createMockLandmarks(3000) },
+        { raw: createMockLandmarks(4000) },
+    ])(
+        'should correctly map MediaPipe indices to semantic names',
+        ({ raw }) => {
+            const result = FaceParser.parse(raw);
 
-        // Verify Nose (Index 1)
-        expect(result.nose.x).toBe(raw[1].x);
+            expect(result.nose.x).toBe(raw[1].x);
+            expect(result.leftEye.x).toBe(raw[468].x);
+            expect(result.rightEye.x).toBe(raw[473].x);
 
-        // Verify Eyes (Indices 468, 473)
-        expect(result.leftEye.x).toBe(raw[468].x);
-        expect(result.rightEye.x).toBe(raw[473].x);
-
-        // Verify Bounds
-        expect(result.bounds.top.x).toBe(raw[10].x);     // Forehead
-        expect(result.bounds.bottom.x).toBe(raw[152].x); // Chin
-        expect(result.bounds.left.x).toBe(raw[234].x);   // Face Left
-        expect(result.bounds.right.x).toBe(raw[454].x);  // Face Right
-    });
+            expect(result.bounds.top.x).toBe(raw[10].x);
+            expect(result.bounds.bottom.x).toBe(raw[152].x);
+            expect(result.bounds.left.x).toBe(raw[234].x);
+            expect(result.bounds.right.x).toBe(raw[454].x);
+        }
+    );
 
     it('should throw an error if the landmark array is too small', () => {
         const incompleteData = Array(10).fill({ x: 0, y: 0, z: 0 });
