@@ -96,7 +96,8 @@ export const createRenderable =
                             gp.drawText(resolved, this.assets, state);
                             break;
                         default:
-                            throw new Error(`Unknown type ${resolved}`);
+                            const strange = resolved as unknown;
+                            throw new Error(`Unknown type ${strange?.constructor?.name} ` + JSON.stringify(strange));
                     }
                 }
 

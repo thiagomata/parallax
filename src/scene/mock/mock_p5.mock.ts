@@ -37,6 +37,7 @@ export function createMockP5() {
         strokeWidth: vi.fn(),
         noStroke: vi.fn(),
         stroke: vi.fn(),
+        map: vi.fn(),
         noTint: vi.fn(),
         noFill: vi.fn(),
         line: vi.fn(),
@@ -59,6 +60,8 @@ export function createMockP5() {
         NORMAL: 'normal',
         setup: undefined as any,
         draw: undefined as any,
+        createCapture: vi.fn(),
+        lerp: vi.fn(),
     };
     mockP5.millis.mockReturnValue(0);
     return mockP5;

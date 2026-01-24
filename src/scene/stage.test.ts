@@ -2,7 +2,8 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {Stage} from './stage.ts';
 import {ChaosLoader} from './mock/mock_asset_loader.mock.ts';
 import {createMockState} from './mock/mock_scene_state.mock.ts';
-import {ELEMENT_TYPES, type GraphicProcessor, type Vector3} from './types.ts';
+import {createMockGraphicProcessor} from './mock/mock_graphic_processor.mock.ts';
+import {ELEMENT_TYPES, type GraphicProcessor} from './types.ts';
 
 describe('Stage (Spatial Orchestration)', () => {
     let stage: Stage<any>;
@@ -14,22 +15,7 @@ describe('Stage (Spatial Orchestration)', () => {
         vi.clearAllMocks();
         loader = new ChaosLoader();
         stage = new Stage(loader);
-
-        mockGP = {
-            // Real distance formula for sorting accuracy
-            dist: (v1: Vector3, v2: Vector3) => Math.sqrt(
-                Math.pow(v2.x - v1.x, 2) + Math.pow(v2.y - v1.y, 2) + Math.pow(v2.z - v1.z, 2)
-            ),
-            setCamera: vi.fn(),
-            translate: vi.fn(),
-            push: vi.fn(),
-            pop: vi.fn(),
-            drawBox: vi.fn(),
-            // Mock other required GP methods
-            millis: vi.fn(),
-            deltaTime: vi.fn(),
-            frameCount: vi.fn(),
-        } as unknown as GraphicProcessor<any>;
+        mockGP = createMockGraphicProcessor();
     });
 
     it('should register and render an element', () => {
@@ -107,5 +93,45 @@ describe('Stage (Spatial Orchestration)', () => {
 
         // Registry should return the existing element rather than creating/hydrating again
         expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should remove elements from the stage', () => {
+        const elementId = 'removable-box';
+        
+        // Add an element first
+        stage.add(elementId, {
+            type: ELEMENT_TYPES.BOX,
+            position: {x: 10, y: 0, z: 0},
+            size: 5
+        });
+
+        // Verify element is present
+        expect(stage.getElement(elementId)).toBeDefined();
+
+        // Remove the element
+        stage.remove(elementId);
+
+        // Verify element is no longer present
+        expect(stage.getElement(elementId)).toBeUndefined();
+    });
+
+    it('should not render removed elements', () => {
+        const elementId = 'not-rendered-box';
+        
+        // Add an element
+        stage.add(elementId, {
+            type: ELEMENT_TYPES.BOX,
+            position: {x: 10, y: 0, z: 0},
+            size: 5
+        });
+
+        // Remove the element
+        stage.remove(elementId);
+
+        // Render the stage
+        stage.render(mockGP, mockState);
+
+        // Verify drawBox was not called for the removed element
+        expect(mockGP.drawBox).not.toHaveBeenCalled();
     });
 });

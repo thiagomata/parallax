@@ -16,6 +16,7 @@ const mockCar = (id: string, priority: number, pos: Vector3): CarModifier => ({
     name: `MockCar_${id}`,
     active: true,
     priority,
+    tick: () => {},
     getCarPosition: () => ({
         value: {
             name: `Position_${id}`,
@@ -28,6 +29,7 @@ const mockCar = (id: string, priority: number, pos: Vector3): CarModifier => ({
 const mockNudge = (val: Partial<Vector3>, active: boolean = true): NudgeModifier => ({
     name: `MockNudge_${JSON.stringify(val)}`,
     active: active,
+    tick: () => {},
     getNudge: () => (
         {
             value: val,
@@ -50,6 +52,7 @@ const mockStick = (
     name,
     active,
     priority,
+    tick: () => {},
     getStick: () => ({
         value: {
             name,
@@ -88,6 +91,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
             name: "FailingHigh",
             active: true,
             priority: 100,
+            tick: () => {},
             getCarPosition: () => ({
                 success: false,
                 error: "Sensor Failure"
@@ -155,6 +159,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
             name: "BrokenCar",
             active: true,
             priority: 999,
+            tick: () => {},
             getCarPosition: () => ({
                 success: false,
                 error: "Critical Error"
@@ -165,6 +170,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
             name: "BrokenStick",
             active: true,
             priority: 999,
+            tick: () => {},
             getStick: () => ({
                 success: false,
                 error: "Math Overflow"
@@ -230,6 +236,7 @@ describe("PortalSceneManager - Stage 3 (Stick)", () => {
             name: "ForwardStick",
             active: true,
             priority: 1,
+            tick: () => {},
             getStick: () => ({
                 value: {name: "ForwardStick", yaw: 0, pitch: 0, distance: 10, priority: 1},
                 success: true
@@ -326,6 +333,7 @@ describe("PortalSceneManager - Debug Output", () => {
             name: "FailingCar",
             active: true,
             priority: 100,
+            tick: () => {},
             getCarPosition: () => ({
                 success: false,
                 error: "Element not found"
@@ -336,6 +344,7 @@ describe("PortalSceneManager - Debug Output", () => {
             name: "GoodCar",
             active: true,
             priority: 50,
+            tick: () => {},
             getCarPosition: () => ({
                 value: {name: "GoodCar", position: {x: 20, y: 30, z: 40}},
                 success: true,
@@ -365,6 +374,7 @@ describe("PortalSceneManager - Debug Output", () => {
             name: "highPriorityCar",
             active: true,
             priority: 100,
+            tick: () => {},
             getCarPosition: () => ({
                 value: {name: "highPriorityCar", position: {x: 50, y: 60, z: 70}},
                 success: true,
@@ -389,11 +399,13 @@ describe("PortalSceneManager - Debug Output", () => {
             .addNudgeModifier({
                 name: "NudgeX",
                 active: true,
+                tick: () => {},
                 getNudge: () => ({value: {x: 5}, success: true}),
             })
             .addNudgeModifier({
                 name: "NudgeY",
                 active: true,
+                tick: () => {},
                 getNudge: () => ({value: {y: 20}, success: true}),
             });
 
@@ -430,6 +442,7 @@ describe("PortalSceneManager - Debug Output", () => {
             name: "FailingCar",
             active: true,
             priority: 100,
+            tick: () => {},
             getCarPosition: () => ({success: false, error: "DOM element missing"}),
         };
 
@@ -448,6 +461,7 @@ describe("PortalSceneManager - Debug Output", () => {
         const failingNudge: NudgeModifier = {
             name: "FailingNudge",
             active: true,
+            tick: () => {},
             getNudge: () => ({success: false, error: "DOM element missing"}),
         };
         manager.addNudgeModifier(failingNudge);
@@ -493,6 +507,7 @@ it("should log multiple errors if higher priority sticks fail", () => {
         name: "Hardware-Sensor",
         active: true,
         priority: 100,
+        tick: () => {},
         getStick: () => ({success: false, error: "Not Connected"}),
     };
 
@@ -500,6 +515,7 @@ it("should log multiple errors if higher priority sticks fail", () => {
         name: "Software-Algorithm",
         active: true,
         priority: 80,
+        tick: () => {},
         getStick: () => ({success: false, error: "NaN Result"}),
     };
 
@@ -536,6 +552,7 @@ it('should completely reset spatial logic after clearModifiers', () => {
         name: "Wanderer",
         priority: 100,
         active: true,
+        tick: () => {},
         getCarPosition: () => ({success: true, value: {position: {x: 999, y: 999, z: 999}, name: "far"}})
     });
 
@@ -559,6 +576,7 @@ it('should completely reset spatial logic after clearModifiers', () => {
         name: "Wanderer",
         priority: 100,
         active: true,
+        tick: () => {},
         getCarPosition: () => ({success: true, value: {position: {x: 999, y: 999, z: 999}, name: "far"}})
     });
 

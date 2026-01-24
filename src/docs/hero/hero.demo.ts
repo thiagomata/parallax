@@ -23,7 +23,6 @@ import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.t
 
 
 /**
- * [2026-01-07] Respecting signatures:
  * We expose the engine to the window so the dynamic code can resolve types.
  */
 Object.assign(window, {

@@ -6,6 +6,7 @@ import {createMockState} from "./mock/mock_scene_state.mock.ts";
 const mockNudge = (val: Partial<Vector3>, shouldError = false): NudgeModifier => ({
     name: `MockNudge_${JSON.stringify(val)}`,
     active: true,
+    tick: () => {},
     getNudge: () => shouldError ?
         {success: false, error: 'Error'} :
         {success: true, value: val},

@@ -66,8 +66,11 @@ describe('World Orchestration (Dependency Injection)', () => {
             ...initialState,
             settings: {...initialState.settings, debug: true},
             debugStateLog: {
-                car: {name: 'None'},
-                nudges: [],
+                car: {name: 'None', x: 10, y: 11, z: 12},
+                nudges: [
+                    {name: 'A', x: 100, y: 101, z: 102},
+                    {name: 'B', x: 200, y: 201, z: 202},
+                ],
                 errors: [
                     {message: 'First'},
                     {message: 'Second'}
@@ -77,6 +80,13 @@ describe('World Orchestration (Dependency Injection)', () => {
         (mockManager.calculateScene as Mock).mockReturnValue(debugState);
 
         world.step(mockGP);
+
+        expect(mockGP.drawLabel).toHaveBeenCalledWith('CAR: None', {x: 10, y: 11, z: 12});
+
+        expect(mockGP.drawCrosshair).toHaveBeenCalledWith({x: 100, y: 101, z: 102}, 5);
+        expect(mockGP.drawCrosshair).toHaveBeenCalledWith({x: 200, y: 201, z: 202}, 5);
+        expect(mockGP.text).toHaveBeenCalledWith('Nudge: A',{x: 100, y: 101, z: 102});
+        expect(mockGP.text).toHaveBeenCalledWith('Nudge: B',{x: 200, y: 201, z: 202});
 
         // Checking the y-offset logic: 20 + (i * 20)
         expect(mockGP.drawHUDText).toHaveBeenCalledWith('Error: First', 20, 20);

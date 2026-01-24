@@ -68,6 +68,7 @@ export interface SceneSettings {
 }
 
 export interface SceneState {
+    sceneId: number;
     settings: SceneSettings;
     playback: ScenePlaybackState;
     camera: SceneCameraState;
@@ -121,26 +122,26 @@ export interface StickResult {
     readonly priority: number;
 }
 
-export interface CarModifier {
+export interface Modifier {
+    /** unique modifier name */
     name: string;
     active: boolean;
-    readonly priority: number;
+    /** Called exactly once per frame **/
+    tick(sceneId: number): void;
 
+}
+
+export interface CarModifier extends Modifier {
+    readonly priority: number;
     getCarPosition(initialCam: Vector3, currentState: SceneState): FailableResult<CarResult>;
 }
 
-export interface NudgeModifier {
-    name: string;
-    active: boolean;
-
+export interface NudgeModifier extends Modifier {
     getNudge(currentCarPos: Vector3, currentState: SceneState): FailableResult<Partial<Vector3>>;
 }
 
-export interface StickModifier {
-    name: string;
-    active: boolean;
+export interface StickModifier extends Modifier {
     readonly priority: number;
-
     getStick(finalPos: Vector3, currentState: SceneState): FailableResult<StickResult>;
 }
 
@@ -355,7 +356,7 @@ export type DynamicSphere = DynamicElement<ResolvedSphere>;
 // CONE
 
 export interface ResolvedCone extends ResolvedBaseVisual {
-    readonly type: 'cone';
+    readonly type: typeof ELEMENT_TYPES.CONE;
     /** radius of the base circle */
     readonly radius: number;
     /** height along the Y axis */
@@ -484,3 +485,47 @@ export interface RenderableElement<
 export function createBlueprint<T>(blueprint: MapToBlueprint<T>): MapToBlueprint<T> {
     return blueprint;
 }
+
+export type TrackingStatus =
+    | 'IDLE'           // Created but not yet initialized
+    | 'INITIALIZING'   // Hardware/WASM is booting
+    | 'READY'          // Active tracking in progress
+    | 'DRIFTING'       // Tracking lost, but modifier is returning back to neutral
+    | 'DISCONNECTED'   // Tracking source disconnected and threshold exceeded (calibration cleared)
+    | 'ERROR';         // Fatal hardware/permission issue
+
+export interface FaceGeometry {
+    nose: Vector3;
+    leftEye: Vector3;
+    rightEye: Vector3;
+    bounds: {
+        left: Vector3;
+        right: Vector3;
+        top: Vector3;
+        bottom: Vector3;
+    };
+}
+
+export interface FaceProvider {
+    getFace(): FaceGeometry | null
+    getStatus(): TrackingStatus;
+    init(): Promise<void>;
+}
+
+export interface ObserverConfig {
+    travelRange: number;   // X, Y limits
+    zTravelRange: number;  // Z depth limits
+    zoomRange: number;    // Sensitivity of head-size change
+    smoothing: number;    // 0.08 - the "latency" or "creaminess"
+    damping: number;      // Reduction of rotation intensity
+    lookDistance: number; // How far the focal point is
+}
+
+export const DEFAULT_OBSERVER_CONFIG: ObserverConfig = {
+    travelRange: 100,
+    zTravelRange: 100,
+    zoomRange: 0.1,
+    smoothing: 0.08,
+    damping: 0.5,
+    lookDistance: 1000
+};
