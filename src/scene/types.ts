@@ -486,7 +486,13 @@ export function createBlueprint<T>(blueprint: MapToBlueprint<T>): MapToBlueprint
     return blueprint;
 }
 
-export type TrackingStatus = 'IDLE' | 'INITIALIZING' | 'READY' | 'ERROR';
+export type TrackingStatus =
+    | 'IDLE'           // Created but not yet initialized
+    | 'INITIALIZING'   // Hardware/WASM is booting
+    | 'READY'          // Active tracking in progress
+    | 'DRIFTING'       // Tracking lost, but modifier is returning back to neutral
+    | 'DISCONNECTED'   // Tracking source disconnected and threshold exceeded (calibration cleared)
+    | 'ERROR';         // Fatal hardware/permission issue
 
 export interface FaceGeometry {
     nose: Vector3;

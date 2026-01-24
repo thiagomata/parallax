@@ -20,11 +20,12 @@ export class CameraModifier implements CarModifier, NudgeModifier, StickModifier
     readonly name = "Head Tracker Camera";
     readonly priority = 10;
     active = true;
+    private status: TrackingStatus = 'IDLE';
 
     // Calibration and Presence State
     private neutralHeadSize: number | null = null;
     private framesSinceLastSeen: number = 0;
-    private readonly RESET_HEAD_THRESHOLD = 90; // ~3 seconds at 30fps
+    readonly RESET_HEAD_THRESHOLD = 90; // ~3 seconds at 30fps
 
     // The "Virtual Face" (Our Smoothed Source of Truth)
     private smoothedFeatures: FaceFeatures | null = null;
@@ -52,31 +53,61 @@ export class CameraModifier implements CarModifier, NudgeModifier, StickModifier
     }
 
     public getStatus(): TrackingStatus {
-        return this.provider.getStatus();
+        // return this.provider.getStatus();
+        return this.status;
     }
 
     public async init(): Promise<void> {
         // Hydration Phase: Delegate to the specific hardware driver
         await this.provider.init();
+        this.status = this.provider.getStatus();
+    }
+
+    tick(sceneId: number): void {
+        if (this.sceneId === sceneId) return;
+        this.sceneId = sceneId;
+
+        const providerStatus = this.provider.getStatus();
+
+        switch (providerStatus) {
+            case 'IDLE':
+            case 'INITIALIZING':
+                this.status = providerStatus;
+                break;
+
+            case 'ERROR':
+            case 'DISCONNECTED':
+                this.status = providerStatus;
+                this.handleHardReset();
+                break;
+
+            default:
+                this.processFrame();
+                break;
+        }
     }
 
     /**
-     * Phase: THE FRAME LOOP
+     * Handles the logic for a functional provider.
+     * Separates presence detection from status orchestration.
      */
-    tick(sceneId: number): void {
-        if (this.sceneId == sceneId) return;
-        this.sceneId = sceneId;
-
+    private processFrame(): void {
         const rawFace = this.provider.getFace();
 
         if (!rawFace) {
-            this.handleFaceLost();
+            this.handleSignalLoss();
             return;
         }
 
-        // Wrap raw data in our "Smart" Features interpreter
         const incoming = new FaceFeatures(rawFace);
         this.updateFace(incoming);
+        this.status = 'READY';
+    }
+
+    private handleHardReset(): void {
+        this.neutralHeadSize = null;
+        this.smoothedFeatures = null;
+        this.cache = null;
     }
 
     private updateFace(incoming: FaceFeatures): void {
@@ -99,7 +130,7 @@ export class CameraModifier implements CarModifier, NudgeModifier, StickModifier
         this.updateCache();
     }
 
-    private handleFaceLost(): void {
+    private handleSignalLoss(): void {
         this.framesSinceLastSeen++;
 
         // If face is missing, smoothly drift the virtual face back to "zero" state
@@ -107,14 +138,17 @@ export class CameraModifier implements CarModifier, NudgeModifier, StickModifier
             // We use a dummy "neutral" geometry to lerp back to center
             const neutralFace = this.createNeutralGeometry();
             this.smoothedFeatures = this.interpolateFeatures(this.smoothedFeatures, new FaceFeatures(neutralFace));
-            this.updateCache();
         }
 
         // After the threshold, clear calibration so next person resets it
         if (this.framesSinceLastSeen > this.RESET_HEAD_THRESHOLD) {
+            this.status = 'DISCONNECTED';
             this.neutralHeadSize = null;
             this.smoothedFeatures = null;
             this.cache = null;
+        } else {
+            this.status = 'DRIFTING';
+            this.updateCache();
         }
     }
 
@@ -124,7 +158,7 @@ export class CameraModifier implements CarModifier, NudgeModifier, StickModifier
         const face = this.smoothedFeatures;
 
         this.cache = {
-            carPos: { x: 0, y: 0, z: 0 },
+            carPos: face.midpoint,
             nudgePos: {
                 x: face.nudge.x * (this.config.travelRange * 2),
                 y: face.nudge.y * (this.config.travelRange * 2),
