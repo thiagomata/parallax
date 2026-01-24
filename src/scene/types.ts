@@ -356,7 +356,7 @@ export type DynamicSphere = DynamicElement<ResolvedSphere>;
 // CONE
 
 export interface ResolvedCone extends ResolvedBaseVisual {
-    readonly type: 'cone';
+    readonly type: typeof ELEMENT_TYPES.CONE;
     /** radius of the base circle */
     readonly radius: number;
     /** height along the Y axis */

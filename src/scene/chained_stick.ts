@@ -3,7 +3,7 @@ import type {FailableResult, SceneState, StickModifier, StickResult, Vector3,} f
 export class ChainedStick implements StickModifier {
     public priority: number;
     public name: string;
-    private chain: StickModifier[];
+    private readonly chain: StickModifier[];
 
     tick(sceneId: number): void {
         for( const modifier of this.chain) {
@@ -11,7 +11,7 @@ export class ChainedStick implements StickModifier {
         }
     }
 
-    constructor(priority: number, chain: StickModifier[]) {
+    constructor(priority: number, chain: [StickModifier, ...StickModifier[]]) {
         this.priority = priority;
         this.chain = chain;
         this.name = `ChainedStick of (${chain.map((m) => m.name).join(",")})`;

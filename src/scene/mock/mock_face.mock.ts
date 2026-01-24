@@ -2,6 +2,8 @@ import type {FaceGeometry, Vector3} from "../types.ts";
 
 export class MockFaceFactory {
 
+    public readonly NOSE_DEPTH = 0.1;
+
     /**
      * Creates a "perfect" face looking straight at the camera
      * centered exactly at 0.5, 0.5.
@@ -89,19 +91,23 @@ export class MockFaceFactory {
     }
 
     /**
-     * Simulates head rotation by offsetting the nose relative to the midpoint.
+     * Simulates head rotation using trigonometric arcs.
      * @param face - the current face geometry
-     * @param yaw - Positive for turning right, negative for turning left.
-     * @param pitch - Positive for looking down, negative for looking up.
+     * @param yawAngle - Positive for turning right, negative for turning left (radians).
+     * @param pitchAngle - Positive for looking down, negative for looking up (radians).
      */
-    rotate(face: FaceGeometry | null = null, yaw: number = 0.05, pitch: number = 0.05): FaceGeometry {
+    rotate(face: FaceGeometry | null = null, yawAngle: number = 0.1, pitchAngle: number = 0.1): FaceGeometry {
         const base = face ?? this.createCenterFace();
+
         return {
             ...base,
             nose: {
-                x: base.nose.x + yaw,
-                y: base.nose.y + pitch,
-                z: base.nose.z
+                // Horizontal arc: sin handles the x-offset, cos handles the depth change
+                x: base.nose.x + Math.sin(yawAngle) * this.NOSE_DEPTH,
+                // Vertical arc: sin handles the y-offset
+                y: base.nose.y + Math.sin(pitchAngle) * this.NOSE_DEPTH,
+                // Z decreases as the nose turns away from the center (cosine)
+                z: base.nose.z + (Math.cos(yawAngle) * this.NOSE_DEPTH - this.NOSE_DEPTH)
             }
         };
     }

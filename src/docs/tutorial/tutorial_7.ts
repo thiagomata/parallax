@@ -10,18 +10,21 @@ import { DEFAULT_SETTINGS, ELEMENT_TYPES } from "../../scene/types.ts";
  * TUTORIAL 7: THE OBSERVER
  * Demonstrating 1:1 head-to-camera mapping using MediaPipe.
  */
-export const tutorial_7 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
+export const tutorial_7 = (
+    p: p5,
+    manager?: SceneManager,
+    injectedTracker?: CameraModifier // <--- NEW: Optional Injection
+): World<P5Bundler> => {
     let gp: P5GraphicProcessor;
 
-    // 1. Scene Orchestration
     const activeManager = manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
-        debug: true // Enable debug to see the error logs we added to CameraModifier
+        debug: true
     });
 
-    // 2. Camera Logic: Single Modifier Strategy
-    // The CameraModifier handles Car, Nudge, and Stick simultaneously.
-    const headTracker = new CameraModifier(p);
+    // 2. Camera Logic: Use injected or create default
+    const headTracker = injectedTracker ?? new CameraModifier(p);
+
     activeManager.addCarModifier(headTracker);
     activeManager.addNudgeModifier(headTracker);
     activeManager.addStickModifier(headTracker);
@@ -33,7 +36,6 @@ export const tutorial_7 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
     headTracker.init().catch(console.error);
 
     p.setup = () => {
-        // We use a wider aspect ratio to better see the parallax effect
         p.createCanvas(800, 600, p.WEBGL);
         gp = new P5GraphicProcessor(p, loader);
 

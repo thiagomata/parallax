@@ -128,4 +128,121 @@ describe('P5GraphicProcessor', () => {
             expect(mockP5.line).toHaveBeenCalledTimes(2);
         });
     });
+
+    describe('P5 Wrapper Methods', () => {
+        it('should call p5.map with correct parameters', () => {
+            mockP5.map.mockReturnValue(50);
+            const result = gp.map(10, 0, 20, 0, 100);
+            expect(mockP5.map).toHaveBeenCalledWith(10, 0, 20, 0, 100, undefined);
+            expect(result).toBe(50);
+        });
+
+        it('should call p5.map with clamping parameter', () => {
+            mockP5.map.mockReturnValue(75);
+            const result = gp.map(10, 0, 20, 0, 100, true);
+            expect(mockP5.map).toHaveBeenCalledWith(10, 0, 20, 0, 100, true);
+            expect(result).toBe(75);
+        });
+
+        it('should call p5.lerp with correct parameters', () => {
+            mockP5.lerp.mockReturnValue(15);
+            const result = gp.lerp(10, 20, 0.5);
+            expect(mockP5.lerp).toHaveBeenCalledWith(10, 20, 0.5);
+            expect(result).toBe(15);
+        });
+
+        it('should call p5.text with full position', () => {
+            gp.text('Hello', {x: 10, y: 20, z: 30});
+            expect(mockP5.text).toHaveBeenCalledWith('Hello', 10, 20, 30);
+        });
+
+        it('should call p5.text with partial position (defaults)', () => {
+            gp.text('Hello', {x: 10});
+            expect(mockP5.text).toHaveBeenCalledWith('Hello', 10, 0, 0);
+        });
+
+        it('should drawLabel using text method', () => {
+            gp.drawLabel('Label', {x: 5, y: 10, z: 15});
+            expect(mockP5.text).toHaveBeenCalledWith('Label', 5, 10, 15);
+        });
+
+        it('should drawHUDText using p5.text directly', () => {
+            gp.drawHUDText('HUD', 100, 200);
+            expect(mockP5.text).toHaveBeenCalledWith('HUD', 100, 200);
+        });
+
+        it('should call p5.plane wrapper method', () => {
+            gp.plane(50, 75);
+            expect(mockP5.plane).toHaveBeenCalledWith(50, 75);
+        });
+    });
+
+    describe('Transform Stack Management', () => {
+        it('should call push and pop in drawBox', () => {
+            const boxProps: ResolvedBox = {
+                type: ELEMENT_TYPES.BOX,
+                position: {x: 0, y: 0, z: 0},
+                size: 10
+            };
+
+            const assets: ElementAssets<P5Bundler> = {};
+
+            gp.drawBox(boxProps, assets, mockState);
+
+            expect(mockP5.push).toHaveBeenCalled();
+            expect(mockP5.pop).toHaveBeenCalled();
+        });
+
+        it('should call noStroke wrapper method', () => {
+            gp.noStroke();
+            expect(mockP5.noStroke).toHaveBeenCalled();
+        });
+
+        it('should call rotateX wrapper method', () => {
+            gp.rotateX(45);
+            expect(mockP5.rotateX).toHaveBeenCalledWith(45);
+        });
+
+        it('should call rotateY wrapper method', () => {
+            gp.rotateY(30);
+            expect(mockP5.rotateY).toHaveBeenCalledWith(30);
+        });
+
+        it('should call rotateZ wrapper method', () => {
+            gp.rotateZ(60);
+            expect(mockP5.rotateZ).toHaveBeenCalledWith(60);
+        });
+
+        it('should call noFill wrapper method', () => {
+            gp.noFill();
+            expect(mockP5.noFill).toHaveBeenCalled();
+        });
+
+        it('should call box wrapper method', () => {
+            gp.box(25);
+            expect(mockP5.box).toHaveBeenCalledWith(25);
+        });
+
+        it('should call drawPanel with push/pop and all drawing methods', () => {
+            const panelProps = {
+                type: 'panel' as any,
+                position: {x: 10, y: 20, z: 30},
+                rotate: {x: 15, y: 30, z: 45},
+                width: 100,
+                height: 50
+            };
+
+            const assets: ElementAssets<P5Bundler> = {};
+
+            gp.drawPanel(panelProps, assets, mockState);
+
+            expect(mockP5.push).toHaveBeenCalled();
+            expect(mockP5.translate).toHaveBeenCalledWith(10, 20, 30);
+            expect(mockP5.rotateX).toHaveBeenCalledWith(15);
+            expect(mockP5.rotateY).toHaveBeenCalledWith(30);
+            expect(mockP5.rotateZ).toHaveBeenCalledWith(45);
+            expect(mockP5.plane).toHaveBeenCalledWith(100, 50);
+            expect(mockP5.pop).toHaveBeenCalled();
+        });
+    });
 });

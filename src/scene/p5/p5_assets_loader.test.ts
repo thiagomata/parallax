@@ -94,5 +94,16 @@ describe('P5AssetLoader', () => {
                 expect(result.value?.internalRef).toBe(mockFont);
             }
         });
+
+        it('should resolve with ERROR status when loadFont fails', async () => {
+            const ref = {name: 'Broken', path: 'fonts/broken.ttf'};
+
+            mockP5.loadFont.mockImplementation((_path: any, _success: any, errorCb: () => void) => errorCb());
+
+            const result = await loader.hydrateFont(ref);
+
+            expect(result.status).toBe(ASSET_STATUS.ERROR);
+            expect(result.value).toBeNull();
+        });
     });
 });

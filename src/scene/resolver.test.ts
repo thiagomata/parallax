@@ -1,17 +1,18 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {
     ASSET_STATUS,
+    ELEMENT_TYPES,
+    SPEC_KINDS,
     type AssetLoader,
     type DynamicText,
-    ELEMENT_TYPES,
     type GraphicProcessor,
+    type ResolvedBox,
     type SceneState,
-    SPEC_KINDS,
     type Vector3,
 } from './types';
+import type {MockBundle} from "./mock/mock_type.mock.ts";
 import {createRenderable, resolve, resolveProperty, toDynamic} from "./resolver.ts";
 import {createMockGraphicProcessor} from "./mock/mock_graphic_processor.mock.ts";
-import type {MockBundle} from "./mock/mock_type.mock.ts";
 import {createMockState} from "./mock/mock_scene_state.mock.ts";
 
 
@@ -379,5 +380,247 @@ describe('resolveProperty', () => {
 
         const result = resolveProperty(prop as any, mockState);
         expect(result).toEqual({nested: {val: 'deep'}});
+    });
+});
+
+describe('Shape Rendering', () => {
+    let gp: GraphicProcessor<MockBundle>;
+    let loader: AssetLoader<MockBundle>;
+    const mockState = createMockState({x: 0, y: 0, z: 0}, {x: 0, y: 0, z: 100});
+
+    beforeEach(() => {
+        gp = createMockGP();
+        loader = createMockLoader();
+    });
+
+    it('should render BOX elements', () => {
+        const renderable = createRenderable('test-box', {
+            type: ELEMENT_TYPES.BOX,
+            position: {x: 10, y: 20, z: 30},
+            size: 50
+        }, loader);
+
+        renderable.render(gp, mockState);
+
+        expect(gp.drawBox).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: ELEMENT_TYPES.BOX,
+                position: {x: 10, y: 20, z: 30},
+                size: 50
+            }),
+            renderable.assets,
+            mockState
+        );
+    });
+
+    it('should render PANEL elements', () => {
+        const renderable = createRenderable('test-panel', {
+            type: ELEMENT_TYPES.PANEL,
+            position: {x: 15, y: 25, z: 35},
+            width: 100,
+            height: 75
+        }, loader);
+
+        renderable.render(gp, mockState);
+
+        expect(gp.drawPanel).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: ELEMENT_TYPES.PANEL,
+                position: {x: 15, y: 25, z: 35},
+                width: 100,
+                height: 75
+            }),
+            renderable.assets,
+            mockState
+        );
+    });
+
+    it('should render SPHERE elements', () => {
+        const renderable = createRenderable('test-sphere', {
+            type: ELEMENT_TYPES.SPHERE,
+            position: {x: 5, y: 10, z: 15},
+            radius: 25,
+            detail: 16
+        }, loader);
+
+        renderable.render(gp, mockState);
+
+        expect(gp.drawSphere).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: ELEMENT_TYPES.SPHERE,
+                position: {x: 5, y: 10, z: 15},
+                radius: 25,
+                detail: 16
+            }),
+            renderable.assets,
+            mockState
+        );
+    });
+
+    it('should render CONE elements', () => {
+        const renderable = createRenderable('test-cone', {
+            type: ELEMENT_TYPES.CONE,
+            position: {x: 20, y: 30, z: 40},
+            radius: 30,
+            height: 60
+        }, loader);
+
+        renderable.render(gp, mockState);
+
+        expect(gp.drawCone).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: ELEMENT_TYPES.CONE,
+                position: {x: 20, y: 30, z: 40},
+                radius: 30,
+                height: 60
+            }),
+            renderable.assets,
+            mockState
+        );
+    });
+
+    it('should render PYRAMID elements', () => {
+        const renderable = createRenderable('test-pyramid', {
+            type: ELEMENT_TYPES.PYRAMID,
+            position: {x: 12, y: 24, z: 36},
+            baseSize: 40,
+            height: 80
+        }, loader);
+
+        renderable.render(gp, mockState);
+
+        expect(gp.drawPyramid).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: ELEMENT_TYPES.PYRAMID,
+                position: {x: 12, y: 24, z: 36},
+                baseSize: 40,
+                height: 80
+            }),
+            renderable.assets,
+            mockState
+        );
+    });
+
+    it('should render CYLINDER elements', () => {
+        const renderable = createRenderable('test-cylinder', {
+            type: ELEMENT_TYPES.CYLINDER,
+            position: {x: 8, y: 16, z: 32},
+            radius: 20,
+            height: 50
+        }, loader);
+
+        renderable.render(gp, mockState);
+
+        expect(gp.drawCylinder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: ELEMENT_TYPES.CYLINDER,
+                position: {x: 8, y: 16, z: 32},
+                radius: 20,
+                height: 50
+            }),
+            renderable.assets,
+            mockState
+        );
+    });
+
+    it('should render TORUS elements', () => {
+        const renderable = createRenderable('test-torus', {
+            type: ELEMENT_TYPES.TORUS,
+            position: {x: 25, y: 35, z: 45},
+            radius: 40,
+            tubeRadius: 10
+        }, loader);
+
+        renderable.render(gp, mockState);
+
+        expect(gp.drawTorus).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: ELEMENT_TYPES.TORUS,
+                position: {x: 25, y: 35, z: 45},
+                radius: 40,
+                tubeRadius: 10
+            }),
+            renderable.assets,
+            mockState
+        );
+    });
+
+    it('should render ELLIPTICAL elements', () => {
+        const renderable = createRenderable('test-elliptical', {
+            type: ELEMENT_TYPES.ELLIPTICAL,
+            position: {x: 30, y: 40, z: 50},
+            rx: 15,
+            ry: 25,
+            rz: 10
+        }, loader);
+
+        renderable.render(gp, mockState);
+
+        expect(gp.drawElliptical).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: ELEMENT_TYPES.ELLIPTICAL,
+                position: {x: 30, y: 40, z: 50},
+                rx: 15,
+                ry: 25,
+                rz: 10
+            }),
+            renderable.assets,
+            mockState
+        );
+    });
+
+    it('should render FLOOR elements', () => {
+        const renderable = createRenderable('test-floor', {
+            type: ELEMENT_TYPES.FLOOR,
+            position: {x: 0, y: -10, z: 0},
+            width: 200,
+            depth: 300
+        }, loader);
+
+        renderable.render(gp, mockState);
+
+        expect(gp.drawFloor).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: ELEMENT_TYPES.FLOOR,
+                position: {x: 0, y: -10, z: 0},
+                width: 200,
+                depth: 300
+            }),
+            renderable.assets,
+            mockState
+        );
+    });
+
+    it('should render TEXT elements', () => {
+        const renderable = createRenderable('test-text', {
+            type: ELEMENT_TYPES.TEXT,
+            position: {x: 100, y: 150, z: 0},
+            text: 'Hello World',
+            size: 24
+        }, loader);
+
+        renderable.render(gp, mockState);
+
+        expect(gp.drawText).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: ELEMENT_TYPES.TEXT,
+                position: {x: 100, y: 150, z: 0},
+                text: 'Hello World',
+                size: 24
+            }),
+            renderable.assets,
+            mockState
+        );
+    });
+
+    it('should handle unknown element types with error', () => {
+
+        // Test the error case by directly calling resolve with unknown type
+        const renderable = createRenderable('test-unknown', {
+            type: "SECRET",
+            position: {x:0, y:0, z:0}
+        } as unknown as ResolvedBox, loader);
+
+        expect(() => renderable.render(gp, mockState)).toThrow('Unknown type Object {"type":"SECRET","position":{"x":0,"y":0,"z":0}}');
     });
 });
