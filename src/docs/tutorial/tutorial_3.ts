@@ -4,12 +4,13 @@ import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {SceneManager} from "../../scene/scene_manager.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "../../scene/types.ts";
+import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
-export const tutorial_3 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
+export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
     let gp: P5GraphicProcessor;
 
     // 1. Scene Orchestration (5s circular loop)
-    const activeManager = manager ?? new SceneManager({
+    const activeManager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
         playback: {
             ...DEFAULT_SETTINGS.playback,
@@ -23,7 +24,7 @@ export const tutorial_3 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
     const world = new World<P5Bundler>(activeManager, loader);
 
     p.setup = () => {
-        p.createCanvas(500, 400, p.WEBGL);
+        p.createCanvas(config.width, config.height, p.WEBGL);
         gp = new P5GraphicProcessor(p, loader);
 
         // 3. PHASE 1: REGISTRATION

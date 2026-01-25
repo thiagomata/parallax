@@ -1,0 +1,122 @@
+:root {
+    --bg-main: #0a0a0a;
+    --bg-panel: #161616;
+    --accent: #00e5ff;
+    --error: #ff4b4b;
+    --warn: #ffca28;
+    --text-primary: #eee;
+    --text-secondary: #888;
+    --border: #2a2a2a;
+}
+
+body {
+    margin: 0;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    overflow-y: auto;
+    scroll-behavior: smooth; /* Smooth transitions when clicking anchors */
+}
+
+/* --- THE WORKBENCH CONTAINER --- */
+.step-row {
+    display: flex;
+    flex-direction: row;
+    height: 90vh;
+    background: var(--bg-panel);
+    border-bottom: 10px solid #000;
+    overflow: hidden;
+}
+
+.code-side, .canvas-side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1.2rem;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.code-side { border-right: 2px solid #000; }
+
+/* --- ANCHOR TITLE STYLING --- */
+.step-anchor {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none; /* Remove default underline */
+    color: var(--text-primary);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    transition: color 0.2s;
+    width: fit-content;
+}
+
+.step-anchor:hover {
+    color: var(--accent);
+}
+
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+.is-running .status-dot {
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* --- CONTENT BOXES --- */
+.editor-box {
+    flex: 1;
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 6px 6px 0 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1rem;
+    font-family: 'Fira Code', monospace;
+    color: #d4d4d4;
+    white-space: pre;
+}
+
+.console-panel {
+    flex: 0 0 100px;
+    background: #050505;
+    border: 1px solid var(--border);
+    border-top: 1px solid #333;
+    border-radius: 0 0 6px 6px;
+    padding: 8px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 0.75rem;
+}
+
+.log-entry.info { color: var(--accent); border-left: 2px solid var(--accent); padding-left: 5px; }
+
+.canvas-box {
+    flex: 1;
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #333;
+}
+
+/* --- CONTROLS --- */
+.controls { flex: 0 0 auto; padding-top: 1rem; }
+.controls-row { display: flex; gap: 10px; }
+.spacer { flex: 1; }
+
+.icon-btn {
+    background: #202020; color: var(--accent); border: 1px solid var(--border);
+    width: 38px; height: 38px; border-radius: 6px; cursor: pointer;
+    display: flex; justify-content: center; align-items: center;
+}
+
+@media (max-width: 1024px) {
+    .step-row { flex-direction: column; height: auto; }
+    .code-side, .canvas-side { width: 100%; height: 600px; }
+}

@@ -4,12 +4,13 @@ import {World} from "../../scene/world.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {SceneManager} from "../../scene/scene_manager.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
+import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
-export const tutorial_2 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
-    let gp: P5GraphicProcessor;
+export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
+    let graphicProcessor: P5GraphicProcessor;
 
     // 1. Scene Orchestration with a custom 5s loop
-    const activeManager = manager ?? new SceneManager({
+    const activeManager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
         playback: {
             ...DEFAULT_SETTINGS.playback,
@@ -19,12 +20,12 @@ export const tutorial_2 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
     });
 
     // 2. Asset Pipeline & World
-    const loader = new P5AssetLoader(p);
+    const loader = config.loader ?? new P5AssetLoader(p);
     const world = new World<P5Bundler>(activeManager, loader);
 
     p.setup = () => {
-        p.createCanvas(500, 400, p.WEBGL);
-        gp = new P5GraphicProcessor(p, loader);
+        p.createCanvas(config.width, config.height, p.WEBGL);
+        graphicProcessor = new P5GraphicProcessor(p, loader);
 
         // 3. PHASE 1: REGISTRATION
         // We use the blueprint functions to define behavior over time
@@ -62,7 +63,7 @@ export const tutorial_2 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
 
         // 4. PHASE 3: THE FRAME LOOP
         // world.step calculates the state, resolves the functions above, and draws
-        world.step(gp);
+        world.step(graphicProcessor);
     };
 
     return world;

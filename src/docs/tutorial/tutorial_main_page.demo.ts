@@ -1,21 +1,20 @@
 import {World} from "../../scene/world.ts";
 import {SceneManager} from "../../scene/scene_manager.ts";
 import {resolve} from "../../scene/resolver.ts"; // New Manifest-compliant resolver
-import {ASSET_STATUS, DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
+import {CameraModifier} from "../../scene/modifiers/camera_modifier.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
+import {ASSET_STATUS, DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
 
 // libs
 import p5 from 'p5';
 import Prism from 'prismjs';
-import {transform} from 'sucrase';
 
 // Styles & Highlighting
 import 'prismjs/themes/prism-tomorrow.css';
-import '../style/style.css';
 import 'prismjs/components/prism-typescript';
 import 'prismjs/components/prism-javascript';
-
+import '../style/style.css';
 
 // Tutorial Steps
 import {tutorial_1} from './tutorial_1.ts';
@@ -32,8 +31,23 @@ import {tutorial_6} from "./tutorial_6.ts";
 import step6Source from './tutorial_6.ts?raw';
 import {tutorial_7} from "./tutorial_7.ts";
 import step7Source from './tutorial_7.ts?raw';
-import {CameraModifier} from "../../scene/modifiers/camera_modifier.ts";
-import {tutorialStepTemplate} from "./tutorial.template.ts";
+
+export interface SketchConfig {
+    width: number;
+    height: number;
+    backgroundColor?: string;
+    manager?: SceneManager,
+    cameraModifier?: CameraModifier,
+    loader?: P5AssetLoader,
+}
+
+export const DEFAULT_SKETCH_CONFIG: SketchConfig = {
+    width: 500,
+    height: 400,
+};
+
+export type P5Sketch = (p: p5, config: SketchConfig) => void;
+
 
 /**
  * ARCHITECTURAL EXPOSURE
@@ -41,53 +55,91 @@ import {tutorialStepTemplate} from "./tutorial.template.ts";
  * 'live-editor' code can find them via the fake 'require'.
  */
 Object.assign(window, {
+    p5,
     World,
     SceneManager,
+    CameraModifier,
     P5AssetLoader,
     P5GraphicProcessor,
     ELEMENT_TYPES,
     DEFAULT_SETTINGS,
     ASSET_STATUS,
-    CameraModifier,
-    resolve, // Expose for users who want to debug element state in console
-    p5
+    DEFAULT_SKETCH_CONFIG,
+    resolve,
 });
 
-type P5Sketch = (p: p5) => void;
+import { transform } from 'sucrase';
+import {tutorialStepTemplate} from "./tutorial.template.ts";
 
-function renderStep(
+function toggleFS(id: string) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    // Combine standard and vendor-prefixed fullscreen
+    const requestFullscreen =
+        element.requestFullscreen?.bind(element) ||
+        (element as HTMLElement & { webkitRequestFullscreen?: () => void }).webkitRequestFullscreen?.bind(element);
+
+    if (!requestFullscreen) return; // Nothing to do if unsupported
+
+    if (document.fullscreenElement === element) {
+        document.exitFullscreen?.();
+    } else {
+        requestFullscreen();
+    }
+}
+
+
+export function renderStep(
     containerId: string,
     title: string,
     initialSketch: P5Sketch,
-    source: string
+    source: string,
+    config: Partial<SketchConfig> = {}
 ) {
     const root = document.getElementById('tutorial-root');
     if (!root) return;
 
-    // Create the DOM with all content already in place
-    const section = tutorialStepTemplate({ containerId, title, source });
-    root.appendChild(section);
+    // --- create the step DOM using the new template ---
+    const stepMain = tutorialStepTemplate({ containerId, title, source });
+    root.appendChild(stepMain);
 
-    // Grab elements
-    const codeElem = section.querySelector(`#code-${containerId}`) as HTMLElement;
-    const canvasEl = section.querySelector(`#canvas-${containerId}`) as HTMLElement;
-    const errorDiv = section.querySelector(`#error-${containerId}`) as HTMLElement;
-    const runBtn = section.querySelector(`#run-${containerId}`) as HTMLButtonElement;
-    const resetBtn = section.querySelector(`#reset-${containerId}`) as HTMLButtonElement;
-    const fsBtn = section.querySelector(`#fs-${containerId}`) as HTMLButtonElement;
-    const copyBtn = section.querySelector('.copy-btn') as HTMLButtonElement;
+    // --- query elements ---
+    const codeSide = stepMain.querySelector('.code-side') as HTMLElement;
+    const canvasSide = stepMain.querySelector('.canvas-side') as HTMLElement;
 
-    // Initialize p5
-    let currentP5 = new p5(initialSketch, canvasEl);
+    const editorBox = codeSide.querySelector('.editor-box') as HTMLElement;
+    const consolePanel = codeSide.querySelector('.console-panel') as HTMLElement;
+
+    const playBtn = codeSide.querySelector('.play-btn') as HTMLButtonElement;
+    const resetBtn = codeSide.querySelector('.reset-btn') as HTMLButtonElement;
+    const copyBtn = codeSide.querySelector('.copy-btn') as HTMLButtonElement;
+    const fsCodeBtn = codeSide.querySelector('.fullscreen-btn') as HTMLButtonElement;
+
+    const canvasBox = canvasSide.querySelector('.canvas-box') as HTMLElement;
+    const canvasWrapper = canvasSide.querySelector('.canvas-wrapper') as HTMLElement;
+    canvasWrapper.style.width = '100%';
+    canvasWrapper.style.height = '90%';
+    const { width, height } = canvasWrapper.getBoundingClientRect();
+
+    const pauseBtn = canvasSide.querySelector('.pause-btn') as HTMLButtonElement;
+    const fsCanvasBtn = canvasSide.querySelector('.fullscreen-btn') as HTMLButtonElement;
+
+    const finalConfig = { ...DEFAULT_SKETCH_CONFIG, ...config, width, height };
+
+    let currentP5 = new p5((p: p5) => initialSketch(p, finalConfig), canvasBox);
 
     const executeUpdate = () => {
-        const rawText = codeElem.innerText;
-        errorDiv.style.display = 'none';
-
+        consolePanel.style.display = 'block';
+        consolePanel.innerHTML = ''; // clear console
         try {
-            const compiledCode = transform(rawText, { transforms: ['typescript', 'imports'] }).code;
+            const compiledCode = transform(editorBox.innerText, {
+                transforms: ['typescript', 'imports'],
+            }).code;
 
-            const fnMatch = rawText.match(/export\s+(?:const|function)\s+([a-zA-Z0-9_]+)/);
+            const fnMatch = editorBox.innerText.match(
+                /export\s+(?:const|function)\s+([a-zA-Z0-9_]+)/
+            );
             if (!fnMatch) throw new Error('No exported function found.');
 
             const factory = new Function('require', 'exports', compiledCode);
@@ -97,26 +149,44 @@ function renderStep(
             factory(fakeRequire, fakeExports);
 
             currentP5.remove();
-            currentP5 = new p5(fakeExports[fnMatch[1]], canvasEl);
+            currentP5 = new p5(fakeExports[fnMatch[1]], canvasBox);
+
+            const log = document.createElement('div');
+            log.className = 'log-entry info';
+            log.textContent = `[Engine] Hydration successful.`;
+            consolePanel.appendChild(log);
+
         } catch (e: any) {
-            errorDiv.textContent = `⚠️ Error: ${e.message}`;
-            errorDiv.style.display = 'block';
+            const log = document.createElement('div');
+            log.className = 'log-entry info';
+            log.style.color = 'var(--error)';
+            log.textContent = `⚠️ Error: ${e.message}`;
+            consolePanel.appendChild(log);
         }
     };
 
-    // Attach events
-    runBtn.addEventListener('click', executeUpdate);
+    // --- wire button events ---
+    playBtn.addEventListener('click', executeUpdate);
+
     resetBtn.addEventListener('click', () => {
-        codeElem.innerHTML = Prism.highlight(source, Prism.languages.typescript, 'typescript');
-        executeUpdate();
+        editorBox.innerHTML = `
+  <pre class="language-typescript"><code>${Prism.highlight(source, Prism.languages.typescript, 'typescript')}</code></pre>
+`;        executeUpdate();
     });
-    fsBtn.addEventListener('click', () => {
-        canvasEl.requestFullscreen?.();
-    });
+
     copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(codeElem.innerText);
+        navigator.clipboard.writeText(editorBox.innerText);
+    });
+
+    fsCodeBtn.addEventListener('click', () => toggleFS(`step-${containerId}`));
+    fsCanvasBtn.addEventListener('click', () => toggleFS(`canv-${containerId}`));
+
+    // --- optional pause button (placeholder) ---
+    pauseBtn.addEventListener('click', () => {
+        currentP5.noLoop?.();
     });
 }
+
 // Initialize the updated Curriculum
 renderStep('tutorial-1', '1. The Foundation (Registration)', tutorial_1, step1Source);
 renderStep('tutorial-2', '2. Animation (Temporal Phase)', tutorial_2, step2Source);

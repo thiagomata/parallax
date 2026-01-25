@@ -6,12 +6,18 @@ import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
+import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
-export const tutorial_4 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
+Object.assign(window, {
+    OrbitModifier,
+    CenterFocusModifier,
+});
+
+export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
     let gp: P5GraphicProcessor;
 
     // 1. Scene Orchestration
-    const activeManager = manager ?? new SceneManager(DEFAULT_SETTINGS);
+    const activeManager = config.manager ?? new SceneManager(DEFAULT_SETTINGS);
 
     // 2. Camera Logic: Adding Modifiers to the SceneManager
     // Note: These affect the SceneState.camera property during calculation
@@ -23,7 +29,7 @@ export const tutorial_4 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
     const world = new World<P5Bundler>(activeManager, loader);
 
     p.setup = () => {
-        p.createCanvas(500, 400, p.WEBGL);
+        p.createCanvas(config.width, config.height, p.WEBGL);
         gp = new P5GraphicProcessor(p, loader);
 
         // 4. PHASE 1: REGISTRATION

@@ -40,7 +40,7 @@ export class MediaPipeFaceProvider implements FaceProvider {
             // p5 creates the capture but we keep it hidden
             this.capture = this.p.createCapture(this.p.VIDEO);
             this.capture.size(640, 480);
-            // this.capture.hide();
+            this.capture.hide();
 
             this.status = 'READY';
         } catch (e) {

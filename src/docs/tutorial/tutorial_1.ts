@@ -4,13 +4,15 @@ import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {SceneManager} from "../../scene/scene_manager.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
+import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
-export const tutorial_1 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
+
+export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
     let gp: P5GraphicProcessor;
     let world: World<P5Bundler>;
 
     // 1. Scene Orchestration
-    const activeManager = manager ?? new SceneManager(DEFAULT_SETTINGS);
+    const activeManager = config.manager ?? new SceneManager(DEFAULT_SETTINGS);
 
     // 2. Asset Pipeline
     // We create the loader here to pass it to the World/Stage
@@ -20,7 +22,7 @@ export const tutorial_1 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
     world = new World<P5Bundler>(activeManager, loader);
 
     p.setup = () => {
-        p.createCanvas(500, 400, p.WEBGL);
+        p.createCanvas(config.width, config.height, p.WEBGL);
 
         // 4. Bridge Initialization
         gp = new P5GraphicProcessor(p, loader);
@@ -50,4 +52,4 @@ export const tutorial_1 = (p: p5, manager?: SceneManager): World<P5Bundler> => {
     };
 
     return world;
-};
+}

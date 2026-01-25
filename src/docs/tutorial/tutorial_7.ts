@@ -5,25 +5,23 @@ import { SceneManager } from "../../scene/scene_manager.ts";
 import { CameraModifier } from "../../scene/modifiers/camera_modifier.ts"; // Our new class
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
 import { DEFAULT_SETTINGS, ELEMENT_TYPES } from "../../scene/types.ts";
+import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
 /**
  * TUTORIAL 7: THE OBSERVER
  * Demonstrating 1:1 head-to-camera mapping using MediaPipe.
  */
-export const tutorial_7 = (
-    p: p5,
-    manager?: SceneManager,
-    injectedTracker?: CameraModifier // <--- NEW: Optional Injection
-): World<P5Bundler> => {
+export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
     let gp: P5GraphicProcessor;
 
-    const activeManager = manager ?? new SceneManager({
+    // 1. Create the manager
+    const activeManager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
         debug: true
     });
 
     // 2. Camera Logic: Use injected or create default
-    const headTracker = injectedTracker ?? new CameraModifier(p);
+    const headTracker = config.cameraModifier ?? new CameraModifier(p);
 
     activeManager.addCarModifier(headTracker);
     activeManager.addNudgeModifier(headTracker);
@@ -36,7 +34,7 @@ export const tutorial_7 = (
     headTracker.init().catch(console.error);
 
     p.setup = () => {
-        p.createCanvas(800, 600, p.WEBGL);
+        p.createCanvas(config.width, config.height, p.WEBGL);
         gp = new P5GraphicProcessor(p, loader);
 
         // 4. PHASE 1: REGISTRATION
