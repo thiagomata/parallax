@@ -5,6 +5,7 @@ import {DEFAULT_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
 import {resolve} from "../../scene/resolver.ts"; // The surgical resolver
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
+import {DEFAULT_SKETCH_CONFIG} from "./tutorial_main_page.demo.ts";
 
 describe('Tutorial 3 Integration: Computed Orbit', () => {
 
@@ -22,7 +23,7 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
         });
 
         // 2. Execute tutorial (Registration Phase)
-        const world = tutorial_3(mockP5 as unknown as p5, manager);
+        const world = tutorial_3(mockP5 as unknown as p5, {...DEFAULT_SKETCH_CONFIG, manager});
         mockP5.setup();
 
         // --- TEST POINT A: T=0 (0% Progress) ---

@@ -33,7 +33,7 @@ describe('Tutorial 5 Execution Test: Assets & Hydration', () => {
         // Math: progress(0.25) * PI * 2 = PI / 2
         expect(resolvedBox.rotate?.y).toBeCloseTo(Math.PI * 0.5, 5);
 
-        // 5. Verify Execution Phase (Bridge Side-Effects)
+        // 5. Verify Execution Phase (Bridge Side Effects)
         // Texture should be applied before the box is drawn
         expect(mockP5.texture).toHaveBeenCalled();
         expect(mockP5.box).toHaveBeenCalledWith(150);

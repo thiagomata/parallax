@@ -3,6 +3,7 @@ import {tutorial_4} from './tutorial_4';
 import {SceneManager} from "../../scene/scene_manager.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
+import {DEFAULT_SKETCH_CONFIG} from "./tutorial_main_page.demo.ts";
 
 describe('Tutorial 4: SceneManager & Camera Injection', () => {
 
@@ -14,7 +15,7 @@ describe('Tutorial 4: SceneManager & Camera Injection', () => {
 
         // 2. Execute tutorial logic
         // We pass our manager to control time and modifiers from the test
-        const world = tutorial_4(mockP5 as unknown as p5, manager);
+        const world = tutorial_4(mockP5 as unknown as p5, {...DEFAULT_SKETCH_CONFIG, manager});
         mockP5.setup(); // Triggers registration and modifier attachment
 
         // --- TEST POINT: T=0ms (Start of Orbit) ---
