@@ -8,7 +8,7 @@ import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.dem
 
 
 export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
-    let gp: P5GraphicProcessor;
+    let graphicProcessor: P5GraphicProcessor;
     let world: World<P5Bundler>;
 
     // 1. Scene Orchestration
@@ -25,7 +25,7 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         p.createCanvas(config.width, config.height, p.WEBGL);
 
         // 4. Bridge Initialization
-        gp = new P5GraphicProcessor(p, loader);
+        graphicProcessor = new P5GraphicProcessor(p, loader);
 
         // 5. PHASE 1: REGISTRATION
         // Using the "Extreme Typed" addBox method (no manual toProps/casting)
@@ -44,12 +44,11 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     };
 
     p.draw = () => {
+        if (config.paused && !activeManager.isPaused()) activeManager.pause();
+        if (!config.paused && activeManager.isPaused()) activeManager.resume();
+
         p.background(20);
-
-        // 6. PHASE 3: THE FRAME LOOP
-        // Handles state calc, camera placement, and rendering
-        world.step(gp);
+        world.step(graphicProcessor);
     };
-
     return world;
 }

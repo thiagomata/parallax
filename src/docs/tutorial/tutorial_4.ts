@@ -14,7 +14,7 @@ Object.assign(window, {
 });
 
 export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
-    let gp: P5GraphicProcessor;
+    let graphicProcessor: P5GraphicProcessor;
 
     // 1. Scene Orchestration
     const activeManager = config.manager ?? new SceneManager(DEFAULT_SETTINGS);
@@ -30,7 +30,7 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
-        gp = new P5GraphicProcessor(p, loader);
+        graphicProcessor = new P5GraphicProcessor(p, loader);
 
         // 4. PHASE 1: REGISTRATION
         // Creating a "Gallery" of boxes to visualize the camera orbit
@@ -49,11 +49,11 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     };
 
     p.draw = () => {
-        p.background(20);
+        if (config.paused && !activeManager.isPaused()) activeManager.pause();
+        if (!config.paused && activeManager.isPaused()) activeManager.resume();
 
-        // 5. PHASE 3: THE FRAME LOOP
-        // The manager calculates the camera orbit, then the world renders
-        world.step(gp);
+        p.background(20);
+        world.step(graphicProcessor);
     };
 
     return world;

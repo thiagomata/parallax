@@ -19,11 +19,17 @@ export class SceneManager {
     private carModifiers: CarModifier[] = [];
     private nudgeModifiers: NudgeModifier[] = [];
     private stickModifiers: StickModifier[] = [];
-    public isDebug: boolean = false;
+    public debug: boolean = false;
+    public paused: boolean = false;
+    private startTime: number;
+    private pausedAt: number | null = null;
     public stickDistance: number = 1000;
 
-    constructor(initialSettings: SceneSettings = DEFAULT_SETTINGS) {
-        this.settings = initialSettings;
+    constructor(settings: SceneSettings = DEFAULT_SETTINGS) {
+        this.settings = settings;
+        this.debug = settings.debug;
+        this.paused = settings.paused;
+        this.startTime = settings.playback.startTime;
     }
 
     public clearModifiers(): void {
@@ -34,8 +40,26 @@ export class SceneManager {
     }
 
     public setDebug(isDebug: boolean): SceneManager {
-        this.isDebug = isDebug;
+        this.debug = isDebug;
         return this;
+    }
+
+    public isDebug(): boolean {
+        return this.debug;
+    }
+
+    public pause(): SceneManager {
+        this.paused = true;
+        return this;
+    }
+
+    public resume(): SceneManager {
+        this.paused = false;
+        return this;
+    }
+
+    public isPaused(): boolean {
+        return this.paused;
     }
 
     public setStickDistance(stickDistance: number): SceneManager {
@@ -98,10 +122,23 @@ export class SceneManager {
     }
 
     public calculateScene(millis: number, deltaTime: number, frameCount: number, previousState: SceneState): SceneState {
-        let basePos: Vector3 = {...this.settings.camera.position};
-        const debugLog = this.isDebug ? this.createEmptyDebugLog() : null;
 
-        const startTime = millis - this.settings.playback.startTime;
+        if (this.paused) {
+            if (!this.pausedAt) {
+                this.pausedAt = millis;
+            }
+            return previousState;
+        }
+
+        if (this.pausedAt !== null) {
+            this.startTime += (millis - this.pausedAt);
+            this.pausedAt = null;
+        }
+
+        let basePos: Vector3 = {...this.settings.camera.position};
+        const debugLog = this.debug ? this.createEmptyDebugLog() : null;
+
+        const startTime = millis - this.startTime;
         const scaledNow = startTime * this.settings.playback.timeSpeed;
         const scaledDelta = deltaTime * this.settings.playback.timeSpeed;
         const progress = this.settings.playback.duration
@@ -130,14 +167,14 @@ export class SceneManager {
             if (!modifier.active) continue;
 
             const res = modifier.getCarPosition(this.settings.camera.position, currentState);
-            if (!res.success && this.isDebug && debugLog) {
+            if (!res.success && this.debug && debugLog) {
                 debugLog.errors.push({name: modifier.name, message: res.error});
                 continue;
             }
 
             if (res.success && res.value) {
                 basePos = res.value.position;
-                if (this.isDebug && debugLog) {
+                if (this.debug && debugLog) {
                     debugLog.car = {
                         name: res.value.name,
                         priority: modifier.priority,
@@ -165,7 +202,7 @@ export class SceneManager {
             const res = modifier.getStick(finalCamPos, currentState);
             if (res.success) {
                 stickRes = res.value;
-                if (this.isDebug && debugLog) {
+                if (this.debug && debugLog) {
                     debugLog.stick = {
                         name: modifier.name,
                         priority: modifier.priority,
@@ -175,7 +212,7 @@ export class SceneManager {
                     };
                 }
                 break;
-            } else if (this.isDebug && debugLog) {
+            } else if (this.debug && debugLog) {
                 debugLog.errors.push({name: modifier.name, message: res.error});
             }
         }
@@ -222,7 +259,7 @@ export class SceneManager {
                 if (n.x !== undefined) votes.x.push(n.x);
                 if (n.y !== undefined) votes.y.push(n.y);
                 if (n.z !== undefined) votes.z.push(n.z);
-                if (this.isDebug && debugLog) {
+                if (this.debug && debugLog) {
                     debugLog.nudges.push({
                         name: m.name,
                         x: n.x,
@@ -230,7 +267,7 @@ export class SceneManager {
                         z: n.z,
                     });
                 }
-            } else if (this.isDebug && debugLog) {
+            } else if (this.debug && debugLog) {
                 debugLog.errors.push({name: m.name, message: res.error});
             }
         }

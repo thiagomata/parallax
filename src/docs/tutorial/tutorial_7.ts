@@ -17,7 +17,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     // 1. Create the manager
     const activeManager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
-        debug: true
+        debug: false
     });
 
     // 2. Camera Logic: Use injected or create default

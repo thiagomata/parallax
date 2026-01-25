@@ -7,7 +7,7 @@ import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "..
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
 export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
-    let gp: P5GraphicProcessor;
+    let graphicProcessor: P5GraphicProcessor;
 
     // 1. Scene Orchestration (5s circular loop)
     const activeManager = config.manager ?? new SceneManager({
@@ -25,7 +25,7 @@ export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
-        gp = new P5GraphicProcessor(p, loader);
+        graphicProcessor = new P5GraphicProcessor(p, loader);
 
         // 3. PHASE 1: REGISTRATION
         // Defining the Orbit as a function of the Engine Progress
@@ -53,11 +53,11 @@ export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     };
 
     p.draw = () => {
-        p.background(20);
+        if (config.paused && !activeManager.isPaused()) activeManager.pause();
+        if (!config.paused && activeManager.isPaused()) activeManager.resume();
 
-        // 4. PHASE 3: THE FRAME LOOP
-        // The World calculates state, resolves the orbit, and draws via GP
-        world.step(gp);
+        p.background(20);
+        world.step(graphicProcessor);
     };
 
     return world;

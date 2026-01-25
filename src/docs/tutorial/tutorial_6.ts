@@ -7,7 +7,7 @@ import p5 from "p5";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
 export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
-    let gp: P5GraphicProcessor;
+    let graphicProcessor: P5GraphicProcessor;
     const manager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
         playback: {...DEFAULT_SETTINGS.playback, duration: 5000, isLoop: true}
@@ -18,7 +18,7 @@ export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     p.setup = async () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
-        gp = new P5GraphicProcessor(p, loader);
+        graphicProcessor = new P5GraphicProcessor(p, loader);
 
         // Just one static floor to check coordinate space
         world.addFloor('floor', {
@@ -52,10 +52,12 @@ export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     };
 
     p.draw = () => {
-        p.background(15);
-        world.step(gp);
-    };
+        if (config.paused && !manager.isPaused()) manager.pause();
+        if (!config.paused && manager.isPaused()) manager.resume();
 
+        p.background(15);
+        world.step(graphicProcessor);
+    };
     return world;
 };
 export default tutorial_6

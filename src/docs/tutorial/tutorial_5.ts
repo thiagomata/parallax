@@ -7,7 +7,7 @@ import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
 export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
-    let gp: P5GraphicProcessor;
+    let graphicProcessor: P5GraphicProcessor;
 
     // 1. Scene Orchestration
     const manager = config.manager ?? new SceneManager({
@@ -25,7 +25,7 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     p.setup = async () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
-        gp = new P5GraphicProcessor(p, loader);
+        graphicProcessor = new P5GraphicProcessor(p, loader);
 
         // 3. PHASE 1: REGISTRATION
         // Hydration starts automatically when the element is added
@@ -67,10 +67,11 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     };
 
     p.draw = () => {
-        p.background(15);
+        if (config.paused && !manager.isPaused()) manager.pause();
+        if (!config.paused && manager.isPaused()) manager.resume();
 
-        // 5. PHASE 3: THE FRAME LOOP
-        world.step(gp);
+        p.background(15);
+        world.step(graphicProcessor);
     };
 
     return world;

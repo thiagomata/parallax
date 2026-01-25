@@ -9,7 +9,7 @@ import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.dem
 export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
     let graphicProcessor: P5GraphicProcessor;
 
-    // 1. Scene Orchestration with a custom 5s loop
+    // Scene Orchestration with a custom 5s loop
     const activeManager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
         playback: {
@@ -19,7 +19,7 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         }
     });
 
-    // 2. Asset Pipeline & World
+    // Asset Pipeline & World
     const loader = config.loader ?? new P5AssetLoader(p);
     const world = new World<P5Bundler>(activeManager, loader);
 
@@ -27,7 +27,7 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         p.createCanvas(config.width, config.height, p.WEBGL);
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // 3. PHASE 1: REGISTRATION
+        // Registration
         // We use the blueprint functions to define behavior over time
         world.addBox('pulsing-box', {
             type: ELEMENT_TYPES.BOX,
@@ -59,10 +59,10 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     };
 
     p.draw = () => {
-        p.background(20);
+        if (config.paused && !activeManager.isPaused()) activeManager.pause();
+        if (!config.paused && activeManager.isPaused()) activeManager.resume();
 
-        // 4. PHASE 3: THE FRAME LOOP
-        // world.step calculates the state, resolves the functions above, and draws
+        p.background(20);
         world.step(graphicProcessor);
     };
 

@@ -65,6 +65,7 @@ export interface SceneSettings {
     playback: PlaybackSettings;
     debug: boolean;
     alpha: number;
+    paused: boolean;
 }
 
 export interface SceneState {
@@ -97,6 +98,7 @@ export const DEFAULT_SETTINGS: SceneSettings = {
         startTime: 0
     },
     debug: false,
+    paused: false,
     alpha: 1
 };
 

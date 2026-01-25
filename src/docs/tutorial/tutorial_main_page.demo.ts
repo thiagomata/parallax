@@ -39,11 +39,13 @@ export interface SketchConfig {
     manager?: SceneManager,
     cameraModifier?: CameraModifier,
     loader?: P5AssetLoader,
+    paused: boolean,
 }
 
 export const DEFAULT_SKETCH_CONFIG: SketchConfig = {
     width: 500,
     height: 400,
+    paused: false,
 };
 
 export type P5Sketch = (p: p5, config: SketchConfig) => void;
@@ -100,46 +102,61 @@ export function renderStep(
     const root = document.getElementById('tutorial-root');
     if (!root) return;
 
-    // --- create the step DOM using the new template ---
-    const stepMain = tutorialStepTemplate({ containerId, title, source });
-    root.appendChild(stepMain);
+    // --- create or reuse the step container ---
+    let stepMain = document.getElementById(`step-${containerId}`);
+    if (!stepMain) {
+        stepMain = tutorialStepTemplate({ containerId, title, source });
+        stepMain.id = `step-${containerId}`;
+        root.appendChild(stepMain);
+    } else {
+        // replace inner content to avoid duplicates
+        stepMain.innerHTML = tutorialStepTemplate({ containerId, title, source }).innerHTML;
+    }
 
-    // --- query elements ---
-    const codeSide = stepMain.querySelector('.code-side') as HTMLElement;
+    const codeSide   = stepMain.querySelector('.code-side') as HTMLElement;
     const canvasSide = stepMain.querySelector('.canvas-side') as HTMLElement;
 
-    const editorBox = codeSide.querySelector('.editor-box') as HTMLElement;
+    const editorBox    = codeSide.querySelector('.editor-box') as HTMLElement;
     const consolePanel = codeSide.querySelector('.console-panel') as HTMLElement;
 
-    const playBtn = codeSide.querySelector('.play-btn') as HTMLButtonElement;
-    const resetBtn = codeSide.querySelector('.reset-btn') as HTMLButtonElement;
-    const copyBtn = codeSide.querySelector('.copy-btn') as HTMLButtonElement;
+    const playBtn   = codeSide.querySelector('.play-btn') as HTMLButtonElement;
+    const resetBtn  = codeSide.querySelector('.reset-btn') as HTMLButtonElement;
+    const copyBtn   = codeSide.querySelector('.copy-btn') as HTMLButtonElement;
     const fsCodeBtn = codeSide.querySelector('.fullscreen-btn') as HTMLButtonElement;
 
     const canvasBox = canvasSide.querySelector('.canvas-box') as HTMLElement;
     const canvasWrapper = canvasSide.querySelector('.canvas-wrapper') as HTMLElement;
+
     canvasWrapper.style.width = '100%';
     canvasWrapper.style.height = '90%';
     const { width, height } = canvasWrapper.getBoundingClientRect();
 
-    const pauseBtn = canvasSide.querySelector('.pause-btn') as HTMLButtonElement;
+    const pauseBtn    = canvasSide.querySelector('.pause-btn') as HTMLButtonElement;
     const fsCanvasBtn = canvasSide.querySelector('.fullscreen-btn') as HTMLButtonElement;
 
-    const finalConfig = { ...DEFAULT_SKETCH_CONFIG, ...config, width, height };
+    // --- config/state for this step ---
+    const sketchConfig: SketchConfig = { ...DEFAULT_SKETCH_CONFIG, ...config, width, height, paused: false };
 
-    let currentP5 = new p5((p: p5) => initialSketch(p, finalConfig), canvasBox);
+    // --- track current p5 instance ---
+    let currentP5: p5 | null = null;
 
+    const createSketch = (sketchFn: P5Sketch) => {
+        // remove old instance
+        if (currentP5) currentP5.remove();
+
+        // create new p5
+        currentP5 = new p5((p: p5) => sketchFn(p, sketchConfig), canvasBox);
+    };
+
+    // --- execute update (compile/run) ---
     const executeUpdate = () => {
         consolePanel.style.display = 'block';
-        consolePanel.innerHTML = ''; // clear console
-        try {
-            const compiledCode = transform(editorBox.innerText, {
-                transforms: ['typescript', 'imports'],
-            }).code;
+        consolePanel.innerHTML = '';
 
-            const fnMatch = editorBox.innerText.match(
-                /export\s+(?:const|function)\s+([a-zA-Z0-9_]+)/
-            );
+        try {
+            const compiledCode = transform(editorBox.innerText, { transforms: ['typescript', 'imports'] }).code;
+
+            const fnMatch = editorBox.innerText.match(/export\s+(?:const|function)\s+([a-zA-Z0-9_]+)/);
             if (!fnMatch) throw new Error('No exported function found.');
 
             const factory = new Function('require', 'exports', compiledCode);
@@ -148,14 +165,17 @@ export function renderStep(
 
             factory(fakeRequire, fakeExports);
 
-            currentP5.remove();
-            currentP5 = new p5(fakeExports[fnMatch[1]], canvasBox);
+            createSketch(fakeExports[fnMatch[1]]);
+
+            // reset pause button
+            sketchConfig.paused = false;
+            pauseBtn.dataset.paused = 'false';
+            pauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
 
             const log = document.createElement('div');
             log.className = 'log-entry info';
             log.textContent = `[Engine] Hydration successful.`;
             consolePanel.appendChild(log);
-
         } catch (e: any) {
             const log = document.createElement('div');
             log.className = 'log-entry info';
@@ -165,26 +185,38 @@ export function renderStep(
         }
     };
 
-    // --- wire button events ---
+    // --- button listeners ---
     playBtn.addEventListener('click', executeUpdate);
 
     resetBtn.addEventListener('click', () => {
-        editorBox.innerHTML = `
-  <pre class="language-typescript"><code>${Prism.highlight(source, Prism.languages.typescript, 'typescript')}</code></pre>
-`;        executeUpdate();
+        editorBox.innerHTML = `<pre class="language-typescript"><code>${Prism.highlight(source, Prism.languages.typescript, 'typescript')}</code></pre>`;
+        executeUpdate();
     });
 
-    copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(editorBox.innerText);
-    });
+    copyBtn.addEventListener('click', () => navigator.clipboard.writeText(editorBox.innerText));
 
     fsCodeBtn.addEventListener('click', () => toggleFS(`step-${containerId}`));
     fsCanvasBtn.addEventListener('click', () => toggleFS(`canv-${containerId}`));
 
-    // --- optional pause button (placeholder) ---
     pauseBtn.addEventListener('click', () => {
-        currentP5.noLoop?.();
+        if (!currentP5) return;
+        const paused = pauseBtn.dataset.paused === 'true';
+
+        if (paused) {
+            currentP5.loop();
+            sketchConfig.paused = false;
+            pauseBtn.dataset.paused = 'false';
+            pauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        } else {
+            currentP5.noLoop();
+            sketchConfig.paused = true;
+            pauseBtn.dataset.paused = 'true';
+            pauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+        }
     });
+
+    // --- initially create sketch ---
+    createSketch(initialSketch);
 }
 
 // Initialize the updated Curriculum
