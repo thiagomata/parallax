@@ -16,6 +16,7 @@ import '../style/style.css';
 import 'prismjs/components/prism-typescript';
 import 'prismjs/components/prism-javascript';
 
+
 // Tutorial Steps
 import {tutorial_1} from './tutorial_1.ts';
 import step1Source from './tutorial_1.ts?raw';
@@ -32,6 +33,7 @@ import step6Source from './tutorial_6.ts?raw';
 import {tutorial_7} from "./tutorial_7.ts";
 import step7Source from './tutorial_7.ts?raw';
 import {CameraModifier} from "../../scene/modifiers/camera_modifier.ts";
+import {tutorialStepTemplate} from "./tutorial.template.ts";
 
 /**
  * ARCHITECTURAL EXPOSURE
@@ -53,94 +55,68 @@ Object.assign(window, {
 
 type P5Sketch = (p: p5) => void;
 
-function renderStep(containerId: string, title: string, initialSketch: P5Sketch, source: string) {
+function renderStep(
+    containerId: string,
+    title: string,
+    initialSketch: P5Sketch,
+    source: string
+) {
     const root = document.getElementById('tutorial-root');
     if (!root) return;
 
-    const section = document.createElement('section');
-    section.className = 'step-row';
-    section.id = `section-${containerId}`;
-
-    section.innerHTML = `
-        <div class="code-side">
-            <h2 class="step-title">${title}</h2>
-            <div class="editor-container">
-                <pre class="language-typescript"><code 
-                    id="code-${containerId}" 
-                    contenteditable="true" 
-                    spellcheck="false"
-                >${Prism.highlight(source, Prism.languages.typescript, 'typescript')}</code></pre>
-            </div>
-            
-            <div class="controls">
-                <div class="button-group">
-                    <button class="run-btn" id="run-${containerId}">Update Preview</button>
-                    <button class="reset-btn" id="reset-${containerId}">Reset</button>
-                    <button class="fs-btn" id="fs-${containerId}">Fullscreen</button> 
-                    <button class="copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('code-${containerId}').innerText)">
-                       Copy
-                    </button>
-                </div>
-                <div class="error-log" id="error-${containerId}" style="display: none;"></div>
-            </div>
-        </div>
-        <div class="canvas-side" id="canvas-${containerId}"></div>
-    `;
+    // Create the DOM with all content already in place
+    const section = tutorialStepTemplate({ containerId, title, source });
     root.appendChild(section);
 
-    let currentP5 = new p5(initialSketch, document.getElementById(`canvas-${containerId}`)!);
-    const codeElem = document.getElementById(`code-${containerId}`)! as HTMLElement;
+    // Grab elements
+    const codeElem = section.querySelector(`#code-${containerId}`) as HTMLElement;
+    const canvasEl = section.querySelector(`#canvas-${containerId}`) as HTMLElement;
+    const errorDiv = section.querySelector(`#error-${containerId}`) as HTMLElement;
+    const runBtn = section.querySelector(`#run-${containerId}`) as HTMLButtonElement;
+    const resetBtn = section.querySelector(`#reset-${containerId}`) as HTMLButtonElement;
+    const fsBtn = section.querySelector(`#fs-${containerId}`) as HTMLButtonElement;
+    const copyBtn = section.querySelector('.copy-btn') as HTMLButtonElement;
+
+    // Initialize p5
+    let currentP5 = new p5(initialSketch, canvasEl);
 
     const executeUpdate = () => {
         const rawText = codeElem.innerText;
-        const errorDiv = document.getElementById(`error-${containerId}`)!;
         errorDiv.style.display = 'none';
 
         try {
-            // Transpile TS -> JS for the browser
-            const compiledCode = transform(rawText, {
-                transforms: ['typescript', 'imports'],
-            }).code;
+            const compiledCode = transform(rawText, { transforms: ['typescript', 'imports'] }).code;
 
             const fnMatch = rawText.match(/export\s+(?:const|function)\s+([a-zA-Z0-9_]+)/);
-            const fnName = fnMatch ? fnMatch[1] : null;
-            if (!fnName) throw new Error("No exported function found.");
+            if (!fnMatch) throw new Error('No exported function found.');
 
-            // The 'Fake Require' maps imports in the editor to the window objects we exposed
             const factory = new Function('require', 'exports', compiledCode);
             const fakeExports: any = {};
-            const fakeRequire = (_name: string) => window;
+            const fakeRequire = () => window;
 
             factory(fakeRequire, fakeExports);
-            const updatedSketch = fakeExports[fnName];
 
             currentP5.remove();
-            currentP5 = new p5(updatedSketch, document.getElementById(`canvas-${containerId}`)!);
-
+            currentP5 = new p5(fakeExports[fnMatch[1]], canvasEl);
         } catch (e: any) {
-            errorDiv.innerText = `⚠️ Error: ${e.message}`;
+            errorDiv.textContent = `⚠️ Error: ${e.message}`;
             errorDiv.style.display = 'block';
         }
     };
 
-    document.getElementById(`run-${containerId}`)?.addEventListener('click', executeUpdate);
-    document.getElementById(`reset-${containerId}`)?.addEventListener('click', () => {
+    // Attach events
+    runBtn.addEventListener('click', executeUpdate);
+    resetBtn.addEventListener('click', () => {
         codeElem.innerHTML = Prism.highlight(source, Prism.languages.typescript, 'typescript');
         executeUpdate();
     });
-
-    document.getElementById(`fs-${containerId}`)?.addEventListener('click', () => {
-        const canvasContainer = document.getElementById(`canvas-${containerId}`);
-        if (canvasContainer) {
-            if (canvasContainer.requestFullscreen) {
-                canvasContainer.requestFullscreen();
-            } else if ((canvasContainer as any).webkitRequestFullscreen) { /* Safari */
-                (canvasContainer as any).webkitRequestFullscreen();
-            }
-        }
+    fsBtn.addEventListener('click', () => {
+        canvasEl.requestFullscreen?.();
+    });
+    copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(codeElem.innerText);
     });
 }
-
 // Initialize the updated Curriculum
 renderStep('tutorial-1', '1. The Foundation (Registration)', tutorial_1, step1Source);
 renderStep('tutorial-2', '2. Animation (Temporal Phase)', tutorial_2, step2Source);
