@@ -13,6 +13,7 @@ import 'prismjs/themes/prism-tomorrow.css';
 import '../../docs/style/style.css';
 import 'prismjs/components/prism-typescript';
 import 'prismjs/components/prism-javascript';
+import '@fortawesome/fontawesome-free/css/all.css';
 import {transform} from 'sucrase';
 
 // Tutorial Steps
@@ -20,6 +21,7 @@ import {heroExample1} from "./hero_example_1.ts";
 import heroExample1Code from './hero_example_1.ts?raw';
 import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
+import {tutorialStepTemplate} from "../tutorial/tutorial.template.ts";
 
 
 /**
@@ -36,128 +38,151 @@ Object.assign(window, {
     OrbitModifier,
     CenterFocusModifier
 });
-type P5Sketch = (p: p5) => void;
+export interface SketchConfig {
+    width: number;
+    height: number;
+    backgroundColor?: string;
+    manager?: SceneManager,
+    loader?: P5AssetLoader,
+    paused: boolean,
+}
 
-/**
- * Manages the lifecycle of a tutorial step
- */
-function renderStep(containerId: string, title: string, initialSketch: P5Sketch, source: string) {
+export const DEFAULT_SKETCH_CONFIG: SketchConfig = {
+    width: 500,
+    height: 400,
+    paused: false,
+};
+
+export type P5Sketch = (p: p5, config: SketchConfig) => void;
+
+function toggleFS(id: string) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const requestFullscreen =
+        element.requestFullscreen?.bind(element) ||
+        (element as HTMLElement & { webkitRequestFullscreen?: () => void }).webkitRequestFullscreen?.bind(element);
+
+    if (!requestFullscreen) return;
+
+    if (document.fullscreenElement === element) {
+        document.exitFullscreen?.();
+    } else {
+        requestFullscreen();
+    }
+}
+
+export function renderStep(
+    containerId: string,
+    title: string,
+    initialSketch: P5Sketch,
+    source: string,
+    config: Partial<SketchConfig> = {}
+) {
     const root = document.getElementById('tutorial-root');
     if (!root) return;
 
-    const section = document.createElement('section');
-    section.className = 'step-row';
-    section.id = `section-${containerId}`;
+    let stepMain = document.getElementById(`step-${containerId}`);
+    if (!stepMain) {
+        stepMain = tutorialStepTemplate({ containerId, title, source });
+        stepMain.id = `step-${containerId}`;
+        root.appendChild(stepMain);
+    } else {
+        stepMain.innerHTML = tutorialStepTemplate({ containerId, title, source }).innerHTML;
+    }
 
-    section.innerHTML = `
-        <div class="code-side">
-            <h2 class="step-title">${title}</h2>
-            <div class="editor-container">
-                <pre class="language-typescript"><code 
-                    id="code-${containerId}" 
-                    contenteditable="true" 
-                    spellcheck="false"
-                >${Prism.highlight(source, Prism.languages.typescript, 'typescript')}</code></pre>
-            </div>
-            
-            <div class="controls">
-                <div class="button-group">
-                    <button class="run-btn" id="run-${containerId}">Update Preview</button>
-                    <button class="reset-btn" id="reset-${containerId}">Reset</button>
-                    <button class="fs-btn" id="fs-${containerId}">Fullscreen</button> 
-                    <button class="copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('code-${containerId}').innerText)">
-                       Copy
-                    </button>
-                </div>
-                <div class="error-log" id="error-${containerId}" style="display: none;"></div>
-            </div>
-        </div>
-        <div class="canvas-side" id="canvas-${containerId}"></div>
-    `;
-    root.appendChild(section);
+    const codeSide   = stepMain.querySelector('.code-side') as HTMLElement;
+    const canvasSide = stepMain.querySelector('.canvas-side') as HTMLElement;
 
-    // Initial state
-    let currentP5 = new p5(initialSketch, document.getElementById(`canvas-${containerId}`)!);
-    const codeElem = document.getElementById(`code-${containerId}`)! as HTMLElement;
+    const editorBox    = codeSide.querySelector('.editor-box') as HTMLElement;
+    const consolePanel = codeSide.querySelector('.console-panel') as HTMLElement;
+
+    const playBtn   = codeSide.querySelector('.play-btn') as HTMLButtonElement;
+    const resetBtn  = codeSide.querySelector('.reset-btn') as HTMLButtonElement;
+    const copyBtn   = codeSide.querySelector('.copy-btn') as HTMLButtonElement;
+    const fsCodeBtn = codeSide.querySelector('.fullscreen-btn') as HTMLButtonElement;
+
+    const canvasBox = canvasSide.querySelector('.canvas-box') as HTMLElement;
+    const canvasWrapper = canvasSide.querySelector('.canvas-wrapper') as HTMLElement;
+
+    canvasWrapper.style.width = '100%';
+    canvasWrapper.style.height = '90%';
+    const { width, height } = canvasWrapper.getBoundingClientRect();
+
+    const pauseBtn    = canvasSide.querySelector('.pause-btn') as HTMLButtonElement;
+    const fsCanvasBtn = canvasSide.querySelector('.fullscreen-btn') as HTMLButtonElement;
+
+    const sketchConfig: SketchConfig = { ...DEFAULT_SKETCH_CONFIG, ...config, width, height, paused: false };
+    let currentP5: p5 | null = null;
+
+    const createSketch = (sketchFn: P5Sketch) => {
+        if (currentP5) currentP5.remove();
+        currentP5 = new p5((p: p5) => sketchFn(p, sketchConfig), canvasBox);
+    };
 
     const executeUpdate = () => {
-        const rawText = codeElem.innerText;
-        const errorDiv = document.getElementById(`error-${containerId}`)!;
-
-        // Reset UI
-        errorDiv.style.display = 'none';
-        errorDiv.innerText = '';
+        consolePanel.style.display = 'block';
+        consolePanel.innerHTML = '';
 
         try {
-            // --- PHASE 1: TRANSPILE (Check if TS is valid) ---
-            // If the user has a syntax error, Sucrase throws here.
-            const compiledCode = transform(rawText, {
-                transforms: ['typescript', 'imports'],
-            }).code;
+            const compiledCode = transform(editorBox.innerText, { transforms: ['typescript', 'imports'] }).code;
 
-            // --- PHASE 2: EXTRACT FUNCTION ---
-            const fnMatch = rawText.match(/export\s+(?:const|function)\s+([a-zA-Z0-9_]+)/);
-            const fnName = fnMatch ? fnMatch[1] : null;
-            if (!fnName) throw new Error("No exported function found.");
+            const fnMatch = editorBox.innerText.match(/export\s+(?:const|function)\s+([a-zA-Z0-9_]+)/);
+            if (!fnMatch) throw new Error('No exported function found.');
 
-            // --- PHASE 3: FACTORY & WRAPPER ---
-            const factory = new Function('require', 'exports', 'p', compiledCode);
+            const factory = new Function('require', 'exports', compiledCode);
             const fakeExports: any = {};
             const fakeRequire = () => window;
 
-            factory.call(window, fakeRequire, fakeExports, null);
-            const originalSketch = fakeExports[fnName];
+            factory(fakeRequire, fakeExports);
+            createSketch(fakeExports[fnMatch[1]]);
 
-            // We wrap the sketch to catch runtime errors (e.g., calling undefined functions)
-            const safeSketch = (p: p5) => {
-                try {
-                    originalSketch(p);
-                } catch (runtimeError: any) {
-                    showUIError(runtimeError, "Runtime");
-                }
-            };
+            sketchConfig.paused = false;
+            pauseBtn.dataset.paused = 'false';
+            pauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
 
-            // --- PHASE 4: UPDATE P5 ---
-            currentP5.remove();
-            currentP5 = new p5(safeSketch, document.getElementById(`canvas-${containerId}`)!);
-
-        } catch (compileError: any) {
-            // This catches the Sucrase SyntaxError you just saw
-            showUIError(compileError, "Syntax/TypeScript");
-        }
-
-        function showUIError(e: any, type: string) {
-            // Sucrase errors usually include a line number in e.loc
-            const line = e.loc ? ` at line ${e.loc.line}` : "";
-            errorDiv.innerText = `⚠️ ${type} Error${line}: ${e.message}`;
-            errorDiv.style.display = 'block';
-
-            // Shake the error box to alert the user
-            errorDiv.classList.remove('shake');
-            void errorDiv.offsetWidth; // trigger reflow
-            errorDiv.classList.add('shake');
+            const log = document.createElement('div');
+            log.className = 'log-entry info';
+            log.textContent = `[Engine] Hydration successful.`;
+            consolePanel.appendChild(log);
+        } catch (e: any) {
+            const log = document.createElement('div');
+            log.className = 'log-entry info';
+            log.style.color = 'var(--error)';
+            log.textContent = `⚠️ Error: ${e.message}`;
+            consolePanel.appendChild(log);
         }
     };
 
-    // Event Listeners
-    document.getElementById(`run-${containerId}`)?.addEventListener('click', executeUpdate);
+    playBtn.addEventListener('click', executeUpdate);
 
-    document.getElementById(`reset-${containerId}`)?.addEventListener('click', () => {
-        codeElem.innerHTML = Prism.highlight(source, Prism.languages.typescript, 'typescript');
+    resetBtn.addEventListener('click', () => {
+        editorBox.innerHTML = `<pre class="language-typescript"><code>${Prism.highlight(source, Prism.languages.typescript, 'typescript')}</code></pre>`;
         executeUpdate();
     });
-    document.getElementById(`fs-${containerId}`)?.addEventListener('click', () => {
-        const canvasContainer = document.getElementById(`canvas-${containerId}`);
 
-        if (canvasContainer) {
-            // Request fullscreen on the DIV container, not the canvas
-            if (canvasContainer.requestFullscreen) {
-                canvasContainer.requestFullscreen();
-            } else if ((canvasContainer as any).webkitRequestFullscreen) {
-                (canvasContainer as any).webkitRequestFullscreen();
-            }
+    copyBtn.addEventListener('click', () => navigator.clipboard.writeText(editorBox.innerText));
+    fsCodeBtn.addEventListener('click', () => toggleFS(`step-${containerId}`));
+    fsCanvasBtn.addEventListener('click', () => toggleFS(`canv-${containerId}`));
+
+    pauseBtn.addEventListener('click', () => {
+        if (!currentP5) return;
+        const paused = pauseBtn.dataset.paused === 'true';
+
+        if (paused) {
+            currentP5.loop();
+            sketchConfig.paused = false;
+            pauseBtn.dataset.paused = 'false';
+            pauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        } else {
+            currentP5.noLoop();
+            sketchConfig.paused = true;
+            pauseBtn.dataset.paused = 'true';
+            pauseBtn.innerHTML = '<i class="fas fa-play"></i>';
         }
     });
+
+    createSketch(initialSketch);
 }
 
-renderStep('hero-demo-1', 'Demo', heroExample1, heroExample1Code);
+renderStep('hero-demo-1', 'Hero Demo', (p: p5, config: SketchConfig) => heroExample1(p, config), heroExample1Code);
