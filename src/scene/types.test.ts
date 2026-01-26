@@ -1,6 +1,7 @@
 import {describe, expect, it, vi} from 'vitest';
 import {
     type AssetLoader,
+    type DynamicBillboard,
     type DynamicBox,
     type DynamicCone,
     type DynamicCylinder,
@@ -15,6 +16,7 @@ import {
     ELEMENT_TYPES,
     type GraphicProcessor,
     type GraphicsBundle,
+    type ResolvedBillboard,
     type ResolvedBox,
     type ResolvedCone,
     type ResolvedCylinder,
@@ -321,9 +323,53 @@ describe('Parallax Engine Type Coherence Test', () => {
                 ry: resolveValue(dynamic.ry),
                 rz: resolveValue(dynamic.rz)
             };
-            expect(resolved.rx).toBe(3);
+expect(resolved.rx).toBe(3);
             expect(resolved.ry).toBe(4);
             expect(resolved.rz).toBe(5);
+        });
+
+        it('Billboard resolves correctly', () => {
+            const dynamic: DynamicBillboard = {
+                type: ELEMENT_TYPES.BILLBOARD,
+                position: { kind: SPEC_KINDS.STATIC, value: {x:0,y:0,z:0}},
+                width: { kind: SPEC_KINDS.STATIC, value: 100 },
+                height: { kind: SPEC_KINDS.STATIC, value: 50 },
+                lockRotation: { 
+                    kind: SPEC_KINDS.STATIC, 
+                    value: { x: false, y: true, z: false }
+                }
+            };
+            const resolved: ResolvedBillboard = {
+                type: dynamic.type,
+                position: resolveValue(dynamic.position),
+                width: resolveValue(dynamic.width),
+                height: resolveValue(dynamic.height),
+                lockRotation: dynamic.lockRotation ? resolveValue(dynamic.lockRotation) : undefined
+            };
+            expect(resolved.width).toBe(100);
+            expect(resolved.height).toBe(50);
+            expect(resolved.lockRotation?.x).toBe(false);
+            expect(resolved.lockRotation?.y).toBe(true);
+            expect(resolved.lockRotation?.z).toBe(false);
+        });
+
+        it('Billboard without lockRotation resolves correctly', () => {
+            const dynamic: DynamicBillboard = {
+                type: ELEMENT_TYPES.BILLBOARD,
+                position: { kind: SPEC_KINDS.STATIC, value: {x:10,y:20,z:30}},
+                width: { kind: SPEC_KINDS.STATIC, value: 80 },
+                height: { kind: SPEC_KINDS.STATIC, value: 60 }
+            };
+            const resolved: ResolvedBillboard = {
+                type: dynamic.type,
+                position: resolveValue(dynamic.position),
+                width: resolveValue(dynamic.width),
+                height: resolveValue(dynamic.height),
+                lockRotation: dynamic.lockRotation ? resolveValue(dynamic.lockRotation) : undefined
+            };
+            expect(resolved.width).toBe(80);
+            expect(resolved.height).toBe(60);
+            expect(resolved.lockRotation).toBeUndefined();
         });
     });
 });

@@ -246,7 +246,9 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
 
     drawFloor(resolved: ResolvedFloor, assets: ElementAssets<TBundle>, state: SceneState): void;
 
-    drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: SceneState): void;
+drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: SceneState): void;
+
+    drawBillboard(props: ResolvedBillboard, assets: ElementAssets<TBundle>, state: SceneState): void;
 
     plane(width: number, height: number): void;
 
@@ -286,6 +288,7 @@ export const ELEMENT_TYPES = {
     ELLIPTICAL: 'elliptical',
     FLOOR: 'floor',
     TEXT: 'text',
+    BILLBOARD: 'billboard',
 } as const;
 
 export const SPEC_KINDS = {STATIC: 'static', COMPUTED: 'computed', BRANCH: 'branch'} as const;
@@ -442,6 +445,22 @@ export interface ResolvedText extends ResolvedBaseVisual {
 export type BlueprintText = MapToBlueprint<ResolvedText>;
 export type DynamicText = DynamicElement<ResolvedText>;
 
+// BILLBOARD
+
+export interface ResolvedBillboard extends ResolvedBaseVisual {
+    readonly type: typeof ELEMENT_TYPES.BILLBOARD;
+    readonly width: number;
+    readonly height: number;
+    readonly lockRotation?: {
+        readonly x?: boolean;
+        readonly y?: boolean;
+        readonly z?: boolean;
+    };
+}
+
+export type BlueprintBillboard = MapToBlueprint<ResolvedBillboard>;
+export type DynamicBillboard = DynamicElement<ResolvedBillboard>;
+
 export type BlueprintElement =
     BlueprintBox        |
     BlueprintPanel      |
@@ -452,7 +471,8 @@ export type BlueprintElement =
     BlueprintCylinder   |
     BlueprintTorus      |
     BlueprintFloor      |
-    BlueprintText       ;
+    BlueprintText       |
+    BlueprintBillboard  ;
 
 export type ResolvedElement =
     ResolvedBox         |
@@ -464,7 +484,8 @@ export type ResolvedElement =
     ResolvedCylinder    |
     ResolvedTorus       |
     ResolvedFloor       |
-    ResolvedText        ;
+    ResolvedText        |
+    ResolvedBillboard   ;
 
 /**
  * WORLD INTERFACES
