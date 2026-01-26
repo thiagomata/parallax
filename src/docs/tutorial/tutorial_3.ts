@@ -61,4 +61,4 @@ export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     };
 
     return world;
-};
+}
