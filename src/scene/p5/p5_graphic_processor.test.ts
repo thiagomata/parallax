@@ -30,6 +30,7 @@ describe('P5GraphicProcessor', () => {
         mockLoader = {
             hydrateTexture: vi.fn(),
             hydrateFont: vi.fn(),
+            waitForAllAssets: vi.fn(),
         };
 
         gp = new P5GraphicProcessor(mockP5 as unknown as p5, mockLoader);
@@ -52,7 +53,7 @@ describe('P5GraphicProcessor', () => {
         });
     });
 
-    describe('Texture Drawing (Phase 3)', () => {
+    describe('Texture Drawing', () => {
         it('should apply texture, mode, and tint when READY', () => {
             const boxProps: ResolvedBox = {
                 type: ELEMENT_TYPES.BOX,

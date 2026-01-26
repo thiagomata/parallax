@@ -22,7 +22,7 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
             }
         });
 
-        // 2. Execute tutorial (Registration Phase)
+        // 2. Execute tutorial
         const world = tutorial_3(mockP5 as unknown as p5, {...DEFAULT_SKETCH_CONFIG, manager});
         mockP5.setup();
 

@@ -31,10 +31,10 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
 
-        // 4. Bridge Initialization
+        // 4. Graphic Processor Initialization
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // 5. PHASE 1: REGISTRATION
+        // 5. REGISTRATION
         // Using the "Extreme Typed" addBox method (no manual toProps/casting)
         world.addBox('box', {
             type: ELEMENT_TYPES.BOX,

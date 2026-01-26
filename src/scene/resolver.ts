@@ -187,7 +187,7 @@ function compileProperty<V>(value: V): DynamicProperty<V> {
 }
 
 /**
- * PHASE 3 (Moment 2): THE RESOLUTION SIEVE
+ * THE RESOLUTION SIEVE
  * A pure function that recursively unwraps the Dynamic execution plan into Resolved data.
  */
 function loopResolve<T>(src: T, state: SceneState): Unwrapped<T> {

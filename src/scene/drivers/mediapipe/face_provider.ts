@@ -22,9 +22,9 @@ export class MediaPipeFaceProvider implements FaceProvider {
     }
 
     /**
-     * Phase: HYDRATION
+     * HYDRATION
      * Loads the WASM and the Model. This is called during the
-     * engine's Registration/Hydration phase.
+     * engine's Registration/Hydration.
      */
     async init(): Promise<void> {
         this.status = 'INITIALIZING';
@@ -50,7 +50,7 @@ export class MediaPipeFaceProvider implements FaceProvider {
     }
 
     /**
-     * Phase: THE FRAME LOOP
+     * THE FRAME LOOP
      * Returns the cleaned FaceGeometry.
      * Synchronous and safe to call inside p5's draw loop.
      */

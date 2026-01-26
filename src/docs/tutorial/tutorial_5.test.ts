@@ -16,7 +16,7 @@ describe('Tutorial 5 Execution Test: Assets & Hydration', () => {
         // 3. TRIGGER setup (Awaiting the loader.waitForAllAssets() inside)
         await mockP5.setup();
 
-        // 4. Verify Registration & Hydration Phase
+        // 4. Verify Registration & Hydration
         const boxElement = world.getElement('textured-box');
         const textElement = world.getElement('title');
 
@@ -25,7 +25,7 @@ describe('Tutorial 5 Execution Test: Assets & Hydration', () => {
 
         // --- TEST POINT: Progress 0.25 (1250ms / 5000ms) ---
         mockP5.millis.mockReturnValue(1250);
-        mockP5.draw(); // PHASE 3: Frame Loop
+        mockP5.draw(); // Frame Loop
 
         const state = world.getCurrentSceneState();
         const resolvedBox = resolve(boxElement!, state) as ResolvedBox;
@@ -33,7 +33,7 @@ describe('Tutorial 5 Execution Test: Assets & Hydration', () => {
         // Math: progress(0.25) * PI * 2 = PI / 2
         expect(resolvedBox.rotate?.y).toBeCloseTo(Math.PI * 0.5, 5);
 
-        // 5. Verify Execution Phase (Bridge Side Effects)
+        // 5. Verify Execution - (P5 Side Effects)
         // Texture should be applied before the box is drawn
         expect(mockP5.texture).toHaveBeenCalled();
         expect(mockP5.box).toHaveBeenCalledWith(150);
@@ -51,10 +51,10 @@ describe('Tutorial 5 Execution Test: Assets & Hydration', () => {
         // 2. Initialize Tutorial
         tutorial_5(mockP5 as unknown as p5);
 
-        // 3. Complete Phases 1 & 2 (Registration & Hydration)
+        // 3. Complete Registration & Hydration
         await mockP5.setup();
 
-        // 4. Trigger Phase 3 (The Frame Loop)
+        // 4. Trigger The Frame Loop
         mockP5.draw();
 
         // --- ASSERTIONS ---

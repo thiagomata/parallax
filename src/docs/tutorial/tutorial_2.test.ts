@@ -26,9 +26,10 @@ describe('Tutorial 2: Progression Integration', () => {
         const world = tutorial_2(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400, 
-            manager 
+            manager,
+            paused: false
         });
-        mockP5.setup(); // Triggers registration phase
+        mockP5.setup(); // Triggers registration
 
         // --- TEST POINT A: Progress 0.0 (T = 0ms) ---
         mockP5.draw(); // Calculates state and steps world

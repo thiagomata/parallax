@@ -27,7 +27,7 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         p.createCanvas(config.width, config.height, p.WEBGL);
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // 3. PHASE 1: REGISTRATION
+        // 3. REGISTRATION
         // Hydration starts automatically when the element is added
 
         // Textured Box
@@ -61,7 +61,7 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             fillColor: {red: 0, green: 229, blue: 255}
         });
 
-        // 4. PHASE 2: HYDRATION (Optional Wait)
+        // 4. HYDRATION (Optional Wait)
         // By awaiting this, we ensure the first frame isn't "blank"
         await loader.waitForAllAssets();
     };

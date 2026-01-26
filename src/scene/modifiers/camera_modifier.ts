@@ -58,7 +58,7 @@ export class CameraModifier implements CarModifier, NudgeModifier, StickModifier
     }
 
     public async init(): Promise<void> {
-        // Hydration Phase: Delegate to the specific hardware driver
+        // Hydration: Delegate to the specific hardware driver
         await this.provider.init();
         this.status = this.provider.getStatus();
     }

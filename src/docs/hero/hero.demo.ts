@@ -1,8 +1,8 @@
 import {World} from "../../scene/world.ts";
 import {SceneManager} from "../../scene/scene_manager.ts";
-import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
+import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
-import {DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
+import {type AssetLoader, DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
 
 // libs
 import p5 from 'p5';
@@ -43,7 +43,7 @@ export interface SketchConfig {
     height: number;
     backgroundColor?: string;
     manager?: SceneManager,
-    loader?: P5AssetLoader,
+    loader?: AssetLoader<P5Bundler>,
     paused: boolean,
 }
 

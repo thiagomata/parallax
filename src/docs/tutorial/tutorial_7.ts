@@ -37,7 +37,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         p.createCanvas(config.width, config.height, p.WEBGL);
         gp = new P5GraphicProcessor(p, loader);
 
-        // 4. PHASE 1: REGISTRATION
+        // 4. REGISTRATION
         // We create a deep corridor of spheres to test the Z-depth and X/Y parallax
         for (let z = 200; z > -2000; z -= 200) {
             for (let x = -500; x <= 500; x += 200) {

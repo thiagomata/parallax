@@ -20,7 +20,7 @@ describe('Tutorial 4: SceneManager & Camera Injection', () => {
 
         // --- TEST POINT: T=0ms (Start of Orbit) ---
         mockP5.millis.mockReturnValue(0);
-        mockP5.draw(); // PHASE 3: Calculate state -> Render
+        mockP5.draw(); // Calculate state -> Render
 
         const state0 = world.getCurrentSceneState();
 

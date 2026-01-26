@@ -121,7 +121,7 @@ describe('CameraModifier', () => {
         });
     });
 
-    describe('2. Calibration Phase', () => {
+    describe('2. Calibration', () => {
         it.each(testFaces)('should establish a unique neutral scale on the first frame seen', (face) => {
             (mockProvider.getFace as any).mockReturnValue(face);
             modifier.tick(1);

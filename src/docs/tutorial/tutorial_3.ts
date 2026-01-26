@@ -27,7 +27,7 @@ export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         p.createCanvas(config.width, config.height, p.WEBGL);
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // 3. PHASE 1: REGISTRATION
+        // 3. REGISTRATION
         // Defining the Orbit as a function of the Engine Progress
         world.addBox('orbit-box', {
             type: ELEMENT_TYPES.BOX,

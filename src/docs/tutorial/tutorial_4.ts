@@ -32,7 +32,7 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         p.createCanvas(config.width, config.height, p.WEBGL);
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // 4. PHASE 1: REGISTRATION
+        // 4. REGISTRATION
         // Creating a "Gallery" of boxes to visualize the camera orbit
         for (let i = 0; i < 5; i++) {
             world.addBox(`box-${i}`, {

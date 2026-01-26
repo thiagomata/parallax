@@ -194,8 +194,8 @@ export interface ElementAssets<TBundle extends GraphicsBundle> {
 
 export interface AssetLoader<TBundle extends GraphicsBundle> {
     hydrateTexture(ref: TextureRef): Promise<TextureAsset<TBundle['texture']>>;
-
     hydrateFont(ref: FontRef): Promise<FontAsset<TBundle['font']>>;
+    waitForAllAssets(): Promise<void>;
 }
 
 /**

@@ -56,7 +56,7 @@ describe('MediaPipeFaceProvider', () => {
         provider = new MediaPipeFaceProvider(mockP5);
     });
 
-    describe('Initialization Phase', () => {
+    describe('Initialization', () => {
         it('should setup hardware and reach READY status', async () => {
             const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
             (FilesetResolver.forVisionTasks as any).mockResolvedValue({});
