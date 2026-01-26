@@ -1,11 +1,17 @@
 import type {SceneManager} from "./scene_manager.ts";
 import type {
     AssetLoader,
-    BlueprintBox, BlueprintCone, BlueprintCylinder, BlueprintElliptical,
+    BlueprintBillboard,
+    BlueprintBox,
+    BlueprintCone,
+    BlueprintCylinder,
+    BlueprintElliptical,
     BlueprintFloor,
-    BlueprintPanel, BlueprintPyramid,
+    BlueprintPanel,
+    BlueprintPyramid,
     BlueprintSphere,
-    BlueprintText, BlueprintTorus,
+    BlueprintText,
+    BlueprintTorus,
     GraphicProcessor,
     GraphicsBundle,
     RenderableElement,
@@ -65,6 +71,10 @@ export class World<TBundle extends GraphicsBundle> {
     }
 
     public addPanel(id: string, blueprint: BlueprintPanel): void {
+        this.stage.add(id, blueprint);
+    }
+
+    public addBillboard(id: string, blueprint: BlueprintBillboard): void {
         this.stage.add(id, blueprint);
     }
 

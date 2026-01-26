@@ -16,7 +16,7 @@ import {
     type ResolvedSphere,
     type ResolvedText, type ResolvedTorus,
     type SceneState,
-    type Vector3
+    type Vector3, type RenderableElement
 } from '../types';
 import type {P5Bundler} from './p5_asset_loader';
 
@@ -100,25 +100,23 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         const cam = state.camera;
         const locks = props.lockRotation || {};
 
-        // Vertical Alignment (Yaw)
-        // If Y is NOT locked, we rotate to face the camera's horizontal position.
+        // 1. Invert the Camera's Yaw
+        // If we don't lock Y, we must SUBTRACT the camera's yaw to stay flat to the lens.
         if (!locks.y) {
-            // We use the camera's yaw directly from the SSoT
-            this.rotateY(cam.yaw);
+            this.rotateY(-cam.yaw);
         }
 
-        // Horizontal Alignment (Pitch)
-        // If X is NOT locked, we tilt to face the camera's height.
+        // 2. Invert the Camera's Pitch
         if (!locks.x) {
             this.rotateX(cam.pitch);
         }
 
-        // Banking Alignment (Roll)
-        // If Z is NOT locked, we match the camera's tilt.
+        // 3. Invert the Camera's Roll
         if (!locks.z) {
             this.rotateZ(cam.roll);
         }
 
+        // Local override rotation (e.g., spinning the "coin" on its own face)
         if (props.rotate) {
             this.rotate(props.rotate);
         }

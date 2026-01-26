@@ -31,6 +31,8 @@ import {tutorial_6} from "./tutorial_6.ts";
 import step6Source from './tutorial_6.ts?raw';
 import {tutorial_7} from "./tutorial_7.ts";
 import step7Source from './tutorial_7.ts?raw';
+import {tutorial_8} from "./tutorial_8.ts";
+import step8Source from './tutorial_8.ts?raw';
 
 export interface SketchConfig {
     width: number;
@@ -227,3 +229,4 @@ renderStep('tutorial-4', '4. Camera (Modifiers)', tutorial_4, step4Source);
 renderStep('tutorial-5', '5. Textures & Fonts (Hydration)', tutorial_5, step5Source);
 renderStep('tutorial-6', '6. Integrated Scene (Hybrid Props)', tutorial_6, step6Source);
 renderStep('tutorial-7', '7. Head Tracking', tutorial_7, step7Source);
+renderStep('tutorial-8', '8. Billboard', tutorial_8, step8Source);

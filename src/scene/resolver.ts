@@ -92,6 +92,9 @@ export const createRenderable =
                         case ELEMENT_TYPES.FLOOR:
                             gp.drawFloor(resolved, this.assets, state);
                             break;
+                        case ELEMENT_TYPES.BILLBOARD:
+                            gp.drawBillboard(resolved, this.assets, state);
+                            break;
                         case ELEMENT_TYPES.TEXT:
                             gp.drawText(resolved, this.assets, state);
                             break;
