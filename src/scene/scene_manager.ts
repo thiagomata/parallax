@@ -110,9 +110,11 @@ export class SceneManager {
                 lookAt: this.settings.camera.lookAt ?? 0,
                 yaw: 0,
                 pitch: 0,
+                roll: 0,
                 direction: this.calculateDirection({
                     yaw: 0,
                     pitch: 0,
+                    roll: 0,
                     distance: this.stickDistance,
                     priority: 0,
                 }),
@@ -192,6 +194,7 @@ export class SceneManager {
         let stickRes: StickResult = {
             yaw: 0,
             pitch: 0,
+            roll: 0,
             distance: this.stickDistance,
             priority: -1,
         };
@@ -235,6 +238,7 @@ export class SceneManager {
                 lookAt: lookAt,
                 yaw: stickRes.yaw,
                 pitch: stickRes.pitch,
+                roll: stickRes.roll,
                 direction: this.calculateDirection(stickRes),
             } as SceneCameraState,
             debugStateLog: debugLog ?? undefined,

@@ -42,6 +42,7 @@ export interface SceneCameraSettings {
 export interface SceneCameraState extends SceneCameraSettings {
     readonly yaw: number;
     readonly pitch: number;
+    readonly roll: number;
     readonly direction: Vector3;
 }
 
@@ -121,6 +122,7 @@ export interface StickResult {
     readonly yaw: number;
     readonly pitch: number;
     readonly distance: number;
+    readonly roll: number;
     readonly priority: number;
 }
 

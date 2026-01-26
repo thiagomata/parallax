@@ -47,7 +47,8 @@ const mockStick = (
     name: string,
     priority: number,
     yaw: number,
-    active: boolean = true
+    active: boolean = true,
+    roll: number = 0,
 ): StickModifier => ({
     name,
     active,
@@ -58,6 +59,7 @@ const mockStick = (
             name,
             yaw,
             pitch: 0,
+            roll,
             distance: 10,
             priority
         },
@@ -238,7 +240,14 @@ describe("PortalSceneManager - Stage 3 (Stick)", () => {
             priority: 1,
             tick: () => {},
             getStick: () => ({
-                value: {name: "ForwardStick", yaw: 0, pitch: 0, distance: 10, priority: 1},
+                value: {
+                    name: "ForwardStick",
+                    yaw: 0,
+                    pitch: 0,
+                    roll: 0,
+                    distance: 10,
+                    priority: 1
+                },
                 success: true
             }),
         };
@@ -262,6 +271,7 @@ describe("PortalSceneManager - calculateLookAt Math", () => {
         const result = manager.calculateLookAt(origin, {
             yaw: 0,
             pitch: 0,
+            roll: 0,
             distance: DIST,
             priority: 0,
         });
@@ -275,6 +285,7 @@ describe("PortalSceneManager - calculateLookAt Math", () => {
         const result = manager.calculateLookAt(origin, {
             yaw: Math.PI / 2,
             pitch: 0,
+            roll: 0,
             distance: DIST,
             priority: 0,
         });
@@ -288,6 +299,7 @@ describe("PortalSceneManager - calculateLookAt Math", () => {
         // Note: Cos(Pitch) becomes 0, which should nullify X and Z
         const result = manager.calculateLookAt(origin, {
             yaw: 0,
+            roll: 0,
             pitch: Math.PI / 2,
             distance: DIST,
             priority: 0,
@@ -301,6 +313,7 @@ describe("PortalSceneManager - calculateLookAt Math", () => {
         const angle = Math.PI / 4; // 45 degrees
         const result = manager.calculateLookAt(origin, {
             yaw: angle,
+            roll: angle,
             pitch: angle,
             distance: DIST,
             priority: 0,

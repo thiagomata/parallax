@@ -60,7 +60,9 @@ describe('createRenderable & Resolver Loop', () => {
         camera: {
             position: mockOrigin,
             lookAt: mockOrigin,
-            yaw: 0, pitch: 0,
+            yaw: 0,
+            pitch: 0,
+            roll: 0,
             direction: {x: 0, y: 0, z: -1}
         }
     };

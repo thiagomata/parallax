@@ -167,6 +167,7 @@ export class CameraModifier implements CarModifier, NudgeModifier, StickModifier
             stick: {
                 yaw: face.stick.yaw * this.config.damping,
                 pitch: face.stick.pitch * this.config.damping,
+                roll: face.stick.roll * this.config.damping,
                 distance: this.config.lookDistance,
                 priority: this.priority
             }

@@ -93,72 +93,39 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.noStroke();
     }
 
-// --- Drawing Implementation ---
     drawBillboard(props: ResolvedBillboard, assets: ElementAssets<P5Bundler>, state: SceneState): void {
         this.push();
         this.translate(props.position);
 
-        // Calculate the rotation to face the camera
-        const camPos = state.camera.position;
-        const billPos = props.position;
-        
-        // Calculate direction from billboard to camera
-        const dx = camPos.x - billPos.x;
-        const dy = camPos.y - billPos.y;
-        const dz = camPos.z - billPos.z;
-        
-        // Calculate rotation angles
-        const yaw = Math.atan2(dx, dz);
-        const pitch = Math.atan2(dy, Math.sqrt(dx * dx + dz * dz));
-        
-        // Default: no rotation locked (full 3D rotation)
-        let lockX = false, lockY = false, lockZ = false;
-        
-        // Check for specific axis locks
-        if (props.lockRotation) {
-            lockX = props.lockRotation.x ?? false;
-            lockY = props.lockRotation.y ?? false;
-            lockZ = props.lockRotation.z ?? false;
+        const cam = state.camera;
+        const locks = props.lockRotation || {};
+
+        // Vertical Alignment (Yaw)
+        // If Y is NOT locked, we rotate to face the camera's horizontal position.
+        if (!locks.y) {
+            // We use the camera's yaw directly from the SSoT
+            this.rotateY(cam.yaw);
         }
-        
-        // Apply rotations based on lock settings
-        if (!lockY) {
-            this.rotateY(-yaw);
+
+        // Horizontal Alignment (Pitch)
+        // If X is NOT locked, we tilt to face the camera's height.
+        if (!locks.x) {
+            this.rotateX(cam.pitch);
         }
-        if (!lockX) {
-            this.rotateX(-pitch);
+
+        // Banking Alignment (Roll)
+        // If Z is NOT locked, we match the camera's tilt.
+        if (!locks.z) {
+            this.rotateZ(cam.roll);
         }
-        if (!lockZ) {
-            // Calculate Z-axis rotation to keep billboard upright
-            // This prevents the billboard from rolling with the camera
-            const camDir = state.camera.direction;
-            
-            // Project camera direction onto XZ plane
-            const camDirX = camDir.x;
-            const camDirZ = camDir.z;
-            const camDirXZLength = Math.sqrt(camDirX * camDirX + camDirZ * camDirZ);
-            
-            if (camDirXZLength > 0.001) {
-                // Normalize the projected direction
-                const normX = camDirX / camDirXZLength;
-                const normZ = camDirZ / camDirXZLength;
-                
-                // Calculate the angle between projected camera direction and world forward (0, 0, 1)
-                const dot = normX * 0 + normZ * 1;
-                const det = normX * 1 - normZ * 0;
-                const roll = Math.atan2(det, dot);
-                
-                this.rotateZ(-roll);
-            }
+
+        if (props.rotate) {
+            this.rotate(props.rotate);
         }
-        
-        // Apply any additional user rotation
-        this.rotate(props.rotate);
 
         this.drawTexture(assets, props, state);
-        this.drawStroke(props, state);
+        this.plane(props.width, props.height);
 
-        this.p.plane(props.width, props.height);
         this.pop();
     }
 

@@ -4,7 +4,11 @@ export class FaceFeatures {
     public readonly scale: number;
     public readonly midpoint: Vector3;
     public readonly nudge: Vector3;
-    public readonly stick: { yaw: number; pitch: number };
+    public readonly stick: {
+        yaw: number;
+        pitch: number;
+        roll: number;
+    };
     public readonly face: FaceGeometry;
     public static readonly SCREEN_CENTER = 0.5;
 
@@ -38,9 +42,22 @@ export class FaceFeatures {
     }
 
     private calculateStick() {
+        // Yaw: Horizontal difference between nose and eye-midpoint
+        const yaw = this.face.nose.x - this.midpoint.x;
+
+        // Pitch: Vertical difference between nose and eye-midpoint
+        const pitch = this.face.nose.y - this.midpoint.y;
+
+        // Roll: Angle of the line connecting the eyes
+        // Using atan2(deltaY, deltaX) gives us the exact banking angle
+        const dx = this.face.rightEye.x - this.face.leftEye.x;
+        const dy = this.face.rightEye.y - this.face.leftEye.y;
+        const roll = Math.atan2(dy, dx);
+
         return {
-            yaw: this.face.nose.x - this.midpoint.x,
-            pitch: this.face.nose.y - this.midpoint.y
+            yaw,
+            pitch,
+            roll
         };
     }
 }

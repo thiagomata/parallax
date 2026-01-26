@@ -46,7 +46,13 @@ describe('README Examples Validation', () => {
             tick: () => {},
             getStick: (camPos) => ({
                 success: true,
-                value: {yaw: Math.atan2(-camPos.x, camPos.z), pitch: 0, distance: 1000, priority: 1}
+                value: {
+                    yaw: Math.atan2(-camPos.x, camPos.z),
+                    pitch: 0,
+                    roll: 0,
+                    distance: 1000,
+                    priority: 1
+                }
             })
         });
 

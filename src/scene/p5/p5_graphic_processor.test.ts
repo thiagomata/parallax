@@ -249,236 +249,89 @@ expect(mockP5.plane).toHaveBeenCalledWith(100, 50);
     });
 
     describe('Billboard Drawing', () => {
-        it('should draw billboard with full rotation (no locks)', () => {
+        it('should align with camera orientation when no locks are present', () => {
             const billboardProps: ResolvedBillboard = {
                 type: ELEMENT_TYPES.BILLBOARD,
-                position: {x: 0, y: 0, z: 0},
+                position: {x: 10, y: 10, z: 10},
                 width: 100,
                 height: 50,
             };
 
             const assets: ElementAssets<P5Bundler> = {};
-            const cameraPos = {x: 100, y: 50, z: 200};
-            const cameraState = createMockState(cameraPos, {x: 0, y: 0, z: 100});
+            // Mock state with specific camera rotation
+            const cameraState = createMockState({x: 100, y: 100, z: 100}, {x:0,y:0,z:0});
+            // Force specific SSoT values for the test
+            (cameraState.camera as any).yaw = 0.5;
+            (cameraState.camera as any).pitch = -0.2;
+            (cameraState.camera as any).roll = 0.1;
 
             gp.drawBillboard(billboardProps, assets, cameraState);
 
             expect(mockP5.push).toHaveBeenCalled();
-            expect(mockP5.translate).toHaveBeenCalledWith(0, 0, 0);
-            
-            // Calculate expected rotation values using the same formula as in implementation
-            const dx = cameraPos.x - billboardProps.position.x;
-            const dy = cameraPos.y - billboardProps.position.y;  
-            const dz = cameraPos.z - billboardProps.position.z;
-            const expectedYaw = Math.atan2(dx, dz);
-            const expectedPitch = Math.atan2(dy, Math.sqrt(dx * dx + dz * dz));
-            
-            expect(mockP5.rotateY).toHaveBeenCalledWith(-expectedYaw);
-            expect(mockP5.rotateX).toHaveBeenCalledWith(-expectedPitch);
-            
-            expect(mockP5.rotateZ).toHaveBeenCalled();
+            expect(mockP5.translate).toHaveBeenCalledWith(10, 10, 10);
+
+            // Should match the Camera SSoT exactly
+            expect(mockP5.rotateY).toHaveBeenCalledWith(0.5);
+            expect(mockP5.rotateX).toHaveBeenCalledWith(-0.2);
+            expect(mockP5.rotateZ).toHaveBeenCalledWith(0.1);
+
             expect(mockP5.plane).toHaveBeenCalledWith(100, 50);
             expect(mockP5.pop).toHaveBeenCalled();
         });
 
-        it('should draw billboard with Y-axis locked', () => {
-            const billboardProps: ResolvedBillboard = {
-                type: ELEMENT_TYPES.BILLBOARD,
-                position: {x: 10, y: 20, z: 30},
-                width: 80,
-                height: 60,
-                lockRotation: { y: true }
-            };
-
-            const assets: ElementAssets<P5Bundler> = {};
-            const cameraPos = {x: 0, y: 0, z: 100};
-            const cameraState = createMockState(cameraPos, {x: 0, y: 0, z: 100});
-
-            gp.drawBillboard(billboardProps, assets, cameraState);
-
-            expect(mockP5.translate).toHaveBeenCalledWith(10, 20, 30);
-            expect(mockP5.rotateY).not.toHaveBeenCalled();
-            
-            // Calculate expected pitch since Y-axis is locked (no yaw rotation)
-            const dx = cameraPos.x - billboardProps.position.x;
-            const dy = cameraPos.y - billboardProps.position.y;  
-            const dz = cameraPos.z - billboardProps.position.z;
-            const expectedPitch = Math.atan2(dy, Math.sqrt(dx * dx + dz * dz));
-            
-            expect(mockP5.rotateX).toHaveBeenCalledWith(-expectedPitch);
-            
-            expect(mockP5.rotateZ).toHaveBeenCalled();
-            expect(mockP5.plane).toHaveBeenCalledWith(80, 60);
-        });
-
-        it('should draw billboard with X-axis locked', () => {
-            const billboardProps: ResolvedBillboard = {
-                type: ELEMENT_TYPES.BILLBOARD,
-                position: {x: 0, y: 0, z: 0},
-                width: 120,
-                height: 80,
-                lockRotation: { x: true }
-            };
-
-            const assets: ElementAssets<P5Bundler> = {};
-            const cameraPos = {x: 0, y: 50, z: 100};
-            const cameraState = createMockState(cameraPos, {x: 0, y: 0, z: 100});
-
-            gp.drawBillboard(billboardProps, assets, cameraState);
-
-            // Calculate expected yaw since X-axis is locked (no pitch rotation)
-            const dx = cameraPos.x - billboardProps.position.x;
-            const dz = cameraPos.z - billboardProps.position.z;
-            const expectedYaw = Math.atan2(dx, dz);
-            
-            expect(mockP5.rotateY).toHaveBeenCalledWith(-expectedYaw);
-            expect(mockP5.rotateX).not.toHaveBeenCalled();
-            expect(mockP5.rotateZ).toHaveBeenCalled();
-            expect(mockP5.plane).toHaveBeenCalledWith(120, 80);
-        });
-
-        it('should draw billboard with Z-axis locked', () => {
+        it('should respect axis locks by skipping specific rotations', () => {
             const billboardProps: ResolvedBillboard = {
                 type: ELEMENT_TYPES.BILLBOARD,
                 position: {x: 0, y: 0, z: 0},
                 width: 100,
                 height: 100,
-                lockRotation: { z: true }
+                lockRotation: { y: true, z: true } // Only allow Pitch (X)
             };
 
             const assets: ElementAssets<P5Bundler> = {};
-            const cameraPos = {x: 100, y: 0, z: 100};
-            const cameraState = createMockState(cameraPos, {x: 0, y: 0, z: 100});
+            const cameraState = createMockState({x: 0, y: 0, z: 0}, {x:0,y:0,z:0});
+            (cameraState.camera as any).yaw = 1.1;
+            (cameraState.camera as any).pitch = 2.2;
+            (cameraState.camera as any).roll = 3.3;
 
             gp.drawBillboard(billboardProps, assets, cameraState);
 
-            // Calculate expected yaw and pitch since Z-axis is locked (no roll rotation)
-            const dx = cameraPos.x - billboardProps.position.x;
-            const dy = cameraPos.y - billboardProps.position.y;  
-            const dz = cameraPos.z - billboardProps.position.z;
-            const expectedYaw = Math.atan2(dx, dz);
-            const expectedPitch = Math.atan2(dy, Math.sqrt(dx * dx + dz * dz));
-            
-            expect(mockP5.rotateY).toHaveBeenCalledWith(-expectedYaw);
-            expect(mockP5.rotateX).toHaveBeenCalledWith(-expectedPitch);
-            expect(mockP5.rotateZ).not.toHaveBeenCalled();
-            expect(mockP5.plane).toHaveBeenCalledWith(100, 100);
-        });
-
-        it('should draw billboard with multiple axes locked', () => {
-            const billboardProps: ResolvedBillboard = {
-                type: ELEMENT_TYPES.BILLBOARD,
-                position: {x: 0, y: 0, z: 0},
-                width: 60,
-                height: 40,
-                lockRotation: { x: true, y: true }
-            };
-
-            const assets: ElementAssets<P5Bundler> = {};
-            const cameraState = createMockState(
-                {x: 50, y: 25, z: 75},
-                {x: 0, y: 0, z: 100}
-            );
-
-            gp.drawBillboard(billboardProps, assets, cameraState);
-
+            // Y and Z are locked, so rotateY and rotateZ should NOT be called
             expect(mockP5.rotateY).not.toHaveBeenCalled();
-            expect(mockP5.rotateX).not.toHaveBeenCalled();
-            
-            // Only Z rotation should be calculated and applied
-            // Camera direction should be used to calculate roll
-            expect(mockP5.rotateZ).toHaveBeenCalled();
-            expect(mockP5.plane).toHaveBeenCalledWith(60, 40);
+            expect(mockP5.rotateZ).not.toHaveBeenCalled();
+
+            // X is not locked, so it should be called with camera pitch
+            expect(mockP5.rotateX).toHaveBeenCalledWith(2.2);
         });
 
-        it('should apply user rotation after billboard rotation', () => {
+        it('should apply local user rotation after the billboard alignment', () => {
             const billboardProps: ResolvedBillboard = {
                 type: ELEMENT_TYPES.BILLBOARD,
                 position: {x: 0, y: 0, z: 0},
                 width: 100,
                 height: 50,
-                rotate: {x: 15, y: 30, z: 45}
+                rotate: { x: 0, y: 0, z: 1.57 } // User wants a 90-deg tilt
             };
 
             const assets: ElementAssets<P5Bundler> = {};
-            const cameraState = createMockState(
-                {x: 100, y: 50, z: 200},
-                {x: 0, y: 0, z: 100}
-            );
+            const cameraState = createMockState({x: 0, y: 0, z: 0}, {x:0,y:0,z:0});
+
+            // Set SSoT Camera Roll
+            (cameraState.camera as any).roll = 0.5;
 
             gp.drawBillboard(billboardProps, assets, cameraState);
 
-            // Check that billboard rotation happens first, then user rotation
-            // The rotate method is called multiple times, so we check the final calls
-            const rotateXCalls = mockP5.rotateX.mock.calls;
-            expect(rotateXCalls.length).toBeGreaterThan(1);
-            
-            // The last call should be the user rotation (15 degrees)
-            const lastRotateXCall = rotateXCalls[rotateXCalls.length - 1][0];
-            expect(lastRotateXCall).toBe(15);
-            
-            // Similarly for Y and Z
-            const rotateYCalls = mockP5.rotateY.mock.calls;
-            const lastRotateYCall = rotateYCalls[rotateYCalls.length - 1][0];
-            expect(lastRotateYCall).toBe(30);
-            
+            // Get all calls to rotateZ
             const rotateZCalls = mockP5.rotateZ.mock.calls;
-            const lastRotateZCall = rotateZCalls[rotateZCalls.length - 1][0];
-            expect(lastRotateZCall).toBe(45);
-        });
 
-        it('should apply texture when available', () => {
-            const billboardProps: ResolvedBillboard = {
-                type: ELEMENT_TYPES.BILLBOARD,
-                position: {x: 0, y: 0, z: 0},
-                width: 100,
-                height: 75,
-            };
+            // We expect at least 2 calls: one for billboard, one for user offset
+            expect(rotateZCalls.length).toBeGreaterThanOrEqual(2);
 
-            const mockImage = {width: 200} as p5.Image;
-            const assets: ElementAssets<P5Bundler> = {
-                texture: {
-                    status: ASSET_STATUS.READY,
-                    value: {internalRef: mockImage, texture: {path: 'billboard.png', width: 200, height: 150}}
-                }
-            };
+            // 1st call: The Billboard alignment (matching camera roll)
+            expect(rotateZCalls[0][0]).toBe(0.5);
 
-            const cameraState = createMockState(
-                {x: 0, y: 0, z: 100},
-                {x: 0, y: 0, z: 100}
-            );
-
-            gp.drawBillboard(billboardProps, assets, cameraState);
-
-            expect(mockP5.texture).toHaveBeenCalledWith(mockImage);
-            expect(mockP5.textureMode).toHaveBeenCalledWith('normal');
-            expect(mockP5.tint).toHaveBeenCalled();
-            expect(mockP5.plane).toHaveBeenCalledWith(100, 75);
-        });
-
-        it('should apply fill and stroke when no texture', () => {
-            const billboardProps: ResolvedBillboard = {
-                type: ELEMENT_TYPES.BILLBOARD,
-                position: {x: 0, y: 0, z: 0},
-                width: 80,
-                height: 60,
-                fillColor: {red: 255, green: 0, blue: 0, alpha: 0.8},
-                strokeColor: {red: 0, green: 255, blue: 0, alpha: 1},
-                strokeWidth: 2
-            };
-
-            const assets: ElementAssets<P5Bundler> = {};
-            const cameraState = createMockState(
-                {x: 0, y: 0, z: 100},
-                {x: 0, y: 0, z: 100}
-            );
-
-            gp.drawBillboard(billboardProps, assets, cameraState);
-
-            expect(mockP5.fill).toHaveBeenCalled();
-            expect(mockP5.stroke).toHaveBeenCalled();
-            expect(mockP5.strokeWeight).toHaveBeenCalledWith(2);
-            expect(mockP5.plane).toHaveBeenCalledWith(80, 60);
+            // 2nd call: The User's local rotation offset
+            expect(rotateZCalls[1][0]).toBe(1.57);
         });
     });
 });

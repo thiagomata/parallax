@@ -70,7 +70,10 @@ describe('Parallax Engine Type Coherence Test', () => {
         camera: {
             position: {x: 0, y: 0, z: 500},
             lookAt: {x: 0, y: 0, z: 0},
-            yaw: 0, pitch: 0, direction: {x: 0, y: 0, z: -1}
+            yaw: 0,
+            pitch: 0,
+            roll: 0,
+            direction: {x: 0, y: 0, z: -1}
         }
     };
 

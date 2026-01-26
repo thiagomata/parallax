@@ -13,6 +13,7 @@ describe("ChainedStick Decorator", () => {
             value: {
                 yaw: val,
                 pitch: val,
+                roll: val,
                 distance: 100,
                 priority: priority
             },
