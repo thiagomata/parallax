@@ -56,14 +56,15 @@ describe('MediaPipeFaceProvider', () => {
         provider = new MediaPipeFaceProvider(mockP5);
     });
 
-    describe('Initialization Phase', () => {
+    describe('Initialization', () => {
         it('should setup hardware and reach READY status', async () => {
             const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
             (FilesetResolver.forVisionTasks as any).mockResolvedValue({});
             (FaceLandmarker.createFromOptions as any).mockResolvedValue(mockLandmarker);
 
-            mockP5.createCapture.mockReturnValue({
+mockP5.createCapture.mockReturnValue({
                 size: vi.fn(),
+                hide: vi.fn(),
                 elt: { readyState: 4 }
             });
 
@@ -95,6 +96,7 @@ describe('MediaPipeFaceProvider', () => {
 
             mockP5.createCapture.mockReturnValue({
                 size: vi.fn(),
+                hide: vi.fn(),
                 elt: dynamicElt
             });
 
@@ -115,6 +117,7 @@ describe('MediaPipeFaceProvider', () => {
         it('should return null if face is missing in the frame', async () => {
             mockP5.createCapture.mockReturnValue({
                 size: vi.fn(),
+                hide: vi.fn(),
                 elt: { readyState: 4 }
             });
             await provider.init();
@@ -131,6 +134,7 @@ describe('MediaPipeFaceProvider', () => {
 
             mockP5.createCapture.mockReturnValue({
                 size: vi.fn(),
+                hide: vi.fn(),
                 elt: glitchyElt
             });
 

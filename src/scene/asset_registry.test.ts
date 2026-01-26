@@ -4,7 +4,7 @@ import {ASSET_STATUS, type AssetLoader, ELEMENT_TYPES,} from './types';
 import type {MockBundle} from "./mock/mock_type.mock.ts";
 
 /**
- * Mocking the Loader to observe Phase 2 triggers
+ * Mocking the Loader to observe resolution triggers
  */
 const createMockLoader = (): AssetLoader<MockBundle> => ({
     hydrateTexture: vi.fn().mockResolvedValue({
@@ -15,6 +15,7 @@ const createMockLoader = (): AssetLoader<MockBundle> => ({
         status: ASSET_STATUS.READY,
         value: {internalRef: {name: 'Arial'}}
     }),
+    waitForAllAssets: vi.fn().mockResolvedValue(null),
 });
 
 describe('AssetRegistry', () => {
@@ -38,12 +39,12 @@ describe('AssetRegistry', () => {
 
             const element = registry.register(id, blueprint);
 
-            // Phase 1: Identity & Structure
+            // Identity & Structure
             expect(element.id).toBe(id);
             // Verify that the 'type' static key was preserved correctly (no kind: static)
             expect(element.dynamic.type).toBe(ELEMENT_TYPES.BOX);
 
-            // Phase 2: Asset Hydration Triggered
+            // Asset Hydration Triggered
             expect(element.assets.texture?.status).toBe(ASSET_STATUS.PENDING);
             expect(loader.hydrateTexture).toHaveBeenCalledWith(blueprint.texture);
         });

@@ -4,20 +4,21 @@ import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState} from "../../scene/type
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {World} from "../../scene/world.ts";
 import p5 from "p5";
+import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
-export const tutorial_6 = (p: p5, loader: P5AssetLoader | null = null): World<P5Bundler> => {
-    let gp: P5GraphicProcessor;
-    const manager = new SceneManager({
+export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
+    let graphicProcessor: P5GraphicProcessor;
+    const manager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
         playback: {...DEFAULT_SETTINGS.playback, duration: 5000, isLoop: true}
     });
 
-    loader = loader ?? new P5AssetLoader(p);
+    const loader = config.loader ?? new P5AssetLoader(p);
     const world = new World<P5Bundler>(manager, loader);
 
     p.setup = async () => {
-        p.createCanvas(800, 600, p.WEBGL);
-        gp = new P5GraphicProcessor(p, loader);
+        p.createCanvas(config.width, config.height, p.WEBGL);
+        graphicProcessor = new P5GraphicProcessor(p, loader);
 
         // Just one static floor to check coordinate space
         world.addFloor('floor', {
@@ -51,10 +52,12 @@ export const tutorial_6 = (p: p5, loader: P5AssetLoader | null = null): World<P5
     };
 
     p.draw = () => {
-        p.background(15);
-        world.step(gp);
-    };
+        if (config.paused && !manager.isPaused()) manager.pause();
+        if (!config.paused && manager.isPaused()) manager.resume();
 
+        p.background(15);
+        world.step(graphicProcessor);
+    };
     return world;
 };
 export default tutorial_6

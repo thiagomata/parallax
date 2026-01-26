@@ -37,7 +37,7 @@ new p5((p: p5) => {
         // Note: World creates its own internal Stage if one isn't passed
         world = new World(manager, loader);
 
-        // 4. PHASE 1: REGISTRATION (Adding Blueprints)
+        // 4. REGISTRATION (Adding Blueprints)
         // We use world.add (which delegates to stage.add)
         // No more manual 'toProps'—the Registry handles that!
 
@@ -89,7 +89,7 @@ new p5((p: p5) => {
 
     p.draw = () => {
         p.background(220);
-        // PHASE 3: THE FRAME LOOP
+        // THE FRAME LOOP
         // Advancing physics, setting camera, and rendering sorted elements
         world.step(gp);
     };

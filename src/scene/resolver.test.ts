@@ -37,6 +37,7 @@ const createMockLoader = (): AssetLoader<MockBundle> => ({
         status: ASSET_STATUS.READY,
         value: {font: {}, internalRef: {name: 'Arial'}}
     }),
+    waitForAllAssets: vi.fn().mockResolvedValue(null)
 });
 
 describe('createRenderable & Resolver Loop', () => {
@@ -52,6 +53,7 @@ describe('createRenderable & Resolver Loop', () => {
             camera: {position: mockOrigin, lookAt: mockOrigin},
             playback: {isLoop: true, timeSpeed: 1, startTime: 0},
             debug: false,
+            paused: false,
             alpha: 1
         },
         playback: {now: 1000, delta: 16, progress: 0.2, frameCount: 60},
@@ -79,7 +81,7 @@ describe('createRenderable & Resolver Loop', () => {
 
         const renderable = createRenderable('test-1', blueprint, loader);
 
-        // Immediate state check (Phase 2 start)
+        // Immediate state check
         expect(renderable.assets.texture?.status).toBe(ASSET_STATUS.PENDING);
         expect(renderable.assets.font?.status).toBe(ASSET_STATUS.READY); // No font ref in blueprint
         expect(renderable.id).toBe('test-1');

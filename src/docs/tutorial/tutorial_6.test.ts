@@ -13,7 +13,7 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
         // 1. Initialize the Tutorial
         const world = tutorial_6(mockP5 as unknown as p5);
 
-        // 2. PHASE 1: Registration
+        // 2. Registration
         // In the sketch, p.setup is async and handles registration
         await mockP5.setup();
 

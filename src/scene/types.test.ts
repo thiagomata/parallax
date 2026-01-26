@@ -61,6 +61,7 @@ describe('Parallax Engine Type Coherence Test', () => {
             camera: {position: {x: 0, y: 0, z: 500}, lookAt: {x: 0, y: 0, z: 0}},
             playback: {isLoop: true, timeSpeed: 1, startTime: 0},
             debug: false,
+            paused: false,
             alpha: 1
         },
         playback: {now: 1000, delta: 16, progress: 0.2, frameCount: 60},
@@ -115,7 +116,7 @@ describe('Parallax Engine Type Coherence Test', () => {
         };
 
 
-        // Execution Phase
+        // Execution
         const resolvedBox: ResolvedBox = {
             type: boxDynamic.type,
             size: resolveValue(boxDynamic.size),
@@ -137,7 +138,8 @@ describe('Parallax Engine Type Coherence Test', () => {
 
         const loader: AssetLoader<P5Bundle> = {
             hydrateTexture: vi.fn(),
-            hydrateFont: vi.fn()
+            hydrateFont: vi.fn(),
+            waitForAllAssets: vi.fn(),
         };
 
         const processor: Partial<GraphicProcessor<P5Bundle>> = {

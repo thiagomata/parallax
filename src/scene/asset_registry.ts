@@ -24,8 +24,8 @@ export class AssetRegistry<TBundle extends GraphicsBundle> {
         }
 
         // 2. Only create a new one if it doesn't exist
-        // This triggers the createRenderable factory (Phase 1)
-        // and the loader hydration (Phase 2) exactly once.
+        // This triggers the createRenderable factory
+        // and the loader hydration exactly once.
         const renderable = createRenderable<T, TBundle>(id, blueprint, this.loader);
 
         // 3. Store the instance
@@ -39,7 +39,7 @@ export class AssetRegistry<TBundle extends GraphicsBundle> {
     }
 
     /**
-     * For the Frame Loop (Phase 3)
+     * For the Frame Loop
      */
     public all(): IterableIterator<RenderableElement<any, TBundle>> {
         return this.elements.values();

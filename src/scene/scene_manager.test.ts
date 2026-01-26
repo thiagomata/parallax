@@ -410,13 +410,13 @@ describe("PortalSceneManager - Debug Output", () => {
             });
 
         // by default, debug should be disabled and not create debug output
-        expect(manager.isDebug).toBe(false);
+        expect(manager.debug).toBe(false);
         const stateBeforeDebug = manager.calculateScene(1000, 10, 60, mockState);
         expect(stateBeforeDebug.debugStateLog === undefined);
 
         // When enabled, debug should trigger the debug output
         manager.setDebug(true);
-        expect(manager.isDebug).toBe(true);
+        expect(manager.debug).toBe(true);
         const state = manager.calculateScene(1000, 10, 60, mockState);
 
         expect(state.debugStateLog?.nudges).toHaveLength(2);
@@ -425,7 +425,7 @@ describe("PortalSceneManager - Debug Output", () => {
 
         // When disabled, debug should stop
         manager.setDebug(false);
-        expect(manager.isDebug).toBe(false);
+        expect(manager.debug).toBe(false);
         const stateAfterDebug = manager.calculateScene(
             1000,
             10,

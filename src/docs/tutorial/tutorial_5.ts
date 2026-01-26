@@ -4,12 +4,13 @@ import {World} from "../../scene/world.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {SceneManager} from "../../scene/scene_manager.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
+import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
-export const tutorial_5 = (p: p5): World<P5Bundler> => {
-    let gp: P5GraphicProcessor;
+export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
+    let graphicProcessor: P5GraphicProcessor;
 
     // 1. Scene Orchestration
-    const manager = new SceneManager({
+    const manager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
         playback: {
             ...DEFAULT_SETTINGS.playback,
@@ -23,10 +24,10 @@ export const tutorial_5 = (p: p5): World<P5Bundler> => {
     const world = new World<P5Bundler>(manager, loader);
 
     p.setup = async () => {
-        p.createCanvas(500, 400, p.WEBGL);
-        gp = new P5GraphicProcessor(p, loader);
+        p.createCanvas(config.width, config.height, p.WEBGL);
+        graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // 3. PHASE 1: REGISTRATION
+        // 3. REGISTRATION
         // Hydration starts automatically when the element is added
 
         // Textured Box
@@ -60,17 +61,18 @@ export const tutorial_5 = (p: p5): World<P5Bundler> => {
             fillColor: {red: 0, green: 229, blue: 255}
         });
 
-        // 4. PHASE 2: HYDRATION (Optional Wait)
+        // 4. HYDRATION (Optional Wait)
         // By awaiting this, we ensure the first frame isn't "blank"
         await loader.waitForAllAssets();
     };
 
     p.draw = () => {
-        p.background(15);
+        if (config.paused && !manager.isPaused()) manager.pause();
+        if (!config.paused && manager.isPaused()) manager.resume();
 
-        // 5. PHASE 3: THE FRAME LOOP
-        world.step(gp);
+        p.background(15);
+        world.step(graphicProcessor);
     };
 
     return world;
-};
+}

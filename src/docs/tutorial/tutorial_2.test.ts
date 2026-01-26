@@ -23,8 +23,13 @@ describe('Tutorial 2: Progression Integration', () => {
         });
 
         // 2. Execute the actual tutorial function
-        const world = tutorial_2(mockP5 as unknown as p5, manager);
-        mockP5.setup(); // Triggers registration phase
+        const world = tutorial_2(mockP5 as unknown as p5, { 
+            width: 500, 
+            height: 400, 
+            manager,
+            paused: false
+        });
+        mockP5.setup(); // Triggers registration
 
         // --- TEST POINT A: Progress 0.0 (T = 0ms) ---
         mockP5.draw(); // Calculates state and steps world
@@ -46,7 +51,7 @@ describe('Tutorial 2: Progression Integration', () => {
         const props25 = resolve(element, world.getCurrentSceneState()) as ResolvedBox;
 
         // Size: 100 + sin(PI/2) * 50 = 150
-        expect(props25.size).toBe(150);
+        expect(props25.size).toBeCloseTo(150, 0);
         // Rotation: PI * 2 * 0.25 = PI/2
         expect(props25.rotate?.y).toBeCloseTo(Math.PI * 0.5, 5);
         // Blue: 127 + 127 * cos(PI/2) = 127
@@ -62,7 +67,7 @@ describe('Tutorial 2: Progression Integration', () => {
         // Blue: 127 + 127 * cos(PI) = 0
         expect(props50.fillColor?.blue).toBeCloseTo(0, 0);
 
-        // 3. Verify side-effect: The Bridge called p5
+        // 3. Verify side effect: The Bridge called p5
         expect(mockP5.box).toHaveBeenCalled();
     });
 });

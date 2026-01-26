@@ -4,115 +4,128 @@
 [![Live Demo](https://img.shields.io/badge/Demo-Live_Preview-brightgreen)](https://thiagomata.github.io/parallax/)
 [![tutorial](https://img.shields.io/badge/Tutorial-Hands_On-brightgreen)](https://thiagomata.github.io/parallax/docs/tutorial/)
 
-A deterministic, strictly-typed 3D state-to-state transformation engine. Parallax computes a unified `SceneState` through a sorted priority queue of modifiers, decoupling spatial intent from the rendering pipeline via a Bridge Pattern.
 
-![Screen Shot](printscreen.png)
+Parallax is a **Deterministic Scene Orchestrator** designed for high-fidelity 3D interactive experiences. It operates as a strict state-to-state transformation engine, decoupling spatial intent from hardware-level rendering.
 
-## The Parallax Manifest
+By enforcing its pipeline, Parallax enables complex cinematography—such as real-time head-tracking and reactive environments—within a predictable, traceable, and testable lifecycle.
 
-Every line of code in the engine follows four core phases to ensure **Single Source of Truth** and **Deterministic Rendering**:
+## 🏗 The Parallax Manifest
 
-1.  **Registration**: Blueprints are stored in the Registry. They contain static values or `(state) => T` functions.
-2.  **Hydration**: Assets (Textures/Fonts) are loaded into a `P5Bundler` and locked to the element.
-3.  **Resolution**: The `Resolver` surgically executes blueprint functions using the current `SceneState`.
-4.  **Execution**: The `Stage` drives the `GraphicProcessor` using flattened, resolved data.
-
-## Core Concepts
-
-### 1. Surgical Resolution
-Parallax avoids data redundancy by keeping the `blueprint` as the only source of truth. The `Resolver` transforms these blueprints into "Solid Data" (ResolvedProps) only when needed for a frame.
-
-```typescript
-// Registration: Defining intent
-world.addSphere('hero', {
-    type: ELEMENT_TYPES.SPHERE,
-    position: (s: SceneState) => ({
-        x: Math.sin(s.playback.progress * Math.PI * 2) * 100,
-        y: 0,
-        z: -200
-    }),
-    radius: 40,
-    fillColor: { 
-        red: 255, 
-        blue: (s: SceneState) => 127 + 127 * Math.sin(s.playback.progress * Math.PI) 
-    }
-});
-
-```
-
-### 2. The Bridge Pattern (GraphicProcessor)
-
-The engine is renderer-agnostic. The `Stage` iterates through elements and instructs a `GraphicProcessor` how to draw them. This allows the same logic to drive P5.js, Three.js, or a Headless unit.
-
-```typescript
-interface GraphicProcessor<TBundler> {
-    push(): void;
-    pop(): void;
-    translate(v: Vector3): void;
-    drawSphere(props: ResolvedSphere, assets: ElementAssets<TBundler>, state: SceneState): void;
-    // ...
-}
-
-```
-
-### 3. Transformation Pipeline
-
-The `SceneManager` calculates the camera and global environment using a three-tier spatial model:
-
-* **Car Modifiers**: Primary spatial anchors (Follow Player).
-* **Nudge Modifiers**: Additive "voting" (Camera Shake/Breathing).
-* **Stick Modifiers**: Spherical gaze control (LookAt Logic).
-
----
-
-## Architectural Flow
+The journey of a frame is divided into two distinct life-stages: **Structural Setup** and the **Temporal Loop**.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant U as User / App
-    participant W as World
-    participant L as AssetLoader
-    participant SM as SceneManager
-    participant S as Stage
+    participant W as World / Registry
+    participant L as AssetLoader (Hydration)
+    participant SM as SceneManager (Orchestration)
+    participant S as Stage (Integration)
     participant R as Resolver
-    participant GP as GraphicProcessor
+    participant GP as GraphicProcessor (Execution)
+    participant P5 as P5 Implementation (Rasterization)
 
-    Note over U,W: Phase 1: Registration
-    U->>W: addSphere/addBox(id, blueprint)
-    W-->>W: Store in Registry
+    Note over U,L: Structural Setup Protocol
+    U->>W: addElement(blueprint)
+    W->>L: hydrate(element)
+    L-->>W: ASSET_STATUS.READY
 
-    Note over W,L: Phase 2: Hydration
-    U->>W: hydrate(loader)
-    activate W
-    W->>L: loadAsset(path)
-    L-->>W: Promise<P5Bundler>
-    deactivate W
-
-    Note over W,GP: Phase 3: The Frame Loop
     loop Every Frame
-        U->>W: step(graphicProcessor)
-        activate W
-        W->>GP: Get timeData
-        W->>SM: calculateScene(timeData)
-        SM-->>W: SceneState (The Truth)
-        
-        W->>S: render(registry, state, GP)
-        activate S
+        U->>W: step(processor)
+        W->>SM: processModifiers(timeData, inputs)
+        Note right of SM: Graceful Degradation & Priority Ranking
+        SM-->>W: SceneState
+
+        W->>S: render(registry, state, processor)
+
         loop For each RenderableElement
-            S->>R: resolve(element.blueprint, state)
+            S->>R: resolve(blueprint, state)
             R-->>S: ResolvedProps
-            S->>GP: draw[Type](resolved, assets, state)
+
+            S->>GP: execute(resolved, assets, state)
+
+            GP->>P5: drawCommand()
         end
-        deactivate S
+
         W-->>U: Updated SceneState
-        deactivate W
     end
+```
+### I. Registration & Hydration (Setup)
+
+**1. Registration: The Blueprint Intent**
+Elements are registered as **Blueprints**. These are reactive contracts supporting deep-tree branches. A property can be a static value, a nested object, or a function `(state) => T` at any node level.
+
+```typescript
+world.addSphere('hero', {
+    type: ELEMENT_TYPES.SPHERE,
+    radius: (s: SceneState) => 50 + Math.sin(s.playback.progress), // Dynamic node
+    position: { x: 0, y: (s: SceneState) => s.camera.pitch * 10 } // Nested reactivity
+});
 
 ```
 
-## Implementation Guardrails
+**2. Hydration: Asset Locking**
+High-memory assets (Textures/Fonts) are fetched and encapsulated into a renderer-specific **Graphics Bundle**. This ensures assets are locked to the element and ready in memory prior to the first frame.
 
-* **No Side-Effects in Resolution**: The Resolver must be a pure function.
-* **Respect the Type System**: No `any` casting; use the generated `ResolvedProps` types.
-* **Single Source of Truth**: Dynamic properties live only in the blueprint until the moment of render.
+```mermaid
+---
+title: Asset Hydration Protocol
+---
+    stateDiagram-v2
+    direction LR
+    [*] --> PENDING : Registration
+    PENDING --> LOADING : Hydration Start
+
+    LOADING --> READY : Load Success
+    LOADING --> ERROR : Load Failure
+
+    READY --> [*]
+    ERROR --> [*]
+```
+
+### II. The Frame Loop - Many times per Second
+
+**3. Modification: Graceful Degradation**
+The **Modifier Stack** (`Car` → `Nudge` → `Stick`) processes raw inputs (Time, Scroll, Mouse, FaceGeometry).
+This phase manages **Graceful Degradation**:
+if a tracking source disconnects, modifiers transition through states like `READY` to `DRIFTING` (returning to neutral) to maintain stability.
+
+**4. Orchestration: The Modifier Chain**
+The `SceneManager` executes the **Modifier Chain**, ranking entries by `priority`.
+Multiple inputs (e.g., a path-following `Car` and a head-tracking `Nudge`) are aggregated and collapsed into a single, unified, and immutable **SceneState**.
+
+**5. Resolution: Single Source of Truth**
+The `Resolver` executes the Blueprint functions using the newly calculated **SceneState**.
+This transforms dynamic intent into **ResolvedProps**—a resolved, static dataset representing the frame's final geometry.
+
+**6. Integration: The Execution Package**
+The `Stage` pairs the **ResolvedProps** with their **Hydrated Assets**.
+This creates a complete execution package, ensuring the renderer receives everything required (logic + assets) in a single handshake.
+
+**7. Execution: Deterministic Transformations**
+The `Stage` drives the **GraphicProcessor** interface.
+Because this phase is decoupled from the hardware API, it enables **Unit Testing of the 3D scene math** without a GPU or browser environment.
+
+```typescript
+test('coordinate resolution math', () => {
+    const mock = new MockProcessor();
+    stage.render(world, mockState, mock);
+    // Verify math results before pixels are even touched
+    expect(mock.lastTranslation.x).toBe(150); 
+});
+
+```
+
+**8. Rasterization: Hardware Translation**
+The concrete implementation (e.g., `P5Processor`) converts the requests into a final image, handling hardware-level primitives, lights, and buffers.
+
+---
+
+## 🛠 Implementation Guardrails
+
+To maintain the integrity of this deterministic pipeline, all development must respect these constraints:
+
+* **Idempotent Resolution**: The `Resolver` must be a pure function. It reads `SceneState` and returns `ResolvedProps` without side effects.
+* **No Redundant Data**: If a value can be computed from the `SceneState`, it must not be stored in the element. Follow the **Single Source of Truth** principle strictly.
+* **Priority-Based Chaining**: Higher priority modifiers in the **Orchestration** phase always layer over or override lower-priority results.
+* **Renderer Agnosticism**: The **Execution** phase must remain pure logic. Hardware-specific calls are strictly forbidden until the **Rasterization** phase.

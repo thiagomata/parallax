@@ -54,4 +54,8 @@ export class ChaosLoader<TBundle extends GraphicsBundle> implements AssetLoader<
             }, delay);
         });
     }
+
+    public async waitForAllAssets(): Promise<void> {
+        return Promise.resolve();
+    }
 }

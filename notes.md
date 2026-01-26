@@ -9,13 +9,13 @@ sequenceDiagram
     participant R as Resolver
     participant GP as GraphicProcessor
 
-    Note over U,W: Phase 1: Registration (One-time)
+    Note over U,W: egistration (One-time)
     U->>W: addSphere/addBox(id, blueprint)
     W->>W: Create RenderableElement
     Note right of W: Blueprint contains static values<br/>or (state) => T functions.
     W-->>W: Store in Registry
 
-    Note over W,L: Phase 2: Hydration (One-time / Async)
+    Note over W,L: Hydration (One-time / Async)
     U->>W: hydrate(loader)
     activate W
     W->>L: loadAsset(path)
@@ -23,7 +23,7 @@ sequenceDiagram
     deactivate W
     Note right of W: element.assets are populated.<br/>Status becomes ASSET_STATUS.READY.
 
-    Note over W,GP: Phase 3: The Frame Loop (60fps)
+    Note over W,GP: The Frame Loop (60fps)
     loop Every Frame
         U->>W: step(graphicProcessor)
         activate W
