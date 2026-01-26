@@ -4,10 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "type-check": "vue-tsc --noEmit",
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run test && vite build",
     "preview": "vite preview",
-    "test": "vitest",
+    "test": "npm run type-check && vitest",
     "coverage": "vitest run --coverage",
     "prepare": "husky install"
   },
@@ -21,7 +22,8 @@
     "husky": "^8.0.0",
     "typescript": "~5.9.3",
     "vite": "^7.2.4",
-    "vitest": "^4.0.16"
+    "vitest": "^4.0.16",
+    "vue-tsc": "^3.2.4"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.1.0",
@@ -30,5 +32,8 @@
     "p5": "^2.1.2",
     "prismjs": "^1.30.0",
     "sucrase": "^3.35.1"
+  },
+  "overrides": {
+    "undici": "^6.23.0"
   }
 }

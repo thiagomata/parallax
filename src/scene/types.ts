@@ -525,7 +525,7 @@ export interface ObserverConfig {
 
 export const DEFAULT_OBSERVER_CONFIG: ObserverConfig = {
     travelRange: 100,
-    zTravelRange: 100,
+    zTravelRange: 500,
     zoomRange: 0.1,
     smoothing: 0.08,
     damping: 0.5,
