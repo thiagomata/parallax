@@ -5,6 +5,7 @@ import {heroExample1} from "./hero_example_1.ts";
 import {resolve} from "../../scene/resolver.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import type {ResolvedCylinder} from "../../scene/types.ts";
+import {DEFAULT_SKETCH_CONFIG} from "./hero.demo.ts";
 
 describe('Hero Demo Integration: World Animation', () => {
 
@@ -12,14 +13,14 @@ describe('Hero Demo Integration: World Animation', () => {
         const mockP5 = createMockP5();
 
         // 1. Initialize the Hero Demo
-        const world = heroExample1(mockP5 as unknown as p5);
+        const world = heroExample1(mockP5 as unknown as p5, DEFAULT_SKETCH_CONFIG);
 
-        // Trigger setup (PHASE 1: Registration)
+        // Trigger setup
         mockP5.setup();
 
         // --- TEST AT 0% PROGRESS (T = 0ms) ---
         mockP5.millis.mockReturnValue(0);
-        mockP5.draw(); // PHASE 3: Frame Loop (Calculates SceneState)
+        mockP5.draw(); //  Frame Loop (Calculates SceneState)
 
         const state0 = world.getCurrentSceneState();
         // We get the element from the world's internal registry
@@ -56,7 +57,7 @@ describe('Hero Demo Integration: World Animation', () => {
 
     it('should maintain static properties for the background box', async () => {
         const mockP5 = createMockP5();
-        const world = heroExample1(mockP5 as unknown as p5);
+        const world = heroExample1(mockP5 as unknown as p5, DEFAULT_SKETCH_CONFIG);
         mockP5.setup();
 
         mockP5.millis.mockReturnValue(1234);
@@ -74,7 +75,11 @@ describe('Hero Demo Integration: World Animation', () => {
         const mockP5 = createMockP5();
         const loader = new P5AssetLoader(mockP5 as unknown as p5);
 
-        heroExample1(mockP5 as unknown as p5, loader);
+        heroExample1(mockP5 as unknown as p5, {
+                ...DEFAULT_SKETCH_CONFIG,
+                loader: loader
+            }
+        );
         mockP5.setup();
         await loader.waitForAllAssets();
 

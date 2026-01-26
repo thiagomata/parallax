@@ -8,7 +8,7 @@ import {SceneManager} from "../../scene/scene_manager.ts";
 import p5 from "p5";
 import type {SketchConfig} from "./hero.demo.ts";
 
-export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler> => {
+    export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler> => {
     let gp: P5GraphicProcessor;
 
     const manager = new SceneManager({
@@ -28,7 +28,7 @@ export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler> => {
         p.createCanvas(config.width, config.height, p.WEBGL);
         gp = new P5GraphicProcessor(p, loader);
 
-        // ==== PHASE 1: REGISTRATION WITH NEW SHAPES ====
+        // ==== REGISTRATION WITH NEW SHAPES ====
 
         world.addPyramid('back', {
             type: 'pyramid',
@@ -90,6 +90,10 @@ export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler> => {
             text: "PARALLAX",
             size: 40,
             position: { x: 50, y: 0, z: 0 },
+            font: {
+                name: 'Roboto',
+                path: '/parallax/fonts/Roboto-Regular.ttf'
+            },
             fillColor: { red: 255, green: 0, blue: 255 },
             strokeColor: { red: 255, green: 255, blue: 255 }
         });
