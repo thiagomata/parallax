@@ -15,7 +15,7 @@ describe('CameraModifier', () => {
     const config = {
         smoothing: 0.5,
         travelRange: 100,
-        zTravelRange: 200,
+        zTravelRange: 500,
         damping: 1.0,
         lookDistance: 1000
     };
