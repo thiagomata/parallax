@@ -1,13 +1,23 @@
-import {type AssetLoader, type GraphicsBundle, type RenderableElement, type ResolvedElement} from "./types.ts";
-import {createRenderable} from "./resolver.ts";
+import {
+    type AssetLoader,
+    type BehaviorBundle,
+    type GraphicsBundle,
+    type RenderableElement,
+    type ResolvedElement
+} from "./types.ts";
+import {SceneResolver} from "./resolver.ts";
 
-export class AssetRegistry<TBundle extends GraphicsBundle> {
+export class AssetRegistry<
+    TBundle extends GraphicsBundle,
+    TBehaviorLib extends Record<string, BehaviorBundle<any, any, any>>> {
     // The ONLY list: A map of IDs to the actual Renderable instances
     private elements: Map<string, RenderableElement<any, TBundle>> = new Map();
     private loader: AssetLoader<TBundle>;
+    private readonly resolver: SceneResolver<TBundle, TBehaviorLib>;
 
-    constructor(loader: AssetLoader<TBundle>) {
+    constructor(loader: AssetLoader<TBundle>, resolver?: SceneResolver<TBundle, TBehaviorLib>) {
         this.loader = loader;
+        this.resolver = resolver ?? new SceneResolver();
     }
 
     public register<T extends ResolvedElement>(
@@ -26,7 +36,7 @@ export class AssetRegistry<TBundle extends GraphicsBundle> {
         // 2. Only create a new one if it doesn't exist
         // This triggers the createRenderable factory
         // and the loader hydration exactly once.
-        const renderable = createRenderable<T, TBundle>(id, blueprint, this.loader);
+        const renderable = this.resolver.createRenderable(id, blueprint, this.loader);
 
         // 3. Store the instance
         this.elements.set(id, renderable);

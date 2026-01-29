@@ -9,12 +9,16 @@ import {
     type ResolvedBox,
     type SceneState,
     type Vector3,
+    type ModifierDefinition,
+    type BaseModifierSettings,
+    type BehaviorBlueprint, type BehaviorBundle,
 } from './types';
 import type {MockBundle} from "./mock/mock_type.mock.ts";
-import {createRenderable, resolve, resolveProperty, toDynamic} from "./resolver.ts";
+import {createRenderable, type ElementType, resolve, resolveProperty, SceneResolver, toDynamic} from "./resolver.ts";
 import {createMockGraphicProcessor} from "./mock/mock_graphic_processor.mock.ts";
 import {createMockState} from "./mock/mock_scene_state.mock.ts";
 
+const mockOrigin: Vector3 = {x: 0, y: 0, z: 0};
 
 const createMockGP = () => {
     return {
@@ -40,32 +44,31 @@ const createMockLoader = (): AssetLoader<MockBundle> => ({
     waitForAllAssets: vi.fn().mockResolvedValue(null)
 });
 
+// Minimal mock state
+const mockState: SceneState = {
+    sceneId: 0,
+    settings: {
+        window: {width: 800, height: 600, aspectRatio: 1.33},
+        camera: {position: mockOrigin, lookAt: mockOrigin},
+        playback: {isLoop: true, timeSpeed: 1, startTime: 0},
+        debug: false,
+        paused: false,
+        alpha: 1
+    },
+    playback: {now: 1000, delta: 16, progress: 0.2, frameCount: 60},
+    camera: {
+        position: mockOrigin,
+        lookAt: mockOrigin,
+        yaw: 0,
+        pitch: 0,
+        roll: 0,
+        direction: {x: 0, y: 0, z: -1}
+    }
+};
+
 describe('createRenderable & Resolver Loop', () => {
     let gp: GraphicProcessor<MockBundle>;
     let loader: AssetLoader<MockBundle>;
-    const mockOrigin: Vector3 = {x: 0, y: 0, z: 0};
-
-    // Minimal mock state
-    const mockState: SceneState = {
-        sceneId: 0,
-        settings: {
-            window: {width: 800, height: 600, aspectRatio: 1.33},
-            camera: {position: mockOrigin, lookAt: mockOrigin},
-            playback: {isLoop: true, timeSpeed: 1, startTime: 0},
-            debug: false,
-            paused: false,
-            alpha: 1
-        },
-        playback: {now: 1000, delta: 16, progress: 0.2, frameCount: 60},
-        camera: {
-            position: mockOrigin,
-            lookAt: mockOrigin,
-            yaw: 0,
-            pitch: 0,
-            roll: 0,
-            direction: {x: 0, y: 0, z: -1}
-        }
-    };
 
     beforeEach(() => {
         gp = createMockGP();
@@ -207,6 +210,13 @@ describe('createRenderable & Resolver Loop', () => {
 
 describe('toDynamic Structural Integrity', () => {
     const mockOrigin: Vector3 = {x: 0, y: 0, z: 0};
+
+    let gp: GraphicProcessor<MockBundle>;
+
+    beforeEach(() => {
+        gp = createMockGP();
+        vi.mocked(gp.dist).mockReturnValue(0);
+    });
 
     it('should treat a static object as a single STATIC leaf (Short-circuit)', () => {
         const blueprint = {
@@ -626,5 +636,508 @@ describe('Shape Rendering', () => {
         } as unknown as ResolvedBox, loader);
 
         expect(() => renderable.render(gp, mockState)).toThrow('Unknown type Object {"type":"SECRET","position":{"x":0,"y":0,"z":0}}');
+    });
+});
+
+describe('SceneResolver', () => {
+    // Test behavior modifiers for comprehensive coverage
+
+    let gp: GraphicProcessor<MockBundle>;
+    let loader: AssetLoader<MockBundle>;
+
+    beforeEach(() => {
+        gp = createMockGP();
+        loader = createMockLoader();
+        vi.mocked(gp.dist).mockReturnValue(0);
+    });
+
+    const sizeModifier: ModifierDefinition<{multiplier: number; enabled?: boolean}, ResolvedBox> = {
+        type: 'sizeMultiplier',
+        targets: [ELEMENT_TYPES.BOX],
+        settings: { multiplier: 1, enabled: true },
+        apply(current, _state, settings) {
+            if (!settings.enabled) return current;
+            return {
+                ...current,
+                size: current.size * settings.multiplier
+            };
+        }
+    };
+
+    const positionModifier: ModifierDefinition<{offset: Vector3; enabled?: boolean}> = {
+        type: 'positionOffset',
+        // Cast to the specific union to satisfy the Readonly and Literal requirements
+        targets: Object.values(ELEMENT_TYPES) as unknown as ElementType[],
+        settings: { offset: {x: 0, y: 0, z: 0}, enabled: true },
+        apply(current, _state, settings) {
+            if (!settings.enabled) return current;
+            return {
+                ...current,
+                position: {
+                    x: current.position.x + settings.offset.x,
+                    y: current.position.y + settings.offset.y,
+                    z: current.position.z + settings.offset.z
+                }
+            };
+        }
+    };
+
+    // const alphaModifier: ModifierDefinition<{alpha: number; enabled?: boolean}> = {
+    //     type: 'alphaOverride',
+    //     targets: [ELEMENT_TYPES.SPHERE],
+    //     settings: { alpha: 1, enabled: true },
+    //     apply(current, _state, settings) {
+    //         if (!settings.enabled) return current;
+    //         return {
+    //             ...current,
+    //             alpha: settings.alpha
+    //         };
+    //     }
+    // };
+
+    describe('registerModifier', () => {
+        it('should register a modifier in the registry', () => {
+            const resolver = new SceneResolver();
+            
+            resolver.register(sizeModifier);
+            
+            // Verify the modifier was registered by testing resolve behavior
+            const dynamicBox = toDynamic({
+                type: ELEMENT_TYPES.BOX,
+                size: 10,
+                position: mockOrigin
+            });
+
+            const resolved = resolver.resolve(dynamicBox, mockState, [
+                { type: 'sizeMultiplier', settings: { multiplier: 2, enabled: true } },
+            ]);
+
+            expect(resolved.size).toBe(20);
+        });
+
+        it('should allow overriding existing modifiers', () => {
+            const resolver = new SceneResolver();
+            
+            // Register first modifier
+            resolver.register(sizeModifier);
+            
+            // Register modifier with same type but different behavior
+            const newModifier: ModifierDefinition<{multiplier: number} & BaseModifierSettings, ResolvedBox> = {
+                type: 'sizeMultiplier',
+                targets: [ELEMENT_TYPES.BOX],
+                settings: { multiplier: 1, enabled: true },
+                apply(current, _state, settings) {
+                    return {
+                        ...current,
+                        size: current.size * settings.multiplier * 10 // Different behavior
+                    };
+                }
+            };
+            
+            resolver.register(newModifier);
+            
+            const dynamicBox = toDynamic({
+                type: ELEMENT_TYPES.BOX,
+                size: 5,
+                position: mockOrigin
+            });
+
+            const resolved = resolver.resolve(dynamicBox, mockState, [
+                { type: 'sizeMultiplier', settings: { multiplier: 2 } }
+            ]);
+
+            // Should use new modifier behavior: 5 * 2 * 10 = 100
+            expect(resolved.size).toBe(100);
+        });
+    });
+
+    describe('resolve', () => {
+        it('should apply single modifier to matching element type', () => {
+            const resolver = new SceneResolver();
+            resolver.register(sizeModifier);
+
+            const dynamicBox = toDynamic({
+                type: ELEMENT_TYPES.BOX,
+                size: 15,
+                position: mockOrigin
+            });
+
+            const resolved = resolver.resolve(dynamicBox, mockState, [
+                { type: 'sizeMultiplier', settings: { multiplier: 3, enabled: true } },
+            ]);
+
+            expect(resolved.size).toBe(45);
+            expect(resolved.type).toBe(ELEMENT_TYPES.BOX);
+            expect(resolved.position).toEqual(mockOrigin);
+        });
+
+        it('should not apply modifier to non-matching element type', () => {
+            const resolver = new SceneResolver();
+            resolver.register(sizeModifier);
+
+            const dynamicSphere = toDynamic({
+                type: ELEMENT_TYPES.SPHERE,
+                radius: 10,
+                position: mockOrigin
+            });
+
+            const resolved = resolver.resolve(dynamicSphere, mockState, [
+                { type: 'sizeMultiplier', settings: { multiplier: 2 } }
+            ]);
+
+            // Should not be affected since sizeModifier only targets BOX
+            expect(resolved.radius).toBe(10);
+            expect(resolved.type).toBe(ELEMENT_TYPES.SPHERE);
+        });
+
+        it('should apply ALL targetType modifiers to any element type', () => {
+            const resolver = new SceneResolver();
+            resolver.register(positionModifier);
+
+            const dynamicBox = toDynamic({
+                type: ELEMENT_TYPES.BOX,
+                size: 10,
+                position: {x: 1, y: 2, z: 3}
+            });
+
+            const resolved = resolver.resolve(dynamicBox, mockState, [
+                { type: 'positionOffset', settings: { offset: {x: 5, y: -1, z: 0} } }
+            ]);
+
+            expect(resolved.position).toEqual({x: 6, y: 1, z: 3});
+        });
+
+        it('should apply multiple modifiers in order', () => {
+            const resolver = new SceneResolver();
+            resolver.register(sizeModifier);
+            resolver.register(positionModifier);
+
+            const dynamicBox = toDynamic({
+                type: ELEMENT_TYPES.BOX,
+                size: 5,
+                position: {x: 10, y: 0, z: 0}
+            });
+
+            const resolved = resolver.resolve(dynamicBox, mockState, [
+                { type: 'sizeMultiplier', settings: { multiplier: 2 } },
+                { type: 'positionOffset', settings: { offset: {x: -3, y: 2, z: 1} } }
+            ]);
+
+            expect(resolved.size).toBe(10); // Size applied first
+            expect(resolved.position).toEqual({x: 7, y: 2, z: 1}); // Position applied second
+        });
+
+        it('should use modifier defaults when settings not provided', () => {
+            const resolver = new SceneResolver();
+            resolver.register(sizeModifier);
+
+            const dynamicBox = toDynamic({
+                type: ELEMENT_TYPES.BOX,
+                size: 8,
+                position: mockOrigin
+            });
+
+            const resolved = resolver.resolve(dynamicBox, mockState, [
+                { type: 'sizeMultiplier' } // No settings provided
+            ]);
+
+            // Should use default multiplier of 1
+            expect(resolved.size).toBe(8);
+        });
+
+        it('should merge provided settings with defaults', () => {
+            const resolver = new SceneResolver();
+            resolver.register(sizeModifier);
+
+            const dynamicBox = toDynamic({
+                type: ELEMENT_TYPES.BOX,
+                size: 7,
+                position: mockOrigin
+            });
+
+            const resolved = resolver.resolve(dynamicBox, mockState, [
+                { type: 'sizeMultiplier', settings: { multiplier: 4 } }
+            ]);
+
+            // Should use provided multiplier, default enabled: true
+            expect(resolved.size).toBe(28);
+        });
+
+        it('should skip disabled modifiers', () => {
+            const resolver = new SceneResolver();
+            resolver.register(sizeModifier);
+
+            const dynamicBox = toDynamic({
+                type: ELEMENT_TYPES.BOX,
+                size: 12,
+                position: mockOrigin
+            });
+
+            const resolved = resolver.resolve(dynamicBox, mockState, [
+                { type: 'sizeMultiplier', settings: { enabled: false, multiplier: 5 } }
+            ]);
+
+            // Should not be modified since disabled
+            expect(resolved.size).toBe(12);
+        });
+
+        it('should ignore unknown modifier types', () => {
+            const resolver = new SceneResolver();
+            resolver.register(sizeModifier);
+
+            const dynamicBox = toDynamic({
+                type: ELEMENT_TYPES.BOX,
+                size: 20,
+                position: mockOrigin
+            });
+
+            const resolved = resolver.resolve(dynamicBox, mockState, [
+                { type: 'unknownModifier', settings: { multiplier: 3 } },
+                { type: 'sizeMultiplier', settings: { multiplier: 2 } }
+            ]);
+
+            // Should only apply known modifier
+            expect(resolved.size).toBe(40);
+        });
+
+        it('should handle no modifiers gracefully', () => {
+            const resolver = new SceneResolver();
+
+            const dynamicBox = toDynamic({
+                type: ELEMENT_TYPES.BOX,
+                size: 25,
+                position: mockOrigin
+            });
+
+            const resolved = resolver.resolve(dynamicBox, mockState);
+
+            expect(resolved.size).toBe(25);
+            expect(resolved.type).toBe(ELEMENT_TYPES.BOX);
+            expect(resolved.position).toEqual(mockOrigin);
+        });
+
+        it('should handle empty modifiers array', () => {
+            const resolver = new SceneResolver();
+
+            const dynamicBox = toDynamic({
+                type: ELEMENT_TYPES.BOX,
+                size: 30,
+                position: mockOrigin
+            });
+
+            const resolved = resolver.resolve(dynamicBox, mockState, []);
+
+            expect(resolved.size).toBe(30);
+        });
+
+        it('should resolve dynamic properties before applying modifiers', () => {
+            const resolver = new SceneResolver();
+            resolver.register(sizeModifier);
+
+            const blueprint = {
+                type: ELEMENT_TYPES.BOX,
+                size: (state: SceneState) => state.playback.progress * 10,
+                position: mockOrigin
+            };
+
+            const dynamicBox = toDynamic(blueprint);
+
+            const resolved = resolver.resolve(dynamicBox, mockState, [
+                { type: 'sizeMultiplier', settings: { multiplier: 3 } }
+            ]);
+
+            // Dynamic property: 0.2 * 10 = 2, then modifier: 2 * 3 = 6
+            expect(resolved.size).toBe(6);
+        });
+
+        it('should work with complex nested properties', () => {
+            const resolver = new SceneResolver();
+            resolver.register(positionModifier);
+
+            const blueprint = {
+                type: ELEMENT_TYPES.BOX,
+                size: 10,
+                position: {
+                    x: (state: SceneState) => state.playback.progress * 100,
+                    y: 50,
+                    z: -25
+                }
+            };
+
+            const dynamicBox = toDynamic(blueprint);
+
+            const resolved = resolver.resolve(dynamicBox, mockState, [
+                { type: 'positionOffset', settings: { offset: {x: 10, y: -20, z: 5} } }
+            ]);
+
+            // Dynamic property: 0.2 * 100 = 20, then modifier: 20 + 10 = 30
+            expect(resolved.position.x).toBe(30);
+            expect(resolved.position.y).toBe(30); // 50 + (-20)
+            expect(resolved.position.z).toBe(-20); // -25 + 5
+        });
+    });
+
+    describe('Integration with createRenderable', () => {
+        it('should use SceneResolver when provided to createRenderable', () => {
+            const resolver = new SceneResolver();
+            resolver.register(sizeModifier);
+
+            const blueprint = {
+                type: ELEMENT_TYPES.BOX,
+                size: 8,
+                position: mockOrigin,
+                modifiers: [
+                    { type: 'sizeMultiplier', settings: { multiplier: 4 } }
+                ]
+            };
+
+            const renderable = createRenderable('test-with-resolver', blueprint, loader, resolver);
+
+            renderable.render(gp, mockState);
+
+            expect(gp.drawBox).toHaveBeenCalledWith(
+                expect.objectContaining({size: 32}), // 8 * 4 = 32
+                renderable.assets,
+                mockState
+            );
+        });
+
+        it('should fallback to original resolve when no resolver provided', () => {
+            const blueprint = {
+                type: ELEMENT_TYPES.BOX,
+                size: 15,
+                position: mockOrigin
+            };
+
+            const renderable = createRenderable('test-no-resolver', blueprint, loader);
+
+            renderable.render(gp, mockState);
+
+            expect(gp.drawBox).toHaveBeenCalledWith(
+                expect.objectContaining({size: 15}),
+                renderable.assets,
+                mockState
+            );
+        });
+
+        it('should handle dynamic modifiers from blueprint', () => {
+            const resolver = new SceneResolver();
+            resolver.register(sizeModifier);
+
+            const blueprint = {
+                type: ELEMENT_TYPES.BOX,
+                size: 5,
+                position: mockOrigin,
+                modifiers: (state: SceneState) => [
+                    { 
+                        type: 'sizeMultiplier', 
+                        settings: { multiplier: state.playback.progress > 0.5 ? 3 : 1 } 
+                    }
+                ]
+            };
+
+            const renderable = createRenderable('test-dynamic-modifiers', blueprint, loader, resolver);
+
+            renderable.render(gp, mockState); // progress is 0.2
+
+            expect(gp.drawBox).toHaveBeenCalledWith(
+                expect.objectContaining({size: 5}), // No change since progress < 0.5
+                renderable.assets,
+                mockState
+            );
+        });
+    });
+
+    describe('Edge Cases and Error Handling', () => {
+        it('should handle modifiers with no settings object', () => {
+            const resolver = new SceneResolver();
+            
+            const modifierNoSettings: BehaviorBundle<{}> = {
+                type: 'noSettings',
+                targets: [ELEMENT_TYPES.BOX],
+                defaults: {},
+                apply(current, _state, _settings) {
+                    return {
+                        ...current,
+                        size: 999
+                    };
+                }
+            };
+
+            resolver.register(modifierNoSettings);
+
+            const dynamicBox = toDynamic({
+                type: ELEMENT_TYPES.BOX,
+                size: 1,
+                position: mockOrigin
+            });
+
+            const resolved = resolver.resolve(dynamicBox, mockState, [
+                { type: 'noSettings' }
+            ]);
+
+            expect(resolved.size).toBe(999);
+        });
+
+        it('should handle modifier that throws errors gracefully', () => {
+            const resolver = new SceneResolver();
+            
+            const errorModifier: BehaviorBundle<{enabled?: boolean}> = {
+                type: 'errorModifier',
+                targets: [ELEMENT_TYPES.BOX],
+                defaults: { enabled: true },
+                apply(current, _state, settings) {
+                    if (settings.enabled) {
+                        throw new Error('Modifier error');
+                    }
+                    return current;
+                }
+            };
+
+            resolver.register(errorModifier);
+
+            const dynamicBox = toDynamic({
+                type: ELEMENT_TYPES.BOX,
+                size: 10,
+                position: mockOrigin
+            });
+
+            expect(() => {
+                resolver.resolve(dynamicBox, mockState, [
+                    { type: 'errorModifier', settings: { enabled: true } }
+                ]);
+            }).toThrow('Modifier error');
+        });
+
+        it('should preserve element properties when modifier returns same reference', () => {
+            const resolver = new SceneResolver();
+            
+            const identityModifier: BehaviorBundle<{enabled?: boolean}> = {
+                type: 'identity',
+                targets: [ELEMENT_TYPES.BOX],
+                defaults: { enabled: true },
+                settings:{},
+                apply(current, _state, settings) {
+                    if (!settings.enabled) return current;
+                    // Return same reference (not recommended but should handle)
+                    return current;
+                }
+            };
+
+            resolver.register(identityModifier);
+
+            const dynamicBox = toDynamic({
+                type: ELEMENT_TYPES.BOX,
+                size: 10,
+                position: mockOrigin
+            });
+
+            const resolved = resolver.resolve(dynamicBox, mockState, [
+                { type: 'identity', settings: { enabled: true } }
+            ]);
+
+            expect(resolved.size).toBe(10);
+            expect(resolved.position).toEqual(mockOrigin);
+        });
     });
 });

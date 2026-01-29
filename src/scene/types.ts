@@ -292,6 +292,7 @@ export const ELEMENT_TYPES = {
     TEXT: 'text',
     BILLBOARD: 'billboard',
 } as const;
+export const ALL_ELEMENT_TYPES = Object.values(ELEMENT_TYPES);
 
 export const SPEC_KINDS = {STATIC: 'static', COMPUTED: 'computed', BRANCH: 'branch'} as const;
 
@@ -307,15 +308,21 @@ export type FlexibleSpec<T> =
     | (T extends object ? BlueprintTree<T> : never);
 export type BlueprintTree<T> = { [K in keyof T]?: FlexibleSpec<T[K]>; };
 
-type StaticKeys = 'type' | 'texture' | 'font';
-export type MapToBlueprint<T> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K]>; };
-export type MapToDynamic<T> = { [K in keyof T]: K extends StaticKeys ? T[K] : DynamicProperty<T[K]>; };
+export const IDENTITY_KEYS = ['type', 'texture', 'font', 'modifiers'] as const;
+type StaticKeys = typeof IDENTITY_KEYS[number];
+export type MapToBlueprint<T> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K]>; } & {
+    behaviors?: BehaviorBlueprint[];
+};
+export type MapToDynamic<T> = { [K in keyof T]: K extends StaticKeys ? T[K] : DynamicProperty<T[K]>; } & {
+    behaviors?: BehaviorResolutionGroup[];
+};
 export type Unwrapped<T> = T extends DynamicProperty<infer U> ? Unwrapped<U> : T extends object ? { [K in keyof T]: Unwrapped<T[K]> } : T;
 
 /**
  * ELEMENT DEFINITIONS
  */
 export interface ResolvedBaseVisual {
+    readonly type: typeof ELEMENT_TYPES[keyof typeof ELEMENT_TYPES];
     readonly position: Vector3;
     readonly alpha?: number;
     readonly fillColor?: ColorRGBA;
@@ -324,6 +331,7 @@ export interface ResolvedBaseVisual {
     readonly rotate?: Vector3;
     readonly texture?: TextureRef;
     readonly font?: FontRef;
+    readonly modifiers?: BehaviorBlueprint[];
 }
 
 export type DynamicElement<T extends ResolvedElement> = MapToDynamic<T>;
@@ -504,6 +512,7 @@ export interface RenderableElement<
     TBundle extends GraphicsBundle = GraphicsBundle
 > extends Renderable<TBundle> {
     readonly dynamic: DynamicElement<T>;
+    readonly behaviors: ReadonlyArray<BehaviorResolutionGroup>;
     assets: ElementAssets<TBundle>;
 }
 
@@ -554,3 +563,52 @@ export const DEFAULT_OBSERVER_CONFIG: ObserverConfig = {
     damping: 0.5,
     lookDistance: 1000
 };
+
+export interface BaseModifierSettings {
+    enabled?: boolean;
+}
+
+export interface BehaviorBundle<
+    TID extends string = string,
+    TConfig extends BaseModifierSettings = BaseModifierSettings,
+    E extends ResolvedBaseVisual = ResolvedBaseVisual,
+> {
+    readonly type: TID;
+    readonly targets: ReadonlyArray<E['type']>;
+    readonly defaults: TConfig;
+    apply(current: E, state: SceneState, settings: TConfig): E;
+}
+
+export interface BehaviorBlueprint<K extends string = string, TConfig = any> {
+    readonly type: K;
+    readonly settings?: Partial<TConfig>;
+}
+//
+// export interface BehaviorBundleRegistry {
+//     [key: string]: BehaviorBundle;
+// }
+//
+// export interface BehaviorInstruction {
+//     readonly type: string;
+//     readonly settings?: Partial<BehaviorBundleRegistry[K]["defaults"]> | undefined;
+// }
+//
+// export interface CustomInstruction<
+//     TID extends string = string,
+//     TConfig extends BaseModifierSettings = any
+// > {
+//     readonly type: "CUSTOM"; // Discriminator
+//     readonly bundle: BehaviorBundle<TID, TConfig, any>;
+//     readonly settings?: Partial<TConfig>;
+// }
+//
+// export type BehaviorBlueprint = NativeInstruction<string> | CustomInstruction;
+//
+export interface BehaviorResolutionGroup<
+    TID extends string = string,
+    TConfig extends BaseModifierSettings = any
+> {
+    readonly type: TID;
+    readonly bundle: BehaviorBundle<TID, TConfig, any>;
+    readonly settings: TConfig; // Hydrated/Merged settings
+}

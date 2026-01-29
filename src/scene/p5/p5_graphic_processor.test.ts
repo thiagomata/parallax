@@ -271,7 +271,7 @@ expect(mockP5.plane).toHaveBeenCalledWith(100, 50);
             expect(mockP5.translate).toHaveBeenCalledWith(10, 10, 10);
 
             // Should match the Camera SSoT exactly
-            expect(mockP5.rotateY).toHaveBeenCalledWith(0.5);
+            expect(mockP5.rotateY).toHaveBeenCalledWith(-0.5);
             expect(mockP5.rotateX).toHaveBeenCalledWith(-0.2);
             expect(mockP5.rotateZ).toHaveBeenCalledWith(0.1);
 
