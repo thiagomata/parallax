@@ -1,8 +1,8 @@
 import {
     ASSET_STATUS,
     type AssetLoader,
-    type BehaviorBundle,
-    type BehaviorBlueprint, type BehaviorResolutionGroup,
+    type EffectBundle,
+    type EffectBlueprint, type EffectResolutionGroup,
     type DynamicElement,
     type DynamicProperty,
     ELEMENT_TYPES,
@@ -22,13 +22,13 @@ export type UnwrappedElement<E> = E extends RenderableElement<infer T, any> ? T 
 
 export class SceneResolver<
     TBundle extends GraphicsBundle,
-    TBehaviourLib extends Record<string, BehaviorBundle<any, any, any>>
+    TEffectLib extends Record<string, EffectBundle<any, any, any>>
 > {
 
-    private readonly behaviorLib: TBehaviourLib;
+    private readonly effectLib: TEffectLib;
 
-    constructor(behaviorLib: TBehaviourLib= {} as TBehaviourLib) {
-        this.behaviorLib = behaviorLib;
+    constructor(effectLib: TEffectLib= {} as TEffectLib) {
+        this.effectLib = effectLib;
     }
 
     createRenderable<T extends ResolvedElement>(
@@ -38,7 +38,7 @@ export class SceneResolver<
     ): RenderableElement<T, TBundle> {
 
         const dynamic = this.toDynamic(blueprint) as DynamicElement<T>;
-        const behaviorsBundles = this.bundleBehaviors(blueprint.behaviors);
+        const effectsBundles = this.bundleBehaviors(blueprint.effects);
 
         const assets: ElementAssets<TBundle> = {
             texture: blueprint.texture ? {status: ASSET_STATUS.PENDING, value: null} : {
@@ -67,7 +67,7 @@ export class SceneResolver<
             id,
             dynamic,
             assets,
-            behaviors: behaviorsBundles,
+            effects: effectsBundles,
             // 2. Placeholder or just define it after
             render: () => {}
         };
@@ -134,7 +134,7 @@ export class SceneResolver<
     toDynamic<T extends ResolvedElement>(
         blueprint: MapToBlueprint<T>
     ): MapToDynamic<T> {
-        const {type, texture, font, behaviors, ...rest} = blueprint;
+        const {type, texture, font, effects, ...rest} = blueprint;
 
         const dynamicProps: any = {};
         for (const key in rest) {
@@ -144,23 +144,23 @@ export class SceneResolver<
             type,
             texture,
             font,
-            behaviors,
+            effects: effects,
             ...dynamicProps
         } as MapToDynamic<T>;
     }
 
-    bundleBehaviors<K extends keyof TBehaviourLib & string>(
-        instructions?: BehaviorBlueprint<K, TBehaviourLib[K]['defaults']>[]
-    ): BehaviorResolutionGroup[] {
+    bundleBehaviors<K extends keyof TEffectLib & string>(
+        instructions?: EffectBlueprint<K, TEffectLib[K]['defaults']>[]
+    ): EffectResolutionGroup[] {
         if (!instructions) return [];
 
         return instructions.map( instruction => {
 
-            const bundle = this.behaviorLib[instruction.type]
+            const bundle = this.effectLib[instruction.type]
 
             if (!bundle) {
                 // should never happen
-                throw new Error(`invalid behavior ${instruction.type}`)
+                throw new Error(`invalid effect ${instruction.type}`)
             }
 
             return {
@@ -182,13 +182,13 @@ export class SceneResolver<
         // The result is T, which matches UnwrappedElement<E>
         let resolved = this.loopResolve(element.dynamic, state) as UnwrappedElement<E>;
 
-        for (const id in element.behaviors) {
-            const behavior = element.behaviors[id];
-            if (behavior.settings.enabled) {
-                resolved = behavior.bundle.apply(
+        for (const id in element.effects) {
+            const effect = element.effects[id];
+            if (effect.settings.enabled) {
+                resolved = effect.bundle.apply(
                     resolved,
                     state,
-                    behavior.settings
+                    effect.settings
                 )
             }
         }

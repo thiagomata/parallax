@@ -10,7 +10,7 @@ import {
     type SceneState,
     type Vector3,
     type BaseModifierSettings,
-    type BehaviorBundle, type BlueprintBox,
+    type EffectBundle, type BlueprintBox,
 } from './types';
 import type {MockBundle} from "./mock/mock_type.mock.ts";
 import {SceneResolver} from "./resolver.ts";
@@ -647,7 +647,7 @@ describe('Shape Rendering', () => {
     });
 });
 
-describe('SceneResolver with Behavior Bundles', () => {
+describe('SceneResolver with Effect Bundles', () => {
     let gp: GraphicProcessor<MockBundle>;
     let loader: AssetLoader<MockBundle>;
 
@@ -657,14 +657,14 @@ describe('SceneResolver with Behavior Bundles', () => {
         vi.mocked(gp.dist).mockReturnValue(0);
     });
 
-    describe('Constructor with Behavior Library', () => {
-        it('should work with empty behavior library', () => {
+    describe('Constructor with Effect Library', () => {
+        it('should work with empty effect library', () => {
             const resolver = new SceneResolver({});
             expect(resolver).toBeDefined();
         });
 
-        it('should initialize with provided behavior library', () => {
-            const sizeModifier: BehaviorBundle<'sizeMultiplier', {multiplier: number} & BaseModifierSettings> = {
+        it('should initialize with provided effect library', () => {
+            const sizeModifier: EffectBundle<'sizeMultiplier', {multiplier: number} & BaseModifierSettings> = {
                 type: 'sizeMultiplier',
                 targets: [ELEMENT_TYPES.BOX],
                 defaults: { multiplier: 1 },
@@ -684,9 +684,9 @@ describe('SceneResolver with Behavior Bundles', () => {
         });
     });
 
-    describe('bundleBehaviors', () => {
-        it('should bundle behaviors correctly with defaults', () => {
-            const sizeModifier: BehaviorBundle<'sizeMultiplier', {multiplier: number} & BaseModifierSettings> = {
+    describe('bundleEffect', () => {
+        it('should bundle effect correctly with defaults', () => {
+            const sizeModifier: EffectBundle<'sizeMultiplier', {multiplier: number} & BaseModifierSettings> = {
                 type: 'sizeMultiplier',
                 targets: [ELEMENT_TYPES.BOX],
                 defaults: { multiplier: 2, enabled: true },
@@ -706,7 +706,7 @@ describe('SceneResolver with Behavior Bundles', () => {
                 type: ELEMENT_TYPES.BOX,
                 size: 10,
                 position: mockOrigin,
-                behaviors: [
+                effects: [
                     {
                         type: 'sizeMultiplier'
                     }
@@ -726,7 +726,7 @@ describe('SceneResolver with Behavior Bundles', () => {
         });
 
         it('should merge provided settings with defaults', () => {
-            const sizeModifier: BehaviorBundle<'sizeMultiplier', {multiplier: number} & BaseModifierSettings> = {
+            const sizeModifier: EffectBundle<'sizeMultiplier', {multiplier: number} & BaseModifierSettings> = {
                 type: 'sizeMultiplier',
                 targets: [ELEMENT_TYPES.BOX],
                 defaults: { multiplier: 1, enabled: true },
@@ -747,7 +747,7 @@ describe('SceneResolver with Behavior Bundles', () => {
                 type: ELEMENT_TYPES.BOX,
                 size: 5,
                 position: mockOrigin,
-                behaviors: [
+                effects: [
                     {
                         type: 'sizeMultiplier',
                         settings: { multiplier: 3 }
@@ -767,8 +767,8 @@ describe('SceneResolver with Behavior Bundles', () => {
             expect(resolved.size).toBe(15);
         });
 
-        it('should handle multiple behaviors in order', () => {
-            const sizeModifier: BehaviorBundle<'sizeMultiplier', {multiplier: number} & BaseModifierSettings> = {
+        it('should handle multiple effects in order', () => {
+            const sizeModifier: EffectBundle<'sizeMultiplier', {multiplier: number} & BaseModifierSettings> = {
                 type: 'sizeMultiplier',
                 targets: [ELEMENT_TYPES.BOX],
                 defaults: { multiplier: 2, enabled: true },
@@ -780,7 +780,7 @@ describe('SceneResolver with Behavior Bundles', () => {
                 }
             };
 
-            const positionModifier: BehaviorBundle<'positionOffset', {offset: {x: number, y: number, z: number}} & BaseModifierSettings> = {
+            const positionModifier: EffectBundle<'positionOffset', {offset: {x: number, y: number, z: number}} & BaseModifierSettings> = {
                 type: 'positionOffset',
                 targets: [ELEMENT_TYPES.BOX],
                 defaults: { offset: {x: 0, y: 0, z: 0}, enabled: true },
@@ -805,7 +805,7 @@ describe('SceneResolver with Behavior Bundles', () => {
                 type: ELEMENT_TYPES.BOX,
                 size: 10,
                 position: {x: 1, y: 2, z: 3},
-                behaviors: [
+                effects: [
                     {
                         type: 'sizeMultiplier',
                         settings: { multiplier: 3 }
@@ -834,7 +834,7 @@ describe('SceneResolver with Behavior Bundles', () => {
     describe('Edge Cases and Error Handling', () => {
         it('should handle modifiers with no settings object', () => {
 
-            const modifierNoSettings: BehaviorBundle<'noSettings', {}> = {
+            const modifierNoSettings: EffectBundle<'noSettings', {}> = {
                 type: 'noSettings',
                 targets: [ELEMENT_TYPES.BOX],
                 defaults: {enabled: true},
@@ -856,7 +856,7 @@ describe('SceneResolver with Behavior Bundles', () => {
                 type: ELEMENT_TYPES.BOX,
                 size: 1,
                 position: mockOrigin,
-                behaviors: [
+                effects: [
                     {
                         type: 'noSettings'
                     }
@@ -874,8 +874,8 @@ describe('SceneResolver with Behavior Bundles', () => {
             expect(resolved.size).toBe(999);
         });
 
-        it('should skip disabled behaviors', () => {
-            const sizeModifier: BehaviorBundle<'optionalSize', {multiplier: number, enabled?: boolean}> = {
+        it('should skip disabled effects', () => {
+            const sizeModifier: EffectBundle<'optionalSize', {multiplier: number, enabled?: boolean}> = {
                 type: 'optionalSize',
                 targets: [ELEMENT_TYPES.BOX],
                 defaults: { multiplier: 5, enabled: false },
@@ -896,7 +896,7 @@ describe('SceneResolver with Behavior Bundles', () => {
                 type: ELEMENT_TYPES.BOX,
                 size: 15,
                 position: mockOrigin,
-                behaviors: [
+                effects: [
                     {
                         type: 'optionalSize',
                         settings: { enabled: false }
@@ -915,30 +915,30 @@ describe('SceneResolver with Behavior Bundles', () => {
             expect(resolved.size).toBe(15);
         });
 
-        it('should handle behavior that throws errors gracefully', () => {
-            const errorBehavior: BehaviorBundle<'errorBehavior', {enabled?: boolean}> = {
-                type: 'errorBehavior',
+        it('should handle effect that throws errors gracefully', () => {
+            const errorEffect: EffectBundle<'errorEffect', {enabled?: boolean}> = {
+                type: 'errorEffect',
                 targets: [ELEMENT_TYPES.BOX],
                 defaults: { enabled: true },
                 apply(current, _state, settings) {
                     if (settings.enabled) {
-                        throw new Error('Behavior error');
+                        throw new Error('Effect error');
                     }
                     return current;
                 }
             };
 
             const resolver = new SceneResolver({
-                'errorBehavior': errorBehavior
+                'errorEffect': errorEffect
             });
 
             const blueprintBox = {
                 type: ELEMENT_TYPES.BOX,
                 size: 10,
                 position: mockOrigin,
-                behaviors: [
+                effects: [
                     {
-                        type: 'errorBehavior',
+                        type: 'errorEffect',
                         settings: { enabled: true }
                     }
                 ],
@@ -952,27 +952,27 @@ describe('SceneResolver with Behavior Bundles', () => {
 
             expect(() => {
                 resolver.resolve(renderableBox, mockState);
-            }).toThrow('Behavior error');
+            }).toThrow('Effect error');
         });
     });
 
-        it('should throw error for unknown behavior type', () => {
+        it('should throw error for unknown effect type', () => {
             const resolver = new SceneResolver({});
 
             const blueprintBox = {
                 type: ELEMENT_TYPES.BOX,
                 size: 10,
                 position: mockOrigin,
-                behaviors: [
+                effects: [
                     {
-                        type: 'unknownBehavior'
+                        type: 'unknownEffect'
                     }
                 ],
             } as BlueprintBox;
 
             expect(() => {
                 resolver.createRenderable('error-box', blueprintBox, createMockLoader());
-            }).toThrow('invalid behavior unknownBehavior');
+            }).toThrow('invalid effect unknownEffect');
         });
     });
 

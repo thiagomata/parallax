@@ -1,5 +1,5 @@
 import {
-    type BehaviorBundle,
+    type EffectBundle,
     type AssetLoader,
     type GraphicsBundle,
     type RenderableElement,
@@ -10,7 +10,7 @@ import {SceneResolver} from "./resolver.ts";
 
 export class AssetRegistry<
     TBundle extends GraphicsBundle,
-    TBehaviorLib extends Record<string, BehaviorBundle<any, any, any>>> {
+    TBehaviorLib extends Record<string, EffectBundle<any, any, any>>> {
     // The ONLY list: A map of IDs to the actual Renderable instances
     private elements: Map<string, RenderableElement<any, TBundle>> = new Map();
     private loader: AssetLoader<TBundle>;

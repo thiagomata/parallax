@@ -311,10 +311,10 @@ export type BlueprintTree<T> = { [K in keyof T]?: FlexibleSpec<T[K]>; };
 export const IDENTITY_KEYS = ['type', 'texture', 'font', 'modifiers'] as const;
 type StaticKeys = typeof IDENTITY_KEYS[number];
 export type MapToBlueprint<T> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K]>; } & {
-    behaviors?: BehaviorBlueprint[];
+    effects?: EffectBlueprint[];
 };
 export type MapToDynamic<T> = { [K in keyof T]: K extends StaticKeys ? T[K] : DynamicProperty<T[K]>; } & {
-    behaviors?: BehaviorResolutionGroup[];
+    effects?: EffectResolutionGroup[];
 };
 export type Unwrapped<T> = T extends DynamicProperty<infer U> ? Unwrapped<U> : T extends object ? { [K in keyof T]: Unwrapped<T[K]> } : T;
 
@@ -331,7 +331,7 @@ export interface ResolvedBaseVisual {
     readonly rotate?: Vector3;
     readonly texture?: TextureRef;
     readonly font?: FontRef;
-    readonly modifiers?: BehaviorBlueprint[];
+    readonly modifiers?: EffectBlueprint[];
 }
 
 export type DynamicElement<T extends ResolvedElement> = MapToDynamic<T>;
@@ -512,7 +512,7 @@ export interface RenderableElement<
     TBundle extends GraphicsBundle = GraphicsBundle
 > extends Renderable<TBundle> {
     readonly dynamic: DynamicElement<T>;
-    readonly behaviors: ReadonlyArray<BehaviorResolutionGroup>;
+    readonly effects: ReadonlyArray<EffectResolutionGroup>;
     assets: ElementAssets<TBundle>;
 }
 
@@ -568,7 +568,7 @@ export interface BaseModifierSettings {
     enabled?: boolean;
 }
 
-export interface BehaviorBundle<
+export interface EffectBundle<
     TID extends string = string,
     TConfig extends BaseModifierSettings = BaseModifierSettings,
     E extends ResolvedBaseVisual = ResolvedBaseVisual,
@@ -579,16 +579,16 @@ export interface BehaviorBundle<
     apply(current: E, state: SceneState, settings: TConfig): E;
 }
 
-export interface BehaviorBlueprint<K extends string = string, TConfig = any> {
+export interface EffectBlueprint<K extends string = string, TConfig = any> {
     readonly type: K;
     readonly settings?: Partial<TConfig>;
 }
 
-export interface BehaviorResolutionGroup<
+export interface EffectResolutionGroup<
     TID extends string = string,
     TConfig extends BaseModifierSettings = any
 > {
     readonly type: TID;
-    readonly bundle: BehaviorBundle<TID, TConfig, any>;
+    readonly bundle: EffectBundle<TID, TConfig, any>;
     readonly settings?: TConfig; // Hydrated/Merged settings
 }

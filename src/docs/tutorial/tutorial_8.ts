@@ -19,7 +19,7 @@ export function tutorial_8(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     // 1. Scene Orchestration
     const activeManager = config.manager ?? new SceneManager(DEFAULT_SETTINGS);
 
-    // 2. Camera Logic: Adding orbit to showcase billboard behavior
+    // 2. Camera Logic: Adding orbit to showcase billboard effect
     activeManager.addCarModifier(new OrbitModifier(p, 800));
     activeManager.addStickModifier(new CenterFocusModifier());
 

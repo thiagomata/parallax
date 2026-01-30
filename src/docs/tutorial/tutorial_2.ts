@@ -28,7 +28,7 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
         // Registration
-        // We use the blueprint functions to define behavior over time
+        // We use the blueprint functions to define effect over time
         world.addBox('pulsing-box', {
             type: ELEMENT_TYPES.BOX,
             position: {x: 0, y: 0, z: 0},
@@ -67,4 +67,4 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     };
 
     return world;
-};
+}
