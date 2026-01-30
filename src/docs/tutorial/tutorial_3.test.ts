@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {tutorial_3} from './tutorial_3';
 import {SceneManager} from "../../scene/scene_manager.ts";
 import {DEFAULT_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
-import {resolve} from "../../scene/resolver.ts"; // The surgical resolver
+import {SceneResolver} from "../../scene/resolver.ts"; // The surgical resolver
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {DEFAULT_SKETCH_CONFIG} from "./tutorial_main_page.demo.ts";
@@ -34,7 +34,8 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
         const element = world.getElement('orbit-box');
         if (!element) throw new Error("orbit-box not registered");
 
-        const resolved0 = resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+        const resolver = new SceneResolver({});
+        const resolved0 = resolver.resolve(element, world.getCurrentSceneState()) as ResolvedBox;
 
         expect(resolved0.position).toMatchObject({
             x: 50,
@@ -47,7 +48,7 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
         mockP5.millis.mockReturnValue(1250);
         mockP5.draw();
 
-        const resolved25 = resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+        const resolved25 = resolver.resolve(element, world.getCurrentSceneState()) as ResolvedBox;
 
         expect(resolved25.position.x).toBeCloseTo(0, 5);
         expect(resolved25.position.y).toBeCloseTo(50, 5);
@@ -57,7 +58,7 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
         mockP5.millis.mockReturnValue(2500);
         mockP5.draw();
 
-        const resolved50 = resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+        const resolved50 = resolver.resolve(element, world.getCurrentSceneState()) as ResolvedBox;
 
         expect(resolved50.position.x).toBeCloseTo(-50, 5);
         expect(resolved50.position.y).toBeCloseTo(0, 5);

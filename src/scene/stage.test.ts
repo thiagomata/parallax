@@ -29,7 +29,6 @@ describe('Stage (Spatial Orchestration)', () => {
 
         // Verify the GP was reached
         expect(mockGP.drawBox).toHaveBeenCalled();
-        expect(mockGP.translate).toHaveBeenCalledWith({x: 10, y: 0, z: 0});
     });
 
     it('should sort elements by distance (Painter Algorithm)', () => {

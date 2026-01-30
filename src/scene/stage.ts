@@ -8,13 +8,15 @@ import type {
     SceneState
 } from "./types.ts";
 import {AssetRegistry} from "./asset_registry.ts";
-import {resolveProperty} from "./resolver.ts";
+import {SceneResolver} from "./resolver.ts";
 
 export class Stage<TBundle extends GraphicsBundle> {
-    private registry: AssetRegistry<TBundle>;
+    private registry: AssetRegistry<TBundle, {}>;
+    private resolver: SceneResolver<TBundle, {}>;
 
     constructor(loader: AssetLoader<TBundle>) {
-        this.registry = new AssetRegistry<TBundle>(loader);
+        this.resolver = new SceneResolver<TBundle, {}>({});
+        this.registry = new AssetRegistry<TBundle, {}>(loader, this.resolver);
     }
 
     public add<T extends ResolvedElement>(id: string, blueprint: MapToBlueprint<T>): void {
@@ -33,10 +35,16 @@ export class Stage<TBundle extends GraphicsBundle> {
         // Optimized Painter's Algorithm: Sort far-to-near
         const renderQueue = Array.from(this.registry.all())
             .map(element => ({
-                element, distance: gp.dist(state.camera.position, resolveProperty(element.dynamic.position, state))
+                element,                 distance: gp.dist(state.camera.position, this.resolver.resolveProperty(element.dynamic.position, state))
             }))
             .sort((a, b) => b.distance - a.distance);
 
-        renderQueue.forEach(({element}) => element.render(gp, state));
+        renderQueue.forEach(({element}) => {
+            const resolvedPosition = this.resolver.resolveProperty(element.dynamic.position, state);
+            
+            // Move to element position, then render
+            gp.translate(resolvedPosition);
+            element.render(gp, state);
+        });
     }
 }

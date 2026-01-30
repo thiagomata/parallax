@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {tutorial_2} from './tutorial_2';
 import {SceneManager} from "../../scene/scene_manager.ts";
 import {DEFAULT_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
-import {resolve} from "../../scene/resolver.ts"; // The new Resolver
+import {SceneResolver} from "../../scene/resolver.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 
@@ -37,7 +37,8 @@ describe('Tutorial 2: Progression Integration', () => {
         const element = world.getElement('pulsing-box');
         if (!element) throw new Error("Pulsing box not registered");
 
-        const props0 = resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+        const resolver = new SceneResolver({});
+        const props0 = resolver.resolve(element, world.getCurrentSceneState()) as ResolvedBox;
 
         // Size: 100 + sin(0) * 50 = 100
         expect(props0.size).toBe(100);
@@ -48,7 +49,7 @@ describe('Tutorial 2: Progression Integration', () => {
         mockP5.millis.mockReturnValue(1000);
         mockP5.draw();
 
-        const props25 = resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+        const props25 = resolver.resolve(element, world.getCurrentSceneState()) as ResolvedBox;
 
         // Size: 100 + sin(PI/2) * 50 = 150
         expect(props25.size).toBeCloseTo(150, 0);
@@ -61,7 +62,7 @@ describe('Tutorial 2: Progression Integration', () => {
         mockP5.millis.mockReturnValue(2000);
         mockP5.draw();
 
-        const props50 = resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+        const props50 = resolver.resolve(element, world.getCurrentSceneState()) as ResolvedBox;
         // Size: 100 + sin(PI) * 50 = 100
         expect(props50.size).toBeCloseTo(100, 5);
         // Blue: 127 + 127 * cos(PI) = 0

@@ -9,7 +9,7 @@ new p5((p: p5) => {
     p.disableFriendlyErrors = true;
 
     let gp: P5GraphicProcessor;
-    let registry: AssetRegistry<P5Bundler>;
+    let registry: AssetRegistry<P5Bundler, {}>;
 
     p.setup = () => {
         p.createCanvas(window.innerWidth, window.innerHeight, p.WEBGL);
@@ -17,7 +17,7 @@ new p5((p: p5) => {
         const loader = new P5AssetLoader(p);
         gp = new P5GraphicProcessor(p, loader);
 
-        registry = new AssetRegistry<P5Bundler>(loader);
+        registry = new AssetRegistry<P5Bundler, {}>(loader);
 
         registry.register('hero', {
             type: ELEMENT_TYPES.BOX,

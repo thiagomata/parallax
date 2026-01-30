@@ -1,9 +1,10 @@
 import {
-    type AssetLoader,
     type BehaviorBundle,
+    type AssetLoader,
     type GraphicsBundle,
     type RenderableElement,
-    type ResolvedElement
+    type ResolvedElement,
+    type MapToBlueprint
 } from "./types.ts";
 import {SceneResolver} from "./resolver.ts";
 
@@ -17,12 +18,12 @@ export class AssetRegistry<
 
     constructor(loader: AssetLoader<TBundle>, resolver?: SceneResolver<TBundle, TBehaviorLib>) {
         this.loader = loader;
-        this.resolver = resolver ?? new SceneResolver();
+        this.resolver = resolver ?? new SceneResolver({} as TBehaviorLib);
     }
 
     public register<T extends ResolvedElement>(
         id: string,
-        blueprint: any
+        blueprint: MapToBlueprint<T>
     ): RenderableElement<T, TBundle> {
         // 1. Check if we already have this instance
         const existing = this.elements.get(id);

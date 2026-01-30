@@ -3,7 +3,7 @@ import {tutorial_1} from './tutorial_1';
 import {World} from "../../scene/world";
 import {SceneManager} from "../../scene/scene_manager";
 import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState} from "../../scene/types";
-import {resolve} from "../../scene/resolver"; // Using the Manifest-compliant resolver
+import {SceneResolver} from "../../scene/resolver";
 import {createMockGraphicProcessor} from "../../scene/mock/mock_graphic_processor.mock.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
@@ -82,7 +82,8 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
             if (!element) throw new Error("Tutorial box missing");
 
             // Use our deterministic resolver
-            const resolved = resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+            const resolver = new SceneResolver({});
+            const resolved = resolver.resolve(element, world.getCurrentSceneState()) as ResolvedBox;
             expect(resolved.size).toBe(100);
             expect(resolved.fillColor?.blue).toBe(255);
 

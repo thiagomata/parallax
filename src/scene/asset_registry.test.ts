@@ -20,11 +20,11 @@ const createMockLoader = (): AssetLoader<MockBundle> => ({
 
 describe('AssetRegistry', () => {
     let loader: AssetLoader<MockBundle>;
-    let registry: AssetRegistry<MockBundle>;
+    let registry: AssetRegistry<MockBundle, {}>;
 
     beforeEach(() => {
         loader = createMockLoader();
-        registry = new AssetRegistry<MockBundle>(loader);
+        registry = new AssetRegistry<MockBundle, {}>(loader);
     });
 
     describe('register', () => {

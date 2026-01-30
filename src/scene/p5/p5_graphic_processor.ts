@@ -16,7 +16,7 @@ import {
     type ResolvedSphere,
     type ResolvedText, type ResolvedTorus,
     type SceneState,
-    type Vector3, type RenderableElement
+    type Vector3,
 } from '../types';
 import type {P5Bundler} from './p5_asset_loader';
 

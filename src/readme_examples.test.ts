@@ -1,15 +1,17 @@
 import {beforeEach, describe, expect, it} from 'vitest';
 import {SceneManager} from "./scene/scene_manager.ts";
 import {createBlueprint, DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState,} from "./scene/types.ts";
-import {createRenderable, resolve} from "./scene/resolver.ts";
+import {SceneResolver} from "./scene/resolver.ts";
 import {ChaosLoader} from "./scene/mock/mock_asset_loader.mock.ts";
 
 describe('README Examples Validation', () => {
 
     let manager: SceneManager;
     let assetLoader = new ChaosLoader();
+    let resolver: SceneResolver<any, {}>;
     beforeEach(() => {
         manager = new SceneManager(DEFAULT_SETTINGS);
+        resolver = new SceneResolver({});
     });
 
     it('should validate the Car, Nudge, and Stick modifier examples', () => {
@@ -75,8 +77,8 @@ describe('README Examples Validation', () => {
         });
 
         // We must wrap the blueprint into a Renderable to "compile" the specs
-        const element = createRenderable('test-id', blueprint, assetLoader);
-        const elementResolved = resolve(element, state);
+        const element = resolver.createRenderable('test-id', blueprint, assetLoader);
+        const elementResolved = resolver.resolve(element, state);
 
         // 2. Example 2: Deep Resolution (Granular)
         const granularBlueprint = createBlueprint<ResolvedBox>({
@@ -89,8 +91,8 @@ describe('README Examples Validation', () => {
             size: 10
         });
 
-        const granularElement = createRenderable('granular-id', granularBlueprint, assetLoader);
-        const granularResolved = resolve(granularElement, state);
+        const granularElement = resolver.createRenderable('granular-id', granularBlueprint, assetLoader);
+        const granularResolved = resolver.resolve(granularElement, state);
 
         // Assertions
         expect(elementResolved.size).toBe(50);

@@ -583,32 +583,12 @@ export interface BehaviorBlueprint<K extends string = string, TConfig = any> {
     readonly type: K;
     readonly settings?: Partial<TConfig>;
 }
-//
-// export interface BehaviorBundleRegistry {
-//     [key: string]: BehaviorBundle;
-// }
-//
-// export interface BehaviorInstruction {
-//     readonly type: string;
-//     readonly settings?: Partial<BehaviorBundleRegistry[K]["defaults"]> | undefined;
-// }
-//
-// export interface CustomInstruction<
-//     TID extends string = string,
-//     TConfig extends BaseModifierSettings = any
-// > {
-//     readonly type: "CUSTOM"; // Discriminator
-//     readonly bundle: BehaviorBundle<TID, TConfig, any>;
-//     readonly settings?: Partial<TConfig>;
-// }
-//
-// export type BehaviorBlueprint = NativeInstruction<string> | CustomInstruction;
-//
+
 export interface BehaviorResolutionGroup<
     TID extends string = string,
     TConfig extends BaseModifierSettings = any
 > {
     readonly type: TID;
     readonly bundle: BehaviorBundle<TID, TConfig, any>;
-    readonly settings: TConfig; // Hydrated/Merged settings
+    readonly settings?: TConfig; // Hydrated/Merged settings
 }

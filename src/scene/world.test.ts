@@ -92,4 +92,240 @@ describe('World Orchestration (Dependency Injection)', () => {
         expect(mockGP.drawHUDText).toHaveBeenCalledWith('Error: First', 20, 20);
         expect(mockGP.drawHUDText).toHaveBeenCalledWith('Error: Second', 20, 40);
     });
+
+    describe('Element Management (add/get/remove)', () => {
+        const createMockBlueprint = (type: string) => ({
+            type,
+            position: {x: 0, y: 0, z: 0},
+            size: 10
+        });
+
+        it('should add and retrieve elements correctly', () => {
+            const boxBlueprint = createMockBlueprint('box');
+            const sphereBlueprint = createMockBlueprint('sphere');
+            
+            // Add elements
+            world.addBox('test-box', boxBlueprint as any);
+            world.addSphere('test-sphere', sphereBlueprint as any);
+            
+            // Retrieve elements
+            const box = world.getElement('test-box');
+            const sphere = world.getElement('test-sphere');
+            
+            expect(box).toBeDefined();
+            expect(box?.id).toBe('test-box');
+            expect(sphere).toBeDefined();
+            expect(sphere?.id).toBe('test-sphere');
+        });
+
+        it('should return undefined for non-existent elements', () => {
+            const nonExistent = world.getElement('does-not-exist');
+            expect(nonExistent).toBeUndefined();
+        });
+
+        it('should remove elements correctly', () => {
+            const blueprint = createMockBlueprint('box');
+            
+            // Add element
+            world.addBox('removable-box', blueprint as any);
+            expect(world.getElement('removable-box')).toBeDefined();
+            
+            // Remove element
+            world.removeElement('removable-box');
+            expect(world.getElement('removable-box')).toBeUndefined();
+        });
+
+        it('should handle removing non-existent elements gracefully', () => {
+            expect(() => {
+                world.removeElement('does-not-exist');
+            }).not.toThrow();
+            
+            // Should still be undefined
+            expect(world.getElement('does-not-exist')).toBeUndefined();
+        });
+
+        it('should support all element types', () => {
+            const blueprints = {
+                'box': createMockBlueprint('box'),
+                'sphere': createMockBlueprint('sphere'),
+                'cone': createMockBlueprint('cone'),
+                'pyramid': createMockBlueprint('pyramid'),
+                'cylinder': createMockBlueprint('cylinder'),
+                'torus': createMockBlueprint('torus'),
+                'elliptical': createMockBlueprint('elliptical'),
+                'text': {type: 'text', position: {x: 0, y: 0, z: 0}, text: 'Hello', size: 12} as any,
+                'floor': createMockBlueprint('floor'),
+                'panel': createMockBlueprint('panel'),
+                'billboard': createMockBlueprint('billboard')
+            };
+
+            // Add all element types
+            world.addBox('test-box', blueprints.box as any);
+            world.addSphere('test-sphere', blueprints.sphere as any);
+            world.addCone('test-cone', blueprints.cone as any);
+            world.addPyramid('test-pyramid', blueprints.pyramid as any);
+            world.addCylinder('test-cylinder', blueprints.cylinder as any);
+            world.addTorus('test-torus', blueprints.torus as any);
+            world.addElliptical('test-elliptical', blueprints.elliptical as any);
+            world.addText('test-text', blueprints.text as any);
+            world.addFloor('test-floor', blueprints.floor as any);
+            world.addPanel('test-panel', blueprints.panel as any);
+            world.addBillboard('test-billboard', blueprints.billboard as any);
+
+            // Verify all elements exist
+            Object.keys(blueprints).forEach(id => {
+                const element = world.getElement(`test-${id}`);
+                expect(element).toBeDefined();
+                expect(element?.id).toBe(`test-${id}`);
+            });
+        });
+
+        it('should handle duplicate element IDs correctly', () => {
+            const blueprint1 = createMockBlueprint('box');
+            const blueprint2 = createMockBlueprint('sphere');
+            
+            // Add first element
+            world.addBox('duplicate-id', blueprint1 as any);
+            const element1 = world.getElement('duplicate-id');
+            expect(element1?.id).toBe('duplicate-id');
+            
+            // Add second element with same ID (should replace/return existing)
+            world.addSphere('duplicate-id', blueprint2 as any);
+            const element2 = world.getElement('duplicate-id');
+            
+            // Should still have the same reference (first element takes precedence)
+            expect(element2).toBe(element1);
+        });
+
+        it('should maintain element state after add/remove cycles', () => {
+            const blueprint = createMockBlueprint('box');
+            
+            // Add element
+            world.addBox('cycle-test', blueprint as any);
+            const element1 = world.getElement('cycle-test');
+            expect(element1).toBeDefined();
+            
+            // Remove element
+            world.removeElement('cycle-test');
+            expect(world.getElement('cycle-test')).toBeUndefined();
+            
+            // Add element again with same ID
+            world.addSphere('cycle-test', createMockBlueprint('sphere') as any);
+            const element2 = world.getElement('cycle-test');
+            
+            expect(element2).toBeDefined();
+            expect(element2?.id).toBe('cycle-test');
+            // Should be a new element (different type)
+            expect(element2).not.toBe(element1);
+        });
+
+        it('should work with Stage methods integration', () => {
+            const stageSpy = vi.spyOn(stage, 'add');
+            const getSpy = vi.spyOn(stage, 'getElement');
+            const removeSpy = vi.spyOn(stage, 'remove');
+            
+            const blueprint = createMockBlueprint('box');
+            
+            // Test add
+            world.addBox('integration-test', blueprint as any);
+            expect(stageSpy).toHaveBeenCalledWith('integration-test', blueprint);
+            
+            // Test get
+            world.getElement('integration-test');
+            expect(getSpy).toHaveBeenCalledWith('integration-test');
+            
+            // Test remove
+            world.removeElement('integration-test');
+            expect(removeSpy).toHaveBeenCalledWith('integration-test');
+        });
+
+        it('should maintain elements during scene rendering', () => {
+            const renderSpy = vi.spyOn(stage, 'render');
+            
+            // Add multiple elements
+            world.addBox('render-box-1', createMockBlueprint('box') as any);
+            world.addSphere('render-sphere', createMockBlueprint('sphere') as any);
+            world.addCone('render-cone', createMockBlueprint('cone') as any);
+            
+            // Step through the scene (which triggers rendering)
+            world.step(mockGP);
+            
+            // Verify that render was called with current state
+            expect(renderSpy).toHaveBeenCalledWith(mockGP, expect.any(Object));
+            
+            // Elements should still be accessible after rendering
+            expect(world.getElement('render-box-1')).toBeDefined();
+            expect(world.getElement('render-sphere')).toBeDefined();
+            expect(world.getElement('render-cone')).toBeDefined();
+        });
+
+        it('should handle element removal during active rendering', () => {
+            const blueprint = createMockBlueprint('box');
+            
+            // Add element
+            world.addBox('temp-element', blueprint as any);
+            expect(world.getElement('temp-element')).toBeDefined();
+            
+            // Step through scene (render with element)
+            world.step(mockGP);
+            
+            // Remove element
+            world.removeElement('temp-element');
+            expect(world.getElement('temp-element')).toBeUndefined();
+            
+            // Step through scene again (render without element)
+            world.step(mockGP);
+            
+            // Element should still be undefined
+            expect(world.getElement('temp-element')).toBeUndefined();
+        });
+
+        it('should work with complex element properties', () => {
+            const complexBlueprint = {
+                type: 'box',
+                position: {kind: 'computed', value: () => ({x: 10, y: 20, z: 30})},
+                size: {kind: 'static', value: 15},
+                texture: {path: 'test.png', width: 64, height: 64}
+            } as any;
+            
+            // Add element with complex properties
+            world.addBox('complex-box', complexBlueprint);
+            
+            // Retrieve and verify element exists
+            const element = world.getElement('complex-box');
+            expect(element).toBeDefined();
+            expect(element?.id).toBe('complex-box');
+            
+            // Element should be renderable (step should not throw)
+            expect(() => {
+                world.step(mockGP);
+            }).not.toThrow();
+        });
+
+        it('should handle rapid add/remove cycles without memory leaks', () => {
+            const blueprint = createMockBlueprint('box');
+            
+            // Rapid add/remove cycles
+            for (let i = 0; i < 10; i++) {
+                const id = `cycle-${i}`;
+                
+                // Add element
+                world.addBox(id, blueprint as any);
+                expect(world.getElement(id)).toBeDefined();
+                
+                // Remove element
+                world.removeElement(id);
+                expect(world.getElement(id)).toBeUndefined();
+            }
+            
+            // Final state should be clean
+            expect(world.getElement('cycle-0')).toBeUndefined();
+            expect(world.getElement('cycle-9')).toBeUndefined();
+            
+            // Rendering should still work
+            expect(() => {
+                world.step(mockGP);
+            }).not.toThrow();
+        });
+    });
 });

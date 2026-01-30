@@ -3,7 +3,7 @@ import tutorial_6 from './tutorial_6';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {type ResolvedFloor, type ResolvedSphere} from "../../scene/types.ts";
-import {resolve} from "../../scene/resolver.ts";
+import {SceneResolver} from "../../scene/resolver.ts";
 
 describe('Tutorial 6: Hybrid Property Resolution', () => {
 
@@ -27,7 +27,8 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
 
         // 3. Verify THE HERO SPHERE (The Hybrid Test)
         const sphereElement = world.getElement('hero-sphere');
-        const resSphere = resolve(sphereElement!, state) as ResolvedSphere;
+        const resolver = new SceneResolver({});
+        const resSphere = resolver.resolve(sphereElement!, state) as ResolvedSphere;
 
         // Position X (Atomic): sin(0.25 * 2PI) * 100 = 100
         expect(resSphere.position.x).toBeCloseTo(100, 5);
@@ -39,7 +40,7 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
 
         // 4. Verify THE FLOOR (Static Geometry)
         const floorElement = world.getElement('floor');
-        const resFloor = resolve(floorElement!, state) as ResolvedFloor;
+        const resFloor = resolver.resolve(floorElement!, state) as ResolvedFloor;
 
         expect(resFloor.width).toBe(500);
         expect(resFloor.position.y).toBe(100);
@@ -63,7 +64,8 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
 
         const state = world.getCurrentSceneState();
         const sphereElement = world.getElement('hero-sphere');
-        const resSphere = resolve(sphereElement!, state) as ResolvedSphere;
+        const resolver = new SceneResolver({});
+        const resSphere = resolver.resolve(sphereElement!, state) as ResolvedSphere;
 
         // Position X: sin(1.5PI) * 100 = -100
         expect(resSphere.position.x).toBeCloseTo(-100, 5);

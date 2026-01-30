@@ -168,7 +168,7 @@ export class SceneResolver<
                 bundle: bundle,
                 settings: {
                     ...bundle.defaults,
-                    ...instruction.settings || {},
+                    ...instruction.settings || {enable: true},
                 }
             };
         });
@@ -180,7 +180,20 @@ export class SceneResolver<
     ): UnwrappedElement<E> {
         // We unwrap the 'dynamic' property, which is DynamicElement<T>
         // The result is T, which matches UnwrappedElement<E>
-        return this.loopResolve(element.dynamic, state) as UnwrappedElement<E>;
+        let resolved = this.loopResolve(element.dynamic, state) as UnwrappedElement<E>;
+
+        for (const id in element.behaviors) {
+            const behavior = element.behaviors[id];
+            if (behavior.settings.enabled) {
+                resolved = behavior.bundle.apply(
+                    resolved,
+                    state,
+                    behavior.settings
+                )
+            }
+        }
+
+        return resolved;
     }
 
     resolveProperty<V>(
@@ -193,7 +206,7 @@ export class SceneResolver<
     isStaticData(val: any): boolean {
         if (typeof val === 'function') return false;
         if (val && typeof val === 'object' && !Array.isArray(val)) {
-            return Object.values(val).every(this.isStaticData);
+            return Object.values(val).every((v) => this.isStaticData(v));
         }
         return true;
     }
