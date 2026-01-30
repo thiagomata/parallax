@@ -31,16 +31,31 @@ export class Stage<TBundle extends GraphicsBundle> {
         return this.registry.get(id);
     }
 
-    public render(gp: GraphicProcessor<TBundle>, state: SceneState): void {
+    public render(gp: GraphicProcessor<TBundle>, state: SceneState): Map<string, ResolvedElement> {
+
         // Optimized Painter's Algorithm: Sort far-to-near
         const renderQueue = Array.from(this.registry.all())
             .map(element => ({
-                element,                 distance: gp.dist(state.camera.position, this.resolver.resolveProperty(element.dynamic.position, state))
+                element,
+                distance: gp.dist(
+                    state.camera.position,
+                    this.resolver.resolveProperty(element.dynamic.position, state)
+                )
             }))
             .sort((a, b) => b.distance - a.distance);
 
-        renderQueue.forEach(({element}) => {
-            element.render(gp, state);
+        let pairs: {
+            id: string;
+            resolved: ResolvedElement
+        }[] = renderQueue.map(({element}) => {
+            return {
+                id: element.id,
+                resolved: element.render(gp, state)
+            }
         });
+
+        return new Map(
+            pairs.map(v => [v.id, v.resolved])
+        )
     }
 }

@@ -69,11 +69,11 @@ export class SceneResolver<
             assets,
             effects: effectsBundles,
             // 2. Placeholder or just define it after
-            render: () => {}
+            render: () => null as unknown as  T
         };
 
         element.render = (gp, state) => {
-            this.render(element, gp, state);
+            return this.render(element, gp, state);
         };
 
         return element;
@@ -83,8 +83,9 @@ export class SceneResolver<
         element: RenderableElement<E, TBundle>,
         gp: GraphicProcessor<TBundle>,
         state: SceneState
-    ) {
+    ): E {
         const resolved = this.resolve(element, state);
+
         const distance = gp.dist(resolved.position, state.camera.position);
         const far = state.settings.camera.far ?? 5000;
 
@@ -129,6 +130,7 @@ export class SceneResolver<
                     throw new Error(`Unknown type ${strange?.constructor?.name} ` + JSON.stringify(strange));
             }
         }
+        return resolved;
     }
 
     toDynamic<T extends ResolvedElement>(

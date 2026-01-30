@@ -99,12 +99,14 @@ export class World<TBundle extends GraphicsBundle> {
         gp.setCamera(this.sceneState.camera.position, this.sceneState.camera.lookAt);
 
         // 3. Delegate Rendering to the Stage (Spatial)
-        this.stage.render(gp, this.sceneState);
+        const resolvedElements = this.stage.render(gp, this.sceneState);
 
         // 4. Overlay Debug
         if (this.sceneState.settings.debug) {
             this.renderDebug(gp, this.sceneState);
         }
+
+        this.sceneState.elements = resolvedElements;
     }
 
     private renderDebug(gp: GraphicProcessor<TBundle>, state: SceneState) {

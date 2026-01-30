@@ -775,7 +775,12 @@ describe('SceneResolver with Effect Bundles', () => {
                 apply(current, _state, settings) {
                     return {
                         ...current,
-                        size: (current as any).size * settings.multiplier
+                        size: (current as any).size * settings.multiplier,
+                        position: {
+                            x: (current as any).position.x * settings.multiplier,
+                            y: (current as any).position.y * settings.multiplier,
+                            z: (current as any).position.z * settings.multiplier
+                        }
                     };
                 }
             };
@@ -825,9 +830,12 @@ describe('SceneResolver with Effect Bundles', () => {
 
             const resolved = resolver.resolve(renderableBox, mockState) as ResolvedBox;
 
-            // First size: 10 * 3 = 30, then position offset: (1, 2, 3) + (5, -1, 2) = (6, 1, 5)
-            expect(resolved.size).toBe(30);
-            expect(resolved.position).toEqual({x: 6, y: 1, z: 5});
+            // {x: 1, y: 2, z: 3} * 3 + (5, -1, 2) = {
+            //      x: 1 * 3 + 5,
+            //      y: 2 * 3 - 1,
+            //      z: 3 * 3 + 2
+            // }
+            expect(resolved.position).toEqual({x: 1 * 3 + 5, y: 2 * 3 - 1, z: 3 * 3 + 2});
         });
     });
 

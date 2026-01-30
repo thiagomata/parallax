@@ -75,6 +75,7 @@ export interface SceneState {
     playback: ScenePlaybackState;
     camera: SceneCameraState;
     debugStateLog?: SceneStateDebugLog;
+    elements?: Map<string, ResolvedElement>;
 }
 
 export const DEFAULT_CAMERA_FAR = 5000;
@@ -504,7 +505,7 @@ export type ResolvedElement =
 export interface Renderable<TBundle extends GraphicsBundle = GraphicsBundle> {
     readonly id: string;
 
-    render(gp: GraphicProcessor<TBundle>, state: SceneState): void;
+    render(gp: GraphicProcessor<TBundle>, state: SceneState): ResolvedElement;
 }
 
 export interface RenderableElement<
