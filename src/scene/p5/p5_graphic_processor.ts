@@ -47,11 +47,11 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.camera(pos.x, pos.y, pos.z, lookAt.x, lookAt.y, lookAt.z, 0, 1, 0);
     }
 
-    push(): void {
+    private push(): void {
         this.p.push();
     }
 
-    pop(): void {
+    private pop(): void {
         this.p.pop();
     }
 
@@ -59,15 +59,15 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.translate(pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
     }
 
-    rotateX(a: number): void {
+    private rotateX(a: number): void {
         this.p.rotateX(a);
     }
 
-    rotateY(a: number): void {
+    private rotateY(a: number): void {
         this.p.rotateY(a);
     }
 
-    rotateZ(a: number): void {
+    private rotateZ(a: number): void {
         this.p.rotateZ(a);
     }
 
@@ -360,15 +360,21 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     }
 
     text(s: string, pos: Partial<Vector3>): void {
+        this.push();
         this.p.text(s, pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
+        this.pop();
     }
 
     drawLabel(s: string, pos: Partial<Vector3>): void {
+        this.push();
         this.text(s, pos);
+        this.pop();
     }
 
     drawHUDText(s: string, x: number, y: number): void {
+        this.push();
         this.p.text(s, x, y);
+        this.pop();
     }
 
     drawCrosshair(pos: Partial<Vector3>, size: number): void {

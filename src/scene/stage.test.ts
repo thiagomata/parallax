@@ -37,27 +37,30 @@ describe('Stage (Spatial Orchestration)', () => {
         const nearPos = {x: 0, y: 0, z: 50};
         const farPos = {x: 0, y: 0, z: 500};
 
-        stage.add('near', {
+
+        const nearBox = {
             type: ELEMENT_TYPES.BOX,
             position: nearPos,
             size: 1
-        });
+        }
+        stage.add('near', nearBox);
 
-        stage.add('far', {
+        const farBox = {
             type: ELEMENT_TYPES.BOX,
             position: farPos,
             size: 1
-        });
+        }
+        stage.add('far', farBox);
 
         stage.render(mockGP, mockState);
 
-        const translateCalls = vi.mocked(mockGP.translate).mock.calls;
+        const drawCalls = vi.mocked(mockGP.drawBox).mock.calls;
 
         // Check invocation order:
         // Index 0 should be the FAR element (dist 500)
         // Index 1 should be the NEAR element (dist 50)
-        expect(translateCalls[0][0]).toEqual(farPos);
-        expect(translateCalls[1][0]).toEqual(nearPos);
+        expect(drawCalls[0][0]).toEqual(farBox);
+        expect(drawCalls[1][0]).toEqual(nearBox);
     });
 
     it('should resolve dynamic positions during the sorting phase', () => {
@@ -73,9 +76,27 @@ describe('Stage (Spatial Orchestration)', () => {
             playback: {...mockState.playback, now: 999}
         };
 
+        const expectedBox = {
+            type: ELEMENT_TYPES.BOX,
+            position: {x: 999, y: 0, z: 0},
+            size: 1,
+        };
+
+        const assets = {
+            font: {
+                status: "READY",
+                value: null,
+            },
+            texture: {
+                status: "READY",
+                value: null,
+            }
+        };
+
+
         stage.render(mockGP, customState);
 
-        expect(mockGP.translate).toHaveBeenCalledWith({x: 999, y: 0, z: 0});
+        expect(mockGP.drawBox).toHaveBeenCalledWith(expectedBox, assets, customState);
     });
 
     it('should maintain single instances even with multiple add calls (Idempotency)', () => {
@@ -84,7 +105,7 @@ describe('Stage (Spatial Orchestration)', () => {
             type: ELEMENT_TYPES.BOX,
             position: {x: 0, y: 0, z: 0},
             size: 1,
-            texture: {path: 'shared.png', width: 1, height: 1}
+            texture: {path: 'shared.png', width: 1, height: 1},
         };
 
         stage.add('unique-id', bluePrint);

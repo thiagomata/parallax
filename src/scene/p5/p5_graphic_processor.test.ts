@@ -200,21 +200,6 @@ describe('P5GraphicProcessor', () => {
             expect(mockP5.noStroke).toHaveBeenCalled();
         });
 
-        it('should call rotateX wrapper method', () => {
-            gp.rotateX(45);
-            expect(mockP5.rotateX).toHaveBeenCalledWith(45);
-        });
-
-        it('should call rotateY wrapper method', () => {
-            gp.rotateY(30);
-            expect(mockP5.rotateY).toHaveBeenCalledWith(30);
-        });
-
-        it('should call rotateZ wrapper method', () => {
-            gp.rotateZ(60);
-            expect(mockP5.rotateZ).toHaveBeenCalledWith(60);
-        });
-
         it('should call noFill wrapper method', () => {
             gp.noFill();
             expect(mockP5.noFill).toHaveBeenCalled();
@@ -243,7 +228,7 @@ describe('P5GraphicProcessor', () => {
             expect(mockP5.rotateX).toHaveBeenCalledWith(15);
             expect(mockP5.rotateY).toHaveBeenCalledWith(30);
             expect(mockP5.rotateZ).toHaveBeenCalledWith(45);
-expect(mockP5.plane).toHaveBeenCalledWith(100, 50);
+            expect(mockP5.plane).toHaveBeenCalledWith(100, 50);
             expect(mockP5.pop).toHaveBeenCalled();
         });
     });

@@ -40,10 +40,6 @@ export class Stage<TBundle extends GraphicsBundle> {
             .sort((a, b) => b.distance - a.distance);
 
         renderQueue.forEach(({element}) => {
-            const resolvedPosition = this.resolver.resolveProperty(element.dynamic.position, state);
-            
-            // Move to element position, then render
-            gp.translate(resolvedPosition);
             element.render(gp, state);
         });
     }

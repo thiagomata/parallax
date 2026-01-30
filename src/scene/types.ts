@@ -210,17 +210,17 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
 
     setCamera(pos: Vector3, lookAt: Vector3): void;
 
-    push(): void;
+    // push(): void;
 
-    pop(): void;
+    // pop(): void;
 
     translate(pos: Vector3): void;
 
-    rotateX(angle: number): void;
-
-    rotateY(angle: number): void;
-
-    rotateZ(angle: number): void;
+    // rotateX(angle: number): void;
+    //
+    // rotateY(angle: number): void;
+    //
+    // rotateZ(angle: number): void;
 
     fill(color: ColorRGBA, alpha?: number): void;
 
@@ -248,11 +248,17 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
 
     drawFloor(resolved: ResolvedFloor, assets: ElementAssets<TBundle>, state: SceneState): void;
 
-drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: SceneState): void;
+    drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: SceneState): void;
 
     drawBillboard(props: ResolvedBillboard, assets: ElementAssets<TBundle>, state: SceneState): void;
 
-    plane(width: number, height: number): void;
+    drawLabel(s: string, pos: Partial<Vector3>): void;
+
+    drawCrosshair(pos: Partial<Vector3>, size: number): void;
+
+    drawHUDText(s: string, x: number, y: number): void;
+
+    // plane(width: number, height: number): void;
 
     dist(v1: Vector3, v2: Vector3): number;
 
@@ -260,13 +266,7 @@ drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: SceneState)
 
     lerp(start: number, stop: number, amt: number): number;
 
-    drawLabel(s: string, pos: Partial<Vector3>): void;
-
     text(s: string, pos: Partial<Vector3>): void;
-
-    drawCrosshair(pos: Partial<Vector3>, size: number): void;
-
-    drawHUDText(s: string, x: number, y: number): void;
 
     millis(): number;
 
