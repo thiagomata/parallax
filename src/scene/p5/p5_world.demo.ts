@@ -14,7 +14,7 @@ new p5((p: p5) => {
     p.setup = () => {
         p.createCanvas(window.innerWidth, window.innerHeight, p.WEBGL);
 
-        // 1. Scene Orchestration
+        // Scene Orchestration
         const manager = new SceneManager({
             ...DEFAULT_SETTINGS,
             playback: {
@@ -29,15 +29,15 @@ new p5((p: p5) => {
         manager.addCarModifier(new OrbitModifier(p, 1000));
         manager.addStickModifier(new CenterFocusModifier());
 
-        // 2. Bridge & Loader
+        // Bridge & Loader
         const loader = new P5AssetLoader(p);
         gp = new P5GraphicProcessor(p, loader);
 
-        // 3. World & Stage initialization
+        // World & Stage initialization
         // Note: World creates its own internal Stage if one isn't passed
         world = new World(manager, loader);
 
-        // 4. REGISTRATION (Adding Blueprints)
+        // REGISTRATION (Adding Blueprints)
         // We use world.add (which delegates to stage.add)
         // No more manual 'toProps'—the Registry handles that!
 

@@ -19,7 +19,7 @@ export function tutorial_8(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     let graphicProcessor: P5GraphicProcessor;
     let world: World<P5Bundler, any>;
 
-    // 1. Scene Orchestration
+    // Scene Orchestration
     const activeManager = config.manager ?? new SceneManager(
         {
             camera: {
@@ -37,11 +37,11 @@ export function tutorial_8(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         }
     );
 
-    // 2. Camera Logic: Adding orbit to showcase billboard effect
+    // Camera Logic: Adding orbit to showcase billboard effect
     activeManager.addCarModifier(new OrbitModifier(p, 800));
     activeManager.addStickModifier(new CenterFocusModifier());
 
-    // 2. Asset Pipeline
+    // Asset Pipeline
     const loader = new P5AssetLoader(p);
 
     const effects = {
@@ -50,16 +50,16 @@ export function tutorial_8(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     const stage = new Stage<P5Bundler, typeof effects>(loader, effects);
 
-    // 3. World Initialization
+    // World Initialization
     world = new World<P5Bundler, any>(activeManager, loader, stage);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
 
-        // 4. Graphic Processor Initialization
+        // Graphic Processor Initialization
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // 5. REGISTRATION
+        // REGISTRATION
         
         // Add reference objects to show camera movement
         world.addBox('reference-cube', {

@@ -14,20 +14,20 @@ import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.dem
 export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any> {
     let gp: P5GraphicProcessor;
 
-    // 1. Create the manager
+    // Create the manager
     const activeManager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
         debug: false
     });
 
-    // 2. Camera Logic: Use injected or create default
+    // Camera Logic: Use injected or create default
     const headTracker = config.cameraModifier ?? new HeadTrackingModifier(p);
 
     activeManager.addCarModifier(headTracker);
     activeManager.addNudgeModifier(headTracker);
     activeManager.addStickModifier(headTracker);
 
-    // 3. Asset Pipeline & World
+    // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
     const world = new World<P5Bundler, any>(activeManager, loader);
 
@@ -37,7 +37,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         p.createCanvas(config.width, config.height, p.WEBGL);
         gp = new P5GraphicProcessor(p, loader);
 
-        // 4. REGISTRATION
+        // REGISTRATION
         // We create a deep corridor of spheres to test the Z-depth and X/Y parallax
         for (let z = 200; z > -2000; z -= 200) {
             for (let x = -500; x <= 500; x += 200) {

@@ -10,14 +10,14 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
     it('should correctly resolve atomic position and granular color', async () => {
         const mockP5 = createMockP5();
 
-        // 1. Initialize the Tutorial
+        // Initialize the Tutorial
         const world = tutorial_6(mockP5 as unknown as p5);
 
-        // 2. Registration
+        // Registration
         // In the sketch, p.setup is async and handles registration
         await mockP5.setup();
 
-        // --- TEST POINT: Progress 0.25 (T = 1250ms / 5000ms) ---
+        // TEST POINT: Progress 0.25 (T = 1250ms / 5000ms) ---
         // At 0.25 progress, sin(0.25 * 2PI) = sin(PI/2) = 1
         mockP5.millis.mockReturnValue(1250);
         mockP5.draw();
@@ -25,7 +25,7 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
         const state = world.getCurrentSceneState();
         expect(state.playback.progress).toBe(0.25);
 
-        // 3. Verify THE HERO SPHERE (The Hybrid Test)
+        // Verify THE HERO SPHERE (The Hybrid Test)
         const sphereElement = world.getElement('hero-sphere');
         const resolver = new SceneResolver({});
         const resSphere = resolver.resolve(sphereElement!, state) as { resolved: ResolvedSphere };
@@ -38,14 +38,14 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
         expect(resSphere.resolved.fillColor?.blue).toBeCloseTo(254, 5);
         expect(resSphere.resolved.fillColor?.red).toBe(255);
 
-        // 4. Verify THE FLOOR (Static Geometry)
+        // Verify THE FLOOR (Static Geometry)
         const floorElement = world.getElement('floor');
         const resFloor = resolver.resolve(floorElement!, state) as { resolved: ResolvedFloor };
 
         expect(resFloor.resolved.width).toBe(500);
         expect(resFloor.resolved.position.y).toBe(100);
 
-        // 5. Verify THE BRIDGE (Execution)
+        // Verify THE BRIDGE (Execution)
         // Check that the GraphicProcessor actually called p5
         expect(mockP5.sphere).toHaveBeenCalledWith(40);
         expect(mockP5.plane).toHaveBeenCalledWith(500, 500);
@@ -57,7 +57,7 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
         const world = tutorial_6(mockP5 as unknown as p5);
         await mockP5.setup();
 
-        // --- TEST POINT: Progress 0.75 (T = 3750ms / 5000ms) ---
+        // TEST POINT: Progress 0.75 (T = 3750ms / 5000ms) ---
         // At 0.75 progress, sin(1.5PI) = -1
         mockP5.millis.mockReturnValue(3750);
         mockP5.draw();

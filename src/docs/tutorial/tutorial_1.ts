@@ -11,7 +11,7 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     let graphicProcessor: P5GraphicProcessor;
     let world: World<P5Bundler, any>;
 
-    // 1. Scene Orchestration (5s rotating loop)
+    // Scene Orchestration (5s rotating loop)
     const activeManager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
         playback: {
@@ -21,20 +21,20 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         }
     });
 
-    // 2. Asset Pipeline
+    // Asset Pipeline
     // We create the loader here to pass it to the World/Stage
     const loader = new P5AssetLoader(p);
 
-    // 3. World Initialization
+    // World Initialization
     world = new World<P5Bundler, any>(activeManager, loader);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
 
-        // 4. Graphic Processor Initialization
+        // Graphic Processor Initialization
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // 5. REGISTRATION
+        // REGISTRATION
         // Using the "Extreme Typed" addBox method (no manual toProps/casting)
         world.addBox('box', {
             type: ELEMENT_TYPES.BOX,

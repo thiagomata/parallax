@@ -220,7 +220,7 @@ export class SceneResolver<
     }
 
     compileProperty<V>(value: V): DynamicProperty<V> {
-        // 1. Function -> Computed
+        // Function -> Computed
         if (typeof value === 'function') {
             return {
                 kind: SPEC_KINDS.COMPUTED,
@@ -228,7 +228,7 @@ export class SceneResolver<
             };
         }
 
-        // 2. Objects
+        // Objects
         if (value && typeof value === 'object' && !Array.isArray(value)) {
             // SHORT-CIRCUIT: If the whole object is static (like a Vector3),
             // wrap it once and stop. No "Static Inception."
@@ -245,12 +245,12 @@ export class SceneResolver<
             return {kind: SPEC_KINDS.BRANCH, value: dynamicBranch};
         }
 
-        // 3. Leaf Primitives
+        // Leaf Primitives
         return {kind: SPEC_KINDS.STATIC, value};
     }
 
     loopResolve<T>(src: T, state: SceneState): Unwrapped<T> {
-        // 1. Handle DynamicProperty (The Container)
+        // Handle DynamicProperty (The Container)
         if (this.isDynamicProperty(src)) {
             switch (src.kind) {
                 case SPEC_KINDS.STATIC:
@@ -263,7 +263,7 @@ export class SceneResolver<
             }
         }
 
-        // 2. Handle Objects (The Branch)
+        // Handle Objects (The Branch)
         if (src && typeof src === 'object' && !Array.isArray(src)) {
             const result = {} as any;
             for (const key in src) {
@@ -274,7 +274,7 @@ export class SceneResolver<
             return result as Unwrapped<T>;
         }
 
-        // 3. Leaf / Primitive identity
+        // Leaf / Primitive identity
         return src as Unwrapped<T>;
     }
 

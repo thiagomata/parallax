@@ -68,7 +68,7 @@ describe('README Examples Validation', () => {
     it('should validate the Recursive Spec Resolution examples', () => {
         const state = manager.initialState();
 
-        // 1. Example 1: Static & Computed Props
+        // Example 1: Static & Computed Props
         const blueprint = toBlueprint<ResolvedBox>({
             type: ELEMENT_TYPES.BOX,
             position: {x: 0, y: 0, z: 0},
@@ -80,7 +80,7 @@ describe('README Examples Validation', () => {
         const element = resolver.prepare('test-id', blueprint, assetLoader);
         const elementResolved = resolver.resolve(element, state) as { resolved: ResolvedBox };
 
-        // 2. Example 2: Deep Resolution (Granular)
+        // Example 2: Deep Resolution (Granular)
         const granularBlueprint = toBlueprint<ResolvedBox>({
             type: ELEMENT_TYPES.BOX,
             position: {

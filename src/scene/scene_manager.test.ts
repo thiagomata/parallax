@@ -184,10 +184,10 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
 
         const state = manager.calculateScene(1000, 10, 60, mockState);
 
-        // 1. Camera should stay at initialCam
+        // Camera should stay at initialCam
         expect(state.camera.position).toEqual(initial);
 
-        // 2. LookAt should default to 1000 units in front of initialCam (Z-1000)
+        // LookAt should default to 1000 units in front of initialCam (Z-1000)
         // Based on the default StickResult: { yaw: 0, pitch: 0, distance: 1000 }
         expect(state.camera.lookAt.z).toBe(initial.z - 1000);
     });
@@ -501,10 +501,10 @@ describe("PortalSceneManager - Multi-Stick Logic", () => {
 
         const state = manager.calculateScene(1000, 10, 60, mockState);
 
-        // 1. Math check: Must be the High-Priority value
+        // Math check: Must be the High-Priority value
         expect(state.camera.lookAt.z).toBeCloseTo(10); // Since yaw 3.14 (PI) is "backward"
 
-        // 2. Debug check: Must identify the winner by its explicit name
+        // Debug check: Must identify the winner by its explicit name
         expect(state.debugStateLog?.stick.name).toBe("High-Priority-Override");
         expect(state.debugStateLog?.stick.priority).toBe(100);
     });
@@ -560,7 +560,7 @@ it('should completely reset spatial logic after clearModifiers', () => {
     const manager = new SceneManager();
     const initialPos = manager.initialState().camera.position;
 
-    // 1. Add a modifier that moves the camera far away
+    // Add a modifier that moves the camera far away
     manager.addCarModifier({
         name: "Wanderer",
         priority: 100,
@@ -572,7 +572,7 @@ it('should completely reset spatial logic after clearModifiers', () => {
     const stateWithModifier = manager.calculateScene(1000, 16, 60, manager.initialState());
     expect(stateWithModifier.camera.position.x).toBe(999);
 
-    // 2. Clear and verify we are back to baseline
+    // Clear and verify we are back to baseline
     manager.clearModifiers();
 
     // We expect the modifiers array to be empty (Internal check if public, or via result)

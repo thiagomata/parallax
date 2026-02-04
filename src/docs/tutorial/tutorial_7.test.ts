@@ -45,7 +45,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
 
         const yawAngle = 0.2;
 
-        // 1. Establish Baseline
+        // Establish Baseline
         const centerFace = factory.createCenterFace();
         mockProvider.getFace.mockReturnValue(centerFace);
         mockP5.draw();
@@ -53,7 +53,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
         // Get initial state to handle any inherent offsets (like the eye-to-nose Y gap)
         const baselineYaw = world.getCurrentSceneState().camera.yaw;
 
-        // 2. Rotate
+        // Rotate
         const rotatedFace = factory.rotate(centerFace, yawAngle, 0);
         mockProvider.getFace.mockReturnValue(rotatedFace);
         mockP5.draw();
@@ -96,12 +96,12 @@ describe('Tutorial 7: The Observer (Integration)', () => {
         );
         await mockP5.setup();
 
-        // 1. Establish offset
+        // Establish offset
         mockProvider.getFace.mockReturnValue(factory.shiftX(null, 0.2));
         mockP5.draw();
         const offsetPos = world.getCurrentSceneState().camera.position.x;
 
-        // 2. Lose tracking
+        //  Lose tracking
         mockProvider.getFace.mockReturnValue(null);
         mockP5.draw(); // One tick of drifting back
 

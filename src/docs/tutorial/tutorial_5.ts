@@ -9,7 +9,7 @@ import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.dem
 export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any> {
     let graphicProcessor: P5GraphicProcessor;
 
-    // 1. Scene Orchestration
+    // Scene Orchestration
     const manager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
         playback: {
@@ -19,7 +19,7 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         }
     });
 
-    // 2. Asset Pipeline & World
+    // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
     const world = new World<P5Bundler, any>(manager, loader);
 
@@ -27,7 +27,7 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         p.createCanvas(config.width, config.height, p.WEBGL);
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // 3. REGISTRATION
+        // REGISTRATION
         // Hydration starts automatically when the element is added
 
         // Textured Box
@@ -61,7 +61,7 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             fillColor: {red: 0, green: 229, blue: 255}
         });
 
-        // 4. HYDRATION (Optional Wait)
+        // HYDRATION (Optional Wait)
         // By awaiting this, we ensure the first frame isn't "blank"
         await loader.waitForAllAssets();
     };

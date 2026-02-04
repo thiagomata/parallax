@@ -9,7 +9,7 @@ import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.dem
 export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any> {
     let graphicProcessor: P5GraphicProcessor;
 
-    // 1. Scene Orchestration (5s circular loop)
+    // Scene Orchestration (5s circular loop)
     const activeManager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
         playback: {
@@ -19,7 +19,7 @@ export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         }
     });
 
-    // 2. Asset Pipeline & World
+    // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
     const world = new World<P5Bundler, any>(activeManager, loader);
 
@@ -27,7 +27,7 @@ export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         p.createCanvas(config.width, config.height, p.WEBGL);
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // 3. REGISTRATION
+        // REGISTRATION
         // Defining the Orbit as a function of the Engine Progress
         world.addBox('orbit-box', {
             type: ELEMENT_TYPES.BOX,

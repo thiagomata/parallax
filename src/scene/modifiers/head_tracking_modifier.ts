@@ -113,20 +113,20 @@ export class HeadTrackingModifier implements CarModifier, NudgeModifier, StickMo
     private updateFace(incoming: FaceFeatures): void {
         this.framesSinceLastSeen = 0;
 
-        // 1. Auto-Calibration (First frame or after reset)
+        // Auto-Calibration (First frame or after reset)
         if (this.neutralHeadSize === null) {
             this.neutralHeadSize = incoming.scale;
             console.log("New calibration baseline set:", this.neutralHeadSize);
         }
 
-        // 2. Semantic Smoothing: Interpolate the whole "Face" state
+        // Semantic Smoothing: Interpolate the whole "Face" state
         if (!this.smoothedFeatures) {
             this.smoothedFeatures = incoming;
         } else {
             this.smoothedFeatures = this.interpolateFeatures(this.smoothedFeatures, incoming);
         }
 
-        // 3. Map Smoothed Face to Engine Output
+        // Map Smoothed Face to Engine Output
         this.updateCache();
     }
 

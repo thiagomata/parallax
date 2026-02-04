@@ -100,18 +100,18 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         const cam = state.camera;
         // const locks = props.lockRotation || {};
 
-        // 1. Invert the Camera's Yaw
+        // Invert the Camera's Yaw
         // If we don't lock Y, we must SUBTRACT the camera's yaw to stay flat to the lens.
         // if (!locks.y) {
             this.rotateY(-cam.yaw);
         // }
 
-        // 2. Invert the Camera's Pitch
+        // Invert the Camera's Pitch
         // if (!locks.x) {
             this.rotateX(cam.pitch);
         // }
 
-        // 3. Invert the Camera's Roll
+        // Invert the Camera's Roll
         // if (!locks.z) {
             this.rotateZ(cam.roll);
         // }
@@ -187,20 +187,20 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     drawFloor(props: ResolvedFloor, assets: ElementAssets<P5Bundler>, state: SceneState): void {
         this.push();
 
-        // 1. Position the center of the floor
+        // Position the center of the floor
         this.translate(props.position);
 
-        // 2. Base Rotation: Orient to the XZ plane (Standard Floor Behavior)
+        // Base Rotation: Orient to the XZ plane (Standard Floor Behavior)
         this.p.rotateX(this.p.HALF_PI);
 
-        // 3. User Rotation: Apply any additional offsets from the blueprint
+        // User Rotation: Apply any additional offsets from the blueprint
         this.rotate(props.rotate);
 
-        // 4. Visual Styles
+        // Visual Styles
         this.drawTexture(assets, props, state);
         this.drawStroke(props, state);
 
-        // 5. Execution: A floor is a plane with specific width and depth
+        // Execution: A floor is a plane with specific width and depth
         // Note: p5.plane takes (width, height). In floor context, height = depth.
         this.p.plane(props.width, props.depth);
 

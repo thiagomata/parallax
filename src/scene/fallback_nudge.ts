@@ -19,13 +19,13 @@ export class FallbackNudge implements NudgeModifier {
     }
 
     getNudge(currentCarPos: Vector3, state: SceneState): FailableResult<Partial<Vector3>> {
-        // 1. Try Primary
+        // Try Primary
         if (this.primary.active) {
             const res = this.primary.getNudge(currentCarPos, state);
             if (res.success) return res;
         }
 
-        // 2. Fallback to Secondary
+        // Fallback to Secondary
         if (this.secondary.active) {
             const res = this.secondary.getNudge(currentCarPos, state);
             if (res.success) return res;

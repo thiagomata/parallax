@@ -12,13 +12,13 @@ describe('Hero Demo Integration: World Animation', () => {
     it('should calculate animated box properties correctly across the 10s loop', async () => {
         const mockP5 = createMockP5();
 
-        // 1. Initialize the Hero Demo
+        // Initialize the Hero Demo
         const world = heroExample1(mockP5 as unknown as p5, DEFAULT_SKETCH_CONFIG);
 
         // Trigger setup
         mockP5.setup();
 
-        // --- TEST AT 0% PROGRESS (T = 0ms) ---
+        // TEST AT 0% PROGRESS (T = 0ms) ---
         mockP5.millis.mockReturnValue(0);
         mockP5.draw(); //  Frame Loop (Calculates SceneState)
 
@@ -31,7 +31,7 @@ describe('Hero Demo Integration: World Animation', () => {
         expect(resolved0.resolved.radius).toBe(100);
         expect(resolved0.resolved.position).toMatchObject({x: 0, y: 0, z: 0});
 
-        // --- TEST AT 25% PROGRESS (T = 2500ms) ---
+        // TEST AT 25% PROGRESS (T = 2500ms) ---
         mockP5.millis.mockReturnValue(2500);
         mockP5.draw();
 
@@ -43,7 +43,7 @@ describe('Hero Demo Integration: World Animation', () => {
         expect(resolved25.resolved.position.y).toBeCloseTo(-100, 5);
         expect(resolved25.resolved.rotate?.z).toBeCloseTo(Math.PI / 2, 5);
 
-        // --- TEST AT 50% PROGRESS (T = 5000ms) ---
+        // TEST AT 50% PROGRESS (T = 5000ms) ---
         mockP5.millis.mockReturnValue(5000);
         mockP5.draw();
 

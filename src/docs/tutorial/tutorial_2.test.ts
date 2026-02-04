@@ -12,7 +12,7 @@ describe('Tutorial 2: Progression Integration', () => {
         const mockP5 = createMockP5();
         mockP5.millis.mockReturnValue(0);
 
-        // 1. Inject a manager with 4000ms duration for predictable math
+        // Inject a manager with 4000ms duration for predictable math
         const manager = new SceneManager({
             ...DEFAULT_SETTINGS,
             playback: {
@@ -22,7 +22,7 @@ describe('Tutorial 2: Progression Integration', () => {
             }
         });
 
-        // 2. Execute the actual tutorial function
+        // Execute the actual tutorial function
         const world = tutorial_2(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400, 
@@ -31,7 +31,7 @@ describe('Tutorial 2: Progression Integration', () => {
         });
         mockP5.setup(); // Triggers registration
 
-        // --- TEST POINT A: Progress 0.0 (T = 0ms) ---
+        // TEST POINT A: Progress 0.0 (T = 0ms) ---
         mockP5.draw(); // Calculates state and steps world
 
         const element = world.getElement('pulsing-box');
@@ -45,7 +45,7 @@ describe('Tutorial 2: Progression Integration', () => {
         // Blue: 127 + 127 * cos(0) = 254 (or ~255)
         expect(props0.resolved.fillColor?.blue).toBeCloseTo(254, 0);
 
-        // --- TEST POINT B: Progress 0.25 (T = 1000ms / 4000ms) ---
+        // TEST POINT B: Progress 0.25 (T = 1000ms / 4000ms) ---
         mockP5.millis.mockReturnValue(1000);
         mockP5.draw();
 
@@ -58,7 +58,7 @@ describe('Tutorial 2: Progression Integration', () => {
         // Blue: 127 + 127 * cos(PI/2) = 127
         expect(props25.resolved.fillColor?.blue).toBeCloseTo(127, 0);
 
-        // --- TEST POINT C: Progress 0.5 (T = 2000ms) ---
+        // TEST POINT C: Progress 0.5 (T = 2000ms) ---
         mockP5.millis.mockReturnValue(2000);
         mockP5.draw();
 
@@ -68,7 +68,7 @@ describe('Tutorial 2: Progression Integration', () => {
         // Blue: 127 + 127 * cos(PI) = 0
         expect(props50.resolved.fillColor?.blue).toBeCloseTo(0, 0);
 
-        // 3. Verify side effect: The Bridge called p5
+        // Verify side effect: The Bridge called p5
         expect(mockP5.box).toHaveBeenCalled();
     });
 });
