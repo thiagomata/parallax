@@ -8,6 +8,7 @@ import {createMockGraphicProcessor} from "../../scene/mock/mock_graphic_processo
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import p5 from "p5";
+import {createPauseTests} from "./pause_test_utils.ts";
 
 describe('Tutorial 1: Foundation & Engine Integration', () => {
 
@@ -94,4 +95,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
             expect(mockP5.fill).toHaveBeenCalledWith(100, 100, 255, 255);
         });
     });
+
+    // Use the shared pause test utility
+    createPauseTests('Tutorial 1', tutorial_1);
 });

@@ -17,6 +17,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     // Create the manager
     const activeManager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
+        startPaused: config.paused,
         debug: false
     });
 
@@ -78,6 +79,9 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     };
 
     p.draw = () => {
+        if (config.paused && !activeManager.isPaused()) activeManager.pause();
+        if (!config.paused && activeManager.isPaused()) activeManager.resume();
+
         p.background(10);
 
         /* frame loop */

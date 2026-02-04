@@ -148,9 +148,6 @@ export class SceneResolver<
             case ELEMENT_TYPES.FLOOR:
                 graphicProcessor.drawFloor(bundle.resolved, bundle.assets, state);
                 break;
-            case ELEMENT_TYPES.BILLBOARD:
-                graphicProcessor.drawBillboard(bundle.resolved, bundle.assets, state);
-                break;
             case ELEMENT_TYPES.TEXT:
                 graphicProcessor.drawText(bundle.resolved, bundle.assets, state);
                 break;

@@ -11,7 +11,6 @@ import type {
     ResolvedSphere, 
     ResolvedPanel, 
     ResolvedText, 
-    ResolvedBillboard,
     ResolvedFloor,
     ResolvedPyramid,
     ResolvedCone,
@@ -55,7 +54,7 @@ describe('P5GraphicProcessor', () => {
                 },
                 debug: false,
                 alpha: 1.0,
-                paused: false
+                startPaused: false
             },
             playback: {
                 now: 1000,
@@ -328,47 +327,6 @@ describe('P5GraphicProcessor', () => {
             processor.drawText(textProps, assetsWithoutFont, mockState);
 
             expect(mockP5.push).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('Drawing Methods - Billboard', () => {
-        let billboardProps: ResolvedBillboard;
-
-        beforeEach(() => {
-            billboardProps = {
-                type: ELEMENT_TYPES.BILLBOARD,
-                position: { x: 0, y: 0, z: 0 },
-                width: 100,
-                height: 75
-            };
-        });
-
-        it('should draw billboard with camera compensation', () => {
-            processor.drawBillboard(billboardProps, mockAssets, mockState);
-
-            expect(mockP5.push).toHaveBeenCalled();
-            expect(mockP5.translate).toHaveBeenCalledWith(0, 0, 0);
-            expect(mockP5.rotateY).toHaveBeenCalledWith(-mockState.camera.yaw);
-            expect(mockP5.rotateX).toHaveBeenCalledWith(mockState.camera.pitch);
-            expect(mockP5.rotateZ).toHaveBeenCalledWith(mockState.camera.roll);
-            expect(mockP5.plane).toHaveBeenCalledWith(100, 75);
-            expect(mockP5.pop).toHaveBeenCalled();
-        });
-
-        it('should apply billboard local rotation when specified', () => {
-            const billboardPropsWithRotation = {
-                ...billboardProps,
-                rotate: { x: 0.5, y: 0.3, z: 0.1 }
-            };
-
-            processor.drawBillboard(billboardPropsWithRotation, mockAssets, mockState);
-
-            expect(mockP5.rotateY).toHaveBeenCalledWith(-mockState.camera.yaw);
-            expect(mockP5.rotateX).toHaveBeenCalledWith(mockState.camera.pitch);
-            expect(mockP5.rotateZ).toHaveBeenCalledWith(mockState.camera.roll);
-            expect(mockP5.rotateY).toHaveBeenCalledWith(0.3); // Local rotation
-            expect(mockP5.rotateX).toHaveBeenCalledWith(0.5);
-            expect(mockP5.rotateZ).toHaveBeenCalledWith(0.1);
         });
     });
 
@@ -1160,26 +1118,6 @@ describe('P5GraphicProcessor', () => {
             expect(pushCallIndex).toBeLessThan(translateCallIndex);
             expect(translateCallIndex).toBeLessThan(boxCallIndex);
             expect(boxCallIndex).toBeLessThan(popCallIndex);
-        });
-
-        it('should apply transformations in correct order for billboard', () => {
-            const props = {
-                type: ELEMENT_TYPES.BILLBOARD,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                height: 50,
-                rotate: { x: 0.1, y: 0.2, z: 0.3 }
-            };
-
-            processor.drawBillboard(props, {}, mockState);
-
-            expect(mockP5.rotateY).toHaveBeenNthCalledWith(1, -mockState.camera.yaw);
-            expect(mockP5.rotateX).toHaveBeenNthCalledWith(1, mockState.camera.pitch);
-            expect(mockP5.rotateZ).toHaveBeenNthCalledWith(1, mockState.camera.roll);
-            // Local rotation should come after camera compensation
-            expect(mockP5.rotateY).toHaveBeenNthCalledWith(2, 0.2);
-            expect(mockP5.rotateX).toHaveBeenNthCalledWith(2, 0.1);
-            expect(mockP5.rotateZ).toHaveBeenNthCalledWith(2, 0.3);
         });
 
         it('should verify floor rotation sequence', () => {

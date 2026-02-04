@@ -1,7 +1,6 @@
 import type {SceneManager} from "./scene_manager.ts";
 import type {
     AssetLoader,
-    BlueprintBillboard,
     BlueprintBox,
     BlueprintCone,
     BlueprintCylinder,
@@ -32,6 +31,10 @@ export class World<TBundle extends GraphicsBundle, TEffectLib extends EffectLib>
 
     public getCurrentSceneState(): SceneState {
         return this.sceneState;
+    }
+
+    public isPaused(): boolean {
+        return this.sceneManager.isPaused();
     }
 
     public addBox(id: string, blueprint: BlueprintBox): void {
@@ -71,10 +74,6 @@ export class World<TBundle extends GraphicsBundle, TEffectLib extends EffectLib>
     }
 
     public addPanel(id: string, blueprint: BlueprintPanel): void {
-        this.stage.add(id, blueprint);
-    }
-
-    public addBillboard(id: string, blueprint: BlueprintBillboard): void {
         this.stage.add(id, blueprint);
     }
 

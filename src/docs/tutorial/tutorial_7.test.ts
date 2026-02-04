@@ -4,6 +4,7 @@ import { createMockP5 } from "../../scene/mock/mock_p5.mock.ts";
 import { MockFaceFactory } from "../../scene/mock/mock_face.mock.ts";
 import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts";
 import p5 from "p5";
+import {createPauseTests} from './pause_test_utils.ts';
 import {DEFAULT_SKETCH_CONFIG} from "./tutorial_main_page.demo.ts";
 
 describe('Tutorial 7: The Observer (Integration)', () => {
@@ -110,4 +111,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
         // The position should be moving back toward zero or staying same
         expect(Math.abs(driftedPos)).toBeLessThanOrEqual(Math.abs(offsetPos));
     });
+
+    // Use the shared pause test utility
+    createPauseTests('Tutorial 7', tutorial_7);
 });

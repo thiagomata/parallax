@@ -10,6 +10,7 @@ export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     let graphicProcessor: P5GraphicProcessor;
     const manager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
+        startPaused: config.paused,
         playback: {...DEFAULT_SETTINGS.playback, duration: 5000, isLoop: true}
     });
 
@@ -59,5 +60,4 @@ export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         world.step(graphicProcessor);
     };
     return world;
-};
-export default tutorial_6
+}

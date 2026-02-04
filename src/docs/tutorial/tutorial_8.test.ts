@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { tutorial_8 } from './tutorial_8';
 import { createMockP5 } from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
+import {createPauseTests} from './pause_test_utils.ts';
 import {DEFAULT_SKETCH_CONFIG} from "./tutorial_main_page.demo.ts";
 
 describe('Tutorial 8: The Billboard (Integration)', () => {
@@ -97,4 +98,7 @@ describe('Tutorial 8: The Billboard (Integration)', () => {
             mockP5.setup();
         }).not.toThrow();
     });
+
+    // Use the shared pause test utility
+    createPauseTests('Tutorial 8', tutorial_8);
 });

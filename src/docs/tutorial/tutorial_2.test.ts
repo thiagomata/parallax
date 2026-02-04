@@ -5,6 +5,7 @@ import {DEFAULT_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
 import {SceneResolver} from "../../scene/resolver.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
+import {createPauseTests} from './pause_test_utils.ts';
 
 describe('Tutorial 2: Progression Integration', () => {
 
@@ -71,4 +72,7 @@ describe('Tutorial 2: Progression Integration', () => {
         // Verify side effect: The Bridge called p5
         expect(mockP5.box).toHaveBeenCalled();
     });
+
+    // Use the shared pause test utility
+    createPauseTests('Tutorial 2', tutorial_2);
 });

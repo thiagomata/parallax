@@ -51,7 +51,7 @@ const mockState: SceneState = {
         camera: {position: mockOrigin, lookAt: mockOrigin},
         playback: {isLoop: true, timeSpeed: 1, startTime: 0},
         debug: false,
-        paused: false,
+        startPaused: false,
         alpha: 1
     },
     playback: {now: 1000, delta: 16, progress: 0.2, frameCount: 60},

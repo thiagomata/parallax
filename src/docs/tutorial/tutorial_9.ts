@@ -3,7 +3,7 @@ import {World} from "../../scene/world.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {SceneManager} from "../../scene/scene_manager.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
-import {ELEMENT_TYPES} from "../../scene/types.ts";
+import {DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 import {Stage} from "../../scene/stage.ts";
 import {LookAtEffect} from "../../scene/effects/look_at_effect.ts";
@@ -22,6 +22,8 @@ export function tutorial_9(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     // Scene Orchestration
     const activeManager = config.manager ?? new SceneManager(
         {
+            ...DEFAULT_SETTINGS,
+            startPaused: config.paused,
             camera: {
                 lookAt: {
                     x: 0,

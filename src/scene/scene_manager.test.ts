@@ -670,7 +670,7 @@ describe("PortalSceneManager - Pause, Resume, and Debug", () => {
         expect(manager.isPaused()).toBe(false);
         expect(manager.paused).toBe(false);
         
-        const nonDebugSettings = {...DEFAULT_SETTINGS, debug: false, paused: true};
+        const nonDebugSettings = {...DEFAULT_SETTINGS, debug: false, startPaused: true};
         const manager2 = new SceneManager(nonDebugSettings);
         
         expect(manager2.isDebug()).toBe(false);

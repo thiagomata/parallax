@@ -3,6 +3,7 @@ import {tutorial_4} from './tutorial_4';
 import {SceneManager} from "../../scene/scene_manager.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
+import {createPauseTests} from './pause_test_utils.ts';
 import {DEFAULT_SKETCH_CONFIG} from "./tutorial_main_page.demo.ts";
 
 describe('Tutorial 4: SceneManager & Camera Injection', () => {
@@ -43,4 +44,7 @@ describe('Tutorial 4: SceneManager & Camera Injection', () => {
         // Ensure the CenterFocusModifier is keeping the camera pointed at origin
         expect(state50.camera.lookAt).toMatchObject({x: 0, y: 0, z: 0});
     });
+
+    // Use the shared pause test utility
+    createPauseTests('Tutorial 4', tutorial_4);
 });

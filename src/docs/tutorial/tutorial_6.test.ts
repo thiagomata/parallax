@@ -1,9 +1,10 @@
 import {describe, expect, it} from 'vitest';
-import tutorial_6 from './tutorial_6';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {type ResolvedFloor, type ResolvedSphere} from "../../scene/types.ts";
 import {SceneResolver} from "../../scene/resolver.ts";
+import {createPauseTests} from './pause_test_utils.ts';
+import {tutorial_6} from "./tutorial_6.ts";
 
 describe('Tutorial 6: Hybrid Property Resolution', () => {
 
@@ -73,4 +74,6 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
         // Blue Channel: 127 + 127 * (-1) = 0
         expect(resSphere.resolved.fillColor?.blue).toBeCloseTo(0, 5);
     });
+    // Use the shared pause test utility
+    createPauseTests('Tutorial 6', tutorial_6);
 });

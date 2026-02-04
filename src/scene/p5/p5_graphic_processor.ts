@@ -7,7 +7,6 @@ import {
     type GraphicProcessor,
     type ResolvedBaseVisual,
     type ResolvedBox,
-    type ResolvedBillboard,
     type ResolvedCone,
     type ResolvedCylinder,
     type ResolvedElliptical,
@@ -59,19 +58,6 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.translate(pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
     }
 
-    private rotateX(a: number): void {
-        this.p.rotateX(a);
-    }
-
-    private rotateY(a: number): void {
-        this.p.rotateY(a);
-    }
-
-    private rotateZ(a: number): void {
-        this.p.rotateZ(a);
-    }
-
-    // --- Styling ---
     fill(color: ColorRGBA, alpha: number = 1): void {
         const baseAlpha = color.alpha ?? 1;
         const finalAlpha = Math.round(alpha * baseAlpha * 255);
@@ -91,40 +77,6 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
 
     noStroke(): void {
         this.p.noStroke();
-    }
-
-    drawBillboard(props: ResolvedBillboard, assets: ElementAssets<P5Bundler>, state: SceneState): void {
-        this.push();
-        this.translate(props.position);
-
-        const cam = state.camera;
-        // const locks = props.lockRotation || {};
-
-        // Invert the Camera's Yaw
-        // If we don't lock Y, we must SUBTRACT the camera's yaw to stay flat to the lens.
-        // if (!locks.y) {
-            this.rotateY(-cam.yaw);
-        // }
-
-        // Invert the Camera's Pitch
-        // if (!locks.x) {
-            this.rotateX(cam.pitch);
-        // }
-
-        // Invert the Camera's Roll
-        // if (!locks.z) {
-            this.rotateZ(cam.roll);
-        // }
-
-        // Local override rotation (e.g., spinning the "coin" on its own face)
-        if (props.rotate) {
-            this.rotate(props.rotate);
-        }
-
-        this.drawTexture(assets, props, state);
-        this.plane(props.width, props.height);
-
-        this.pop();
     }
 
     drawText(props: ResolvedText, assets: ElementAssets<P5Bundler>, state: SceneState): void {

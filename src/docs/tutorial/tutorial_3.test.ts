@@ -5,6 +5,7 @@ import {DEFAULT_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
 import {SceneResolver} from "../../scene/resolver.ts"; // The surgical resolver
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
+import {createPauseTests} from './pause_test_utils.ts';
 import {DEFAULT_SKETCH_CONFIG} from "./tutorial_main_page.demo.ts";
 
 describe('Tutorial 3 Integration: Computed Orbit', () => {
@@ -67,4 +68,7 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
         expect(mockP5.translate).toHaveBeenCalled();
         expect(mockP5.box).toHaveBeenCalledWith(50, 50, 50);
     });
+
+    // Use the shared pause test utility
+    createPauseTests('Tutorial 3', tutorial_3);
 });

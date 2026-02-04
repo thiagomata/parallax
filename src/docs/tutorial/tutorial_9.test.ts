@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { tutorial_9 } from './tutorial_9';
 import { createMockP5 } from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
+import {createPauseTests} from './pause_test_utils.ts';
 import {DEFAULT_SKETCH_CONFIG} from "./tutorial_main_page.demo.ts";
 import {ELEMENT_TYPES} from "../../scene/types.ts";
 
@@ -269,4 +270,7 @@ describe('Tutorial 9: Look At The Object (Integration)', () => {
         expect(stepSpy).toHaveBeenCalledTimes(1);
         expect(stepSpy).toHaveBeenCalledWith(expect.any(Object));
     });
+
+    // Use the shared pause test utility
+    createPauseTests('Tutorial 9', tutorial_9);
 });

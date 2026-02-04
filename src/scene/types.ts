@@ -66,7 +66,7 @@ export interface SceneSettings {
     playback: PlaybackSettings;
     debug: boolean;
     alpha: number;
-    paused: boolean;
+    startPaused: boolean;
 }
 
 export interface SceneState {
@@ -100,7 +100,7 @@ export const DEFAULT_SETTINGS: SceneSettings = {
         startTime: 0
     },
     debug: false,
-    paused: false,
+    startPaused: false,
     alpha: 1
 };
 
@@ -251,8 +251,6 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
 
     drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: SceneState): void;
 
-    drawBillboard(props: ResolvedBillboard, assets: ElementAssets<TBundle>, state: SceneState): void;
-
     drawLabel(s: string, pos: Partial<Vector3>): void;
 
     drawCrosshair(pos: Partial<Vector3>, size: number): void;
@@ -291,7 +289,6 @@ export const ELEMENT_TYPES = {
     ELLIPTICAL: 'elliptical',
     FLOOR: 'floor',
     TEXT: 'text',
-    BILLBOARD: 'billboard',
 } as const;
 export const ALL_ELEMENT_TYPES = Object.values(ELEMENT_TYPES);
 
@@ -459,22 +456,6 @@ export interface ResolvedText extends ResolvedBaseVisual {
 export type BlueprintText = MapToBlueprint<ResolvedText>;
 export type DynamicText = DynamicElement<ResolvedText>;
 
-// BILLBOARD
-
-export interface ResolvedBillboard extends ResolvedBaseVisual {
-    readonly type: typeof ELEMENT_TYPES.BILLBOARD;
-    readonly width: number;
-    readonly height: number;
-    readonly lockRotation?: {
-        readonly x?: boolean;
-        readonly y?: boolean;
-        readonly z?: boolean;
-    };
-}
-
-export type BlueprintBillboard = MapToBlueprint<ResolvedBillboard>;
-export type DynamicBillboard = DynamicElement<ResolvedBillboard>;
-
 export type BlueprintElement =
     BlueprintBox        |
     BlueprintPanel      |
@@ -485,8 +466,8 @@ export type BlueprintElement =
     BlueprintCylinder   |
     BlueprintTorus      |
     BlueprintFloor      |
-    BlueprintText       |
-    BlueprintBillboard  ;
+    BlueprintText       ;
+
 
 export type ResolvedElement =
     ResolvedBox         |
@@ -498,8 +479,7 @@ export type ResolvedElement =
     ResolvedCylinder    |
     ResolvedTorus       |
     ResolvedFloor       |
-    ResolvedText        |
-    ResolvedBillboard   ;
+    ResolvedText        ;
 
 /**
  * WORLD INTERFACES

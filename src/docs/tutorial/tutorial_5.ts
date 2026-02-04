@@ -12,6 +12,7 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     // Scene Orchestration
     const manager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
+        startPaused: config.paused,
         playback: {
             ...DEFAULT_SETTINGS.playback,
             duration: 5000,

@@ -28,7 +28,7 @@ describe('LookAtEffect', () => {
                 },
                 debug: false,
                 alpha: 1,
-                paused: false
+                startPaused: false
             },
             playback: {
                 now: 1000,

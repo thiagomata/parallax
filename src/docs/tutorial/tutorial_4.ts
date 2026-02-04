@@ -17,7 +17,10 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     let graphicProcessor: P5GraphicProcessor;
 
     // Scene Orchestration
-    const activeManager = config.manager ?? new SceneManager(DEFAULT_SETTINGS);
+    const activeManager = config.manager ?? new SceneManager({
+            ...DEFAULT_SETTINGS,
+            startPaused: config.paused
+        });
 
     // Camera Logic: Adding Modifiers to the SceneManager
     // Note: These affect the SceneState.camera property during calculation

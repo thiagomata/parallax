@@ -29,7 +29,7 @@ export class SceneManager {
     constructor(settings: DeepPartial<SceneSettings> = {}) {
         this.settings = merge(DEFAULT_SETTINGS, settings);
         this.debug = settings.debug ?? DEFAULT_SETTINGS.debug;
-        this.paused = settings.paused ?? DEFAULT_SETTINGS.paused;
+        this.paused = settings.startPaused ?? DEFAULT_SETTINGS.startPaused;
         this.startTime = settings.playback?.startTime ?? DEFAULT_SETTINGS.playback.startTime;
     }
 

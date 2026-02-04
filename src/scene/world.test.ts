@@ -156,7 +156,6 @@ describe('World Orchestration (Dependency Injection)', () => {
                 'text': {type: 'text', position: {x: 0, y: 0, z: 0}, text: 'Hello', size: 12} as any,
                 'floor': createMockBlueprint('floor'),
                 'panel': createMockBlueprint('panel'),
-                'billboard': createMockBlueprint('billboard')
             };
 
             // Add all element types
@@ -170,7 +169,6 @@ describe('World Orchestration (Dependency Injection)', () => {
             world.addText('test-text', blueprints.text as any);
             world.addFloor('test-floor', blueprints.floor as any);
             world.addPanel('test-panel', blueprints.panel as any);
-            world.addBillboard('test-billboard', blueprints.billboard as any);
 
             // Verify all elements exist
             Object.keys(blueprints).forEach(id => {
