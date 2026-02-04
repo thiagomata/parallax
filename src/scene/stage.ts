@@ -15,8 +15,8 @@ export class Stage<
     TGraphicBundle extends GraphicsBundle,
     TEffectLib extends EffectLib
 > {
-    private registry: AssetRegistry<TGraphicBundle, {}>;
-    private resolver: SceneResolver<TGraphicBundle, TEffectLib>;
+    private readonly registry: AssetRegistry<TGraphicBundle, {}>;
+    private readonly resolver: SceneResolver<TGraphicBundle, TEffectLib>;
 
     constructor(loader: AssetLoader<TGraphicBundle>, effectLib?: TEffectLib) {
         this.resolver = new SceneResolver<TGraphicBundle, TEffectLib>(effectLib ?? {} as TEffectLib);

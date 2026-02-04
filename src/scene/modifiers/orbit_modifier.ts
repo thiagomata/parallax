@@ -5,8 +5,8 @@ export class OrbitModifier implements CarModifier {
     name = "Orbiting Camera";
     priority = 10;
     active = true;
-    private radius: number;
-    private verticalBaseline: number;
+    private readonly radius: number;
+    private readonly verticalBaseline: number;
 
     tick() {}
 

@@ -11,8 +11,8 @@ export class AssetRegistry<
     TBundle extends GraphicsBundle,
     TEffectLib extends EffectLib> {
     // The ONLY list: A map of IDs to the actual Renderable instances
-    private elements: Map<string, BundleDynamicElement<any, TBundle>> = new Map();
-    private loader: AssetLoader<TBundle>;
+    private readonly elements: Map<string, BundleDynamicElement<any, TBundle>> = new Map();
+    private readonly loader: AssetLoader<TBundle>;
     private readonly resolver: SceneResolver<TBundle, TEffectLib>;
 
     constructor(loader: AssetLoader<TBundle>, resolver?: SceneResolver<TBundle, TEffectLib>) {

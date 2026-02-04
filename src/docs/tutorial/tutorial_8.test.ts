@@ -20,7 +20,7 @@ describe('Tutorial 8: The Billboard (Integration)', () => {
         
         expect(world).toBeDefined();
         
-        // Setup the sketch to initialize the world
+        // Set up the sketch to initialize the world
         mockP5.setup();
         
         // Verify we can get the current scene state

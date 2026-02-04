@@ -19,8 +19,6 @@ import {
     type Unwrapped, type BundleResolvedElement,
 } from "./types";
 
-export type UnwrappedElement<E> = E extends BundleDynamicElement<infer T, any> ? T : never;
-
 export class SceneResolver<
     TGraphicBundle extends GraphicsBundle,
     TEffectLib extends EffectLib

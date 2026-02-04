@@ -100,7 +100,7 @@ describe('Parallax Engine Type Coherence Test', () => {
     };
 
     it('should resolve deep nested computed values within branches', () => {
-        // Setup the Complex Dynamic Plan
+        // Set up the Complex Dynamic Plan
         const boxDynamic: DynamicBox = {
             type: ELEMENT_TYPES.BOX,
             width: {

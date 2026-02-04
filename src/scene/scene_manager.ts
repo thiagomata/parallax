@@ -15,7 +15,7 @@ import {
 import {type DeepPartial, merge} from "./utils/merge.ts";
 
 export class SceneManager {
-    private settings: SceneSettings;
+    private readonly settings: SceneSettings;
     private modifiers: Map<string, Modifier> = new Map();
     private carModifiers: CarModifier[] = [];
     private nudgeModifiers: NudgeModifier[] = [];
