@@ -76,6 +76,7 @@ export interface SceneState {
     camera: SceneCameraState;
     debugStateLog?: SceneStateDebugLog;
     elements?: Map<string, ResolvedElement>;
+    projectionMatrix?: Float32Array;
 }
 
 export const DEFAULT_CAMERA_FAR = 5000;

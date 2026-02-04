@@ -8,6 +8,7 @@ import {
     type StickModifier,
     type Vector3,
 } from "./types";
+import { ScreenModifier, type ScreenConfig } from "./modifiers/screen_modifier.ts";
 
 import {SceneManager} from "./scene_manager.ts";
 import {createMockState} from "./mock/mock_scene_state.mock.ts";
@@ -701,5 +702,171 @@ describe("PortalSceneManager - Pause, Resume, and Debug", () => {
         const state3 = manager.calculateScene(3000, 16, 60, state2);
         // Should adjust time to account for pause duration
         expect(state3.playback.now).toBeGreaterThan(state2.playback.now);
+    });
+});
+
+describe("PortalSceneManager - ScreenModifier Integration", () => {
+    const screenConfig: ScreenConfig = {
+        width: 100,
+        height: 75,
+        z: 0,
+        near: 0.1,
+        far: 1000
+    };
+
+    it("should not include projection matrix when no ScreenModifier is set", () => {
+        const manager = new SceneManager();
+        const initialState = manager.initialState();
+        const state = manager.calculateScene(1000, 16, 60, initialState);
+
+        expect(state.projectionMatrix).toBeUndefined();
+    });
+
+    it("should include projection matrix when ScreenModifier is set", () => {
+        const manager = new SceneManager();
+        const screenModifier = new ScreenModifier(screenConfig);
+        manager.setScreenModifier(screenModifier);
+
+        const initialState = manager.initialState();
+        const state = manager.calculateScene(1000, 16, 60, initialState);
+
+        expect(state.projectionMatrix).toBeDefined();
+        expect(state.projectionMatrix).toBeInstanceOf(Float32Array);
+        expect(state.projectionMatrix?.length).toBe(16);
+    });
+
+    it("should compute eye position as CarModifier + NudgeModifier", () => {
+        const manager = new SceneManager();
+        const screenModifier = new ScreenModifier(screenConfig);
+        manager.setScreenModifier(screenModifier);
+
+        // Add a car modifier that moves camera to (10, 20, 30)
+        const carModifier: CarModifier = {
+            name: "TestCar",
+            active: true,
+            priority: 100,
+            tick: () => {},
+            getCarPosition: () => ({
+                success: true,
+                value: { name: "TestCar", position: { x: 10, y: 20, z: 30 } }
+            })
+        };
+
+        // Add a nudge modifier that adds (5, 10, 15) 
+        const nudgeModifier: NudgeModifier = {
+            name: "TestNudge",
+            active: true,
+            tick: () => {},
+            getNudge: () => ({
+                success: true,
+                value: { x: 5, y: 10, z: 15 }
+            })
+        };
+
+        manager.addCarModifier(carModifier);
+        manager.addNudgeModifier(nudgeModifier);
+
+        const initialState = manager.initialState();
+        const state = manager.calculateScene(1000, 16, 60, initialState);
+
+        // Camera position should be CarModifier result + nudge (from processNudges)
+        expect(state.camera.position).toEqual({ x: 15, y: 30, z: 45 });
+
+        // Projection matrix should be based on eye position = camera + nudge = (15, 30, 45)
+        expect(state.projectionMatrix).toBeDefined();
+        
+        // Verify the matrix is different from what we'd get with just the camera position
+        const matrixWithOnlyCamera = screenModifier.buildFrustum({ x: 10, y: 20, z: 30 });
+        const matrixWithEyeOffset = screenModifier.buildFrustum({ x: 15, y: 30, z: 45 });
+        
+        expect(state.projectionMatrix).toEqual(matrixWithEyeOffset);
+        expect(state.projectionMatrix).not.toEqual(matrixWithOnlyCamera);
+    });
+
+    it("should clear ScreenModifier when clearModifiers is called", () => {
+        const manager = new SceneManager();
+        const screenModifier = new ScreenModifier(screenConfig);
+        manager.setScreenModifier(screenModifier);
+
+        expect(manager.screenModifier).toBe(screenModifier);
+
+        manager.clearModifiers();
+
+        expect(manager.screenModifier).toBeNull();
+    });
+
+    it("should chain setScreenModifier method", () => {
+        const manager = new SceneManager();
+        const screenModifier = new ScreenModifier(screenConfig);
+
+        const result = manager.setScreenModifier(screenModifier);
+
+        expect(result).toBe(manager);
+        expect(manager.screenModifier).toBe(screenModifier);
+    });
+
+    it("should produce different projection matrices for different eye positions", () => {
+        const manager = new SceneManager();
+        // Update screen config to put screen in front of camera
+        const screenConfig: ScreenConfig = {
+            width: 100,
+            height: 75,
+            z: 100, // Screen at z=100
+            near: 0.1,
+            far: 1000
+        };
+        const screenModifier = new ScreenModifier(screenConfig);
+        manager.setScreenModifier(screenModifier);
+
+        const carModifier: CarModifier = {
+            name: "TestCar",
+            active: true,
+            priority: 100,
+            tick: () => {},
+            getCarPosition: () => ({
+                success: true,
+                value: { name: "TestCar", position: { x: 0, y: 0, z: 0 } }
+            })
+        };
+
+        manager.addCarModifier(carModifier);
+
+        const initialState = manager.initialState();
+
+        // Test with no head tracking - eye at (0,0,0)
+        const state1 = manager.calculateScene(1000, 16, 60, initialState);
+        
+        // Add head tracking that moves eye to (10, 0, 0)
+        const nudgeModifier: NudgeModifier = {
+            name: "HeadNudge",
+            active: true,
+            tick: () => {},
+            getNudge: () => ({
+                success: true,
+                value: { x: 10, y: 0, z: 0 }
+            })
+        };
+        
+        manager.addNudgeModifier(nudgeModifier);
+        const state2 = manager.calculateScene(2000, 16, 60, state1);
+
+        // Projection matrices should be different and valid (no NaN)
+        expect(state1.projectionMatrix).toBeDefined();
+        expect(state2.projectionMatrix).toBeDefined();
+        
+        // Check for NaN values
+        if (state1.projectionMatrix) {
+            for (let i = 0; i < state1.projectionMatrix.length; i++) {
+                expect(Number.isNaN(state1.projectionMatrix[i])).toBe(false);
+            }
+        }
+        
+        if (state2.projectionMatrix) {
+            for (let i = 0; i < state2.projectionMatrix.length; i++) {
+                expect(Number.isNaN(state2.projectionMatrix[i])).toBe(false);
+            }
+        }
+        
+        expect(state1.projectionMatrix).not.toEqual(state2.projectionMatrix);
     });
 });

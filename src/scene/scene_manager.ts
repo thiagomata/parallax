@@ -12,6 +12,7 @@ import {
     type StickResult,
     type Vector3,
 } from "./types";
+import { ScreenModifier } from "./modifiers/screen_modifier.ts";
 import {type DeepPartial, merge} from "./utils/merge.ts";
 
 export class SceneManager {
@@ -20,6 +21,7 @@ export class SceneManager {
     private carModifiers: CarModifier[] = [];
     private nudgeModifiers: NudgeModifier[] = [];
     private stickModifiers: StickModifier[] = [];
+    public screenModifier: ScreenModifier | null = null;
     public debug: boolean = false;
     public paused: boolean = false;
     private startTime: number;
@@ -38,6 +40,7 @@ export class SceneManager {
         this.carModifiers = [];
         this.nudgeModifiers = [];
         this.stickModifiers = [];
+        this.screenModifier = null;
     }
 
     public setDebug(isDebug: boolean): SceneManager {
@@ -90,6 +93,11 @@ export class SceneManager {
         this.stickModifiers = [...this.stickModifiers, stickModifier].sort(
             (a, b) => b.priority - a.priority
         );
+        return this;
+    }
+
+    public setScreenModifier(screenModifier: ScreenModifier): SceneManager {
+        this.screenModifier = screenModifier;
         return this;
     }
 
@@ -192,6 +200,15 @@ export class SceneManager {
 
         const finalCamPos = this.processNudges(basePos, debugLog, currentState);
 
+        // Compute eye position as CarModifier + NudgeModifier (head tracking)
+        // Get just the head offset by calling processNudges with zero base position
+        const headOffset = this.processNudges({x: 0, y: 0, z: 0}, null, currentState); // null debugLog to avoid duplicate logging
+        const finalEyePos = {
+            x: basePos.x + headOffset.x,
+            y: basePos.y + headOffset.y,
+            z: basePos.z + headOffset.z,
+        };
+
         let stickRes: StickResult = {
             yaw: 0,
             pitch: 0,
@@ -223,6 +240,12 @@ export class SceneManager {
 
         const lookAt = this.calculateLookAt(finalCamPos, stickRes);
 
+        // Build off-axis projection if ScreenModifier is available
+        let projectionMatrix: Float32Array | undefined;
+        if (this.screenModifier) {
+            projectionMatrix = this.screenModifier.buildFrustum(finalEyePos);
+        }
+
         return {
             settings: this.settings,
             playback: {
@@ -243,6 +266,7 @@ export class SceneManager {
                 direction: this.calculateDirection(stickRes),
             } as SceneCameraState,
             debugStateLog: debugLog ?? undefined,
+            projectionMatrix,
         } as SceneState;
     }
 
