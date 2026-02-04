@@ -248,4 +248,158 @@ describe('LookAtEffect', () => {
             expect(result.rotate!.z).toBe(-Math.PI/4); // z is false by default
         });
     });
+
+    describe('Individual Axis Locks for Camera Coverage', () => {
+        it('should handle undefined axis in settings', () => {
+            const configWithoutAxis = {
+                enabled: true,
+                lookAt: 'CAMERA'
+            } as LookAtEffectConfig;
+
+            const result = LookAtEffect.apply(mockCurrent, mockState, configWithoutAxis);
+
+            // Should use empty object as default
+            expect(result.rotate!.x).toBe(mockCurrent.rotate!.x); // no change
+            expect(result.rotate!.y).toBe(mockCurrent.rotate!.y); // no change
+            expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // no change
+        });
+
+        it('should test individual Y axis lock with camera', () => {
+            const config: LookAtEffectConfig = {
+                enabled: true,
+                lookAt: 'CAMERA',
+                axis: { y: true }
+            };
+
+            const result = LookAtEffect.apply(mockCurrent, mockState, config);
+
+            expect(result.rotate!.x).toBe(mockCurrent.rotate!.x); // x unchanged
+            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.camera.yaw);
+            expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // z unchanged
+        });
+
+        it('should test individual X axis lock with camera', () => {
+            const config: LookAtEffectConfig = {
+                enabled: true,
+                lookAt: 'CAMERA',
+                axis: { x: true }
+            };
+
+            const result = LookAtEffect.apply(mockCurrent, mockState, config);
+
+            expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x + mockState.camera.pitch);
+            expect(result.rotate!.y).toBe(mockCurrent.rotate!.y); // y unchanged
+            expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // z unchanged
+        });
+
+        it('should test individual Z axis lock with camera', () => {
+            const config: LookAtEffectConfig = {
+                enabled: true,
+                lookAt: 'CAMERA',
+                axis: { z: true }
+            };
+
+            const result = LookAtEffect.apply(mockCurrent, mockState, config);
+
+            expect(result.rotate!.x).toBe(mockCurrent.rotate!.x); // x unchanged
+            expect(result.rotate!.y).toBe(mockCurrent.rotate!.y); // y unchanged
+            expect(result.rotate!.z).toBeCloseTo(mockCurrent.rotate!.z - mockState.camera.roll);
+        });
+
+        it('should test all axis locks individually with camera', () => {
+            const config: LookAtEffectConfig = {
+                enabled: true,
+                lookAt: 'CAMERA',
+                axis: { x: true, y: true, z: true }
+            };
+
+            const result = LookAtEffect.apply(mockCurrent, mockState, config);
+
+            expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x + mockState.camera.pitch);
+            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.camera.yaw);
+            expect(result.rotate!.z).toBeCloseTo(mockCurrent.rotate!.z - mockState.camera.roll);
+        });
+
+        it('should test all axis locks as false with camera', () => {
+            const config: LookAtEffectConfig = {
+                enabled: true,
+                lookAt: 'CAMERA',
+                axis: { x: false, y: false, z: false }
+            };
+
+            const result = LookAtEffect.apply(mockCurrent, mockState, config);
+
+            expect(result.rotate!.x).toBe(mockCurrent.rotate!.x);
+            expect(result.rotate!.y).toBe(mockCurrent.rotate!.y);
+            expect(result.rotate!.z).toBe(mockCurrent.rotate!.z);
+        });
+    });
+
+    describe('Edge Cases and Error Conditions', () => {
+        it('should handle extreme camera values', () => {
+            const extremeState = {
+                ...mockState,
+                camera: {
+                    ...mockState.camera,
+                    yaw: Math.PI * 2,
+                    pitch: -Math.PI / 2,
+                    roll: Math.PI
+                }
+            };
+
+            const config: LookAtEffectConfig = {
+                ...LookAtDefaultConfig,
+                lookAt: 'CAMERA'
+            };
+
+            const result = LookAtEffect.apply(mockCurrent, extremeState, config);
+
+            expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x - Math.PI / 2);
+            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - Math.PI * 2);
+            expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // z is false by default
+        });
+
+        it('should handle Infinity and NaN positions gracefully', () => {
+            const targetWithInfinity = {
+                ...targetElement,
+                position: { x: Infinity, y: NaN, z: -Infinity }
+            };
+            mockState.elements!.set('infinity-target', targetWithInfinity);
+
+            const config: LookAtEffectConfig = {
+                ...LookAtDefaultConfig,
+                lookAt: 'infinity-target',
+                axis: { x: true, y: true, z: false }
+            };
+
+            const result = LookAtEffect.apply(mockCurrent, mockState, config);
+
+            // Should handle gracefully without throwing
+            expect(typeof result.rotate!.x).toBe('number');
+            expect(typeof result.rotate!.y).toBe('number');
+            expect(typeof result.rotate!.z).toBe('number');
+        });
+
+        it('should handle very large coordinate values', () => {
+            const targetFarAway = {
+                ...targetElement,
+                position: { x: 1e10, y: -1e10, z: 1e10 }
+            };
+            mockState.elements!.set('far-target', targetFarAway);
+
+            const config: LookAtEffectConfig = {
+                ...LookAtDefaultConfig,
+                lookAt: 'far-target',
+                axis: { x: true, y: true, z: false }
+            };
+
+            const result = LookAtEffect.apply(mockCurrent, mockState, config);
+
+            // Should handle large values
+            expect(typeof result.rotate!.x).toBe('number');
+            expect(typeof result.rotate!.y).toBe('number');
+            expect(isFinite(result.rotate!.x)).toBe(true);
+            expect(isFinite(result.rotate!.y)).toBe(true);
+        });
+    });
 });

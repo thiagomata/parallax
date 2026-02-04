@@ -144,10 +144,6 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.pop();
     }
 
-    box(size: number): void {
-        this.p.box(size);
-    }
-
     drawBox(props: ResolvedBox, assets: ElementAssets<P5Bundler>, state: SceneState): void {
         this.push();
         this.translate(props.position);
