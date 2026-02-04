@@ -11,8 +11,6 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: './index.html',
-                p5_graphic_processor_demo: './src/scene/p5/p5_graphic_processor.demo.html',
-                p5_world_demo: './src/scene/p5/p5_world.demo.html',
                 tutorial: './docs/tutorial/index.html',
             }
         }
