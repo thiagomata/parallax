@@ -35,7 +35,13 @@ export function tutorial_9(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
                     y: 0,
                     z: 500,
                 }
-            }
+            },
+            playback: {
+                duration: 5000,
+                isLoop: true,
+                timeSpeed: 1.0,
+                startTime: 0
+            },
         }
     );
 
@@ -58,11 +64,10 @@ export function tutorial_9(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
         // REGISTRATION
-        world.addBox('obj', {
-            type: ELEMENT_TYPES.BOX,
-            width: 50,
+        world.addSphere('obj', {
+            type: ELEMENT_TYPES.SPHERE,
+            radius: 20,
             position: (currentState) => {
-                document.title = JSON.stringify( currentState.camera.position);
                 const circularProgress = currentState.playback.progress * 4 * Math.PI;
 
                 const radius = 200;
@@ -82,15 +87,21 @@ export function tutorial_9(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
                 z: 0,
             },
             fillColor: {red: 255, green: 0, blue: 0,},
-            strokeColor: {red: 255, green: 255, blue: 255},
+            strokeColor: {red: 0, green: 0, blue: 255},
         });
 
-        world.addBox('look-to-obj', {
-            type: ELEMENT_TYPES.BOX,
-            width: 50,
-            position: {x: 100, y: 100, z: 100},
+        world.addCylinder('look-to-obj', {
+            type: ELEMENT_TYPES.CYLINDER,
+            radius: 20,
+            height: 50,
+            rotate: {
+                x: Math.PI / 2,
+                y: 0,
+                z: 0,
+            },
+            position: {x: 0, y: 0, z: 100},
             fillColor: {red: 0, green: 255, blue: 0,},
-            strokeColor: {red: 255, green: 255, blue: 255},
+            strokeColor: {red: 0, green: 0, blue: 255},
             effects: [
                 {
                     type: 'look_at',
