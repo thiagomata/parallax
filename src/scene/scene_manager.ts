@@ -201,12 +201,12 @@ export class SceneManager {
         const finalCamPos = this.processNudges(basePos, debugLog, currentState);
 
         // Compute eye position as CarModifier + NudgeModifier (head tracking)
-        // Get just the head offset by calling processNudges with zero base position
+        // As per EPIC: eye position = finalCamPos + additional head tracking offset
         const headOffset = this.processNudges({x: 0, y: 0, z: 0}, null, currentState); // null debugLog to avoid duplicate logging
         const finalEyePos = {
-            x: basePos.x + headOffset.x,
-            y: basePos.y + headOffset.y,
-            z: basePos.z + headOffset.z,
+            x: finalCamPos.x + headOffset.x,
+            y: finalCamPos.y + headOffset.y,
+            z: finalCamPos.z + headOffset.z,
         };
 
         let stickRes: StickResult = {
@@ -319,6 +319,14 @@ export class SceneManager {
         };
     }
 
+    private calculateDirection(stickRes: StickResult): Vector3 {
+        return {
+            x: Math.sin(stickRes.yaw) * Math.cos(stickRes.pitch),
+            y: Math.sin(stickRes.pitch),
+            z: -Math.cos(stickRes.yaw) * Math.cos(stickRes.pitch)
+        }
+    }
+
     private createEmptyDebugLog(): NonNullable<SceneStateDebugLog> {
         return {
             car: {
@@ -338,13 +346,5 @@ export class SceneManager {
             },
             errors: [],
         };
-    }
-
-    private calculateDirection(stickRes: StickResult): Vector3 {
-        return {
-            x: Math.sin(stickRes.yaw) * Math.cos(stickRes.pitch),
-            y: Math.sin(stickRes.pitch),
-            z: -Math.cos(stickRes.yaw) * Math.cos(stickRes.pitch)
-        }
     }
 }
