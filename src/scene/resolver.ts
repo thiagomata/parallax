@@ -1,28 +1,29 @@
 import {
     ASSET_STATUS,
     type AssetLoader,
-    type EffectBundle,
-    type EffectBlueprint, type EffectResolutionGroup,
     type DynamicElement,
     type DynamicProperty,
+    type EffectBlueprint,
+    type EffectLib,
+    type EffectResolutionGroup,
     ELEMENT_TYPES,
     type ElementAssets,
     type GraphicProcessor,
     type GraphicsBundle,
     type MapToBlueprint,
     type MapToDynamic,
-    type RenderableElement,
+    type BundleDynamicElement,
     type ResolvedElement,
     type SceneState,
     SPEC_KINDS,
-    type Unwrapped,
+    type Unwrapped, type BundleResolvedElement,
 } from "./types";
 
-export type UnwrappedElement<E> = E extends RenderableElement<infer T, any> ? T : never;
+export type UnwrappedElement<E> = E extends BundleDynamicElement<infer T, any> ? T : never;
 
 export class SceneResolver<
-    TBundle extends GraphicsBundle,
-    TEffectLib extends Record<string, EffectBundle<any, any, any>>
+    TGraphicBundle extends GraphicsBundle,
+    TEffectLib extends EffectLib
 > {
 
     private readonly effectLib: TEffectLib;
@@ -31,16 +32,16 @@ export class SceneResolver<
         this.effectLib = effectLib;
     }
 
-    createRenderable<T extends ResolvedElement>(
+    prepare<T extends ResolvedElement>(
         id: string,
         blueprint: MapToBlueprint<T>,
-        loader: AssetLoader<TBundle>
-    ): RenderableElement<T, TBundle> {
+        loader: AssetLoader<TGraphicBundle>
+    ): BundleDynamicElement<T, TGraphicBundle> {
 
         const dynamic = this.toDynamic(blueprint) as DynamicElement<T>;
         const effectsBundles = this.bundleBehaviors(blueprint.effects);
 
-        const assets: ElementAssets<TBundle> = {
+        const assets: ElementAssets<TGraphicBundle> = {
             texture: blueprint.texture ? {status: ASSET_STATUS.PENDING, value: null} : {
                 status: ASSET_STATUS.READY,
                 value: null
@@ -63,74 +64,102 @@ export class SceneResolver<
                 });
         }
 
-        const element: RenderableElement<T, TBundle> = {
+        return {
             id,
             dynamic,
             assets,
             effects: effectsBundles,
-            // 2. Placeholder or just define it after
-            render: () => null as unknown as  T
         };
-
-        element.render = (gp, state) => {
-            return this.render(element, gp, state);
-        };
-
-        return element;
     };
 
-    render<E extends ResolvedElement>(
-        element: RenderableElement<E, TBundle>,
-        gp: GraphicProcessor<TBundle>,
+    resolve<
+        T extends ResolvedElement
+    >(
+        element: BundleDynamicElement<T, TGraphicBundle>,
         state: SceneState
-    ): E {
-        const resolved = this.resolve(element, state);
+    ): BundleResolvedElement {
+        const unwrapped:  Unwrapped<DynamicElement<T>> =  this.loopResolve(element.dynamic, state);
+        const resolved = unwrapped as T;
+        return {
+            id: element.id,
+            assets: element.assets ?? [],
+            effects: element.effects ?? [],
+            resolved: resolved,
+        };
+    }
 
-        const distance = gp.dist(resolved.position, state.camera.position);
-        const far = state.settings.camera.far ?? 5000;
+    effect<
+        E extends ResolvedElement
+    >(
+        bundle: BundleResolvedElement<E, TGraphicBundle>,
+        state: SceneState
+    ): BundleResolvedElement<E, TGraphicBundle> {
+        if (!bundle.effects || bundle.effects.length === 0) {
+            return bundle;
+        }
 
-        if (distance < far) {
-
-            switch (resolved.type) {
-                case ELEMENT_TYPES.BOX:
-                    gp.drawBox(resolved, element.assets, state);
-                    break;
-                case ELEMENT_TYPES.PANEL:
-                    gp.drawPanel(resolved, element.assets, state);
-                    break;
-                case ELEMENT_TYPES.SPHERE:
-                    gp.drawSphere(resolved, element.assets, state);
-                    break;
-                case ELEMENT_TYPES.CONE:
-                    gp.drawCone(resolved, element.assets, state);
-                    break;
-                case ELEMENT_TYPES.PYRAMID:
-                    gp.drawPyramid(resolved, element.assets, state);
-                    break;
-                case ELEMENT_TYPES.ELLIPTICAL:
-                    gp.drawElliptical(resolved, element.assets, state);
-                    break;
-                case ELEMENT_TYPES.CYLINDER:
-                    gp.drawCylinder(resolved, element.assets, state);
-                    break;
-                case ELEMENT_TYPES.TORUS:
-                    gp.drawTorus(resolved, element.assets, state);
-                    break;
-                case ELEMENT_TYPES.FLOOR:
-                    gp.drawFloor(resolved, element.assets, state);
-                    break;
-                case ELEMENT_TYPES.BILLBOARD:
-                    gp.drawBillboard(resolved, element.assets, state);
-                    break;
-                case ELEMENT_TYPES.TEXT:
-                    gp.drawText(resolved, element.assets, state);
-                    break;
-                default:
-                    const strange = resolved as unknown;
-                    throw new Error(`Unknown type ${strange?.constructor?.name} ` + JSON.stringify(strange));
+        let resolved = bundle.resolved;
+        for (const effectBlueprint of bundle.effects ) {
+            if (effectBlueprint.settings?.enabled) {
+                const effectBundle = this.effectLib[effectBlueprint.type];
+                resolved = effectBundle.apply(
+                    resolved,
+                    state,
+                    effectBlueprint.settings,
+                    // bundle.assets
+                )
             }
         }
-        return resolved;
+        return {
+            ...bundle,
+            resolved: resolved,
+        }
+    }
+
+    render<E extends ResolvedElement>(
+        bundle: BundleResolvedElement<E, TGraphicBundle>,
+        graphicProcessor: GraphicProcessor<TGraphicBundle>,
+        state: SceneState
+    ) {
+
+        switch (bundle.resolved.type) {
+            case ELEMENT_TYPES.BOX:
+                graphicProcessor.drawBox(bundle.resolved, bundle.assets, state);
+                break;
+            case ELEMENT_TYPES.PANEL:
+                graphicProcessor.drawPanel(bundle.resolved, bundle.assets, state);
+                break;
+            case ELEMENT_TYPES.SPHERE:
+                graphicProcessor.drawSphere(bundle.resolved, bundle.assets, state);
+                break;
+            case ELEMENT_TYPES.CONE:
+                graphicProcessor.drawCone(bundle.resolved, bundle.assets, state);
+                break;
+            case ELEMENT_TYPES.PYRAMID:
+                graphicProcessor.drawPyramid(bundle.resolved, bundle.assets, state);
+                break;
+            case ELEMENT_TYPES.ELLIPTICAL:
+                graphicProcessor.drawElliptical(bundle.resolved, bundle.assets, state);
+                break;
+            case ELEMENT_TYPES.CYLINDER:
+                graphicProcessor.drawCylinder(bundle.resolved, bundle.assets, state);
+                break;
+            case ELEMENT_TYPES.TORUS:
+                graphicProcessor.drawTorus(bundle.resolved, bundle.assets, state);
+                break;
+            case ELEMENT_TYPES.FLOOR:
+                graphicProcessor.drawFloor(bundle.resolved, bundle.assets, state);
+                break;
+            case ELEMENT_TYPES.BILLBOARD:
+                graphicProcessor.drawBillboard(bundle.resolved, bundle.assets, state);
+                break;
+            case ELEMENT_TYPES.TEXT:
+                graphicProcessor.drawText(bundle.resolved, bundle.assets, state);
+                break;
+            default:
+                const strange = bundle.resolved as unknown;
+                throw new Error(`Unknown type ${strange?.constructor?.name} ` + JSON.stringify(strange));
+        }
     }
 
     toDynamic<T extends ResolvedElement>(
@@ -176,27 +205,6 @@ export class SceneResolver<
         });
     }
 
-    resolve<E extends RenderableElement<any, any>>(
-        element: E,
-        state: SceneState
-    ): UnwrappedElement<E> {
-        // We unwrap the 'dynamic' property, which is DynamicElement<T>
-        // The result is T, which matches UnwrappedElement<E>
-        let resolved = this.loopResolve(element.dynamic, state) as UnwrappedElement<E>;
-
-        for (const id in element.effects) {
-            const effect = element.effects[id];
-            if (effect.settings.enabled) {
-                resolved = effect.bundle.apply(
-                    resolved,
-                    state,
-                    effect.settings
-                )
-            }
-        }
-
-        return resolved;
-    }
 
     resolveProperty<V>(
         prop: DynamicProperty<V>,
@@ -243,10 +251,6 @@ export class SceneResolver<
         return {kind: SPEC_KINDS.STATIC, value};
     }
 
-    /**
-     * THE RESOLUTION SIEVE
-     * A pure function that recursively unwraps the Dynamic execution plan into Resolved data.
-     */
     loopResolve<T>(src: T, state: SceneState): Unwrapped<T> {
         // 1. Handle DynamicProperty (The Container)
         if (this.isDynamicProperty(src)) {

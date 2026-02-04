@@ -6,7 +6,7 @@ import {SceneManager} from "../../scene/scene_manager.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
-export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
+export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any> {
     let graphicProcessor: P5GraphicProcessor;
 
     // 1. Scene Orchestration
@@ -21,7 +21,7 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     // 2. Asset Pipeline & World
     const loader = new P5AssetLoader(p);
-    const world = new World<P5Bundler>(manager, loader);
+    const world = new World<P5Bundler, any>(manager, loader);
 
     p.setup = async () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
@@ -33,7 +33,7 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         // Textured Box
         world.addBox('textured-box', {
             type: ELEMENT_TYPES.BOX,
-            size: 150,
+            width: 150,
             position: {x: 0, y: 0, z: -100},
             strokeWidth: 0,
             rotate: (state: SceneState) => ({

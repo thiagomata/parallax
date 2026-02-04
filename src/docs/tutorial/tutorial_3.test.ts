@@ -35,9 +35,9 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
         if (!element) throw new Error("orbit-box not registered");
 
         const resolver = new SceneResolver({});
-        const resolved0 = resolver.resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+        const resolved0 = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
 
-        expect(resolved0.position).toMatchObject({
+        expect(resolved0.resolved.position).toMatchObject({
             x: 50,
             y: 0,
             z: -100
@@ -48,23 +48,23 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
         mockP5.millis.mockReturnValue(1250);
         mockP5.draw();
 
-        const resolved25 = resolver.resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+        const resolved25 = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
 
-        expect(resolved25.position.x).toBeCloseTo(0, 5);
-        expect(resolved25.position.y).toBeCloseTo(50, 5);
+        expect(resolved25.resolved.position.x).toBeCloseTo(0, 5);
+        expect(resolved25.resolved.position.y).toBeCloseTo(50, 5);
 
         // --- TEST POINT C: T=2500 (50% Progress) ---
         // Progress 0.50 -> cos(PI)=-1, sin(PI)=0
         mockP5.millis.mockReturnValue(2500);
         mockP5.draw();
 
-        const resolved50 = resolver.resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+        const resolved50 = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
 
-        expect(resolved50.position.x).toBeCloseTo(-50, 5);
-        expect(resolved50.position.y).toBeCloseTo(0, 5);
+        expect(resolved50.resolved.position.x).toBeCloseTo(-50, 5);
+        expect(resolved50.resolved.position.y).toBeCloseTo(0, 5);
 
         // 3. Verify Bridge/P5 Execution
         expect(mockP5.translate).toHaveBeenCalled();
-        expect(mockP5.box).toHaveBeenCalledWith(50);
+        expect(mockP5.box).toHaveBeenCalledWith(50, 50, 50);
     });
 });

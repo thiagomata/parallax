@@ -1,12 +1,12 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {AssetRegistry} from './asset_registry';
 import {ASSET_STATUS, type AssetLoader, ELEMENT_TYPES,} from './types';
-import type {MockBundle} from "./mock/mock_type.mock.ts";
+import type {MockGraphicBundle} from "./mock/mock_type.mock.ts";
 
 /**
  * Mocking the Loader to observe resolution triggers
  */
-const createMockLoader = (): AssetLoader<MockBundle> => ({
+const createMockLoader = (): AssetLoader<MockGraphicBundle> => ({
     hydrateTexture: vi.fn().mockResolvedValue({
         status: ASSET_STATUS.READY,
         value: {internalRef: {id: 'tex-1'}}
@@ -19,12 +19,12 @@ const createMockLoader = (): AssetLoader<MockBundle> => ({
 });
 
 describe('AssetRegistry', () => {
-    let loader: AssetLoader<MockBundle>;
-    let registry: AssetRegistry<MockBundle, {}>;
+    let loader: AssetLoader<MockGraphicBundle>;
+    let registry: AssetRegistry<MockGraphicBundle, {}>;
 
     beforeEach(() => {
         loader = createMockLoader();
-        registry = new AssetRegistry<MockBundle, {}>(loader);
+        registry = new AssetRegistry<MockGraphicBundle, {}>(loader);
     });
 
     describe('register', () => {
@@ -33,7 +33,7 @@ describe('AssetRegistry', () => {
             const blueprint = {
                 type: ELEMENT_TYPES.BOX,
                 position: {x: 0, y: 0, z: 0},
-                size: 10,
+                width: 10,
                 texture: {path: 'grass.png', width: 64, height: 64}
             };
 
@@ -52,7 +52,7 @@ describe('AssetRegistry', () => {
         it('should return the existing instance and PREVENT re-hydration if ID is already registered', () => {
             const blueprint = {
                 type: ELEMENT_TYPES.BOX,
-                size: 5,
+                width: 5,
                 position: {x: 0, y: 0, z: 0},
                 texture: {path: 'repeat.png', width: 1, height: 1}
             };
@@ -74,7 +74,7 @@ describe('AssetRegistry', () => {
         it('should correctly store heterogeneous RenderableElements', () => {
             registry.register('box-1', {
                 type: ELEMENT_TYPES.BOX,
-                size: 1,
+                width: 1,
                 position: {x: 0, y: 0, z: 0}
             });
             registry.register('text-1', {
@@ -87,7 +87,6 @@ describe('AssetRegistry', () => {
             const all = Array.from(registry.all());
 
             // Verify we have RenderableElement objects, not Resolved objects
-            expect(all[0]).toHaveProperty('render');
             expect(all[0]).toHaveProperty('dynamic');
             expect(all[1]).toHaveProperty('assets');
             expect(all).toHaveLength(2);
@@ -96,7 +95,7 @@ describe('AssetRegistry', () => {
 
     describe('Lifecycle: Removal', () => {
         it('should clean up the registry completely on remove', () => {
-            registry.register('target', {type: ELEMENT_TYPES.BOX, size: 1, position: {x: 0, y: 0, z: 0}});
+            registry.register('target', {type: ELEMENT_TYPES.BOX, width: 1, position: {x: 0, y: 0, z: 0}});
             expect(registry.get('target')).toBeDefined();
 
             registry.remove('target');

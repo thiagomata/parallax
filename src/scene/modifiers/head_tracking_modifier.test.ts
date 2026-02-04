@@ -2,15 +2,15 @@ import { describe, it, expect, vi, beforeEach, type Mocked } from 'vitest';
 import type p5 from "p5";
 import { FaceFeatures } from "../drivers/mediapipe/face_features";
 import type { FaceProvider } from "../types.ts";
-import { CameraModifier } from "./camera_modifier.ts";
 import { MockFaceFactory } from "../mock/mock_face.mock.ts";
 import { createMockP5 } from "../mock/mock_p5.mock.ts";
+import {HeadTrackingModifier} from "./head_tracking_modifier.ts";
 
 describe('CameraModifier', () => {
     let mockP5;
     let mockProvider: Mocked<FaceProvider>;
     let factory: MockFaceFactory;
-    let modifier: CameraModifier;
+    let modifier: HeadTrackingModifier;
 
     const config = {
         smoothing: 0.5,
@@ -40,7 +40,7 @@ describe('CameraModifier', () => {
             getFace: vi.fn(),
             getStatus: vi.fn().mockReturnValue('READY'),
         } as Mocked<FaceProvider>;
-        modifier = new CameraModifier(mockP5 as unknown as p5, mockProvider, config);
+        modifier = new HeadTrackingModifier(mockP5 as unknown as p5, mockProvider, config);
     });
 
     describe('1. Initialization & Registration', () => {

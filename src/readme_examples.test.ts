@@ -1,6 +1,6 @@
 import {beforeEach, describe, expect, it} from 'vitest';
 import {SceneManager} from "./scene/scene_manager.ts";
-import {createBlueprint, DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState,} from "./scene/types.ts";
+import {toBlueprint, DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState,} from "./scene/types.ts";
 import {SceneResolver} from "./scene/resolver.ts";
 import {ChaosLoader} from "./scene/mock/mock_asset_loader.mock.ts";
 
@@ -69,34 +69,34 @@ describe('README Examples Validation', () => {
         const state = manager.initialState();
 
         // 1. Example 1: Static & Computed Props
-        const blueprint = createBlueprint<ResolvedBox>({
+        const blueprint = toBlueprint<ResolvedBox>({
             type: ELEMENT_TYPES.BOX,
             position: {x: 0, y: 0, z: 0},
-            size: (s: SceneState) => 50 + (s.playback.progress * 20),
+            width: (s: SceneState) => 50 + (s.playback.progress * 20),
             fillColor: {red: 255, green: 0, blue: 0}
         });
 
         // We must wrap the blueprint into a Renderable to "compile" the specs
-        const element = resolver.createRenderable('test-id', blueprint, assetLoader);
-        const elementResolved = resolver.resolve(element, state);
+        const element = resolver.prepare('test-id', blueprint, assetLoader);
+        const elementResolved = resolver.resolve(element, state) as { resolved: ResolvedBox };
 
         // 2. Example 2: Deep Resolution (Granular)
-        const granularBlueprint = createBlueprint<ResolvedBox>({
+        const granularBlueprint = toBlueprint<ResolvedBox>({
             type: ELEMENT_TYPES.BOX,
             position: {
                 x: (_s: SceneState) => 100,
                 y: 0,
                 z: 0
             },
-            size: 10
+            width: 10
         });
 
-        const granularElement = resolver.createRenderable('granular-id', granularBlueprint, assetLoader);
-        const granularResolved = resolver.resolve(granularElement, state);
+        const granularElement = resolver.prepare('granular-id', granularBlueprint, assetLoader);
+        const granularResolved = resolver.resolve(granularElement, state) as { resolved: ResolvedBox };
 
         // Assertions
-        expect(elementResolved.size).toBe(50);
-        expect(elementResolved.fillColor?.red).toBe(255);
-        expect(granularResolved.position.x).toBe(100);
+        expect(elementResolved.resolved.width).toBe(50);
+        expect(elementResolved.resolved.fillColor?.red).toBe(255);
+        expect(granularResolved.resolved.position.x).toBe(100);
     });
 });

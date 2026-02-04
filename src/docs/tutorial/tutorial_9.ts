@@ -8,18 +8,18 @@ import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.dem
 import {Stage} from "../../scene/stage.ts";
 import {LookAtEffect} from "../../scene/effects/look_at_effect.ts";
 import {DEFAULT_EFFECTS} from "../../scene/effects/effects.ts";
-import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
-import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
+
+
 
 /**
- * TUTORIAL 8: THE BILLBOARD
- * Demonstrating billboard elements that always face the camera.
+ * TUTORIAL 9: LOOK AT THE OBJECT
+ * Demonstrating how to make one object look to the other
  */
-export function tutorial_8(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, typeof DEFAULT_EFFECTS> {
+export function tutorial_9(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, typeof DEFAULT_EFFECTS> {
     let graphicProcessor: P5GraphicProcessor;
     let world: World<P5Bundler, any>;
 
-    // 1. Scene Orchestration
+    // Scene Orchestration
     const activeManager = config.manager ?? new SceneManager(
         {
             camera: {
@@ -37,11 +37,7 @@ export function tutorial_8(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         }
     );
 
-    // 2. Camera Logic: Adding orbit to showcase billboard effect
-    activeManager.addCarModifier(new OrbitModifier(p, 800));
-    activeManager.addStickModifier(new CenterFocusModifier());
-
-    // 2. Asset Pipeline
+    // Asset Pipeline
     const loader = new P5AssetLoader(p);
 
     const effects = {
@@ -50,66 +46,64 @@ export function tutorial_8(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     const stage = new Stage<P5Bundler, typeof effects>(loader, effects);
 
-    // 3. World Initialization
+    // World Initialization
     world = new World<P5Bundler, any>(activeManager, loader, stage);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
 
-        // 4. Graphic Processor Initialization
+        // Graphic Processor Initialization
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // 5. REGISTRATION
-        
-        // Add reference objects to show camera movement
-        world.addBox('reference-cube', {
+        // REGISTRATION
+        world.addBox('obj', {
             type: ELEMENT_TYPES.BOX,
             width: 50,
-            position: {x: 150, y: 0, z: 0},
-            fillColor: {red: 100, green: 100, blue: 255},
-            strokeColor: {red: 255, green: 255, blue: 255},
-        });
+            position: (currentState) => {
+                document.title = JSON.stringify( currentState.camera.position);
+                const circularProgress = currentState.playback.progress * 4 * Math.PI;
 
-        world.addPanel('ref-panel', {
-            type: ELEMENT_TYPES.PANEL,
-            position: {x: 50, y: 0, z: 0},
-            fillColor: {red: 100, green: 100, blue: 255},
-            strokeColor: {red: 255, green: 255, blue: 255},
-            width: 50,
-            height: 50,
-        });
-
-        world.addBox('billboard-cube', {
-            type: ELEMENT_TYPES.BOX,
-            width: 50,
-            position: {x: -150, y: 0, z: 0},
-            fillColor: {red: 100, green: 100, blue: 255},
-            strokeColor: {red: 255, green: 255, blue: 255},
-            effects: [
-                {
-                    type: 'look_at',
-                }
-            ],
+                const radius = 200;
+                // Exactly the same math as the dummy
+                const x = Math.sin(circularProgress) * radius;
+                const z = Math.cos(circularProgress) * radius;
+                const y = 100 + Math.sin(circularProgress * 0.5) * 100;
+                return {
+                    x: x,
+                    y: y,
+                    z: z,
+                };
+            },
             rotate: {
-                y: Math.PI,
-                x: Math.PI / 2,
-                z: Math.PI / 4,
-            }
+                x: 0,
+                y: 0,
+                z: 0,
+            },
+            fillColor: {red: 255, green: 0, blue: 0,},
+            strokeColor: {red: 255, green: 255, blue: 255},
         });
 
-        world.addPanel('billboard-panel', {
-            type: ELEMENT_TYPES.PANEL,
+        world.addBox('look-to-obj', {
+            type: ELEMENT_TYPES.BOX,
             width: 50,
-            height: 50,
-            position: {x: -50, y: 0, z: 0},
-            fillColor: {red: 100, green: 100, blue: 255},
+            position: {x: 100, y: 100, z: 100},
+            fillColor: {red: 0, green: 255, blue: 0,},
             strokeColor: {red: 255, green: 255, blue: 255},
             effects: [
                 {
                     type: 'look_at',
+                    settings: {
+                        lookAt: 'obj',
+                        axis: {
+                            x: true,
+                            y: true,
+                            z: true,
+                        },
+                    }
                 }
             ]
         });
+
     };
 
     p.draw = () => {

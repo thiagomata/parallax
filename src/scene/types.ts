@@ -323,6 +323,7 @@ export type Unwrapped<T> = T extends DynamicProperty<infer U> ? Unwrapped<U> : T
  * ELEMENT DEFINITIONS
  */
 export interface ResolvedBaseVisual {
+    readonly id?: string;
     readonly type: typeof ELEMENT_TYPES[keyof typeof ELEMENT_TYPES];
     readonly position: Vector3;
     readonly alpha?: number;
@@ -332,7 +333,7 @@ export interface ResolvedBaseVisual {
     readonly rotate?: Vector3;
     readonly texture?: TextureRef;
     readonly font?: FontRef;
-    readonly modifiers?: EffectBlueprint[];
+    readonly effects?: EffectBlueprint[];
 }
 
 export type DynamicElement<T extends ResolvedElement> = MapToDynamic<T>;
@@ -341,7 +342,9 @@ export type DynamicElement<T extends ResolvedElement> = MapToDynamic<T>;
 
 export interface ResolvedBox extends ResolvedBaseVisual {
     readonly type: typeof ELEMENT_TYPES.BOX;
-    readonly size: number;
+    readonly width: number;
+    readonly height?: number;
+    readonly depth?: number;
 }
 
 export type BlueprintBox = MapToBlueprint<ResolvedBox>;
@@ -502,22 +505,37 @@ export type ResolvedElement =
  * WORLD INTERFACES
  */
 
-export interface Renderable<TBundle extends GraphicsBundle = GraphicsBundle> {
-    readonly id: string;
-
-    render(gp: GraphicProcessor<TBundle>, state: SceneState): ResolvedElement;
-}
-
-export interface RenderableElement<
+/**
+ * Bundle Dynamic Element contains the dynamic version of the element T
+ * and the assets related to it.
+ */
+export interface BundleDynamicElement<
     T extends ResolvedElement = ResolvedElement,
     TBundle extends GraphicsBundle = GraphicsBundle
-> extends Renderable<TBundle> {
+> {
+    readonly id: string;
     readonly dynamic: DynamicElement<T>;
     readonly effects: ReadonlyArray<EffectResolutionGroup>;
     assets: ElementAssets<TBundle>;
 }
 
-export function createBlueprint<T>(blueprint: MapToBlueprint<T>): MapToBlueprint<T> {
+/**
+ * Bundle Resolved Element contains the resolved element T
+ * and the assets related to it.
+ *
+ * Should provide all the required data to render element T
+ */
+export interface BundleResolvedElement<
+    T extends ResolvedElement = ResolvedElement,
+    TGraphicBundle extends GraphicsBundle = GraphicsBundle
+> {
+    readonly id: string;
+    readonly resolved: T;
+    readonly effects: ReadonlyArray<EffectResolutionGroup>;
+    assets: ElementAssets<TGraphicBundle>;
+}
+
+export function toBlueprint<T>(blueprint: MapToBlueprint<T>): MapToBlueprint<T> {
     return blueprint;
 }
 
@@ -579,6 +597,8 @@ export interface EffectBundle<
     readonly defaults: TConfig;
     apply(current: E, state: SceneState, settings: TConfig): E;
 }
+
+export type EffectLib = Record<string, EffectBundle<any, any, any>>;
 
 export interface EffectBlueprint<K extends string = string, TConfig = any> {
     readonly type: K;

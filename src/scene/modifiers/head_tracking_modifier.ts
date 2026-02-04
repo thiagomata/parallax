@@ -16,7 +16,7 @@ import {
 import { FaceFeatures } from "../drivers/mediapipe/face_features";
 import {MediaPipeFaceProvider} from "../drivers/mediapipe/face_provider.ts";
 
-export class CameraModifier implements CarModifier, NudgeModifier, StickModifier {
+export class HeadTrackingModifier implements CarModifier, NudgeModifier, StickModifier {
     readonly name = "Head Tracker Camera";
     readonly priority = 10;
     active = true;

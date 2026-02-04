@@ -98,23 +98,23 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.translate(props.position);
 
         const cam = state.camera;
-        const locks = props.lockRotation || {};
+        // const locks = props.lockRotation || {};
 
         // 1. Invert the Camera's Yaw
         // If we don't lock Y, we must SUBTRACT the camera's yaw to stay flat to the lens.
-        if (!locks.y) {
+        // if (!locks.y) {
             this.rotateY(-cam.yaw);
-        }
+        // }
 
         // 2. Invert the Camera's Pitch
-        if (!locks.x) {
+        // if (!locks.x) {
             this.rotateX(cam.pitch);
-        }
+        // }
 
         // 3. Invert the Camera's Roll
-        if (!locks.z) {
+        // if (!locks.z) {
             this.rotateZ(cam.roll);
-        }
+        // }
 
         // Local override rotation (e.g., spinning the "coin" on its own face)
         if (props.rotate) {
@@ -156,7 +156,7 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.drawTexture(assets, props, state);
         this.drawStroke(props, state);
 
-        this.p.box(props.size);
+        this.p.box(props.width, props.height ?? props.width, props.depth ?? props.width);
         this.pop();
     }
 
@@ -326,8 +326,8 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
 
     private rotate(rot: Vector3 | undefined) {
         if (!rot) return;
-        if (rot.x !== 0) this.p.rotateX(rot.x);
         if (rot.y !== 0) this.p.rotateY(rot.y);
+        if (rot.x !== 0) this.p.rotateX(rot.x);
         if (rot.z !== 0) this.p.rotateZ(rot.z);
     }
 

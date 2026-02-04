@@ -103,7 +103,7 @@ describe('Parallax Engine Type Coherence Test', () => {
         // Setup the Complex Dynamic Plan
         const boxDynamic: DynamicBox = {
             type: ELEMENT_TYPES.BOX,
-            size: {
+            width: {
                 kind: SPEC_KINDS.COMPUTED,
                 compute: (state) => state.playback.progress * 100
             },
@@ -124,13 +124,13 @@ describe('Parallax Engine Type Coherence Test', () => {
         // Execution
         const resolvedBox: ResolvedBox = {
             type: boxDynamic.type,
-            size: resolveValue(boxDynamic.size),
+            width: resolveValue(boxDynamic.width),
             position: resolveValue(boxDynamic.position) // This must resolve to Vector3 {x,y,z}
         };
 
         //  Verification
         expect(resolvedBox.position.z).toBe(2); // 0.2 progress * 10
-        expect(resolvedBox.size).toBe(20);      // 0.2 progress * 100
+        expect(resolvedBox.width).toBe(20);      // 0.2 progress * 100
 
         // Type Check: Verify that position is indeed a "Solid" Vector3 now
         const checkVector = (v: Vector3) => v.z + 10;
@@ -168,14 +168,14 @@ describe('Parallax Engine Type Coherence Test', () => {
             const dynamic: DynamicBox = {
                 type: ELEMENT_TYPES.BOX,
                 position: { kind: SPEC_KINDS.STATIC, value: { x: 1, y: 2, z: 3 } },
-                size: { kind: SPEC_KINDS.COMPUTED, compute: () => 10 },
+                width: { kind: SPEC_KINDS.COMPUTED, compute: () => 10 },
             };
             const resolved: ResolvedBox = {
                 type: dynamic.type,
                 position: resolveValue(dynamic.position),
-                size: resolveValue(dynamic.size),
+                width: resolveValue(dynamic.width),
             };
-            expect(resolved.size).toBe(10);
+            expect(resolved.width).toBe(10);
             expect(resolved.position.z).toBe(3);
         });
 

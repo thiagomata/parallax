@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { tutorial_7 } from './tutorial_7';
 import { createMockP5 } from "../../scene/mock/mock_p5.mock.ts";
 import { MockFaceFactory } from "../../scene/mock/mock_face.mock.ts";
-import { CameraModifier } from "../../scene/modifiers/camera_modifier.ts";
+import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts";
 import p5 from "p5";
 import {DEFAULT_SKETCH_CONFIG} from "./tutorial_main_page.demo.ts";
 
@@ -37,7 +37,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
     });
 
     it('should resolve trig-based head rotation using factory constants', async () => {
-        const tracker = new CameraModifier(mockP5 as unknown as p5, mockProvider, testConfig);
+        const tracker = new HeadTrackingModifier(mockP5 as unknown as p5, mockProvider, testConfig);
         const world = tutorial_7(mockP5 as unknown as p5,
             {...DEFAULT_SKETCH_CONFIG, cameraModifier: tracker}
         );
@@ -65,7 +65,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
     });
 
     it('should maintain the "Car" anchor while the "Camera" nudges', async () => {
-        const tracker = new CameraModifier(mockP5 as unknown as p5, mockProvider, testConfig);
+        const tracker = new HeadTrackingModifier(mockP5 as unknown as p5, mockProvider, testConfig);
         const world = tutorial_7(mockP5 as unknown as p5, {
             ...DEFAULT_SKETCH_CONFIG,
             cameraModifier: tracker,
@@ -87,7 +87,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
 
     it('should drift back to baseline when tracking is lost', async () => {
         const smoothingConfig = { ...testConfig, smoothing: 0.5 };
-        const tracker = new CameraModifier(mockP5 as unknown as p5, mockProvider, smoothingConfig);
+        const tracker = new HeadTrackingModifier(mockP5 as unknown as p5, mockProvider, smoothingConfig);
         const world = tutorial_7(mockP5 as unknown as p5,
             {
                 ...DEFAULT_SKETCH_CONFIG,

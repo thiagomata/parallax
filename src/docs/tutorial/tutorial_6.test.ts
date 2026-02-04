@@ -28,22 +28,22 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
         // 3. Verify THE HERO SPHERE (The Hybrid Test)
         const sphereElement = world.getElement('hero-sphere');
         const resolver = new SceneResolver({});
-        const resSphere = resolver.resolve(sphereElement!, state) as ResolvedSphere;
+        const resSphere = resolver.resolve(sphereElement!, state) as { resolved: ResolvedSphere };
 
         // Position X (Atomic): sin(0.25 * 2PI) * 100 = 100
-        expect(resSphere.position.x).toBeCloseTo(100, 5);
-        expect(resSphere.position.y).toBe(0);
+        expect(resSphere.resolved.position.x).toBeCloseTo(100, 5);
+        expect(resSphere.resolved.position.y).toBe(0);
 
         // Blue Channel (Granular): 127 + 127 * sin(0.25 * 2PI) = 254
-        expect(resSphere.fillColor?.blue).toBeCloseTo(254, 5);
-        expect(resSphere.fillColor?.red).toBe(255);
+        expect(resSphere.resolved.fillColor?.blue).toBeCloseTo(254, 5);
+        expect(resSphere.resolved.fillColor?.red).toBe(255);
 
         // 4. Verify THE FLOOR (Static Geometry)
         const floorElement = world.getElement('floor');
-        const resFloor = resolver.resolve(floorElement!, state) as ResolvedFloor;
+        const resFloor = resolver.resolve(floorElement!, state) as { resolved: ResolvedFloor };
 
-        expect(resFloor.width).toBe(500);
-        expect(resFloor.position.y).toBe(100);
+        expect(resFloor.resolved.width).toBe(500);
+        expect(resFloor.resolved.position.y).toBe(100);
 
         // 5. Verify THE BRIDGE (Execution)
         // Check that the GraphicProcessor actually called p5
@@ -65,12 +65,12 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
         const state = world.getCurrentSceneState();
         const sphereElement = world.getElement('hero-sphere');
         const resolver = new SceneResolver({});
-        const resSphere = resolver.resolve(sphereElement!, state) as ResolvedSphere;
+        const resSphere = resolver.resolve(sphereElement!, state) as { resolved: ResolvedSphere };
 
         // Position X: sin(1.5PI) * 100 = -100
-        expect(resSphere.position.x).toBeCloseTo(-100, 5);
+        expect(resSphere.resolved.position.x).toBeCloseTo(-100, 5);
 
         // Blue Channel: 127 + 127 * (-1) = 0
-        expect(resSphere.fillColor?.blue).toBeCloseTo(0, 5);
+        expect(resSphere.resolved.fillColor?.blue).toBeCloseTo(0, 5);
     });
 });

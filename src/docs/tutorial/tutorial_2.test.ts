@@ -38,35 +38,35 @@ describe('Tutorial 2: Progression Integration', () => {
         if (!element) throw new Error("Pulsing box not registered");
 
         const resolver = new SceneResolver({});
-        const props0 = resolver.resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+        const props0 = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
 
         // Size: 100 + sin(0) * 50 = 100
-        expect(props0.size).toBe(100);
+        expect(props0.resolved.width).toBe(100);
         // Blue: 127 + 127 * cos(0) = 254 (or ~255)
-        expect(props0.fillColor?.blue).toBeCloseTo(254, 0);
+        expect(props0.resolved.fillColor?.blue).toBeCloseTo(254, 0);
 
         // --- TEST POINT B: Progress 0.25 (T = 1000ms / 4000ms) ---
         mockP5.millis.mockReturnValue(1000);
         mockP5.draw();
 
-        const props25 = resolver.resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+        const props25 = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
 
         // Size: 100 + sin(PI/2) * 50 = 150
-        expect(props25.size).toBeCloseTo(150, 0);
+        expect(props25.resolved.width).toBeCloseTo(150, 0);
         // Rotation: PI * 2 * 0.25 = PI/2
-        expect(props25.rotate?.y).toBeCloseTo(Math.PI * 0.5, 5);
+        expect(props25.resolved.rotate?.y).toBeCloseTo(Math.PI * 0.5, 5);
         // Blue: 127 + 127 * cos(PI/2) = 127
-        expect(props25.fillColor?.blue).toBeCloseTo(127, 0);
+        expect(props25.resolved.fillColor?.blue).toBeCloseTo(127, 0);
 
         // --- TEST POINT C: Progress 0.5 (T = 2000ms) ---
         mockP5.millis.mockReturnValue(2000);
         mockP5.draw();
 
-        const props50 = resolver.resolve(element, world.getCurrentSceneState()) as ResolvedBox;
+        const props50 = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
         // Size: 100 + sin(PI) * 50 = 100
-        expect(props50.size).toBeCloseTo(100, 5);
+        expect(props50.resolved.width).toBeCloseTo(100, 5);
         // Blue: 127 + 127 * cos(PI) = 0
-        expect(props50.fillColor?.blue).toBeCloseTo(0, 0);
+        expect(props50.resolved.fillColor?.blue).toBeCloseTo(0, 0);
 
         // 3. Verify side effect: The Bridge called p5
         expect(mockP5.box).toHaveBeenCalled();

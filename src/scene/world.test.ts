@@ -8,8 +8,8 @@ import type {GraphicProcessor} from './types.ts';
 import {createMockGraphicProcessor} from "./mock/mock_graphic_processor.mock.ts";
 
 describe('World Orchestration (Dependency Injection)', () => {
-    let world: World<any>;
-    let stage: Stage<any>;
+    let world: World<any, any>;
+    let stage: Stage<any, any>;
     let mockManager: SceneManager;
     let mockGP: GraphicProcessor<any>;
     let loader: ChaosLoader<any>;
@@ -20,7 +20,7 @@ describe('World Orchestration (Dependency Injection)', () => {
         loader = new ChaosLoader();
 
         // We use a real Stage, but we can spy on its render method
-        stage = new Stage(loader);
+        stage = new Stage(loader, {});
 
         mockManager = {
             initialState: vi.fn().mockReturnValue(initialState),
@@ -326,6 +326,242 @@ describe('World Orchestration (Dependency Injection)', () => {
             expect(() => {
                 world.step(mockGP);
             }).not.toThrow();
+        });
+    });
+
+    describe('getCurrentSceneState with resolved elements', () => {
+        const createMockBlueprint = (type: string, id: string) => ({
+            type,
+            id,
+            position: {x: Math.random() * 100, y: Math.random() * 100, z: Math.random() * 100},
+            size: Math.random() * 20 + 5
+        });
+
+        it('should return initial scene state before any rendering', () => {
+            const initialState = world.getCurrentSceneState();
+            
+            expect(initialState).toBeDefined();
+            expect(initialState).toBe(initialState); // Should be the initial mock state
+            expect(initialState.elements).toBeUndefined(); // the first state don't have previous elements
+        });
+
+        it('should update scene state with resolved elements after render', () => {
+            // Add some elements to the stage
+            world.addBox('test-box-1', createMockBlueprint('box', 'test-box-1') as any);
+            world.addSphere('test-sphere-1', createMockBlueprint('sphere', 'test-sphere-1') as any);
+            world.addCone('test-cone-1', createMockBlueprint('cone', 'test-cone-1') as any);
+            
+            // Step through rendering
+            world.step(mockGP);
+            
+            // Get the updated scene state
+            const currentState = world.getCurrentSceneState();
+            
+            // Verify that elements are populated after render
+            expect(currentState.elements).toBeDefined();
+            expect(currentState.elements).toBeInstanceOf(Map);
+            
+            // The elements should contain the added elements (mock stage should return them)
+            expect(currentState.elements?.has('test-box-1')).toBe(true);
+            expect(currentState.elements?.has('test-sphere-1')).toBe(true);
+            expect(currentState.elements?.has('test-cone-1')).toBe(true);
+        });
+
+        it('should reflect element removal in resolved elements map', () => {
+            // Add elements
+            world.addBox('removable-box', createMockBlueprint('box', 'removable-box') as any);
+            world.addSphere('persistent-sphere', createMockBlueprint('sphere', 'persistent-sphere') as any);
+            
+            // First render - both elements should be present
+            world.step(mockGP);
+            let currentState = world.getCurrentSceneState();
+            expect(currentState.elements?.has('removable-box')).toBe(true);
+            expect(currentState.elements?.has('persistent-sphere')).toBe(true);
+            
+            // Remove one element
+            world.removeElement('removable-box');
+            
+            // Second render - removed element should not be present
+            world.step(mockGP);
+            currentState = world.getCurrentSceneState();
+            expect(currentState.elements?.has('removable-box')).toBe(false);
+            expect(currentState.elements?.has('persistent-sphere')).toBe(true);
+        });
+
+        it('should update resolved elements on each render cycle', () => {
+            // Start with one element
+            world.addBox('initial-box', createMockBlueprint('box', 'initial-box') as any);
+            
+            // First render
+            world.step(mockGP);
+            let currentState = world.getCurrentSceneState();
+            expect(currentState.elements?.has('initial-box')).toBe(true);
+            expect(currentState.elements?.size).toBe(1);
+            
+            // Add more elements
+            world.addSphere('added-sphere', createMockBlueprint('sphere', 'added-sphere') as any);
+            world.addCone('added-cone', createMockBlueprint('cone', 'added-cone') as any);
+            
+            // Second render - should have all three elements
+            world.step(mockGP);
+            currentState = world.getCurrentSceneState();
+            expect(currentState.elements?.has('initial-box')).toBe(true);
+            expect(currentState.elements?.has('added-sphere')).toBe(true);
+            expect(currentState.elements?.has('added-cone')).toBe(true);
+            expect(currentState.elements?.size).toBe(3);
+        });
+
+        it('should maintain resolved elements consistency with stage elements', () => {
+            // Add multiple elements
+            const elements = [
+                {id: 'consistency-box', blueprint: createMockBlueprint('box', 'consistency-box')},
+                {id: 'consistency-sphere', blueprint: createMockBlueprint('sphere', 'consistency-sphere')},
+                {id: 'consistency-cone', blueprint: createMockBlueprint('cone', 'consistency-cone')}
+            ];
+            
+            elements.forEach(({id, blueprint}) => {
+                world.addBox(id, blueprint as any);
+            });
+            
+            // Render to populate resolved elements
+            world.step(mockGP);
+            const currentState = world.getCurrentSceneState();
+            
+            // Verify all elements from stage are in resolved elements
+            elements.forEach(({id}) => {
+                expect(currentState.elements?.has(id)).toBe(true);
+                
+                // Verify the element can still be retrieved directly from stage
+                const stageElement = world.getElement(id);
+                expect(stageElement).toBeDefined();
+                expect(stageElement?.id).toBe(id);
+            });
+        });
+
+        it('should handle empty scene state after clearing all elements', () => {
+            // Add elements
+            world.addBox('clear-box', createMockBlueprint('box', 'clear-box') as any);
+            world.addSphere('clear-sphere', createMockBlueprint('sphere', 'clear-sphere') as any);
+            
+            // Render with elements
+            world.step(mockGP);
+            let currentState = world.getCurrentSceneState();
+            expect(currentState.elements?.size).toBeGreaterThan(0);
+            
+            // Remove all elements
+            world.removeElement('clear-box');
+            world.removeElement('clear-sphere');
+            
+            // Render without elements
+            world.step(mockGP);
+            currentState = world.getCurrentSceneState();
+            
+            // Should have empty resolved elements (or at least not contain the removed elements)
+            expect(currentState.elements?.has('clear-box')).toBe(false);
+            expect(currentState.elements?.has('clear-sphere')).toBe(false);
+        });
+
+        it('should populate resolved elements map with actual resolved element values', () => {
+            // Create a mock element with specific properties
+            const mockBlueprint = {
+                type: 'box',
+                id: 'value-test-box',
+                position: {x: 50, y: 100, z: 150},
+                size: 25,
+                color: 'red'
+            } as any;
+
+            world.addBox('value-test-box', mockBlueprint);
+
+            // Spy on what gets sent to the graphic processor
+            let capturedResolvedBox: any = null;
+            mockGP.drawBox = vi.fn((resolved, _assets, _state) => {
+                capturedResolvedBox = resolved;
+            });
+
+            // Step through rendering
+            world.step(mockGP);
+
+            // Get the updated scene state
+            const currentState = world.getCurrentSceneState();
+
+            // Verify the element exists in the resolved map
+            expect(currentState.elements?.has('value-test-box')).toBe(true);
+            
+            // Get the actual resolved element from the map
+            const resolvedElement = currentState.elements?.get('value-test-box');
+            expect(resolvedElement).toBeDefined();
+
+            // Verify the resolved element contains the expected properties
+            expect(resolvedElement).toHaveProperty('type', 'box');
+            expect(resolvedElement).toHaveProperty('position');
+            expect(resolvedElement).toHaveProperty('size');
+            expect(resolvedElement?.position).toEqual(expect.objectContaining({
+                x: expect.any(Number),
+                y: expect.any(Number),
+                z: expect.any(Number)
+            }));
+
+            // Verify this resolved element matches what was sent to the graphic processor
+            expect(mockGP.drawBox).toHaveBeenCalled();
+            expect(capturedResolvedBox).toBeDefined();
+            
+            // The resolved element from the map should be the same object that was sent to the graphic processor
+            expect(resolvedElement).toBe(capturedResolvedBox);
+            
+            // Verify the properties match our blueprint
+            expect(resolvedElement).toEqual(
+                expect.objectContaining({
+                    type: 'box',
+                    size: 25,
+                    position: expect.objectContaining({
+                        x: expect.any(Number),
+                        y: expect.any(Number),
+                        z: expect.any(Number)
+                    })
+                })
+            );
+
+            // Test with multiple elements to verify each has proper resolved values
+            let capturedResolvedSphere: any = null;
+            mockGP.drawSphere = vi.fn((resolved, _assets, _state) => {
+                capturedResolvedSphere = resolved;
+            });
+
+            world.addSphere('value-test-sphere', {
+                type: 'sphere',
+                id: 'value-test-sphere', 
+                position: {x: 200, y: 300, z: 400},
+                radius: 15,
+                color: 'blue'
+            } as any);
+
+            world.step(mockGP);
+
+            const updatedState = world.getCurrentSceneState();
+            
+            // Check both elements have proper resolved values
+            const boxElement = updatedState.elements?.get('value-test-box');
+            const sphereElement = updatedState.elements?.get('value-test-sphere');
+            
+            expect(boxElement).toBeDefined();
+            expect(sphereElement).toBeDefined();
+            expect(boxElement?.type).toBe('box');
+            expect(sphereElement?.type).toBe('sphere');
+            
+            // Both elements should have position data
+            expect(boxElement?.position).toBeDefined();
+            expect(sphereElement?.position).toBeDefined();
+            
+            // The sphere should have been sent to the graphic processor and should match the map value
+            expect(mockGP.drawSphere).toHaveBeenCalled();
+            expect(capturedResolvedSphere).toBe(sphereElement);
+            expect(sphereElement).toEqual(
+                expect.objectContaining({
+                    type: 'sphere',
+                    radius: 15
+                })
+            );
         });
     });
 });

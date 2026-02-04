@@ -29,19 +29,19 @@ describe('Tutorial 5 Execution Test: Assets & Hydration', () => {
 
         const state = world.getCurrentSceneState();
         const resolver = new SceneResolver({});
-        const resolvedBox = resolver.resolve(boxElement!, state) as ResolvedBox;
+        const resolvedBox = resolver.resolve(boxElement!, state) as { resolved: ResolvedBox };
 
         // Math: progress(0.25) * PI * 2 = PI / 2
-        expect(resolvedBox.rotate?.y).toBeCloseTo(Math.PI * 0.5, 5);
+        expect(resolvedBox.resolved.rotate?.y).toBeCloseTo(Math.PI * 0.5, 5);
 
         // 5. Verify Execution - (P5 Side Effects)
         // Texture should be applied before the box is drawn
         expect(mockP5.texture).toHaveBeenCalled();
-        expect(mockP5.box).toHaveBeenCalledWith(150);
+        expect(mockP5.box).toHaveBeenCalledWith(150, 150, 150);
 
         // Font should be set before text is drawn
-        const resolvedText = resolver.resolve(textElement!, state) as ResolvedText;
-        expect(resolvedText.text).toBe("TEXTURES");
+        const resolvedText = resolver.resolve(textElement!, state) as { resolved: ResolvedText };
+        expect(resolvedText.resolved.text).toBe("TEXTURES");
         expect(mockP5.textFont).toHaveBeenCalled();
         expect(mockP5.text).toHaveBeenCalledWith("TEXTURES", 0, 0);
     });
@@ -61,7 +61,7 @@ describe('Tutorial 5 Execution Test: Assets & Hydration', () => {
         // --- ASSERTIONS ---
 
         // Check Box Rendering
-        expect(mockP5.box).toHaveBeenCalledWith(150);
+        expect(mockP5.box).toHaveBeenCalledWith(150, 150, 150);
         expect(mockP5.texture).toHaveBeenCalled(); // Proves the image made it to the box
 
         // Check Text Rendering
