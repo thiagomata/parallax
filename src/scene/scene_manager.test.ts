@@ -202,9 +202,13 @@ describe("PortalSceneManager - Stage 2 (Nudge)", () => {
             mockNudge({x: 100, y: 200, z: 300})
         );
         const state = manager.calculateScene(1000, 10, 60, mockState);
-        expect(state.camera.position.x).toBe(100);
-        expect(state.camera.position.y).toBe(200);
-        expect(state.camera.position.z).toBe(300);
+        
+        // Camera position should be unchanged (nudges only affect eye position per EPIC)
+        expect(state.camera.position.x).toBe(0);
+        expect(state.camera.position.y).toBe(0);
+        expect(state.camera.position.z).toBe(0);
+        
+        // Debug log should still capture the nudge values
         expect(state.debugStateLog?.nudges[0]?.x).toBe(100);
         expect(state.debugStateLog?.nudges[0]?.y).toBe(200);
         expect(state.debugStateLog?.nudges[0]?.z).toBe(300);
@@ -222,11 +226,9 @@ describe("PortalSceneManager - Stage 2 (Nudge)", () => {
 
         const state = manager.calculateScene(1000, 10, 60, mockState);
 
-        // X should be the average of 10 and 20 = 15
-        expect(state.camera.position.x).toBe(15);
-        // Y should be 100 (not 100/3 or 100/2, because only one modifier voted)
-        expect(state.camera.position.y).toBe(100);
-        // Z should remain at initial 0
+        // Camera position should be unchanged (nudges only affect eye position per EPIC)
+        expect(state.camera.position.x).toBe(0);
+        expect(state.camera.position.y).toBe(0);
         expect(state.camera.position.z).toBe(0);
     });
 });
@@ -714,6 +716,67 @@ describe("PortalSceneManager - ScreenModifier Integration", () => {
         far: 1000
     };
 
+    it("should combine world and head nudges correctly", () => {
+        const manager = new SceneManager();
+        const screenModifier = new ScreenModifier(screenConfig);
+        manager.setScreenModifier(screenModifier);
+
+        // Add a car modifier that moves camera to (10, 20, 30)
+        const carModifier: CarModifier = {
+            name: "TestCar",
+            active: true,
+            priority: 100,
+            tick: () => {},
+            getCarPosition: () => ({
+                success: true,
+                value: { name: "TestCar", position: { x: 10, y: 20, z: 30 } }
+            })
+        };
+
+        // Add a world nudge (car shake/vibration) that adds (2, 1, 0)
+        const worldNudge: NudgeModifier = {
+            name: "WorldShake",
+            category: 'world',
+            active: true,
+            tick: () => {},
+            getNudge: () => ({
+                success: true,
+                value: { x: 2, y: 1, z: 0 }
+            })
+        };
+
+        // Add a head nudge (user head tracking) that adds (5, 10, 15)
+        const headNudge: NudgeModifier = {
+            name: "HeadTracking",
+            category: 'head',
+            active: true,
+            tick: () => {},
+            getNudge: () => ({
+                success: true,
+                value: { x: 5, y: 10, z: 15 }
+            })
+        };
+
+        manager.addCarModifier(carModifier);
+        manager.addNudgeModifier(worldNudge);
+        manager.addNudgeModifier(headNudge);
+
+        const initialState = manager.initialState();
+        const state = manager.calculateScene(1000, 16, 60, initialState);
+
+        // Camera position should be CarModifier + world nudges
+        expect(state.camera.position).toEqual({ x: 12, y: 21, z: 30 });
+
+        // Projection matrix should be based on eye position = camera + head nudges = (17, 31, 45)
+        expect(state.projectionMatrix).toBeDefined();
+        
+        const matrixWithWorldOnly = screenModifier.buildFrustum({ x: 12, y: 21, z: 30 });
+        const matrixWithFullHybrid = screenModifier.buildFrustum({ x: 17, y: 31, z: 45 });
+        
+        expect(state.projectionMatrix).toEqual(matrixWithFullHybrid);
+        expect(state.projectionMatrix).not.toEqual(matrixWithWorldOnly);
+    });
+
     it("should not include projection matrix when no ScreenModifier is set", () => {
         const manager = new SceneManager();
         const initialState = manager.initialState();
@@ -769,8 +832,8 @@ describe("PortalSceneManager - ScreenModifier Integration", () => {
         const initialState = manager.initialState();
         const state = manager.calculateScene(1000, 16, 60, initialState);
 
-        // Camera position should be CarModifier result + nudge (from processNudges)
-        expect(state.camera.position).toEqual({ x: 15, y: 30, z: 45 });
+        // Camera position should be CarModifier result only (nudges only affect eye position per EPIC)
+        expect(state.camera.position).toEqual({ x: 10, y: 20, z: 30 });
 
         // Projection matrix should be based on eye position = camera + nudge = (15, 30, 45)
         expect(state.projectionMatrix).toBeDefined();

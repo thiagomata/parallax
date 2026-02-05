@@ -143,6 +143,7 @@ export interface CarModifier extends Modifier {
 }
 
 export interface NudgeModifier extends Modifier {
+    readonly category?: 'world' | 'head'; // undefined defaults to 'head' for backward compatibility
     getNudge(currentCarPos: Vector3, currentState: SceneState): FailableResult<Partial<Vector3>>;
 }
 

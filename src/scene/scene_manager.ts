@@ -198,15 +198,22 @@ export class SceneManager {
             }
         }
 
-        const finalCamPos = this.processNudges(basePos, debugLog, currentState);
+        // Hybrid approach: separate world nudges (camera) from head nudges (eye)
+        const worldNudgeOffsets = this.processNudgesByCategory('world', {x: 0, y: 0, z: 0}, null, currentState);
+        const headNudgeOffsets = this.processNudgesByCategory('head', {x: 0, y: 0, z: 0}, debugLog, currentState);
 
-        // Compute eye position as CarModifier + NudgeModifier (head tracking)
-        // As per EPIC: eye position = finalCamPos + additional head tracking offset
-        const headOffset = this.processNudges({x: 0, y: 0, z: 0}, null, currentState); // null debugLog to avoid duplicate logging
+        // Camera position = CarModifier + world nudges (car shake, engine vibration, etc.)
+        const finalCamPos = {
+            x: basePos.x + worldNudgeOffsets.x,
+            y: basePos.y + worldNudgeOffsets.y,
+            z: basePos.z + worldNudgeOffsets.z,
+        };
+
+        // Eye position = Camera position + head nudges (user head tracking)
         const finalEyePos = {
-            x: finalCamPos.x + headOffset.x,
-            y: finalCamPos.y + headOffset.y,
-            z: finalCamPos.z + headOffset.z,
+            x: finalCamPos.x + headNudgeOffsets.x,
+            y: finalCamPos.y + headNudgeOffsets.y,
+            z: finalCamPos.z + headNudgeOffsets.z,
         };
 
         let stickRes: StickResult = {
@@ -276,11 +283,15 @@ export class SceneManager {
         }
     }
 
-    private processNudges(basePos: Vector3, debugLog: SceneStateDebugLog | null, currentState: SceneState): Vector3 {
+    private processNudgesByCategory(category: 'world' | 'head', basePos: Vector3, debugLog: SceneStateDebugLog | null, currentState: SceneState): Vector3 {
         const votes: Record<keyof Vector3, number[]> = {x: [], y: [], z: []};
 
         for (const m of this.nudgeModifiers) {
             if (!m.active) continue;
+            
+            // Filter by category (undefined defaults to 'head' for backward compatibility)
+            const modifierCategory = m.category ?? 'head';
+            if (modifierCategory !== category) continue;
 
             const res = m.getNudge(basePos, currentState);
             if (res.success) {
@@ -310,6 +321,8 @@ export class SceneManager {
             z: basePos.z + avg(votes.z),
         };
     }
+
+
 
     public calculateLookAt(pos: Vector3, stick: StickResult): Vector3 {
         return {

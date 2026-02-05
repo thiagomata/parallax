@@ -1,4 +1,6 @@
-# EPIC: Head-Tracked Off-Axis Projection / Screen Modifier
+# EPIC: Head-Tracked Off-Axis Projection / Hybrid Nudge System
+
+This EPIC implements a hybrid nudge system that supports both world effects (camera shake, engine vibration) and head tracking (VR/AR pop-out) simultaneously.
 
 ## Ticket 1 — ScreenModifier Class
 
@@ -24,17 +26,21 @@ SceneManager.calculateScene computes eye position as CarModifier + NudgeModifier
 
 Off-axis projection is built via ScreenModifier.buildFrustum(eyePos).
 
-## Ticket 3 — Head Tracking Eye Offsets
+## Ticket 3 — Hybrid Nudge System (World + Head Tracking)
 
-Description: Ensure head-tracking (NudgeModifier) only affects the eye position, not the camera/world position.
+Description: Implement dual-category nudge system where world nudges affect camera position and head nudges affect eye position.
 
 Acceptance Criteria:
 
-Head-tracking offsets are additive to camera position to produce eye position.
+World nudges ('world' category) affect camera position for effects like car shake, engine vibration, ground bumps.
 
-No direct movement of CarModifier or scene geometry by NudgeModifier.
+Head nudges ('head' category or undefined) affect eye position for VR/AR head tracking.
 
-Unit test confirms eye offsets move the frustum without moving the world.
+Camera position = CarModifier + world nudges.
+
+Eye position = camera position + head nudges.
+
+Unit tests confirm world nudges move camera while head nudges move frustum independently.
 
 ## Ticket 4 — Replace p5 Perspective with Off-Axis Projection
 
@@ -74,25 +80,29 @@ Enable/disable via SceneManager.debug = true.
 
 ## Ticket 7 — Integration Test
 
-Description: Full integration test with CarModifier + NudgeModifier + StickModifier + ScreenModifier.
+Description: Full integration test with CarModifier + World NudgeModifiers + Head NudgeModifiers + StickModifier + ScreenModifier.
 
 Acceptance Criteria:
 
 Head movement produces correct pop-out effect.
 
-Camera movement moves the world independently.
+World nudges (car shake, vibration) move camera and world independently.
 
-Stick rotation rotates the camera without breaking frustum.
+Combined system allows both effects to work simultaneously.
+
+Stick rotation rotates camera without breaking frustum.
 
 ## Ticket 8 — Documentation
 
-Description: Document how ScreenModifier interacts with Nudge/Car/Stick modifiers.
+Description: Document how ScreenModifier interacts with World/Head Nudge/Car/Stick modifiers.
 
 Acceptance Criteria:
 
+Explain hybrid nudge system (world vs head categories).
+
 Explain additive eye offset concept.
 
-Include example code snippet for p5 integration.
+Include example code snippet for p5 integration with both world and head nudges.
 
 Note limitations (UI overlays, p5 quirks).
 
@@ -155,6 +165,22 @@ export class ScreenModifier {
     }
 }
 ```
+}
+
+## 1.5. Hybrid Nudge System Interface
+
+Support dual-category nudge modifiers:
+
+```ts
+export interface NudgeModifier extends Modifier {
+    readonly category?: 'world' | 'head'; // undefined defaults to 'head' for backward compatibility
+    getNudge(currentCarPos: Vector3, currentState: SceneState): FailableResult<Partial<Vector3>>;
+}
+```
+
+Use cases:
+- `category: 'world'` - Camera shake, engine vibration, ground bumps, suspension
+- `category: 'head'` - User head tracking, breathing, VR/AR pop-out effects
 
 ## 2. How to integrate with SceneManager
 
@@ -166,17 +192,26 @@ const finalCamPos = this.processNudges(basePos, debugLog, currentState);
 
 To:
 
-Here’s how it changes:
+Here's how it changes with the hybrid system:
 
-Compute eye position:
+Separate world and head nudges:
 
 ```ts
-const eyePos = finalCamPos;       // camera position from CarModifiers
-const headOffset = this.processNudges({x:0,y:0,z:0}, debugLog, currentState); // just the head tracking offset
+const worldOffset = this.processNudgesByCategory('world', {x:0,y:0,z:0}, null, currentState);
+const headOffset = this.processNudgesByCategory('head', {x:0,y:0,z:0}, debugLog, currentState);
+
+// Camera position = CarModifier + world nudges (car shake, engine vibration, etc.)
+const finalCamPos = {
+x: basePos.x + worldOffset.x,
+y: basePos.y + worldOffset.y,
+z: basePos.z + worldOffset.z,
+};
+
+// Eye position = camera position + head nudges (user head tracking)
 const finalEyePos = {
-x: eyePos.x + headOffset.x,
-y: eyePos.y + headOffset.y,
-z: eyePos.z + headOffset.z,
+x: finalCamPos.x + headOffset.x,
+y: finalCamPos.y + headOffset.y,
+z: finalCamPos.z + headOffset.z,
 };
 ```
 
@@ -188,3 +223,5 @@ const screenProj = this.screenModifier.buildFrustum(finalEyePos);
 ```
 
 Send screenProj to your p5 renderer, overriding any perspective() call.
+
+This enables simultaneous world effects (camera shake) and head tracking (VR pop-out).
