@@ -6,12 +6,13 @@ import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
-export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
+export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any> {
     let graphicProcessor: P5GraphicProcessor;
 
-    // 1. Scene Orchestration (5s circular loop)
+    // Scene Orchestration (5s circular loop)
     const activeManager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
+        startPaused: config.paused,
         playback: {
             ...DEFAULT_SETTINGS.playback,
             duration: 5000,
@@ -19,19 +20,19 @@ export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         }
     });
 
-    // 2. Asset Pipeline & World
+    // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
-    const world = new World<P5Bundler>(activeManager, loader);
+    const world = new World<P5Bundler, any>(activeManager, loader);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // 3. REGISTRATION
+        // REGISTRATION
         // Defining the Orbit as a function of the Engine Progress
         world.addBox('orbit-box', {
             type: ELEMENT_TYPES.BOX,
-            size: 50,
+            width: 50,
 
             // Orbital Position Logic: x = cos(t), y = sin(t)
             position: (state: SceneState): Vector3 => ({

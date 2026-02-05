@@ -12,9 +12,10 @@ import {
     type StickResult,
     type Vector3,
 } from "./types";
+import {type DeepPartial, merge} from "./utils/merge.ts";
 
 export class SceneManager {
-    private settings: SceneSettings;
+    private readonly settings: SceneSettings;
     private modifiers: Map<string, Modifier> = new Map();
     private carModifiers: CarModifier[] = [];
     private nudgeModifiers: NudgeModifier[] = [];
@@ -25,11 +26,11 @@ export class SceneManager {
     private pausedAt: number | null = null;
     public stickDistance: number = 1000;
 
-    constructor(settings: SceneSettings = DEFAULT_SETTINGS) {
-        this.settings = settings;
-        this.debug = settings.debug;
-        this.paused = settings.paused;
-        this.startTime = settings.playback.startTime;
+    constructor(settings: DeepPartial<SceneSettings> = {}) {
+        this.settings = merge(DEFAULT_SETTINGS, settings);
+        this.debug = settings.debug ?? DEFAULT_SETTINGS.debug;
+        this.paused = settings.startPaused ?? DEFAULT_SETTINGS.startPaused;
+        this.startTime = settings.playback?.startTime ?? DEFAULT_SETTINGS.playback.startTime;
     }
 
     public clearModifiers(): void {
@@ -110,9 +111,11 @@ export class SceneManager {
                 lookAt: this.settings.camera.lookAt ?? 0,
                 yaw: 0,
                 pitch: 0,
+                roll: 0,
                 direction: this.calculateDirection({
                     yaw: 0,
                     pitch: 0,
+                    roll: 0,
                     distance: this.stickDistance,
                     priority: 0,
                 }),
@@ -192,6 +195,7 @@ export class SceneManager {
         let stickRes: StickResult = {
             yaw: 0,
             pitch: 0,
+            roll: 0,
             distance: this.stickDistance,
             priority: -1,
         };
@@ -235,6 +239,7 @@ export class SceneManager {
                 lookAt: lookAt,
                 yaw: stickRes.yaw,
                 pitch: stickRes.pitch,
+                roll: stickRes.roll,
                 direction: this.calculateDirection(stickRes),
             } as SceneCameraState,
             debugStateLog: debugLog ?? undefined,

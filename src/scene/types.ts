@@ -42,6 +42,7 @@ export interface SceneCameraSettings {
 export interface SceneCameraState extends SceneCameraSettings {
     readonly yaw: number;
     readonly pitch: number;
+    readonly roll: number;
     readonly direction: Vector3;
 }
 
@@ -65,7 +66,7 @@ export interface SceneSettings {
     playback: PlaybackSettings;
     debug: boolean;
     alpha: number;
-    paused: boolean;
+    startPaused: boolean;
 }
 
 export interface SceneState {
@@ -74,6 +75,7 @@ export interface SceneState {
     playback: ScenePlaybackState;
     camera: SceneCameraState;
     debugStateLog?: SceneStateDebugLog;
+    elements?: Map<string, ResolvedElement>;
 }
 
 export const DEFAULT_CAMERA_FAR = 5000;
@@ -98,7 +100,7 @@ export const DEFAULT_SETTINGS: SceneSettings = {
         startTime: 0
     },
     debug: false,
-    paused: false,
+    startPaused: false,
     alpha: 1
 };
 
@@ -121,6 +123,7 @@ export interface StickResult {
     readonly yaw: number;
     readonly pitch: number;
     readonly distance: number;
+    readonly roll: number;
     readonly priority: number;
 }
 
@@ -208,17 +211,17 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
 
     setCamera(pos: Vector3, lookAt: Vector3): void;
 
-    push(): void;
+    // push(): void;
 
-    pop(): void;
+    // pop(): void;
 
     translate(pos: Vector3): void;
 
-    rotateX(angle: number): void;
-
-    rotateY(angle: number): void;
-
-    rotateZ(angle: number): void;
+    // rotateX(angle: number): void;
+    //
+    // rotateY(angle: number): void;
+    //
+    // rotateZ(angle: number): void;
 
     fill(color: ColorRGBA, alpha?: number): void;
 
@@ -248,7 +251,13 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
 
     drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: SceneState): void;
 
-    plane(width: number, height: number): void;
+    drawLabel(s: string, pos: Partial<Vector3>): void;
+
+    drawCrosshair(pos: Partial<Vector3>, size: number): void;
+
+    drawHUDText(s: string, x: number, y: number): void;
+
+    // plane(width: number, height: number): void;
 
     dist(v1: Vector3, v2: Vector3): number;
 
@@ -256,13 +265,7 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
 
     lerp(start: number, stop: number, amt: number): number;
 
-    drawLabel(s: string, pos: Partial<Vector3>): void;
-
     text(s: string, pos: Partial<Vector3>): void;
-
-    drawCrosshair(pos: Partial<Vector3>, size: number): void;
-
-    drawHUDText(s: string, x: number, y: number): void;
 
     millis(): number;
 
@@ -287,6 +290,7 @@ export const ELEMENT_TYPES = {
     FLOOR: 'floor',
     TEXT: 'text',
 } as const;
+export const ALL_ELEMENT_TYPES = Object.values(ELEMENT_TYPES);
 
 export const SPEC_KINDS = {STATIC: 'static', COMPUTED: 'computed', BRANCH: 'branch'} as const;
 
@@ -302,15 +306,22 @@ export type FlexibleSpec<T> =
     | (T extends object ? BlueprintTree<T> : never);
 export type BlueprintTree<T> = { [K in keyof T]?: FlexibleSpec<T[K]>; };
 
-type StaticKeys = 'type' | 'texture' | 'font';
-export type MapToBlueprint<T> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K]>; };
-export type MapToDynamic<T> = { [K in keyof T]: K extends StaticKeys ? T[K] : DynamicProperty<T[K]>; };
+export const IDENTITY_KEYS = ['type', 'texture', 'font', 'modifiers'] as const;
+type StaticKeys = typeof IDENTITY_KEYS[number];
+export type MapToBlueprint<T> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K]>; } & {
+    effects?: EffectBlueprint[];
+};
+export type MapToDynamic<T> = { [K in keyof T]: K extends StaticKeys ? T[K] : DynamicProperty<T[K]>; } & {
+    effects?: EffectResolutionGroup[];
+};
 export type Unwrapped<T> = T extends DynamicProperty<infer U> ? Unwrapped<U> : T extends object ? { [K in keyof T]: Unwrapped<T[K]> } : T;
 
 /**
  * ELEMENT DEFINITIONS
  */
 export interface ResolvedBaseVisual {
+    readonly id?: string;
+    readonly type: typeof ELEMENT_TYPES[keyof typeof ELEMENT_TYPES];
     readonly position: Vector3;
     readonly alpha?: number;
     readonly fillColor?: ColorRGBA;
@@ -319,6 +330,7 @@ export interface ResolvedBaseVisual {
     readonly rotate?: Vector3;
     readonly texture?: TextureRef;
     readonly font?: FontRef;
+    readonly effects?: EffectBlueprint[];
 }
 
 export type DynamicElement<T extends ResolvedElement> = MapToDynamic<T>;
@@ -327,7 +339,9 @@ export type DynamicElement<T extends ResolvedElement> = MapToDynamic<T>;
 
 export interface ResolvedBox extends ResolvedBaseVisual {
     readonly type: typeof ELEMENT_TYPES.BOX;
-    readonly size: number;
+    readonly width: number;
+    readonly height?: number;
+    readonly depth?: number;
 }
 
 export type BlueprintBox = MapToBlueprint<ResolvedBox>;
@@ -454,6 +468,7 @@ export type BlueprintElement =
     BlueprintFloor      |
     BlueprintText       ;
 
+
 export type ResolvedElement =
     ResolvedBox         |
     ResolvedPanel       |
@@ -470,21 +485,37 @@ export type ResolvedElement =
  * WORLD INTERFACES
  */
 
-export interface Renderable<TBundle extends GraphicsBundle = GraphicsBundle> {
-    readonly id: string;
-
-    render(gp: GraphicProcessor<TBundle>, state: SceneState): void;
-}
-
-export interface RenderableElement<
+/**
+ * Bundle Dynamic Element contains the dynamic version of the element T
+ * and the assets related to it.
+ */
+export interface BundleDynamicElement<
     T extends ResolvedElement = ResolvedElement,
     TBundle extends GraphicsBundle = GraphicsBundle
-> extends Renderable<TBundle> {
+> {
+    readonly id: string;
     readonly dynamic: DynamicElement<T>;
+    readonly effects: ReadonlyArray<EffectResolutionGroup>;
     assets: ElementAssets<TBundle>;
 }
 
-export function createBlueprint<T>(blueprint: MapToBlueprint<T>): MapToBlueprint<T> {
+/**
+ * Bundle Resolved Element contains the resolved element T
+ * and the assets related to it.
+ *
+ * Should provide all the required data to render element T
+ */
+export interface BundleResolvedElement<
+    T extends ResolvedElement = ResolvedElement,
+    TGraphicBundle extends GraphicsBundle = GraphicsBundle
+> {
+    readonly id: string;
+    readonly resolved: T;
+    readonly effects: ReadonlyArray<EffectResolutionGroup>;
+    assets: ElementAssets<TGraphicBundle>;
+}
+
+export function toBlueprint<T>(blueprint: MapToBlueprint<T>): MapToBlueprint<T> {
     return blueprint;
 }
 
@@ -531,3 +562,34 @@ export const DEFAULT_OBSERVER_CONFIG: ObserverConfig = {
     damping: 0.5,
     lookDistance: 1000
 };
+
+export interface BaseModifierSettings {
+    enabled?: boolean;
+}
+
+export interface EffectBundle<
+    TID extends string = string,
+    TConfig extends BaseModifierSettings = BaseModifierSettings,
+    E extends ResolvedBaseVisual = ResolvedBaseVisual,
+> {
+    readonly type: TID;
+    readonly targets: ReadonlyArray<E['type']>;
+    readonly defaults: TConfig;
+    apply(current: E, state: SceneState, settings: TConfig): E;
+}
+
+export type EffectLib = Record<string, EffectBundle<any, any, any>>;
+
+export interface EffectBlueprint<K extends string = string, TConfig = any> {
+    readonly type: K;
+    readonly settings?: Partial<TConfig>;
+}
+
+export interface EffectResolutionGroup<
+    TID extends string = string,
+    TConfig extends BaseModifierSettings = any
+> {
+    readonly type: TID;
+    readonly bundle: EffectBundle<TID, TConfig, any>;
+    readonly settings?: TConfig; // Hydrated/Merged settings
+}

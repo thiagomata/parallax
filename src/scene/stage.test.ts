@@ -6,7 +6,7 @@ import {createMockGraphicProcessor} from './mock/mock_graphic_processor.mock.ts'
 import {ELEMENT_TYPES, type GraphicProcessor} from './types.ts';
 
 describe('Stage (Spatial Orchestration)', () => {
-    let stage: Stage<any>;
+    let stage: Stage<any, any>;
     let loader: ChaosLoader<any>;
     let mockGP: GraphicProcessor<any>;
     const mockState = createMockState({x: 0, y: 0, z: 0});
@@ -22,14 +22,13 @@ describe('Stage (Spatial Orchestration)', () => {
         stage.add('box-1', {
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 0, z: 0},
-            size: 5
+            width: 5
         });
 
         stage.render(mockGP, mockState);
 
         // Verify the GP was reached
         expect(mockGP.drawBox).toHaveBeenCalled();
-        expect(mockGP.translate).toHaveBeenCalledWith({x: 10, y: 0, z: 0});
     });
 
     it('should sort elements by distance (Painter Algorithm)', () => {
@@ -38,27 +37,30 @@ describe('Stage (Spatial Orchestration)', () => {
         const nearPos = {x: 0, y: 0, z: 50};
         const farPos = {x: 0, y: 0, z: 500};
 
-        stage.add('near', {
+
+        const nearBox = {
             type: ELEMENT_TYPES.BOX,
             position: nearPos,
-            size: 1
-        });
+            width: 1
+        }
+        stage.add('near', nearBox);
 
-        stage.add('far', {
+        const farBox = {
             type: ELEMENT_TYPES.BOX,
             position: farPos,
-            size: 1
-        });
+            width: 1
+        }
+        stage.add('far', farBox);
 
         stage.render(mockGP, mockState);
 
-        const translateCalls = vi.mocked(mockGP.translate).mock.calls;
+        const drawCalls = vi.mocked(mockGP.drawBox).mock.calls;
 
         // Check invocation order:
         // Index 0 should be the FAR element (dist 500)
         // Index 1 should be the NEAR element (dist 50)
-        expect(translateCalls[0][0]).toEqual(farPos);
-        expect(translateCalls[1][0]).toEqual(nearPos);
+        expect(drawCalls[0][0]).toEqual(farBox);
+        expect(drawCalls[1][0]).toEqual(nearBox);
     });
 
     it('should resolve dynamic positions during the sorting phase', () => {
@@ -66,7 +68,7 @@ describe('Stage (Spatial Orchestration)', () => {
         stage.add('dynamic-box', {
             type: ELEMENT_TYPES.BOX,
             position: (s: any) => ({x: s.playback.now, y: 0, z: 0}),
-            size: 1
+            width: 1
         });
 
         const customState = {
@@ -74,9 +76,41 @@ describe('Stage (Spatial Orchestration)', () => {
             playback: {...mockState.playback, now: 999}
         };
 
+        const expectedBox = {
+            type: ELEMENT_TYPES.BOX,
+            position: {x: 999, y: 0, z: 0},
+            width: 1,
+            texture: undefined,
+            font: undefined,
+            effects: undefined,
+        };
+
+        const assets = {
+            font: {
+                status: "READY",
+                value: null,
+            },
+            texture: {
+                status: "READY",
+                value: null,
+            }
+        };
+
+        const afterState = {
+            ...customState,
+            elements: new Map([
+                ["dynamic-box", {
+                    position: {x: 999, y: 0, z: 0},
+                    width: 1,
+                    type: "box"
+                }]
+            ]),
+        }
+
+
         stage.render(mockGP, customState);
 
-        expect(mockGP.translate).toHaveBeenCalledWith({x: 999, y: 0, z: 0});
+        expect(mockGP.drawBox).toHaveBeenCalledWith(expectedBox, assets, afterState);
     });
 
     it('should maintain single instances even with multiple add calls (Idempotency)', () => {
@@ -84,8 +118,8 @@ describe('Stage (Spatial Orchestration)', () => {
         const bluePrint = {
             type: ELEMENT_TYPES.BOX,
             position: {x: 0, y: 0, z: 0},
-            size: 1,
-            texture: {path: 'shared.png', width: 1, height: 1}
+            width: 1,
+            texture: {path: 'shared.png', width: 1, height: 1},
         };
 
         stage.add('unique-id', bluePrint);
@@ -102,7 +136,7 @@ describe('Stage (Spatial Orchestration)', () => {
         stage.add(elementId, {
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 0, z: 0},
-            size: 5
+            width: 5
         });
 
         // Verify element is present
@@ -122,7 +156,7 @@ describe('Stage (Spatial Orchestration)', () => {
         stage.add(elementId, {
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 0, z: 0},
-            size: 5
+            width: 5
         });
 
         // Remove the element

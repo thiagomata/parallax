@@ -61,14 +61,17 @@ describe('Parallax Engine Type Coherence Test', () => {
             camera: {position: {x: 0, y: 0, z: 500}, lookAt: {x: 0, y: 0, z: 0}},
             playback: {isLoop: true, timeSpeed: 1, startTime: 0},
             debug: false,
-            paused: false,
+            startPaused: false,
             alpha: 1
         },
         playback: {now: 1000, delta: 16, progress: 0.2, frameCount: 60},
         camera: {
             position: {x: 0, y: 0, z: 500},
             lookAt: {x: 0, y: 0, z: 0},
-            yaw: 0, pitch: 0, direction: {x: 0, y: 0, z: -1}
+            yaw: 0,
+            pitch: 0,
+            roll: 0,
+            direction: {x: 0, y: 0, z: -1}
         }
     };
 
@@ -95,10 +98,10 @@ describe('Parallax Engine Type Coherence Test', () => {
     };
 
     it('should resolve deep nested computed values within branches', () => {
-        // Setup the Complex Dynamic Plan
+        // Set up the Complex Dynamic Plan
         const boxDynamic: DynamicBox = {
             type: ELEMENT_TYPES.BOX,
-            size: {
+            width: {
                 kind: SPEC_KINDS.COMPUTED,
                 compute: (state) => state.playback.progress * 100
             },
@@ -119,13 +122,13 @@ describe('Parallax Engine Type Coherence Test', () => {
         // Execution
         const resolvedBox: ResolvedBox = {
             type: boxDynamic.type,
-            size: resolveValue(boxDynamic.size),
+            width: resolveValue(boxDynamic.width),
             position: resolveValue(boxDynamic.position) // This must resolve to Vector3 {x,y,z}
         };
 
         //  Verification
         expect(resolvedBox.position.z).toBe(2); // 0.2 progress * 10
-        expect(resolvedBox.size).toBe(20);      // 0.2 progress * 100
+        expect(resolvedBox.width).toBe(20);      // 0.2 progress * 100
 
         // Type Check: Verify that position is indeed a "Solid" Vector3 now
         const checkVector = (v: Vector3) => v.z + 10;
@@ -163,14 +166,14 @@ describe('Parallax Engine Type Coherence Test', () => {
             const dynamic: DynamicBox = {
                 type: ELEMENT_TYPES.BOX,
                 position: { kind: SPEC_KINDS.STATIC, value: { x: 1, y: 2, z: 3 } },
-                size: { kind: SPEC_KINDS.COMPUTED, compute: () => 10 },
+                width: { kind: SPEC_KINDS.COMPUTED, compute: () => 10 },
             };
             const resolved: ResolvedBox = {
                 type: dynamic.type,
                 position: resolveValue(dynamic.position),
-                size: resolveValue(dynamic.size),
+                width: resolveValue(dynamic.width),
             };
-            expect(resolved.size).toBe(10);
+            expect(resolved.width).toBe(10);
             expect(resolved.position.z).toBe(3);
         });
 
@@ -321,7 +324,7 @@ describe('Parallax Engine Type Coherence Test', () => {
                 ry: resolveValue(dynamic.ry),
                 rz: resolveValue(dynamic.rz)
             };
-            expect(resolved.rx).toBe(3);
+expect(resolved.rx).toBe(3);
             expect(resolved.ry).toBe(4);
             expect(resolved.rz).toBe(5);
         });

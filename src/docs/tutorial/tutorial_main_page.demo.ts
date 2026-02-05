@@ -1,7 +1,7 @@
 import {World} from "../../scene/world.ts";
 import {SceneManager} from "../../scene/scene_manager.ts";
-import {resolve} from "../../scene/resolver.ts"; // New Manifest-compliant resolver
-import {CameraModifier} from "../../scene/modifiers/camera_modifier.ts";
+import {SceneResolver} from "../../scene/resolver.ts"; // New Manifest-compliant resolver
+import {HeadTrackingModifier} from "../../scene/modifiers/head_tracking_modifier.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {ASSET_STATUS, DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
@@ -31,13 +31,17 @@ import {tutorial_6} from "./tutorial_6.ts";
 import step6Source from './tutorial_6.ts?raw';
 import {tutorial_7} from "./tutorial_7.ts";
 import step7Source from './tutorial_7.ts?raw';
+import {tutorial_8} from "./tutorial_8.ts";
+import step8Source from './tutorial_8.ts?raw';
+import {tutorial_9} from "./tutorial_9.ts";
+import step9Source from './tutorial_9.ts?raw';
 
 export interface SketchConfig {
     width: number;
     height: number;
     backgroundColor?: string;
     manager?: SceneManager,
-    cameraModifier?: CameraModifier,
+    cameraModifier?: HeadTrackingModifier,
     loader?: P5AssetLoader,
     paused: boolean,
 }
@@ -60,18 +64,24 @@ Object.assign(window, {
     p5,
     World,
     SceneManager,
-    CameraModifier,
+    CameraModifier: HeadTrackingModifier,
     P5AssetLoader,
     P5GraphicProcessor,
+    OrbitModifier,
+    CenterFocusModifier,
+    LookAtEffect,
     ELEMENT_TYPES,
     DEFAULT_SETTINGS,
     ASSET_STATUS,
     DEFAULT_SKETCH_CONFIG,
-    resolve,
+    resolver: new SceneResolver({}),
 });
 
 import { transform } from 'sucrase';
 import {tutorialStepTemplate} from "./tutorial.template.ts";
+import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
+import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
+import {LookAtEffect} from "../../scene/effects/look_at_effect.ts";
 
 function toggleFS(id: string) {
     const element = document.getElementById(id);
@@ -227,3 +237,5 @@ renderStep('tutorial-4', '4. Camera (Modifiers)', tutorial_4, step4Source);
 renderStep('tutorial-5', '5. Textures & Fonts (Hydration)', tutorial_5, step5Source);
 renderStep('tutorial-6', '6. Integrated Scene (Hybrid Props)', tutorial_6, step6Source);
 renderStep('tutorial-7', '7. Head Tracking', tutorial_7, step7Source);
+renderStep('tutorial-8', '8. Billboard', tutorial_8, step8Source);
+renderStep('tutorial-9', '9. Follow Object', tutorial_9, step9Source);

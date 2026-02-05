@@ -2,7 +2,7 @@ import p5 from 'p5';
 import { World } from "../../scene/world.ts";
 import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
 import { SceneManager } from "../../scene/scene_manager.ts";
-import { CameraModifier } from "../../scene/modifiers/camera_modifier.ts"; // Our new class
+import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts"; // Our new class
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
 import { DEFAULT_SETTINGS, ELEMENT_TYPES } from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
@@ -11,25 +11,26 @@ import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.dem
  * TUTORIAL 7: THE OBSERVER
  * Demonstrating 1:1 head-to-camera mapping using MediaPipe.
  */
-export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
+export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any> {
     let gp: P5GraphicProcessor;
 
-    // 1. Create the manager
+    // Create the manager
     const activeManager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
+        startPaused: config.paused,
         debug: false
     });
 
-    // 2. Camera Logic: Use injected or create default
-    const headTracker = config.cameraModifier ?? new CameraModifier(p);
+    // Camera Logic: Use injected or create default
+    const headTracker = config.cameraModifier ?? new HeadTrackingModifier(p);
 
     activeManager.addCarModifier(headTracker);
     activeManager.addNudgeModifier(headTracker);
     activeManager.addStickModifier(headTracker);
 
-    // 3. Asset Pipeline & World
+    // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
-    const world = new World<P5Bundler>(activeManager, loader);
+    const world = new World<P5Bundler, any>(activeManager, loader);
 
     headTracker.init().catch(console.error);
 
@@ -37,7 +38,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         p.createCanvas(config.width, config.height, p.WEBGL);
         gp = new P5GraphicProcessor(p, loader);
 
-        // 4. REGISTRATION
+        // REGISTRATION
         // We create a deep corridor of spheres to test the Z-depth and X/Y parallax
         for (let z = 200; z > -2000; z -= 200) {
             for (let x = -500; x <= 500; x += 200) {
@@ -55,19 +56,32 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             }
         }
 
-        // Add a floating cubes to make the headtracking projection easier to be noticed
+        world.addBox(`cube-middle`, {
+            type: ELEMENT_TYPES.BOX,
+            position: { x: 0, y: -30, z: -300 },
+            width: 30,
+            fillColor: { red: 30, green: 30, blue: 235 },
+            strokeColor: { red: 230, green: 230, blue: 235 }
+        });
+
+        // // Add a floating cubes to make the headtracking projection easier to be noticed
         for (let z = 600; z > -600; z -= 60) {
             world.addBox(`cube-${z}`, {
                 type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: -10, z: z },
-                size: 30,
-                fillColor: { red: 30, green: 30, blue: 235 },
-                strokeColor: { red: 230, green: 230, blue: 235 }
+                position: { x: z, y: -100, z: -600 },
+                width: 10,
+                depth: 10,
+                height: 600,
+                fillColor: { red: 100, green: 100, blue: 100 },
+                strokeColor: { red: 255, green: 255, blue: 235 }
             });
         }
     };
 
     p.draw = () => {
+        if (config.paused && !activeManager.isPaused()) activeManager.pause();
+        if (!config.paused && activeManager.isPaused()) activeManager.resume();
+
         p.background(10);
 
         /* frame loop */

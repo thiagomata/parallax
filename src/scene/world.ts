@@ -1,31 +1,40 @@
 import type {SceneManager} from "./scene_manager.ts";
 import type {
     AssetLoader,
-    BlueprintBox, BlueprintCone, BlueprintCylinder, BlueprintElliptical,
+    BlueprintBox,
+    BlueprintCone,
+    BlueprintCylinder,
+    BlueprintElliptical,
     BlueprintFloor,
-    BlueprintPanel, BlueprintPyramid,
+    BlueprintPanel,
+    BlueprintPyramid,
     BlueprintSphere,
-    BlueprintText, BlueprintTorus,
+    BlueprintText,
+    BlueprintTorus, EffectLib,
     GraphicProcessor,
     GraphicsBundle,
-    RenderableElement,
+    BundleDynamicElement,
     SceneState
 } from "./types.ts";
 import {Stage} from "./stage.ts";
 
-export class World<TBundle extends GraphicsBundle> {
-    public readonly stage: Stage<TBundle>;
+export class World<TBundle extends GraphicsBundle, TEffectLib extends EffectLib> {
+    public readonly stage: Stage<TBundle, TEffectLib>;
     private sceneManager: SceneManager;
     private sceneState: SceneState;
 
-    constructor(sceneManager: SceneManager, loader: AssetLoader<TBundle>, stage?: Stage<TBundle>) {
+    constructor(sceneManager: SceneManager, loader: AssetLoader<TBundle>, stage?: Stage<TBundle, TEffectLib>) {
         this.sceneManager = sceneManager;
         this.sceneState = sceneManager.initialState();
-        this.stage = stage ?? new Stage<TBundle>(loader);
+        this.stage = stage ?? new Stage<TBundle, TEffectLib>(loader);
     }
 
     public getCurrentSceneState(): SceneState {
         return this.sceneState;
+    }
+
+    public isPaused(): boolean {
+        return this.sceneManager.isPaused();
     }
 
     public addBox(id: string, blueprint: BlueprintBox): void {
@@ -68,7 +77,7 @@ export class World<TBundle extends GraphicsBundle> {
         this.stage.add(id, blueprint);
     }
 
-    public getElement(id: string): RenderableElement<any, TBundle> | undefined {
+    public getElement(id: string): BundleDynamicElement<any, TBundle> | undefined {
         return this.stage.getElement(id);
     }
 
@@ -77,21 +86,14 @@ export class World<TBundle extends GraphicsBundle> {
     }
 
     public step(gp: GraphicProcessor<TBundle>): void {
-        // 1. Advance Physics/Logic (Temporal)
-        this.sceneState = this.sceneManager.calculateScene(
+        const draftNewState = this.sceneManager.calculateScene(
             gp.millis(),
             gp.deltaTime(),
             gp.frameCount(),
             this.sceneState
         );
-
-        // 2. Global View Setup
-        gp.setCamera(this.sceneState.camera.position, this.sceneState.camera.lookAt);
-
-        // 3. Delegate Rendering to the Stage (Spatial)
-        this.stage.render(gp, this.sceneState);
-
-        // 4. Overlay Debug
+        gp.setCamera(draftNewState.camera.position, draftNewState.camera.lookAt);
+        this.sceneState = this.stage.render(gp, draftNewState);
         if (this.sceneState.settings.debug) {
             this.renderDebug(gp, this.sceneState);
         }

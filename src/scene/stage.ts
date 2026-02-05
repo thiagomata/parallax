@@ -1,20 +1,26 @@
 import type {
     AssetLoader,
+    EffectLib,
     GraphicProcessor,
     GraphicsBundle,
     MapToBlueprint,
-    RenderableElement,
+    BundleDynamicElement,
     ResolvedElement,
-    SceneState
+    SceneState, BundleResolvedElement
 } from "./types.ts";
 import {AssetRegistry} from "./asset_registry.ts";
-import {resolveProperty} from "./resolver.ts";
+import {SceneResolver} from "./resolver.ts";
 
-export class Stage<TBundle extends GraphicsBundle> {
-    private registry: AssetRegistry<TBundle>;
+export class Stage<
+    TGraphicBundle extends GraphicsBundle,
+    TEffectLib extends EffectLib
+> {
+    private readonly registry: AssetRegistry<TGraphicBundle, {}>;
+    private readonly resolver: SceneResolver<TGraphicBundle, TEffectLib>;
 
-    constructor(loader: AssetLoader<TBundle>) {
-        this.registry = new AssetRegistry<TBundle>(loader);
+    constructor(loader: AssetLoader<TGraphicBundle>, effectLib?: TEffectLib) {
+        this.resolver = new SceneResolver<TGraphicBundle, TEffectLib>(effectLib ?? {} as TEffectLib);
+        this.registry = new AssetRegistry<TGraphicBundle, TEffectLib>(loader, this.resolver);
     }
 
     public add<T extends ResolvedElement>(id: string, blueprint: MapToBlueprint<T>): void {
@@ -25,18 +31,70 @@ export class Stage<TBundle extends GraphicsBundle> {
         this.registry.remove(id);
     }
 
-    public getElement(id: string): RenderableElement<any, TBundle> | undefined {
+    public getElement(id: string): BundleDynamicElement<any, TGraphicBundle> | undefined {
         return this.registry.get(id);
     }
 
-    public render(gp: GraphicProcessor<TBundle>, state: SceneState): void {
+    public render(graphicProcessor: GraphicProcessor<TGraphicBundle>, state: SceneState): SceneState {
+
         // Optimized Painter's Algorithm: Sort far-to-near
         const renderQueue = Array.from(this.registry.all())
             .map(element => ({
-                element, distance: gp.dist(state.camera.position, resolveProperty(element.dynamic.position, state))
+                element,
+                distance: graphicProcessor.dist(
+                    state.camera.position,
+                    this.resolver.resolveProperty(element.dynamic.position, state)
+                )
             }))
-            .sort((a, b) => b.distance - a.distance);
+            .sort((a, b) => b.distance - a.distance)
+            .map(
+                pair => pair.element
+            );
 
-        renderQueue.forEach(({element}) => element.render(gp, state));
+        let resolvedElements = renderQueue.map(
+            bundle => {
+                return {
+                    id: bundle.id,
+                    bundle: this.resolver.resolve(bundle, state) as BundleResolvedElement<ResolvedElement, TGraphicBundle>,
+                }
+            }
+        );
+
+        const resolvedMapElements = new Map(
+            resolvedElements.map(
+                pair => [pair.id, pair.bundle.resolved]
+            )
+        );
+
+        const stateBeforeEffect = {
+            ...state,
+            elements: resolvedMapElements
+        } as SceneState;
+
+        const finalElements = resolvedElements.map(
+            pair => {
+                return {
+                    id: pair.id,
+                    bundle: this.resolver.effect(pair.bundle, stateBeforeEffect),
+                }
+            }
+        )
+
+        const finalElementsMap = new Map(
+            finalElements.map(pair => [pair.id, pair.bundle.resolved])
+        );
+
+        const finalState = {
+            ...stateBeforeEffect,
+            elements: finalElementsMap
+        } as SceneState;
+
+        finalElements.map(
+            pair => {
+                this.resolver.render(pair.bundle,graphicProcessor, finalState)
+            }
+        )
+
+        return finalState;
     }
 }

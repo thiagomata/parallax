@@ -6,12 +6,13 @@ import {SceneManager} from "../../scene/scene_manager.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
-export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
+export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any> {
     let graphicProcessor: P5GraphicProcessor;
 
     // Scene Orchestration with a custom 5s loop
     const activeManager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
+        startPaused: config.paused,
         playback: {
             ...DEFAULT_SETTINGS.playback,
             duration: 5000,
@@ -21,20 +22,20 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     // Asset Pipeline & World
     const loader = config.loader ?? new P5AssetLoader(p);
-    const world = new World<P5Bundler>(activeManager, loader);
+    const world = new World<P5Bundler, any>(activeManager, loader);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
         // Registration
-        // We use the blueprint functions to define behavior over time
+        // We use the blueprint functions to define effect over time
         world.addBox('pulsing-box', {
             type: ELEMENT_TYPES.BOX,
             position: {x: 0, y: 0, z: 0},
 
             // Dynamic Size: Pulse between 50 and 150
-            size: (state: SceneState) => {
+            width: (state: SceneState) => {
                 return 100 + Math.sin(state.playback.progress * Math.PI * 2) * 50;
             },
 
@@ -67,4 +68,4 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     };
 
     return world;
-};
+}

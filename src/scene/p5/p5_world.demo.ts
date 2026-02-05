@@ -8,13 +8,13 @@ import {OrbitModifier} from "../modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../modifiers/center_focus_modifier.ts";
 
 new p5((p: p5) => {
-    let world: World<P5Bundler>;
+    let world: World<P5Bundler, any>;
     let gp: P5GraphicProcessor;
 
     p.setup = () => {
         p.createCanvas(window.innerWidth, window.innerHeight, p.WEBGL);
 
-        // 1. Scene Orchestration
+        // Scene Orchestration
         const manager = new SceneManager({
             ...DEFAULT_SETTINGS,
             playback: {
@@ -29,21 +29,21 @@ new p5((p: p5) => {
         manager.addCarModifier(new OrbitModifier(p, 1000));
         manager.addStickModifier(new CenterFocusModifier());
 
-        // 2. Bridge & Loader
+        // Bridge & Loader
         const loader = new P5AssetLoader(p);
         gp = new P5GraphicProcessor(p, loader);
 
-        // 3. World & Stage initialization
+        // World & Stage initialization
         // Note: World creates its own internal Stage if one isn't passed
         world = new World(manager, loader);
 
-        // 4. REGISTRATION (Adding Blueprints)
+        // REGISTRATION (Adding Blueprints)
         // We use world.add (which delegates to stage.add)
         // No more manual 'toProps'—the Registry handles that!
 
         world.addBox('back', {
             type: ELEMENT_TYPES.BOX,
-            size: 200,
+            width: 200,
             position: {x: -100, y: 0, z: -200},
             fillColor: {red: 0, green: 255, blue: 0, alpha: 1.0},
             strokeColor: {red: 0, green: 0, blue: 0, alpha: 1.0},
@@ -52,7 +52,7 @@ new p5((p: p5) => {
 
         world.addBox('mid', {
             type: ELEMENT_TYPES.BOX,
-            size: (state: SceneState) => (Math.cos(2 * Math.PI * state.playback.progress) * 50) + 100,
+            width: (state: SceneState) => (Math.cos(2 * Math.PI * state.playback.progress) * 50) + 100,
             rotate: (state: SceneState) => ({
                 x: 0,
                 y: 0,
@@ -70,7 +70,7 @@ new p5((p: p5) => {
 
         world.addBox('front', {
             type: ELEMENT_TYPES.BOX,
-            size: 100,
+            width: 100,
             position: {x: 100, y: 0, z: 200},
             fillColor: {red: 0, green: 0, blue: 255, alpha: 1.0},
             strokeColor: {red: 0, green: 0, blue: 0, alpha: 1.0},

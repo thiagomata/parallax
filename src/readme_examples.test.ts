@@ -1,15 +1,17 @@
 import {beforeEach, describe, expect, it} from 'vitest';
 import {SceneManager} from "./scene/scene_manager.ts";
-import {createBlueprint, DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState,} from "./scene/types.ts";
-import {createRenderable, resolve} from "./scene/resolver.ts";
+import {toBlueprint, DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState,} from "./scene/types.ts";
+import {SceneResolver} from "./scene/resolver.ts";
 import {ChaosLoader} from "./scene/mock/mock_asset_loader.mock.ts";
 
 describe('README Examples Validation', () => {
 
     let manager: SceneManager;
     let assetLoader = new ChaosLoader();
+    let resolver: SceneResolver<any, {}>;
     beforeEach(() => {
         manager = new SceneManager(DEFAULT_SETTINGS);
+        resolver = new SceneResolver({});
     });
 
     it('should validate the Car, Nudge, and Stick modifier examples', () => {
@@ -46,7 +48,13 @@ describe('README Examples Validation', () => {
             tick: () => {},
             getStick: (camPos) => ({
                 success: true,
-                value: {yaw: Math.atan2(-camPos.x, camPos.z), pitch: 0, distance: 1000, priority: 1}
+                value: {
+                    yaw: Math.atan2(-camPos.x, camPos.z),
+                    pitch: 0,
+                    roll: 0,
+                    distance: 1000,
+                    priority: 1
+                }
             })
         });
 
@@ -60,35 +68,35 @@ describe('README Examples Validation', () => {
     it('should validate the Recursive Spec Resolution examples', () => {
         const state = manager.initialState();
 
-        // 1. Example 1: Static & Computed Props
-        const blueprint = createBlueprint<ResolvedBox>({
+        // Example 1: Static & Computed Props
+        const blueprint = toBlueprint<ResolvedBox>({
             type: ELEMENT_TYPES.BOX,
             position: {x: 0, y: 0, z: 0},
-            size: (s: SceneState) => 50 + (s.playback.progress * 20),
+            width: (s: SceneState) => 50 + (s.playback.progress * 20),
             fillColor: {red: 255, green: 0, blue: 0}
         });
 
         // We must wrap the blueprint into a Renderable to "compile" the specs
-        const element = createRenderable('test-id', blueprint, assetLoader);
-        const elementResolved = resolve(element, state);
+        const element = resolver.prepare('test-id', blueprint, assetLoader);
+        const elementResolved = resolver.resolve(element, state) as { resolved: ResolvedBox };
 
-        // 2. Example 2: Deep Resolution (Granular)
-        const granularBlueprint = createBlueprint<ResolvedBox>({
+        // Example 2: Deep Resolution (Granular)
+        const granularBlueprint = toBlueprint<ResolvedBox>({
             type: ELEMENT_TYPES.BOX,
             position: {
                 x: (_s: SceneState) => 100,
                 y: 0,
                 z: 0
             },
-            size: 10
+            width: 10
         });
 
-        const granularElement = createRenderable('granular-id', granularBlueprint, assetLoader);
-        const granularResolved = resolve(granularElement, state);
+        const granularElement = resolver.prepare('granular-id', granularBlueprint, assetLoader);
+        const granularResolved = resolver.resolve(granularElement, state) as { resolved: ResolvedBox };
 
         // Assertions
-        expect(elementResolved.size).toBe(50);
-        expect(elementResolved.fillColor?.red).toBe(255);
-        expect(granularResolved.position.x).toBe(100);
+        expect(elementResolved.resolved.width).toBe(50);
+        expect(elementResolved.resolved.fillColor?.red).toBe(255);
+        expect(granularResolved.resolved.position.x).toBe(100);
     });
 });

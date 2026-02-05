@@ -47,7 +47,8 @@ const mockStick = (
     name: string,
     priority: number,
     yaw: number,
-    active: boolean = true
+    active: boolean = true,
+    roll: number = 0,
 ): StickModifier => ({
     name,
     active,
@@ -58,6 +59,7 @@ const mockStick = (
             name,
             yaw,
             pitch: 0,
+            roll,
             distance: 10,
             priority
         },
@@ -182,10 +184,10 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
 
         const state = manager.calculateScene(1000, 10, 60, mockState);
 
-        // 1. Camera should stay at initialCam
+        // Camera should stay at initialCam
         expect(state.camera.position).toEqual(initial);
 
-        // 2. LookAt should default to 1000 units in front of initialCam (Z-1000)
+        // LookAt should default to 1000 units in front of initialCam (Z-1000)
         // Based on the default StickResult: { yaw: 0, pitch: 0, distance: 1000 }
         expect(state.camera.lookAt.z).toBe(initial.z - 1000);
     });
@@ -238,7 +240,14 @@ describe("PortalSceneManager - Stage 3 (Stick)", () => {
             priority: 1,
             tick: () => {},
             getStick: () => ({
-                value: {name: "ForwardStick", yaw: 0, pitch: 0, distance: 10, priority: 1},
+                value: {
+                    name: "ForwardStick",
+                    yaw: 0,
+                    pitch: 0,
+                    roll: 0,
+                    distance: 10,
+                    priority: 1
+                },
                 success: true
             }),
         };
@@ -262,6 +271,7 @@ describe("PortalSceneManager - calculateLookAt Math", () => {
         const result = manager.calculateLookAt(origin, {
             yaw: 0,
             pitch: 0,
+            roll: 0,
             distance: DIST,
             priority: 0,
         });
@@ -275,6 +285,7 @@ describe("PortalSceneManager - calculateLookAt Math", () => {
         const result = manager.calculateLookAt(origin, {
             yaw: Math.PI / 2,
             pitch: 0,
+            roll: 0,
             distance: DIST,
             priority: 0,
         });
@@ -288,6 +299,7 @@ describe("PortalSceneManager - calculateLookAt Math", () => {
         // Note: Cos(Pitch) becomes 0, which should nullify X and Z
         const result = manager.calculateLookAt(origin, {
             yaw: 0,
+            roll: 0,
             pitch: Math.PI / 2,
             distance: DIST,
             priority: 0,
@@ -301,6 +313,7 @@ describe("PortalSceneManager - calculateLookAt Math", () => {
         const angle = Math.PI / 4; // 45 degrees
         const result = manager.calculateLookAt(origin, {
             yaw: angle,
+            roll: angle,
             pitch: angle,
             distance: DIST,
             priority: 0,
@@ -488,10 +501,10 @@ describe("PortalSceneManager - Multi-Stick Logic", () => {
 
         const state = manager.calculateScene(1000, 10, 60, mockState);
 
-        // 1. Math check: Must be the High-Priority value
+        // Math check: Must be the High-Priority value
         expect(state.camera.lookAt.z).toBeCloseTo(10); // Since yaw 3.14 (PI) is "backward"
 
-        // 2. Debug check: Must identify the winner by its explicit name
+        // Debug check: Must identify the winner by its explicit name
         expect(state.debugStateLog?.stick.name).toBe("High-Priority-Override");
         expect(state.debugStateLog?.stick.priority).toBe(100);
     });
@@ -547,7 +560,7 @@ it('should completely reset spatial logic after clearModifiers', () => {
     const manager = new SceneManager();
     const initialPos = manager.initialState().camera.position;
 
-    // 1. Add a modifier that moves the camera far away
+    // Add a modifier that moves the camera far away
     manager.addCarModifier({
         name: "Wanderer",
         priority: 100,
@@ -559,7 +572,7 @@ it('should completely reset spatial logic after clearModifiers', () => {
     const stateWithModifier = manager.calculateScene(1000, 16, 60, manager.initialState());
     expect(stateWithModifier.camera.position.x).toBe(999);
 
-    // 2. Clear and verify we are back to baseline
+    // Clear and verify we are back to baseline
     manager.clearModifiers();
 
     // We expect the modifiers array to be empty (Internal check if public, or via result)
@@ -567,26 +580,126 @@ it('should completely reset spatial logic after clearModifiers', () => {
     expect(stateAfterClear.camera.position).toEqual(initialPos);
 });
 
-it('should completely reset spatial logic after clearModifiers', () => {
-    const manager = new SceneManager();
-    const initialPos = manager.initialState().camera.position;
+describe("PortalSceneManager - Pause, Resume, and Debug", () => {
+    it("should pause and resume scene calculation", () => {
+        const manager = new SceneManager(DEFAULT_SETTINGS);
+        const initialState = manager.initialState();
+        
+        // Add a modifier that changes position over time
+        manager.addCarModifier({
+            name: "MovingCar",
+            priority: 100,
+            active: true,
+            tick: () => {},
+            getCarPosition: () => ({success: true, value: {position: {x: 100, y: 200, z: 300}, name: "moving"}})
+        });
 
-    // 1. Add a modifier that moves the camera far away
-    manager.addCarModifier({
-        name: "Wanderer",
-        priority: 100,
-        active: true,
-        tick: () => {},
-        getCarPosition: () => ({success: true, value: {position: {x: 999, y: 999, z: 999}, name: "far"}})
+        // First calculation - should not be paused (default state)
+        expect(manager.isPaused()).toBe(false);
+        
+        // Calculate scene while playing
+        const playingState = manager.calculateScene(1000, 16, 60, initialState);
+        expect(playingState.camera.position.x).toBe(100);
+        
+        // Pause and verify
+        manager.pause();
+        expect(manager.isPaused()).toBe(true);
+        
+        // Calculate scene while paused - should return previous state
+        const pausedState = manager.calculateScene(2000, 16, 60, playingState);
+        expect(pausedState).toEqual(playingState);
+        
+        // Resume and verify
+        manager.resume();
+        expect(manager.isPaused()).toBe(false);
+        
+        // Calculate scene again - should continue from where left off
+        const resumedState = manager.calculateScene(3000, 16, 60, pausedState);
+        expect(resumedState.camera.position.x).toBe(100);
     });
 
-    const stateWithModifier = manager.calculateScene(1000, 16, 60, manager.initialState());
-    expect(stateWithModifier.camera.position.x).toBe(999);
+    it("should set debug mode and return manager for chaining", () => {
+        const manager = new SceneManager(DEFAULT_SETTINGS);
+        
+        // Test initial state
+        expect(manager.isDebug()).toBe(false);
+        expect(manager.debug).toBe(false);
+        
+        // Set debug to true and test chaining
+        const result = manager.setDebug(true);
+        expect(result).toBe(manager);
+        expect(manager.isDebug()).toBe(true);
+        expect(manager.debug).toBe(true);
+        
+        // Set debug to false and test chaining
+        const result2 = manager.setDebug(false);
+        expect(result2).toBe(manager);
+        expect(manager.isDebug()).toBe(false);
+        expect(manager.debug).toBe(false);
+    });
 
-    // 2. Clear and verify we are back to baseline
-    manager.clearModifiers();
+    it("should include debug logs when debug is enabled", () => {
+        const manager = new SceneManager(DEFAULT_SETTINGS);
+        const initialState = manager.initialState();
+        
+        // Add modifiers for testing
+        manager.addCarModifier(mockCar("test", 100, {x: 50, y: 60, z: 70}))
+               .addNudgeModifier(mockNudge({x: 10, y: 20, z: 30}))
+               .addStickModifier(mockStick("testStick", 50, 1.5));
 
-    // We expect the modifiers array to be empty (Internal check if public, or via result)
-    const stateAfterClear = manager.calculateScene(1000, 16, 60, manager.initialState());
-    expect(stateAfterClear.camera.position).toEqual(initialPos);
+        // Calculate without debug - should not have debug logs
+        manager.setDebug(false);
+        const stateWithoutDebug = manager.calculateScene(1000, 16, 60, initialState);
+        expect(stateWithoutDebug.debugStateLog).toBeUndefined();
+
+        // Calculate with debug - should have debug logs
+        manager.setDebug(true);
+        const stateWithDebug = manager.calculateScene(1000, 16, 60, initialState);
+        expect(stateWithDebug.debugStateLog).toBeDefined();
+        expect(stateWithDebug.debugStateLog?.car.name).toBe("Position_test");
+        expect(stateWithDebug.debugStateLog?.nudges).toHaveLength(1);
+        expect(stateWithDebug.debugStateLog?.stick.name).toBe("testStick");
+    });
+
+    it("should respect initial settings from constructor", () => {
+        const debugSettings = {...DEFAULT_SETTINGS, debug: true, paused: false};
+        const manager = new SceneManager(debugSettings);
+        
+        expect(manager.isDebug()).toBe(true);
+        expect(manager.debug).toBe(true);
+        expect(manager.isPaused()).toBe(false);
+        expect(manager.paused).toBe(false);
+        
+        const nonDebugSettings = {...DEFAULT_SETTINGS, debug: false, startPaused: true};
+        const manager2 = new SceneManager(nonDebugSettings);
+        
+        expect(manager2.isDebug()).toBe(false);
+        expect(manager2.debug).toBe(false);
+        expect(manager2.isPaused()).toBe(true);
+        expect(manager2.paused).toBe(true);
+    });
+
+    it("should handle pause/resume with time calculations correctly", () => {
+        const manager = new SceneManager(DEFAULT_SETTINGS);
+        const initialState = manager.initialState();
+        
+        // Resume from paused state
+        manager.resume();
+        
+        // Calculate first scene
+        const state1 = manager.calculateScene(1000, 16, 60, initialState);
+        expect(state1.playback.now).toBe(1000);
+        
+        // Pause the scene
+        manager.pause();
+        const state2 = manager.calculateScene(2000, 16, 60, state1);
+        // Should return the same state when paused
+        expect(state2).toEqual(state1);
+        
+        // Resume and calculate again
+        manager.resume();
+        const state3 = manager.calculateScene(3000, 16, 60, state2);
+        // Should adjust time to account for pause duration
+        expect(state3.playback.now).toBeGreaterThan(state2.playback.now);
+    });
 });

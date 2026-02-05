@@ -6,13 +6,16 @@ import {
     type ElementAssets,
     type GraphicProcessor,
     type ResolvedBaseVisual,
-    type ResolvedBox, type ResolvedCone, type ResolvedCylinder, type ResolvedElliptical,
+    type ResolvedBox,
+    type ResolvedCone,
+    type ResolvedCylinder,
+    type ResolvedElliptical,
     type ResolvedFloor,
     type ResolvedPanel, type ResolvedPyramid,
     type ResolvedSphere,
     type ResolvedText, type ResolvedTorus,
     type SceneState,
-    type Vector3
+    type Vector3,
 } from '../types';
 import type {P5Bundler} from './p5_asset_loader';
 
@@ -43,11 +46,11 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.camera(pos.x, pos.y, pos.z, lookAt.x, lookAt.y, lookAt.z, 0, 1, 0);
     }
 
-    push(): void {
+    private push(): void {
         this.p.push();
     }
 
-    pop(): void {
+    private pop(): void {
         this.p.pop();
     }
 
@@ -55,19 +58,6 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.translate(pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
     }
 
-    rotateX(a: number): void {
-        this.p.rotateX(a);
-    }
-
-    rotateY(a: number): void {
-        this.p.rotateY(a);
-    }
-
-    rotateZ(a: number): void {
-        this.p.rotateZ(a);
-    }
-
-    // --- Styling ---
     fill(color: ColorRGBA, alpha: number = 1): void {
         const baseAlpha = color.alpha ?? 1;
         const finalAlpha = Math.round(alpha * baseAlpha * 255);
@@ -89,7 +79,6 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.noStroke();
     }
 
-    // --- Drawing Implementation ---
     drawText(props: ResolvedText, assets: ElementAssets<P5Bundler>, state: SceneState): void {
         if (assets.font?.status !== ASSET_STATUS.READY || !assets.font.value) return;
 
@@ -107,10 +96,6 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.pop();
     }
 
-    box(size: number): void {
-        this.p.box(size);
-    }
-
     drawBox(props: ResolvedBox, assets: ElementAssets<P5Bundler>, state: SceneState): void {
         this.push();
         this.translate(props.position);
@@ -119,7 +104,7 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.drawTexture(assets, props, state);
         this.drawStroke(props, state);
 
-        this.p.box(props.size);
+        this.p.box(props.width, props.height ?? props.width, props.depth ?? props.width);
         this.pop();
     }
 
@@ -150,20 +135,20 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     drawFloor(props: ResolvedFloor, assets: ElementAssets<P5Bundler>, state: SceneState): void {
         this.push();
 
-        // 1. Position the center of the floor
+        // Position the center of the floor
         this.translate(props.position);
 
-        // 2. Base Rotation: Orient to the XZ plane (Standard Floor Behavior)
+        // Base Rotation: Orient to the XZ plane (Standard Floor Behavior)
         this.p.rotateX(this.p.HALF_PI);
 
-        // 3. User Rotation: Apply any additional offsets from the blueprint
+        // User Rotation: Apply any additional offsets from the blueprint
         this.rotate(props.rotate);
 
-        // 4. Visual Styles
+        // Visual Styles
         this.drawTexture(assets, props, state);
         this.drawStroke(props, state);
 
-        // 5. Execution: A floor is a plane with specific width and depth
+        // Execution: A floor is a plane with specific width and depth
         // Note: p5.plane takes (width, height). In floor context, height = depth.
         this.p.plane(props.width, props.depth);
 
@@ -289,8 +274,8 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
 
     private rotate(rot: Vector3 | undefined) {
         if (!rot) return;
-        if (rot.x !== 0) this.p.rotateX(rot.x);
         if (rot.y !== 0) this.p.rotateY(rot.y);
+        if (rot.x !== 0) this.p.rotateX(rot.x);
         if (rot.z !== 0) this.p.rotateZ(rot.z);
     }
 
@@ -323,15 +308,21 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     }
 
     text(s: string, pos: Partial<Vector3>): void {
+        this.push();
         this.p.text(s, pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
+        this.pop();
     }
 
     drawLabel(s: string, pos: Partial<Vector3>): void {
+        this.push();
         this.text(s, pos);
+        this.pop();
     }
 
     drawHUDText(s: string, x: number, y: number): void {
+        this.push();
         this.p.text(s, x, y);
+        this.pop();
     }
 
     drawCrosshair(pos: Partial<Vector3>, size: number): void {

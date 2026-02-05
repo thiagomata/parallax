@@ -13,31 +13,34 @@ Object.assign(window, {
     CenterFocusModifier,
 });
 
-export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
+export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any> {
     let graphicProcessor: P5GraphicProcessor;
 
-    // 1. Scene Orchestration
-    const activeManager = config.manager ?? new SceneManager(DEFAULT_SETTINGS);
+    // Scene Orchestration
+    const activeManager = config.manager ?? new SceneManager({
+            ...DEFAULT_SETTINGS,
+            startPaused: config.paused
+        });
 
-    // 2. Camera Logic: Adding Modifiers to the SceneManager
+    // Camera Logic: Adding Modifiers to the SceneManager
     // Note: These affect the SceneState.camera property during calculation
     activeManager.addCarModifier(new OrbitModifier(p, 800));
     activeManager.addStickModifier(new CenterFocusModifier());
 
-    // 3. Asset Pipeline & World
+    // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
-    const world = new World<P5Bundler>(activeManager, loader);
+    const world = new World<P5Bundler, any>(activeManager, loader);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // 4. REGISTRATION
+        // REGISTRATION
         // Creating a "Gallery" of boxes to visualize the camera orbit
         for (let i = 0; i < 5; i++) {
             world.addBox(`box-${i}`, {
                 type: ELEMENT_TYPES.BOX,
-                size: 40,
+                width: 40,
                 position: {x: (i - 2) * 100, y: 0, z: 0},
                 fillColor: {
                     red: i * 50,

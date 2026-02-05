@@ -3,7 +3,7 @@ import { FaceParser } from './face_parser';
 import { createMockP5 } from '../../mock/mock_p5.mock';
 import {MediaPipeFaceProvider} from "./face_provider.ts";
 
-// 1. Mock External Dependencies
+// Mock External Dependencies
 vi.mock('@mediapipe/tasks-vision', () => ({
     FaceLandmarker: {
         createFromOptions: vi.fn(),

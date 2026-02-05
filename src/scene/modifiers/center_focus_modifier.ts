@@ -26,6 +26,7 @@ export class CenterFocusModifier implements StickModifier {
             value: {
                 yaw: yaw,
                 pitch: pitch,
+                roll: 0,
                 distance: distance,
                 priority: this.priority,
             },

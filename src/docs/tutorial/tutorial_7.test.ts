@@ -2,8 +2,9 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { tutorial_7 } from './tutorial_7';
 import { createMockP5 } from "../../scene/mock/mock_p5.mock.ts";
 import { MockFaceFactory } from "../../scene/mock/mock_face.mock.ts";
-import { CameraModifier } from "../../scene/modifiers/camera_modifier.ts";
+import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts";
 import p5 from "p5";
+import {createPauseTests} from './pause_test_utils.ts';
 import {DEFAULT_SKETCH_CONFIG} from "./tutorial_main_page.demo.ts";
 
 describe('Tutorial 7: The Observer (Integration)', () => {
@@ -37,7 +38,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
     });
 
     it('should resolve trig-based head rotation using factory constants', async () => {
-        const tracker = new CameraModifier(mockP5 as unknown as p5, mockProvider, testConfig);
+        const tracker = new HeadTrackingModifier(mockP5 as unknown as p5, mockProvider, testConfig);
         const world = tutorial_7(mockP5 as unknown as p5,
             {...DEFAULT_SKETCH_CONFIG, cameraModifier: tracker}
         );
@@ -45,7 +46,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
 
         const yawAngle = 0.2;
 
-        // 1. Establish Baseline
+        // Establish Baseline
         const centerFace = factory.createCenterFace();
         mockProvider.getFace.mockReturnValue(centerFace);
         mockP5.draw();
@@ -53,7 +54,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
         // Get initial state to handle any inherent offsets (like the eye-to-nose Y gap)
         const baselineYaw = world.getCurrentSceneState().camera.yaw;
 
-        // 2. Rotate
+        // Rotate
         const rotatedFace = factory.rotate(centerFace, yawAngle, 0);
         mockProvider.getFace.mockReturnValue(rotatedFace);
         mockP5.draw();
@@ -65,7 +66,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
     });
 
     it('should maintain the "Car" anchor while the "Camera" nudges', async () => {
-        const tracker = new CameraModifier(mockP5 as unknown as p5, mockProvider, testConfig);
+        const tracker = new HeadTrackingModifier(mockP5 as unknown as p5, mockProvider, testConfig);
         const world = tutorial_7(mockP5 as unknown as p5, {
             ...DEFAULT_SKETCH_CONFIG,
             cameraModifier: tracker,
@@ -87,7 +88,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
 
     it('should drift back to baseline when tracking is lost', async () => {
         const smoothingConfig = { ...testConfig, smoothing: 0.5 };
-        const tracker = new CameraModifier(mockP5 as unknown as p5, mockProvider, smoothingConfig);
+        const tracker = new HeadTrackingModifier(mockP5 as unknown as p5, mockProvider, smoothingConfig);
         const world = tutorial_7(mockP5 as unknown as p5,
             {
                 ...DEFAULT_SKETCH_CONFIG,
@@ -96,12 +97,12 @@ describe('Tutorial 7: The Observer (Integration)', () => {
         );
         await mockP5.setup();
 
-        // 1. Establish offset
+        // Establish offset
         mockProvider.getFace.mockReturnValue(factory.shiftX(null, 0.2));
         mockP5.draw();
         const offsetPos = world.getCurrentSceneState().camera.position.x;
 
-        // 2. Lose tracking
+        //  Lose tracking
         mockProvider.getFace.mockReturnValue(null);
         mockP5.draw(); // One tick of drifting back
 
@@ -110,4 +111,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
         // The position should be moving back toward zero or staying same
         expect(Math.abs(driftedPos)).toBeLessThanOrEqual(Math.abs(offsetPos));
     });
+
+    // Use the shared pause test utility
+    createPauseTests('Tutorial 7', tutorial_7);
 });

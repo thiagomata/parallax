@@ -2,9 +2,9 @@ import {describe, expect, it} from 'vitest';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {heroExample1} from "./hero_example_1.ts";
-import {resolve} from "../../scene/resolver.ts";
+import {SceneResolver} from "../../scene/resolver.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
-import type {ResolvedCylinder} from "../../scene/types.ts";
+import type {ResolvedCylinder, ResolvedPyramid} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG} from "./hero.demo.ts";
 
 describe('Hero Demo Integration: World Animation', () => {
@@ -12,47 +12,48 @@ describe('Hero Demo Integration: World Animation', () => {
     it('should calculate animated box properties correctly across the 10s loop', async () => {
         const mockP5 = createMockP5();
 
-        // 1. Initialize the Hero Demo
+        // Initialize the Hero Demo
         const world = heroExample1(mockP5 as unknown as p5, DEFAULT_SKETCH_CONFIG);
 
         // Trigger setup
         mockP5.setup();
 
-        // --- TEST AT 0% PROGRESS (T = 0ms) ---
+        // TEST AT 0% PROGRESS (T = 0ms) ---
         mockP5.millis.mockReturnValue(0);
         mockP5.draw(); //  Frame Loop (Calculates SceneState)
 
         const state0 = world.getCurrentSceneState();
         // We get the element from the world's internal registry
         const midElement0 = world.getElement('mid');
-        const resolved0 = resolve(midElement0!, state0) as ResolvedCylinder;
+        const resolver = new SceneResolver({});
+        const resolved0 = resolver.resolve(midElement0!, state0) as { resolved: ResolvedCylinder };
 
-        expect(resolved0.radius).toBe(100);
-        expect(resolved0.position).toMatchObject({x: 0, y: 0, z: 0});
+        expect(resolved0.resolved.radius).toBe(100);
+        expect(resolved0.resolved.position).toMatchObject({x: 0, y: 0, z: 0});
 
-        // --- TEST AT 25% PROGRESS (T = 2500ms) ---
+        // TEST AT 25% PROGRESS (T = 2500ms) ---
         mockP5.millis.mockReturnValue(2500);
         mockP5.draw();
 
         const state25 = world.getCurrentSceneState();
-        const resolved25 = resolve(midElement0!, state25);
+        const resolved25 = resolver.resolve(midElement0!, state25) as { resolved: ResolvedCylinder };
         // const resolved25 = midElement0?.resolve(state25) as ResolvedBox;
 
-        expect(resolved25.radius).toBeCloseTo(50, 5);
-        expect(resolved25.position.y).toBeCloseTo(-100, 5);
-        expect(resolved25.rotate?.z).toBeCloseTo(Math.PI / 2, 5);
+        expect(resolved25.resolved.radius).toBeCloseTo(50, 5);
+        expect(resolved25.resolved.position.y).toBeCloseTo(-100, 5);
+        expect(resolved25.resolved.rotate?.z).toBeCloseTo(Math.PI / 2, 5);
 
-        // --- TEST AT 50% PROGRESS (T = 5000ms) ---
+        // TEST AT 50% PROGRESS (T = 5000ms) ---
         mockP5.millis.mockReturnValue(5000);
         mockP5.draw();
 
         const state50 = world.getCurrentSceneState();
         // const resolved50 = midElement0?.resolve(state50) as ResolvedBox;
-        const resolved50 = resolve(midElement0!, state50);
+        const resolved50 = resolver.resolve(midElement0!, state50) as { resolved: ResolvedCylinder };
 
         // Size logic: cos(PI) * 50 + 100 = 50
-        expect(resolved50.radius).toBeCloseTo(0, 5);
-        expect(resolved50.position.y).toBeCloseTo(-200, 5);
+        expect(resolved50.resolved.radius).toBeCloseTo(0, 5);
+        expect(resolved50.resolved.position.y).toBeCloseTo(-200, 5);
     });
 
     it('should maintain static properties for the background box', async () => {
@@ -64,11 +65,12 @@ describe('Hero Demo Integration: World Animation', () => {
         mockP5.draw();
 
         const backElement = world.getElement('back');
-        const resolved = resolve(backElement!, world.getCurrentSceneState());
+        const resolver = new SceneResolver({});
+        const resolvedBundle = resolver.resolve(backElement!, world.getCurrentSceneState()) as { resolved: ResolvedPyramid };
 
         // Verify the resolved values match the blueprint for static objects
-        expect(resolved.position).toMatchObject({x: -100, y: 0, z: -200});
-        expect(resolved.fillColor).toMatchObject({green: 255});
+        expect(resolvedBundle.resolved.position).toMatchObject({x: -100, y: 0, z: -200});
+        expect(resolvedBundle.resolved.fillColor).toMatchObject({green: 255});
     });
 
     it('should verify p5 rendering side effects', async () => {

@@ -3,11 +3,12 @@ import {tutorial_1} from './tutorial_1';
 import {World} from "../../scene/world";
 import {SceneManager} from "../../scene/scene_manager";
 import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState} from "../../scene/types";
-import {resolve} from "../../scene/resolver"; // Using the Manifest-compliant resolver
+import {SceneResolver} from "../../scene/resolver";
 import {createMockGraphicProcessor} from "../../scene/mock/mock_graphic_processor.mock.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import p5 from "p5";
+import {createPauseTests} from "./pause_test_utils.ts";
 
 describe('Tutorial 1: Foundation & Engine Integration', () => {
 
@@ -21,7 +22,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
             // Use the new extreme typed method instead of addElement/toProps
             world.addBox('test-box', {
                 type: ELEMENT_TYPES.BOX,
-                size: 100,
+                width: 100,
                 position: {x: 10, y: 20, z: 30},
                 fillColor: {red: 100, green: 100, blue: 255},
             });
@@ -41,7 +42,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
 
             world.addBox('dynamic-box', {
                 type: ELEMENT_TYPES.BOX,
-                size: (state: SceneState) => state.playback.now > 1000 ? 200 : 100,
+                width: (state: SceneState) => state.playback.now > 1000 ? 200 : 100,
                 position: {x: 0, y: 0, z: 0}
             });
 
@@ -51,7 +52,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
 
             // The first draw should be size 100
             expect(mockGP.drawBox).toHaveBeenCalledWith(
-                expect.objectContaining({size: 100}),
+                expect.objectContaining({width: 100}),
                 expect.anything(),
                 expect.anything()
             );
@@ -62,7 +63,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
 
             // The last draw should be size 200
             expect(mockGP.drawBox).toHaveBeenLastCalledWith(
-                expect.objectContaining({size: 200}),
+                expect.objectContaining({width: 200}),
                 expect.anything(),
                 expect.anything()
             );
@@ -82,15 +83,19 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
             if (!element) throw new Error("Tutorial box missing");
 
             // Use our deterministic resolver
-            const resolved = resolve(element, world.getCurrentSceneState()) as ResolvedBox;
-            expect(resolved.size).toBe(100);
-            expect(resolved.fillColor?.blue).toBe(255);
+            const resolver = new SceneResolver({});
+            const resolvedBundle = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
+            expect(resolvedBundle.resolved.width).toBe(100);
+            expect(resolvedBundle.resolved.fillColor?.blue).toBe(255);
 
             // Verify the render loop actually hits p5 via the Bridge
             mockP5.draw();
-            expect(mockP5.box).toHaveBeenCalledWith(100);
+            expect(mockP5.box).toHaveBeenCalledWith(100, 100, 100);
             // p5 fill uses 0-255 for RGBA
             expect(mockP5.fill).toHaveBeenCalledWith(100, 100, 255, 255);
         });
     });
+
+    // Use the shared pause test utility
+    createPauseTests('Tutorial 1', tutorial_1);
 });

@@ -16,7 +16,7 @@ import {
 import { FaceFeatures } from "../drivers/mediapipe/face_features";
 import {MediaPipeFaceProvider} from "../drivers/mediapipe/face_provider.ts";
 
-export class CameraModifier implements CarModifier, NudgeModifier, StickModifier {
+export class HeadTrackingModifier implements CarModifier, NudgeModifier, StickModifier {
     readonly name = "Head Tracker Camera";
     readonly priority = 10;
     active = true;
@@ -113,20 +113,20 @@ export class CameraModifier implements CarModifier, NudgeModifier, StickModifier
     private updateFace(incoming: FaceFeatures): void {
         this.framesSinceLastSeen = 0;
 
-        // 1. Auto-Calibration (First frame or after reset)
+        // Auto-Calibration (First frame or after reset)
         if (this.neutralHeadSize === null) {
             this.neutralHeadSize = incoming.scale;
             console.log("New calibration baseline set:", this.neutralHeadSize);
         }
 
-        // 2. Semantic Smoothing: Interpolate the whole "Face" state
+        // Semantic Smoothing: Interpolate the whole "Face" state
         if (!this.smoothedFeatures) {
             this.smoothedFeatures = incoming;
         } else {
             this.smoothedFeatures = this.interpolateFeatures(this.smoothedFeatures, incoming);
         }
 
-        // 3. Map Smoothed Face to Engine Output
+        // Map Smoothed Face to Engine Output
         this.updateCache();
     }
 
@@ -167,6 +167,7 @@ export class CameraModifier implements CarModifier, NudgeModifier, StickModifier
             stick: {
                 yaw: face.stick.yaw * this.config.damping,
                 pitch: face.stick.pitch * this.config.damping,
+                roll: face.stick.roll * this.config.damping,
                 distance: this.config.lookDistance,
                 priority: this.priority
             }

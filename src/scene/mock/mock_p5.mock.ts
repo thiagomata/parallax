@@ -1,7 +1,7 @@
 import {vi} from "vitest";
 
 export function createMockP5() {
-    let mockP5 = {
+    return {
         fill: vi.fn(),
         box: vi.fn(),
         sphere: vi.fn(),
@@ -29,7 +29,9 @@ export function createMockP5() {
         ),
         push: vi.fn(),
         translate: vi.fn(),
-        millis: vi.fn(),
+        millis: vi.fn(() => 0),
+        deltaTime: vi.fn(() => 16),
+        frameCount: vi.fn(() => 60),
         rotateY: vi.fn(),
         rotateX: vi.fn(),
         rotateZ: vi.fn(),
@@ -56,6 +58,7 @@ export function createMockP5() {
         vertex: vi.fn(),
         endShape: vi.fn(),
         HALF_PI: Math.PI / 2,
+        
         WEBGL: 'webgl',
         NORMAL: 'normal',
         setup: undefined as any,
@@ -63,6 +66,4 @@ export function createMockP5() {
         createCapture: vi.fn(),
         lerp: vi.fn(),
     };
-    mockP5.millis.mockReturnValue(0);
-    return mockP5;
 }

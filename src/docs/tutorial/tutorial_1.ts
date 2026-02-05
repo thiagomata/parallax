@@ -7,13 +7,14 @@ import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState} from "../../scene/type
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
 
-export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler> {
+export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any> {
     let graphicProcessor: P5GraphicProcessor;
-    let world: World<P5Bundler>;
+    let world: World<P5Bundler, any>;
 
-    // 1. Scene Orchestration (5s rotating loop)
+    // Scene Orchestration (5s rotating loop)
     const activeManager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
+        startPaused: config.paused,
         playback: {
             ...DEFAULT_SETTINGS.playback,
             duration: 5000,
@@ -21,24 +22,24 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         }
     });
 
-    // 2. Asset Pipeline
+    // Asset Pipeline
     // We create the loader here to pass it to the World/Stage
     const loader = new P5AssetLoader(p);
 
-    // 3. World Initialization
-    world = new World<P5Bundler>(activeManager, loader);
+    // World Initialization
+    world = new World<P5Bundler, any>(activeManager, loader);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
 
-        // 4. Graphic Processor Initialization
+        // Graphic Processor Initialization
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // 5. REGISTRATION
+        // REGISTRATION
         // Using the "Extreme Typed" addBox method (no manual toProps/casting)
         world.addBox('box', {
             type: ELEMENT_TYPES.BOX,
-            size: 100,
+            width: 100,
             
             // Dynamic Rotation: Continuous rotation
             rotate: (state: SceneState) => ({
