@@ -40,36 +40,65 @@ export function projectionMatrixFromFrustum(
     near: number,
     far: number
 ): ProjectionMatrix {
-    const xscale = {
-        x: 2 * near / (right - left),
-        y: 0,
-        z: (right + left) / (right - left),
-        w: 0
-    };
+    // const xscale = {
+    //     x: 2 * near / (right - left),
+    //     y: 0,
+    //     z: (right + left) / (right - left),
+    //     w: 0
+    // };
+    //
+    // const yscale = {
+    //     x: 0,
+    //     y: 2 * near / (top - bottom),
+    //     z: (top + bottom) / (top - bottom),
+    //     w: 0
+    // };
+    //
+    // const depth = {
+    //     x: 0,
+    //     y: 0,
+    //     z: -(far + near) / (far - near),
+    //     w: -2 * far * near / (far - near)
+    // };
+    //
+    // const wComponent = {
+    //     x: 0,
+    //     y: 0,
+    //     z: -1,
+    //     w: 0
+    // };
+    //
+    // return { xScale: xscale, yScale: yscale, projection: depth, translation: wComponent };
 
-    const yscale = {
-        x: 0,
-        y: 2 * near / (top - bottom),
-        z: (top + bottom) / (top - bottom),
-        w: 0
-    };
+        const xScale = (2 * near) / (right - left);
+        const yScale = (2 * near) / (top - bottom);
 
-    const depth = {
-        x: 0,
-        y: 0,
-        z: -(far + near) / (far - near),
-        w: -2 * far * near / (far - near)
-    };
+        const xOffset = (right + left) / (right - left);
+        const yOffset = (top + bottom) / (top - bottom);
 
-    const wComponent = {
-        x: 0,
-        y: 0,
-        z: -1,
-        w: 0
-    };
+        const zScale = -(far + near) / (far - near);
+        const zOffset = -(2 * far * near) / (far - near);
 
-    return { xScale: xscale, yScale: yscale, projection: depth, translation: wComponent };
-}
+        return {
+            xScale: {
+                x: xScale, y: 0, z: 0, w: 0
+            },
+            yScale: {
+                x: 0, y: yScale, z: 0, w: 0
+            },
+            projection: {
+                x: xOffset,
+                y: yOffset,
+                z: zScale,
+                w: -1
+            },
+            translation: {
+                x: 0, y: 0,
+                z: zOffset,
+                w: 0
+            }
+        };
+    }
 
 /**
  * Create a symmetric projection matrix (for simplified use cases).

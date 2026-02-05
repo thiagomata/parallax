@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ScreenModifier, ScreenConfig } from "./screen_modifier.ts";
-import {MatrixToArray, type ProjectionMatrix} from "../types.ts";
+import {MatrixToArray, type ProjectionMatrix, type Vector3} from "../types.ts";
 
 describe("ScreenModifier", () => {
     const defaultConfig: ScreenConfig = ScreenConfig.create({
@@ -42,46 +42,102 @@ describe("ScreenModifier", () => {
         expect(matrix1).not.toEqual(matrix2);
     });
 
-    it("should produce symmetric matrix when eye is centered", () => {
+    it("should produce symmetric projection when eye is centered", () => {
         const screen = new ScreenModifier(defaultConfig);
         const centeredEyePos = { x: 0, y: 0, z: -100 };
+
         const matrix = screen.buildFrustum(centeredEyePos);
-        const matrixArray = MatrixToArray(matrix);
-        
-        // For centered eye, off-axis terms should be minimal
-        // Check that off-axis terms (matrix[2] and matrix[6]) are close to zero
-        expect(matrixArray[2]).toBeCloseTo(0, 10);
-        expect(matrixArray[6]).toBeCloseTo(0, 10);
+
+        // For a centered eye, off-axis projection terms must be zero
+        expect(matrix.projection.x).toBeCloseTo(0, 10);
+        expect(matrix.projection.y).toBeCloseTo(0, 10);
+
+        // Sanity: core perspective terms must still be valid
+        expect(matrix.projection.w).toBe(-1);
+        expect(matrix.xScale.x).toBeGreaterThan(0);
+        expect(matrix.yScale.y).toBeGreaterThan(0);
     });
 
-    it("should produce off-axis matrix when eye is off-center", () => {
+    it("should produce off-axis projection terms when eye is off-center", () => {
         const screen = new ScreenModifier(defaultConfig);
         const offCenterEyePos = { x: 20, y: 10, z: -100 };
+
         const matrix = screen.buildFrustum(offCenterEyePos);
-        const matrixArray =MatrixToArray(matrix);
-        
-        // For off-center eye, off-axis terms should be non-zero
-        // Note: We check that they're not close to zero
-        expect(Math.abs(matrixArray[2])).toBeGreaterThan(0.001);
-        expect(Math.abs(matrixArray[6])).toBeGreaterThan(0.001);
+
+        // Off-axis frustum must introduce horizontal and vertical offsets
+        expect(Math.abs(matrix.projection.x)).toBeGreaterThan(0.001);
+        expect(Math.abs(matrix.projection.y)).toBeGreaterThan(0.001);
+
+        // Sanity checks: these must stay zero in a correct matrix
+        expect(matrix.xScale.z).toBe(0);
+        expect(matrix.yScale.z).toBe(0);
+
+        // Perspective divide term
+        expect(matrix.projection.w).toBe(-1);
     });
 
-    it("should handle different screen configurations", () => {
-        const wideConfig: ScreenConfig = ScreenConfig.create({
-            width: 200,
-            height: 100,
-            z: 0,
-            near: 0.1,
-            far: 1000
-        });
-        
-        const screen = new ScreenModifier(wideConfig);
+    function expectedFrustum(config: ScreenConfig, eyePos: Vector3) {
+        const distance = config.z - eyePos.z;
+        const safeDistance =
+            Math.abs(distance) < config.epsilon ? config.epsilon : distance;
+
+        const scale = config.near / safeDistance;
+
+        const left   = (-config.halfWidth  - eyePos.x) * scale;
+        const right  = ( config.halfWidth  - eyePos.x) * scale;
+        const bottom = (-config.halfHeight - eyePos.y) * scale;
+        const top    = ( config.halfHeight - eyePos.y) * scale;
+
+        return { left, right, bottom, top };
+    }
+
+    it("should produce a mathematically correct projection matrix structure", () => {
+        const screen = new ScreenModifier(defaultConfig);
         const eyePos = { x: 0, y: 0, z: -100 };
+
         const matrix = screen.buildFrustum(eyePos);
-        const matrixArray = MatrixToArray(matrix);
-        
-        expect(matrixArray).toBeInstanceOf(Float32Array);
-        expect(matrixArray.length).toBe(16);
+
+        const { left, right, top, bottom } =
+            expectedFrustum(defaultConfig, eyePos);
+
+        const n = defaultConfig.near;
+        const f = defaultConfig.far;
+
+        // --- X scale row ---
+        expect(matrix.xScale.x).toBeCloseTo((2 * n) / (right - left), 10);
+        expect(matrix.xScale.y).toBe(0);
+        expect(matrix.xScale.z).toBe(0);
+        expect(matrix.xScale.w).toBe(0);
+
+        // --- Y scale row ---
+        expect(matrix.yScale.x).toBe(0);
+        expect(matrix.yScale.y).toBeCloseTo((2 * n) / (top - bottom), 10);
+        expect(matrix.yScale.z).toBe(0);
+        expect(matrix.yScale.w).toBe(0);
+
+        // --- Projection row (off-axis + depth) ---
+        expect(matrix.projection.x).toBeCloseTo(
+            (right + left) / (right - left),
+            10
+        );
+        expect(matrix.projection.y).toBeCloseTo(
+            (top + bottom) / (top - bottom),
+            10
+        );
+        expect(matrix.projection.z).toBeCloseTo(
+            -(f + n) / (f - n),
+            10
+        );
+        expect(matrix.projection.w).toBe(-1);
+
+        // --- Translation / depth row ---
+        expect(matrix.translation.x).toBe(0);
+        expect(matrix.translation.y).toBe(0);
+        expect(matrix.translation.z).toBeCloseTo(
+            (-2 * f * n) / (f - n),
+            10
+        );
+        expect(matrix.translation.w).toBe(0);
     });
 
     it("matrix should be casted to array", () => {
@@ -116,34 +172,49 @@ describe("ScreenModifier", () => {
         expect(matrixArray).toStrictEqual(expectedArray);
     });
 
-    it("should verify matrix structure is correct", () => {
+    it("should verify projection matrix structure mathematically", () => {
         const screen = new ScreenModifier(defaultConfig);
         const eyePos = { x: 0, y: 0, z: -100 };
+
         const matrix = screen.buildFrustum(eyePos);
 
-        // Standard projection matrix format check
-        // First row: [2n/(r-l), 0, (r+l)/(r-l), 0]
-        expect(matrix.xScale.x).toBe(2);
+        const n = defaultConfig.near;
+        const f = defaultConfig.far;
+
+        // Compute expected frustum bounds for this eye
+        const distance = defaultConfig.z - eyePos.z;
+        const safeDistance = Math.max(Math.abs(distance), defaultConfig.epsilon);
+        const scale = n / safeDistance;
+
+        const left   = (-defaultConfig.halfWidth  - eyePos.x) * scale;
+        const right  = ( defaultConfig.halfWidth  - eyePos.x) * scale;
+        const bottom = (-defaultConfig.halfHeight - eyePos.y) * scale;
+        const top    = ( defaultConfig.halfHeight - eyePos.y) * scale;
+
+        // --- X scale row ---
+        expect(matrix.xScale.x).toBeCloseTo((2 * n) / (right - left), 10);
         expect(matrix.xScale.y).toBe(0);
-        expect(matrix.xScale.z).toBe(0);
+        expect(matrix.xScale.z).toBeCloseTo((right + left) / (right - left), 10);
         expect(matrix.xScale.w).toBe(0);
 
-        // Second row: [0, 2n/(t-b), (t+b)/(t-b), 0]
+        // --- Y scale row ---
         expect(matrix.yScale.x).toBe(0);
-        expect(matrix.yScale.y).toBeCloseTo(2.66, 1);
-        expect(matrix.yScale.z).toBe(0);
+        expect(matrix.yScale.y).toBeCloseTo((2 * n) / (top - bottom), 10);
+        expect(matrix.yScale.z).toBeCloseTo((top + bottom) / (top - bottom), 10);
         expect(matrix.yScale.w).toBe(0);
 
-        // Third row: [0, 0, -(f+n)/(f-n), -2fn/(f-n)]
+        // --- Depth row ---
         expect(matrix.projection.x).toBe(0);
         expect(matrix.projection.y).toBe(0);
-        expect(matrix.projection.z).toBeCloseTo(-1.00, 1);
-        expect(matrix.projection.w).toBeCloseTo( -0.20, 1);
+        expect(matrix.projection.z).toBeCloseTo(-(f + n) / (f - n), 10);
+        expect(matrix.projection.w).toBe(-1);
 
-        // Fourth row: [0, 0, -1, 0]
+        // --- Translation / w row ---
         expect(matrix.translation.x).toBe(0);
         expect(matrix.translation.y).toBe(0);
-        expect(matrix.translation.z).toBe(-1);
-        expect(matrix.translation.w).toBeCloseTo( 0);
+        expect(matrix.translation.z).toBeCloseTo(-2 * f * n / (f - n), 10);
+        expect(matrix.translation.w).toBe(0);
     });
+
+
 });
