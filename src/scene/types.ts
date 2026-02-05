@@ -24,8 +24,8 @@ export type ProjectionMatrixComponent = {
 export type ProjectionMatrix = {
     readonly xScale: ProjectionMatrixComponent;
     readonly yScale: ProjectionMatrixComponent;
-    readonly depth: ProjectionMatrixComponent;
-    readonly wComponent: ProjectionMatrixComponent;
+    readonly projection: ProjectionMatrixComponent;
+    readonly translation: ProjectionMatrixComponent;
 };
 
 /**
@@ -36,8 +36,8 @@ export function MatrixToArray(matrix: ProjectionMatrix): Float32Array {
     return new Float32Array([
         matrix.xScale.x, matrix.xScale.y, matrix.xScale.z, matrix.xScale.w,
         matrix.yScale.x, matrix.yScale.y, matrix.yScale.z, matrix.yScale.w,
-        matrix.depth.x, matrix.depth.y, matrix.depth.z, matrix.depth.w,
-        matrix.wComponent.x, matrix.wComponent.y, matrix.wComponent.z, matrix.wComponent.w
+        matrix.projection.x, matrix.projection.y, matrix.projection.z, matrix.projection.w,
+        matrix.translation.x, matrix.translation.y, matrix.translation.z, matrix.translation.w
     ]);
 }
 

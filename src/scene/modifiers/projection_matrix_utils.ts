@@ -9,7 +9,7 @@ export function createProjectionMatrix(
     depth: ProjectionMatrixComponent,
     wComponent: ProjectionMatrixComponent
 ): ProjectionMatrix {
-    return { xScale: xscale, yScale: yscale, depth, wComponent };
+    return { xScale: xscale, yScale: yscale, projection: depth, translation: wComponent };
 }
 
 /**
@@ -23,8 +23,8 @@ export function fromFloat32Array(array: Float32Array): ProjectionMatrix {
     return {
         xScale: { x: array[0], y: array[1], z: array[2], w: array[3] },     // xscale - Column 0
         yScale: { x: array[4], y: array[5], z: array[6], w: array[7] },     // yscale - Column 1
-        depth: { x: array[8], y: array[9], z: array[10], w: array[11] },   // depth - Column 2
-        wComponent: { x: array[12], y: array[13], z: array[14], w: array[15] }  // wComponent - Column 3
+        projection: { x: array[8], y: array[9], z: array[10], w: array[11] },   // depth - Column 2
+        translation: { x: array[12], y: array[13], z: array[14], w: array[15] }  // wComponent - Column 3
     };
 }
 
@@ -68,7 +68,7 @@ export function projectionMatrixFromFrustum(
         w: 0
     };
 
-    return { xScale: xscale, yScale: yscale, depth, wComponent };
+    return { xScale: xscale, yScale: yscale, projection: depth, translation: wComponent };
 }
 
 /**

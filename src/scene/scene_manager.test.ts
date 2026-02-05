@@ -795,10 +795,10 @@ describe("PortalSceneManager - ScreenModifier Integration", () => {
         const state = manager.calculateScene(1000, 16, 60, initialState);
 
         expect(state.projectionMatrix).toBeDefined();
-        expect(state.projectionMatrix).toHaveProperty('xScale');
-        expect(state.projectionMatrix).toHaveProperty('yScale');
-        expect(state.projectionMatrix).toHaveProperty('depth');
-        expect(state.projectionMatrix).toHaveProperty('wComponent');
+        expect(state.projectionMatrix?.xScale).toBeDefined()
+        expect(state.projectionMatrix?.yScale).toBeDefined()
+        expect(state.projectionMatrix?.projection).toBeDefined()
+        expect(state.projectionMatrix?.translation).toBeDefined()
         if(state.projectionMatrix) {
             expect(MatrixToArray(state.projectionMatrix)).toBeInstanceOf(Float32Array);
             expect(MatrixToArray(state.projectionMatrix).length).toBe(16);

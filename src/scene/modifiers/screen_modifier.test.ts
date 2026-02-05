@@ -20,11 +20,12 @@ describe("ScreenModifier", () => {
         const screen = new ScreenModifier(defaultConfig);
         const eyePos = { x: 0, y: 0, z: -100 };
         const matrix = screen.buildFrustum(eyePos);
-        
-        expect(matrix).toHaveProperty('xScale');
-        expect(matrix).toHaveProperty('yScale');
-        expect(matrix).toHaveProperty('depth');
-        expect(matrix).toHaveProperty('wComponent');
+
+        expect(matrix).toBeDefined();
+        expect(matrix?.xScale).toBeDefined()
+        expect(matrix?.yScale).toBeDefined()
+        expect(matrix?.projection).toBeDefined()
+        expect(matrix?.translation).toBeDefined()
         expect(MatrixToArray(matrix)).toBeInstanceOf(Float32Array);
         expect(MatrixToArray(matrix).length).toBe(16);
     });
@@ -97,13 +98,13 @@ describe("ScreenModifier", () => {
                 z: 6,
                 w: 7,
             },
-            depth: {
+            projection: {
                 x: 8,
                 y: 9,
                 z: 10,
                 w: 11,
             },
-            wComponent: {
+            translation: {
                 x: 12,
                 y: 13,
                 z: 14,
@@ -134,15 +135,15 @@ describe("ScreenModifier", () => {
         expect(matrix.yScale.w).toBe(0);
 
         // Third row: [0, 0, -(f+n)/(f-n), -2fn/(f-n)]
-        expect(matrix.depth.x).toBe(0);
-        expect(matrix.depth.y).toBe(0);
-        expect(matrix.depth.z).toBeCloseTo(-1.00, 1);
-        expect(matrix.depth.w).toBeCloseTo( -0.20, 1);
+        expect(matrix.projection.x).toBe(0);
+        expect(matrix.projection.y).toBe(0);
+        expect(matrix.projection.z).toBeCloseTo(-1.00, 1);
+        expect(matrix.projection.w).toBeCloseTo( -0.20, 1);
 
         // Fourth row: [0, 0, -1, 0]
-        expect(matrix.wComponent.x).toBe(0);
-        expect(matrix.wComponent.y).toBe(0);
-        expect(matrix.wComponent.z).toBe(-1);
-        expect(matrix.wComponent.w).toBeCloseTo( 0);
+        expect(matrix.translation.x).toBe(0);
+        expect(matrix.translation.y).toBe(0);
+        expect(matrix.translation.z).toBe(-1);
+        expect(matrix.translation.w).toBeCloseTo( 0);
     });
 });

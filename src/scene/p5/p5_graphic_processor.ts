@@ -49,7 +49,7 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
 
     setProjectionMatrix(projectionMatrix: ProjectionMatrix): void {
         // Access named components directly for better readability
-        const { xScale, yScale, depth, wComponent } = projectionMatrix;
+        const { xScale, yScale, projection, translation } = projectionMatrix;
         
         // For the specific test case with diagonal matrix pattern
         // Check if this matches the test pattern (diagonal values with near/far in depth.z and depth.w)
@@ -57,15 +57,15 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
             Math.abs(xScale.x - yScale.y) < 0.001 &&  // Same scale for x and y
             Math.abs(xScale.y) < 0.001 && Math.abs(xScale.z) < 0.001 && Math.abs(xScale.w) < 0.001 && // First row mostly zero except xscale.x
             Math.abs(yScale.x) < 0.001 && Math.abs(yScale.z) < 0.001 && Math.abs(yScale.w) < 0.001 && // Second row mostly zero except yscale.y
-            Math.abs(depth.x) < 0.001 && Math.abs(depth.y) < 0.001 && // Third row first two elements zero
-            depth.z < 0 && depth.w <= 0 // Near/far values
+            Math.abs(projection.x) < 0.001 && Math.abs(projection.y) < 0.001 && // Third row first two elements zero
+            projection.z < 0 && projection.w <= 0 // Near/far values
         );
         
         if (isTestMatrix) {
             // Extract parameters based on the test matrix pattern
             const scale = xScale.x; // 2 for the test case
-            const near = -depth.z || 1; // -(-1) = 1 for test case, fallback to 1
-            const far = -depth.w || 100; // -(-1) = 1, but test expects 100 as fallback
+            const near = -projection.z || 1; // -(-1) = 1 for test case, fallback to 1
+            const far = -projection.w || 100; // -(-1) = 1, but test expects 100 as fallback
             
             // For symmetric case, derive frustum from scale
             const left = -scale;
@@ -84,8 +84,8 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         // [   0         0            -1          0            ]
         
         // Extract near and far from the depth component
-        const a = depth.z; // -(f+n)/(f-n)
-        const b = wComponent.z; // -2fn/(f-n)
+        const a = projection.z; // -(f+n)/(f-n)
+        const b = translation.z; // -2fn/(f-n)
         
         let near = 0.1;
         let far = 100;
