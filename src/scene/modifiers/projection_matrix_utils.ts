@@ -1,4 +1,17 @@
-import type { ProjectionMatrix, ProjectionMatrixComponent } from "../types.ts";
+import type {ProjectionMatrix, ProjectionMatrixComponent, Vector3} from "../types.ts";
+
+/**
+ * Convert ProjectionMatrix to Float32Array for P5/WebGL compatibility.
+ * Returns a 16-element column-major 4x4 matrix.
+ */
+export function MatrixToArray(matrix: ProjectionMatrix): Float32Array {
+    return new Float32Array([
+        matrix.xScale.x, matrix.xScale.y, matrix.xScale.z, matrix.xScale.w,
+        matrix.yScale.x, matrix.yScale.y, matrix.yScale.z, matrix.yScale.w,
+        matrix.projection.x, matrix.projection.y, matrix.projection.z, matrix.projection.w,
+        matrix.translation.x, matrix.translation.y, matrix.translation.z, matrix.translation.w
+    ]);
+}
 
 /**
  * Create a ProjectionMatrix from its four components.
@@ -12,6 +25,20 @@ export function createProjectionMatrix(
     return { xScale: xscale, yScale: yscale, projection: depth, translation: wComponent };
 }
 
+export function projectPoint(p: Vector3, m: ProjectionMatrix): { x: number; y: number } {
+    // Compute the clip-space w
+    const w = -p.z; // or your current formula for w in the projection
+
+    if (Math.abs(w) < 1e-6) {
+        throw new Error(`Cannot project point at eye plane (z=${p.z} leads to w≈0).`);
+    }
+
+    return {
+        x: (p.x * m.xScale.x + m.projection.x * p.z) / w,
+        y: (p.y * m.yScale.y + m.projection.y * p.z) / w
+    };
+}
+
 /**
  * Create a ProjectionMatrix from a Float32Array (column-major 4x4 matrix).
  */
@@ -21,10 +48,10 @@ export function fromFloat32Array(array: Float32Array): ProjectionMatrix {
     }
 
     return {
-        xScale: { x: array[0], y: array[1], z: array[2], w: array[3] },     // xscale - Column 0
-        yScale: { x: array[4], y: array[5], z: array[6], w: array[7] },     // yscale - Column 1
-        projection: { x: array[8], y: array[9], z: array[10], w: array[11] },   // depth - Column 2
-        translation: { x: array[12], y: array[13], z: array[14], w: array[15] }  // wComponent - Column 3
+        xScale: { x: array[0], y: array[1], z: array[2], w: array[3] },          // xscale - Column 0
+        yScale: { x: array[4], y: array[5], z: array[6], w: array[7] },          // yscale - Column 1
+        projection: { x: array[8], y: array[9], z: array[10], w: array[11] },    // projection - Column 2
+        translation: { x: array[12], y: array[13], z: array[14], w: array[15] }  // translation - Column 3
     };
 }
 
@@ -40,65 +67,23 @@ export function projectionMatrixFromFrustum(
     near: number,
     far: number
 ): ProjectionMatrix {
-    // const xscale = {
-    //     x: 2 * near / (right - left),
-    //     y: 0,
-    //     z: (right + left) / (right - left),
-    //     w: 0
-    // };
-    //
-    // const yscale = {
-    //     x: 0,
-    //     y: 2 * near / (top - bottom),
-    //     z: (top + bottom) / (top - bottom),
-    //     w: 0
-    // };
-    //
-    // const depth = {
-    //     x: 0,
-    //     y: 0,
-    //     z: -(far + near) / (far - near),
-    //     w: -2 * far * near / (far - near)
-    // };
-    //
-    // const wComponent = {
-    //     x: 0,
-    //     y: 0,
-    //     z: -1,
-    //     w: 0
-    // };
-    //
-    // return { xScale: xscale, yScale: yscale, projection: depth, translation: wComponent };
+    const xScale = (2 * near) / (right - left);
+    const yScale = (2 * near) / (top - bottom);
 
-        const xScale = (2 * near) / (right - left);
-        const yScale = (2 * near) / (top - bottom);
+    const xOffset = (right + left) / (right - left);
+    const yOffset = (top + bottom) / (top - bottom);
 
-        const xOffset = (right + left) / (right - left);
-        const yOffset = (top + bottom) / (top - bottom);
+    const zScale = -(far + near) / (far - near);
+    const zOffset = -(2 * far * near) / (far - near);
 
-        const zScale = -(far + near) / (far - near);
-        const zOffset = -(2 * far * near) / (far - near);
-
-        return {
-            xScale: {
-                x: xScale, y: 0, z: 0, w: 0
-            },
-            yScale: {
-                x: 0, y: yScale, z: 0, w: 0
-            },
-            projection: {
-                x: xOffset,
-                y: yOffset,
-                z: zScale,
-                w: -1
-            },
-            translation: {
-                x: 0, y: 0,
-                z: zOffset,
-                w: 0
-            }
-        };
-    }
+    // Column-major decomposition
+    return {
+        xScale: { x: xScale, y: 0, z: 0, w: 0 },
+        yScale: { x: 0, y: yScale, z: 0, w: 0 },
+        projection: { x: xOffset, y: yOffset, z: zScale, w: -1 },
+        translation: { x: 0, y: 0, z: zOffset, w: 0 }
+    };
+}
 
 /**
  * Create a symmetric projection matrix (for simplified use cases).
@@ -124,8 +109,8 @@ export function createIdentityProjectionMatrix(): ProjectionMatrix {
     return createProjectionMatrix(
         { x: 1, y: 0, z: 0, w: 0 },     // xscale
         { x: 0, y: 1, z: 0, w: 0 },     // yscale
-        { x: 0, y: 0, z: 1, w: 0 },     // depth
-        { x: 0, y: 0, z: 0, w: 1 }      // wComponent
+        { x: 0, y: 0, z: 1, w: 0 },     // projection
+        { x: 0, y: 0, z: 0, w: 1 }      // translation
     );
 }
 
@@ -136,8 +121,8 @@ export function createScalingProjectionMatrix(scaleX: number, scaleY: number, sc
     return createProjectionMatrix(
         { x: scaleX, y: 0, z: 0, w: 0 },     // xscale
         { x: 0, y: scaleY, z: 0, w: 0 },     // yscale
-        { x: 0, y: 0, z: scaleZ, w: 0 },     // depth
-        { x: 0, y: 0, z: 0, w: 1 }           // wComponent
+        { x: 0, y: 0, z: scaleZ, w: 0 },     // projection
+        { x: 0, y: 0, z: 0, w: 1 }           // translation
     );
 }
 
@@ -148,7 +133,7 @@ export function createZeroProjectionMatrix(): ProjectionMatrix {
     return createProjectionMatrix(
         { x: 0, y: 0, z: 0, w: 0 },     // xscale
         { x: 0, y: 0, z: 0, w: 0 },     // yscale
-        { x: 0, y: 0, z: 0, w: 0 },     // depth
-        { x: 0, y: 0, z: 0, w: 0 }      // wComponent
+        { x: 0, y: 0, z: 0, w: 0 },     // projection
+        { x: 0, y: 0, z: 0, w: 0 }      // translation
     );
 }

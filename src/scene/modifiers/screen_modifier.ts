@@ -79,37 +79,14 @@ export class ScreenModifier {
     public buildFrustum(eyePos: Vector3): ProjectionMatrix {
         const distance = this.config.z - eyePos.z;
         const safeDistance = distance < this.config.epsilon ? this.config.epsilon : distance;
+
         const scale = this.config.near / safeDistance;
 
-        return projectionMatrixFromFrustum(
-            (-this.config.halfWidth  - eyePos.x) * scale,
-            ( this.config.halfWidth  - eyePos.x) * scale,
-            (-this.config.halfHeight - eyePos.y) * scale,
-            ( this.config.halfHeight - eyePos.y) * scale,
-            this.config.near,
-            this.config.far
-        );
+        const left   = (-this.config.halfWidth - eyePos.x) * scale;
+        const right  = ( this.config.halfWidth - eyePos.x) * scale;
+        const bottom = (-this.config.halfHeight - eyePos.y) * scale;
+        const top    = ( this.config.halfHeight - eyePos.y) * scale;
+
+        return projectionMatrixFromFrustum(left, right, bottom, top, this.config.near, this.config.far);
     }
 }
-//
-// /**
-//  * The Bridge Interface
-//  */
-// export interface ProjectionBuilder {
-//     build(extents: FrustumExtents): ProjectionMatrix;
-// }
-//
-// /**
-//  * The p5 implementation (Column-Major, Right-Handed)
-//  */
-// export class P5ProjectionBuilder implements ProjectionBuilder {
-//     public build(e: FrustumExtents): ProjectionMatrix {
-//         // Logic specific to p5's coordinate system
-//         return {
-//             xScale:     { x: (2 * e.near) / (e.right - e.left), y: 0, z: 0, w: 0 },
-//             yScale:     { x: 0, y: (2 * e.near) / (e.top - e.bottom), z: 0, w: 0 },
-//             depth:      { x: (e.right + e.left) / (e.right - e.left), y: (e.top + e.bottom) / (e.top - e.bottom), z: -(e.far + e.near) / (e.far - e.near), w: -1 },
-//             wComponent: { x: 0, y: 0, z: (-2 * e.far * e.near) / (e.far - e.near), w: 0 }
-//         };
-//     }
-// }

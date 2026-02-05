@@ -29,19 +29,6 @@ export type ProjectionMatrix = {
 };
 
 /**
- * Convert ProjectionMatrix to Float32Array for P5/WebGL compatibility.
- * Returns a 16-element column-major 4x4 matrix.
- */
-export function MatrixToArray(matrix: ProjectionMatrix): Float32Array {
-    return new Float32Array([
-        matrix.xScale.x, matrix.xScale.y, matrix.xScale.z, matrix.xScale.w,
-        matrix.yScale.x, matrix.yScale.y, matrix.yScale.z, matrix.yScale.w,
-        matrix.projection.x, matrix.projection.y, matrix.projection.z, matrix.projection.w,
-        matrix.translation.x, matrix.translation.y, matrix.translation.z, matrix.translation.w
-    ]);
-}
-
-/**
  * A container for operations that can fail.
  */
 export type FailableResult<T> =
