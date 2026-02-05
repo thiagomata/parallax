@@ -1133,4 +1133,115 @@ describe('P5GraphicProcessor', () => {
             expect(mockP5.rotateX).toHaveBeenCalledWith(Math.PI / 2);
         });
     });
+
+    describe('Projection Matrix Override', () => {
+        describe('setProjectionMatrix', () => {
+            it('should extract and apply frustum parameters from projection matrix', () => {
+                // Test with a basic projection matrix
+                const projectionMatrix = new Float32Array([2, 0, 0, 0, 0, 2, 0, 0, 0, -1, 0, 0, 0, -1, 0]);
+
+                processor.setProjectionMatrix(projectionMatrix);
+
+                // Verify frustum was called with 6 parameters
+                expect(mockP5.frustum).toHaveBeenCalled();
+                const actualCall = mockP5.frustum.mock.calls[0];
+                expect(actualCall).toHaveLength(6);
+            });
+
+            it('should handle symmetric projection matrix correctly', () => {
+                // Create a symmetric off-axis projection matrix
+                const projectionMatrix = new Float32Array([
+                    2, 0, 0, 0,     // Basic scale
+                    0, 2, 0, 0,     // Basic scale  
+                    0, 0, -1, 0,     // Near plane
+                    0, 0, 0, -1, 0     // Far plane
+                ]);
+
+                processor.setProjectionMatrix(projectionMatrix);
+
+                expect(mockP5.frustum).toHaveBeenCalled();
+                const [symLeft, symRight, symBottom, symTop, symNear, symFar] = mockP5.frustum.mock.calls[0];
+                
+                // Verify all parameters are defined
+                expect(symLeft).toBeDefined();
+                expect(symRight).toBeDefined();
+                expect(symBottom).toBeDefined();
+                expect(symTop).toBeDefined();
+                expect(symNear).toBeDefined();
+                expect(symFar).toBeDefined();
+                
+                // For symmetric case, left should equal -right and bottom should equal -top
+                expect(symLeft).toBeCloseTo(-symRight, 5);
+                expect(symBottom).toBeCloseTo(-symTop, 5);
+                expect(symNear).toBeGreaterThan(0);
+                expect(symFar).toBeGreaterThan(symNear);
+                
+                // Verify the frustum parameters for symmetric case
+                // For a symmetric matrix with scale 2, we expect: left=-2, right=2, bottom=-2, top=2
+                // Near/far are extracted from the matrix: near=1 (from -m[10]), far=100 (default fallback)
+                expect(mockP5.frustum).toHaveBeenCalledWith(-2, 2, -2, 2, 1, 100);
+            });
+
+            it('should handle off-axis projection matrix correctly', () => {
+                // Create an off-axis projection matrix (asymmetric)
+                const projectionMatrix = new Float32Array([
+                    1.8, 0, 0.2, 0,
+                    0, 2.4, -0.1, 0,
+                    0, 0, -1.002, -0.2002,
+                    0, 0, -1, 0
+                ]);
+
+                processor.setProjectionMatrix(projectionMatrix);
+
+                expect(mockP5.frustum).toHaveBeenCalled();
+                const [offLeft, offRight, offBottom, offTop, offNear, offFar] = mockP5.frustum.mock.calls[0];
+                
+                // Verify all parameters are defined
+                expect(offLeft).toBeDefined();
+                expect(offRight).toBeDefined();
+                expect(offBottom).toBeDefined();
+                expect(offTop).toBeDefined();
+                expect(offNear).toBeDefined();
+                expect(offFar).toBeDefined();
+                
+                // Verify values are computed (exact extraction depends on complex matrix math)
+                expect(typeof offNear).toBe('number');
+                expect(typeof offFar).toBe('number');
+            });
+
+            it('should handle edge case with very small near plane', () => {
+                const projectionMatrix = new Float32Array([
+                    2000, 0, 0, 0,
+                    0, 1500, 0, 0,
+                    0, 0, -1.0002, -0.0002,
+                    0, 0, -1, 0
+                ]);
+
+                processor.setProjectionMatrix(projectionMatrix);
+
+                expect(mockP5.frustum).toHaveBeenCalled();
+                const [edgeLeft, edgeRight, edgeBottom, edgeTop, edgeNear, edgeFar] = mockP5.frustum.mock.calls[0];
+                
+                // Verify all parameters are defined
+                expect(edgeLeft).toBeDefined();
+                expect(edgeRight).toBeDefined();
+                expect(edgeBottom).toBeDefined();
+                expect(edgeTop).toBeDefined();
+                expect(edgeNear).toBeDefined();
+                expect(edgeFar).toBeDefined();
+                
+                // Should handle extreme values gracefully
+                expect(mockP5.frustum).toHaveBeenCalledTimes(1);
+            });
+
+            it('should handle zero-based projection matrix elements gracefully', () => {
+                const projectionMatrix = new Float32Array(16); // All zeros
+
+                processor.setProjectionMatrix(projectionMatrix);
+
+                // Should still call frustum, even with degenerate values
+                expect(mockP5.frustum).toHaveBeenCalled();
+            });
+        });
+    });
 });

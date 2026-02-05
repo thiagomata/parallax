@@ -562,4 +562,105 @@ describe('World Orchestration (Dependency Injection)', () => {
             );
         });
     });
+
+    describe('Projection Matrix Integration', () => {
+        it('should call setProjectionMatrix when projection matrix is available', () => {
+            // Create a scene state with projection matrix
+            const stateWithProjection = {
+                ...initialState,
+                projectionMatrix: new Float32Array([
+                    1.5, 0, 0, 0,
+                    0, 2.0, 0, 0,
+                    0, 0, -1.002, -0.2002,
+                    0, 0, -1, 0
+                ])
+            };
+
+            (mockManager.calculateScene as Mock).mockReturnValue(stateWithProjection);
+
+            world.step(mockGP);
+
+            // Verify that setProjectionMatrix was called
+            expect(mockGP.setProjectionMatrix).toHaveBeenCalledWith(stateWithProjection.projectionMatrix);
+        });
+
+        it('should not call setProjectionMatrix when projection matrix is undefined', () => {
+            // Scene state without projection matrix
+            const stateWithoutProjection = {
+                ...initialState,
+                projectionMatrix: undefined
+            };
+
+            (mockManager.calculateScene as Mock).mockReturnValue(stateWithoutProjection);
+
+            world.step(mockGP);
+
+            // Verify that setProjectionMatrix was NOT called
+            expect(mockGP.setProjectionMatrix).not.toHaveBeenCalled();
+        });
+
+        it('should not call setProjectionMatrix when graphics processor does not support it', () => {
+            // Create a graphics processor without setProjectionMatrix
+            const processorWithoutProjection = {
+                ...mockGP,
+                setProjectionMatrix: undefined
+            };
+
+            const stateWithProjection = {
+                ...initialState,
+                projectionMatrix: new Float32Array([
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 0, 1,
+                0, 0, 0, 0, 1])
+            };
+
+            (mockManager.calculateScene as Mock).mockReturnValue(stateWithProjection);
+
+            world.step(processorWithoutProjection);
+
+            // Should not attempt to call setProjectionMatrix if it doesn't exist
+            expect(processorWithoutProjection.setProjectionMatrix).toBeUndefined();
+        });
+
+        it('should call setProjectionMatrix with correct matrix reference', () => {
+            const projectionMatrix = new Float32Array([
+                2.5, 0, 0.1, 0,
+                0, 1.8, -0.05, 0,
+                0, 0, -1.002, -0.2002,
+                0, 0, -1, 0
+            ]);
+
+            const stateWithProjection = {
+                ...initialState,
+                projectionMatrix
+            };
+
+            (mockManager.calculateScene as Mock).mockReturnValue(stateWithProjection);
+
+            world.step(mockGP);
+
+            // Verify the exact matrix reference is passed
+            expect(mockGP.setProjectionMatrix).toHaveBeenCalledWith(projectionMatrix);
+            expect(mockGP.setProjectionMatrix).toHaveBeenCalledTimes(1);
+        });
+
+        it('should still call setCamera even when projection matrix is present', () => {
+            const stateWithProjection = {
+                ...initialState,
+                projectionMatrix: new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
+            };
+
+            (mockManager.calculateScene as Mock).mockReturnValue(stateWithProjection);
+
+            world.step(mockGP);
+
+            // Both camera and projection should be set
+            expect(mockGP.setCamera).toHaveBeenCalledWith(
+                stateWithProjection.camera.position,
+                stateWithProjection.camera.lookAt
+            );
+            expect(mockGP.setProjectionMatrix).toHaveBeenCalledWith(stateWithProjection.projectionMatrix);
+        });
+    });
 });

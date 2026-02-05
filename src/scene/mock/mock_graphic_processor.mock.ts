@@ -46,6 +46,7 @@ drawSphere: vi.fn(),
         drawTorus: vi.fn(),
         drawFloor: vi.fn(),
         drawBillboard: vi.fn(),
+        setProjectionMatrix: vi.fn(),
         millis: vi.fn(),
         deltaTime: vi.fn(),
         frameCount: vi.fn()

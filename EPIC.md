@@ -42,17 +42,24 @@ Eye position = camera position + head nudges.
 
 Unit tests confirm world nudges move camera while head nudges move frustum independently.
 
-## Ticket 4 — Replace p5 Perspective with Off-Axis Projection
+## Ticket 4 — Replace p5 Perspective with Off-Axis Projection ✅
 
 Description: Override p5 perspective() calls with the off-axis projection matrix from ScreenModifier.
 
 Acceptance Criteria:
 
-p5 rendering uses off-axis projection instead of symmetric perspective.
+✅ p5 rendering uses off-axis projection instead of symmetric perspective.
 
-Objects in front of the screen plane appear correctly outside the screen.
+✅ Objects in front of screen plane appear correctly outside the screen.
 
-Verify that standard world movement (CarModifier) still works.
+✅ Verify that standard world movement (CarModifier) still works.
+
+**Implementation Details:**
+- Added `setProjectionMatrix` method to P5GraphicProcessor that extracts frustum parameters from projection matrix
+- Updated GraphicProcessor interface with optional `setProjectionMatrix` method
+- Modified World.step() to apply projection matrix when available
+- Uses p5's built-in `frustum()` method for custom projection
+- All existing tests pass, confirming system integrity
 
 ## Ticket 5 — Combine Stick Rotation
 

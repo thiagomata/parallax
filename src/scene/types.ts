@@ -213,6 +213,8 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
 
     setCamera(pos: Vector3, lookAt: Vector3): void;
 
+    setProjectionMatrix?(projectionMatrix: Float32Array): void;
+
     // push(): void;
 
     // pop(): void;

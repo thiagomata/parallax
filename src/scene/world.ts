@@ -93,6 +93,12 @@ export class World<TBundle extends GraphicsBundle, TEffectLib extends EffectLib>
             this.sceneState
         );
         gp.setCamera(draftNewState.camera.position, draftNewState.camera.lookAt);
+        
+        // Apply off-axis projection if available
+        if (draftNewState.projectionMatrix && gp.setProjectionMatrix) {
+            gp.setProjectionMatrix(draftNewState.projectionMatrix);
+        }
+        
         this.sceneState = this.stage.render(gp, draftNewState);
         if (this.sceneState.settings.debug) {
             this.renderDebug(gp, this.sceneState);

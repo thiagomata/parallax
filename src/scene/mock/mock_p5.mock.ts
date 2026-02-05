@@ -65,5 +65,6 @@ export function createMockP5() {
         draw: undefined as any,
         createCapture: vi.fn(),
         lerp: vi.fn(),
+        frustum: vi.fn(),
     };
 }
