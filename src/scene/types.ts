@@ -8,6 +8,40 @@ export interface Vector3 {
 }
 
 /**
+ * A component of the projection matrix containing 4 values.
+ */
+export type ProjectionMatrixComponent = {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+    readonly w: number;
+};
+
+/**
+ * A structured projection matrix with 4 components, each containing x, y, z, w values.
+ * Maps to a 4x4 column-major matrix for P5/WebGL compatibility.
+ */
+export type ProjectionMatrix = {
+    readonly xScale: ProjectionMatrixComponent;
+    readonly yScale: ProjectionMatrixComponent;
+    readonly depth: ProjectionMatrixComponent;
+    readonly wComponent: ProjectionMatrixComponent;
+};
+
+/**
+ * Convert ProjectionMatrix to Float32Array for P5/WebGL compatibility.
+ * Returns a 16-element column-major 4x4 matrix.
+ */
+export function MatrixToArray(matrix: ProjectionMatrix): Float32Array {
+    return new Float32Array([
+        matrix.xScale.x, matrix.xScale.y, matrix.xScale.z, matrix.xScale.w,
+        matrix.yScale.x, matrix.yScale.y, matrix.yScale.z, matrix.yScale.w,
+        matrix.depth.x, matrix.depth.y, matrix.depth.z, matrix.depth.w,
+        matrix.wComponent.x, matrix.wComponent.y, matrix.wComponent.z, matrix.wComponent.w
+    ]);
+}
+
+/**
  * A container for operations that can fail.
  */
 export type FailableResult<T> =
@@ -76,7 +110,7 @@ export interface SceneState {
     camera: SceneCameraState;
     debugStateLog?: SceneStateDebugLog;
     elements?: Map<string, ResolvedElement>;
-    projectionMatrix?: Float32Array;
+    projectionMatrix?: ProjectionMatrix;
 }
 
 export const DEFAULT_CAMERA_FAR = 5000;
@@ -213,7 +247,7 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
 
     setCamera(pos: Vector3, lookAt: Vector3): void;
 
-    setProjectionMatrix?(projectionMatrix: Float32Array): void;
+    setProjectionMatrix?(projectionMatrix: ProjectionMatrix): void;
 
     // push(): void;
 

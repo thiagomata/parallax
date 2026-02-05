@@ -2,7 +2,7 @@ import {
     type CarModifier,
     DEFAULT_SETTINGS,
     type Modifier,
-    type NudgeModifier,
+    type NudgeModifier, type ProjectionMatrix,
     type SceneCameraState,
     type ScenePlaybackState,
     type SceneSettings,
@@ -248,7 +248,7 @@ export class SceneManager {
         const lookAt = this.calculateLookAt(finalCamPos, stickRes);
 
         // Build off-axis projection if ScreenModifier is available
-        let projectionMatrix: Float32Array | undefined;
+        let projectionMatrix: ProjectionMatrix | undefined;
         if (this.screenModifier) {
             projectionMatrix = this.screenModifier.buildFrustum(finalEyePos);
         }

@@ -6,6 +6,7 @@ import {ChaosLoader} from './mock/mock_asset_loader.mock.ts';
 import type {SceneManager} from './scene_manager.ts';
 import type {GraphicProcessor} from './types.ts';
 import {createMockGraphicProcessor} from "./mock/mock_graphic_processor.mock.ts";
+import { createProjectionMatrix } from './modifiers/projection_matrix_utils.ts';
 
 describe('World Orchestration (Dependency Injection)', () => {
     let world: World<any, any>;
@@ -568,12 +569,12 @@ describe('World Orchestration (Dependency Injection)', () => {
             // Create a scene state with projection matrix
             const stateWithProjection = {
                 ...initialState,
-                projectionMatrix: new Float32Array([
-                    1.5, 0, 0, 0,
-                    0, 2.0, 0, 0,
-                    0, 0, -1.002, -0.2002,
-                    0, 0, -1, 0
-                ])
+                projectionMatrix: createProjectionMatrix(
+                    { x: 1.5, y: 0, z: 0, w: 0 },           // xscale
+                    { x: 0, y: 2.0, z: 0, w: 0 },           // yscale
+                    { x: 0, y: 0, z: -1.002, w: -0.2002 },  // depth
+                    { x: 0, y: 0, z: -1, w: 0 }              // wComponent
+                )
             };
 
             (mockManager.calculateScene as Mock).mockReturnValue(stateWithProjection);
@@ -608,11 +609,12 @@ describe('World Orchestration (Dependency Injection)', () => {
 
             const stateWithProjection = {
                 ...initialState,
-                projectionMatrix: new Float32Array([
-                1, 0, 0, 0,
-                0, 1, 0, 0,
-                0, 0, 0, 1,
-                0, 0, 0, 0, 1])
+                projectionMatrix: createProjectionMatrix(
+                    { x: 1, y: 0, z: 0, w: 0 },     // xscale
+                    { x: 0, y: 1, z: 0, w: 0 },     // yscale
+                    { x: 0, y: 0, z: 0, w: 1 },     // depth
+                    { x: 0, y: 0, z: 0, w: 0 }      // wComponent
+                )
             };
 
             (mockManager.calculateScene as Mock).mockReturnValue(stateWithProjection);
@@ -624,12 +626,12 @@ describe('World Orchestration (Dependency Injection)', () => {
         });
 
         it('should call setProjectionMatrix with correct matrix reference', () => {
-            const projectionMatrix = new Float32Array([
-                2.5, 0, 0.1, 0,
-                0, 1.8, -0.05, 0,
-                0, 0, -1.002, -0.2002,
-                0, 0, -1, 0
-            ]);
+            const projectionMatrix = createProjectionMatrix(
+                { x: 2.5, y: 0, z: 0.1, w: 0 },           // xscale
+                { x: 0, y: 1.8, z: -0.05, w: 0 },         // yscale
+                { x: 0, y: 0, z: -1.002, w: -0.2002 },    // depth
+                { x: 0, y: 0, z: -1, w: 0 }               // wComponent
+            );
 
             const stateWithProjection = {
                 ...initialState,
@@ -648,7 +650,12 @@ describe('World Orchestration (Dependency Injection)', () => {
         it('should still call setCamera even when projection matrix is present', () => {
             const stateWithProjection = {
                 ...initialState,
-                projectionMatrix: new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
+                projectionMatrix: createProjectionMatrix(
+                    { x: 1, y: 0, z: 0, w: 0 },     // xscale
+                    { x: 0, y: 1, z: 0, w: 0 },     // yscale
+                    { x: 0, y: 0, z: 0, w: 1 },     // depth
+                    { x: 0, y: 0, z: 0, w: 1 }      // wComponent
+                )
             };
 
             (mockManager.calculateScene as Mock).mockReturnValue(stateWithProjection);

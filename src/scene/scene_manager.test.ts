@@ -3,12 +3,13 @@ import {describe, expect, it} from "vitest";
 import {
     type CarModifier,
     DEFAULT_SETTINGS,
+    MatrixToArray,
     type NudgeModifier,
     type SceneSettings,
     type StickModifier,
     type Vector3,
 } from "./types";
-import { ScreenModifier, type ScreenConfig } from "./modifiers/screen_modifier.ts";
+import { ScreenModifier, ScreenConfig } from "./modifiers/screen_modifier.ts";
 
 import {SceneManager} from "./scene_manager.ts";
 import {createMockState} from "./mock/mock_scene_state.mock.ts";
@@ -708,13 +709,13 @@ describe("PortalSceneManager - Pause, Resume, and Debug", () => {
 });
 
 describe("PortalSceneManager - ScreenModifier Integration", () => {
-    const screenConfig: ScreenConfig = {
+    const screenConfig: ScreenConfig = ScreenConfig.create({
         width: 100,
         height: 75,
         z: 0,
         near: 0.1,
         far: 1000
-    };
+    });
 
     it("should combine world and head nudges correctly", () => {
         const manager = new SceneManager();
@@ -794,8 +795,14 @@ describe("PortalSceneManager - ScreenModifier Integration", () => {
         const state = manager.calculateScene(1000, 16, 60, initialState);
 
         expect(state.projectionMatrix).toBeDefined();
-        expect(state.projectionMatrix).toBeInstanceOf(Float32Array);
-        expect(state.projectionMatrix?.length).toBe(16);
+        expect(state.projectionMatrix).toHaveProperty('xScale');
+        expect(state.projectionMatrix).toHaveProperty('yScale');
+        expect(state.projectionMatrix).toHaveProperty('depth');
+        expect(state.projectionMatrix).toHaveProperty('wComponent');
+        if(state.projectionMatrix) {
+            expect(MatrixToArray(state.projectionMatrix)).toBeInstanceOf(Float32Array);
+            expect(MatrixToArray(state.projectionMatrix).length).toBe(16);
+        }
     });
 
     it("should compute eye position as CarModifier + NudgeModifier", () => {
@@ -871,13 +878,13 @@ describe("PortalSceneManager - ScreenModifier Integration", () => {
     it("should produce different projection matrices for different eye positions", () => {
         const manager = new SceneManager();
         // Update screen config to put screen in front of camera
-        const screenConfig: ScreenConfig = {
+        const screenConfig: ScreenConfig = ScreenConfig.create({
             width: 100,
             height: 75,
             z: 100, // Screen at z=100
             near: 0.1,
             far: 1000
-        };
+        });
         const screenModifier = new ScreenModifier(screenConfig);
         manager.setScreenModifier(screenModifier);
 
@@ -919,14 +926,16 @@ describe("PortalSceneManager - ScreenModifier Integration", () => {
         
         // Check for NaN values
         if (state1.projectionMatrix) {
-            for (let i = 0; i < state1.projectionMatrix.length; i++) {
-                expect(Number.isNaN(state1.projectionMatrix[i])).toBe(false);
+            const array1 = MatrixToArray(state1.projectionMatrix);
+            for (let i = 0; i < array1.length; i++) {
+                expect(Number.isNaN(array1[i])).toBe(false);
             }
         }
         
         if (state2.projectionMatrix) {
-            for (let i = 0; i < state2.projectionMatrix.length; i++) {
-                expect(Number.isNaN(state2.projectionMatrix[i])).toBe(false);
+            const array2 = MatrixToArray(state2.projectionMatrix);
+            for (let i = 0; i < array2.length; i++) {
+                expect(Number.isNaN(array2[i])).toBe(false);
             }
         }
         

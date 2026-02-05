@@ -10,7 +10,7 @@ Acceptance Criteria:
 
 Takes width, height, z-position, near/far planes as configuration.
 
-Returns a Float32Array projection matrix.
+Returns a ProjectionMatrix with named components (xscale, yscale, depth, wComponent).
 
 Unit test verifies matrix changes based on different eye positions.
 

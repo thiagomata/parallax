@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { P5GraphicProcessor } from './p5_graphic_processor.ts';
 import { ASSET_STATUS, ELEMENT_TYPES } from '../types.ts';
 import { createMockP5 } from '../mock/mock_p5.mock.ts';
+import { createProjectionMatrix } from '../modifiers/projection_matrix_utils.ts';
 import type { 
     SceneState, 
     Vector3, 
@@ -1138,7 +1139,12 @@ describe('P5GraphicProcessor', () => {
         describe('setProjectionMatrix', () => {
             it('should extract and apply frustum parameters from projection matrix', () => {
                 // Test with a basic projection matrix
-                const projectionMatrix = new Float32Array([2, 0, 0, 0, 0, 2, 0, 0, 0, -1, 0, 0, 0, -1, 0]);
+                const projectionMatrix = createProjectionMatrix(
+                    { x: 2, y: 0, z: 0, w: 0 },     // xscale
+                    { x: 0, y: 2, z: 0, w: 0 },     // yscale
+                    { x: 0, y: 0, z: -1, w: 0 },    // depth
+                    { x: 0, y: 0, z: -1, w: 0 }     // wComponent
+                );
 
                 processor.setProjectionMatrix(projectionMatrix);
 
@@ -1150,12 +1156,12 @@ describe('P5GraphicProcessor', () => {
 
             it('should handle symmetric projection matrix correctly', () => {
                 // Create a symmetric off-axis projection matrix
-                const projectionMatrix = new Float32Array([
-                    2, 0, 0, 0,     // Basic scale
-                    0, 2, 0, 0,     // Basic scale  
-                    0, 0, -1, 0,     // Near plane
-                    0, 0, 0, -1, 0     // Far plane
-                ]);
+                const projectionMatrix = createProjectionMatrix(
+                    { x: 2, y: 0, z: 0, w: 0 },     // xscale
+                    { x: 0, y: 2, z: 0, w: 0 },     // yscale
+                    { x: 0, y: 0, z: -1, w: 0 },    // depth
+                    { x: 0, y: 0, z: 0, w: -1 }     // wComponent
+                );
 
                 processor.setProjectionMatrix(projectionMatrix);
 
@@ -1184,12 +1190,12 @@ describe('P5GraphicProcessor', () => {
 
             it('should handle off-axis projection matrix correctly', () => {
                 // Create an off-axis projection matrix (asymmetric)
-                const projectionMatrix = new Float32Array([
-                    1.8, 0, 0.2, 0,
-                    0, 2.4, -0.1, 0,
-                    0, 0, -1.002, -0.2002,
-                    0, 0, -1, 0
-                ]);
+                const projectionMatrix = createProjectionMatrix(
+                    { x: 1.8, y: 0, z: 0.2, w: 0 },           // xscale
+                    { x: 0, y: 2.4, z: -0.1, w: 0 },          // yscale
+                    { x: 0, y: 0, z: -1.002, w: -0.2002 },    // depth
+                    { x: 0, y: 0, z: -1, w: 0 }               // wComponent
+                );
 
                 processor.setProjectionMatrix(projectionMatrix);
 
@@ -1210,12 +1216,12 @@ describe('P5GraphicProcessor', () => {
             });
 
             it('should handle edge case with very small near plane', () => {
-                const projectionMatrix = new Float32Array([
-                    2000, 0, 0, 0,
-                    0, 1500, 0, 0,
-                    0, 0, -1.0002, -0.0002,
-                    0, 0, -1, 0
-                ]);
+                const projectionMatrix = createProjectionMatrix(
+                    { x: 2000, y: 0, z: 0, w: 0 },           // xscale
+                    { x: 0, y: 1500, z: 0, w: 0 },           // yscale
+                    { x: 0, y: 0, z: -1.0002, w: -0.0002 },  // depth
+                    { x: 0, y: 0, z: -1, w: 0 }              // wComponent
+                );
 
                 processor.setProjectionMatrix(projectionMatrix);
 
@@ -1235,7 +1241,12 @@ describe('P5GraphicProcessor', () => {
             });
 
             it('should handle zero-based projection matrix elements gracefully', () => {
-                const projectionMatrix = new Float32Array(16); // All zeros
+                const projectionMatrix = createProjectionMatrix(
+                    { x: 0, y: 0, z: 0, w: 0 },     // xscale
+                    { x: 0, y: 0, z: 0, w: 0 },     // yscale
+                    { x: 0, y: 0, z: 0, w: 0 },     // depth
+                    { x: 0, y: 0, z: 0, w: 0 }      // wComponent
+                );
 
                 processor.setProjectionMatrix(projectionMatrix);
 

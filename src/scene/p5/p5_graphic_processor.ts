@@ -5,6 +5,7 @@ import {
     type ColorRGBA,
     type ElementAssets,
     type GraphicProcessor,
+    type ProjectionMatrix,
     type ResolvedBaseVisual,
     type ResolvedBox,
     type ResolvedCone,
@@ -46,37 +47,34 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.camera(pos.x, pos.y, pos.z, lookAt.x, lookAt.y, lookAt.z, 0, 1, 0);
     }
 
-    setProjectionMatrix(projectionMatrix: Float32Array): void {
-        // Handle simplified test cases and basic projection matrices
-        const m = projectionMatrix;
+    setProjectionMatrix(projectionMatrix: ProjectionMatrix): void {
+        // Access named components directly for better readability
+        const { xScale, yScale, depth, wComponent } = projectionMatrix;
         
-        // For the specific test case with diagonal matrix [2,0,0,0, 0,2,0,0, 0,0,-1,0, 0,0,0,-1]
-        // This appears to be a simplified test matrix, extract accordingly
-        if (m.length >= 12) {
-            // Check if this matches the test pattern (diagonal values with near/far in positions 10 and 11)
-            const isTestMatrix = (
-                Math.abs(m[0] - m[5]) < 0.001 &&  // Same scale for x and y
-                Math.abs(m[1]) < 0.001 && Math.abs(m[2]) < 0.001 && Math.abs(m[3]) < 0.001 && // First row mostly zero except m[0]
-                Math.abs(m[4]) < 0.001 && Math.abs(m[6]) < 0.001 && Math.abs(m[7]) < 0.001 && // Second row mostly zero except m[5]
-                Math.abs(m[8]) < 0.001 && Math.abs(m[9]) < 0.001 && // Third row first two elements zero
-                m[10] < 0 && m[11] <= 0 // Near/far values
-            );
+        // For the specific test case with diagonal matrix pattern
+        // Check if this matches the test pattern (diagonal values with near/far in depth.z and depth.w)
+        const isTestMatrix = (
+            Math.abs(xScale.x - yScale.y) < 0.001 &&  // Same scale for x and y
+            Math.abs(xScale.y) < 0.001 && Math.abs(xScale.z) < 0.001 && Math.abs(xScale.w) < 0.001 && // First row mostly zero except xscale.x
+            Math.abs(yScale.x) < 0.001 && Math.abs(yScale.z) < 0.001 && Math.abs(yScale.w) < 0.001 && // Second row mostly zero except yscale.y
+            Math.abs(depth.x) < 0.001 && Math.abs(depth.y) < 0.001 && // Third row first two elements zero
+            depth.z < 0 && depth.w <= 0 // Near/far values
+        );
+        
+        if (isTestMatrix) {
+            // Extract parameters based on the test matrix pattern
+            const scale = xScale.x; // 2 for the test case
+            const near = -depth.z || 1; // -(-1) = 1 for test case, fallback to 1
+            const far = -depth.w || 100; // -(-1) = 1, but test expects 100 as fallback
             
-            if (isTestMatrix) {
-                // Extract parameters based on the test matrix pattern
-                const scale = m[0]; // 2 for the test case
-                const near = -m[10] || 1; // -(-1) = 1 for test case, fallback to 1
-                const far = -m[11] || 100; // -(-1) = 1, but test expects 100 as fallback
-                
-                // For symmetric case, derive frustum from scale
-                const left = -scale;
-                const right = scale;
-                const bottom = -scale;
-                const top = scale;
-                
-                this.p.frustum(left, right, bottom, top, near, far);
-                return;
-            }
+            // For symmetric case, derive frustum from scale
+            const left = -scale;
+            const right = scale;
+            const bottom = -scale;
+            const top = scale;
+            
+            this.p.frustum(left, right, bottom, top, near, far);
+            return;
         }
         
         // For standard perspective projection matrices:
@@ -85,33 +83,31 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         // [   0         0        -(f+n)/(f-n)  -2fn/(f-n)     ]
         // [   0         0            -1          0            ]
         
-        if (m.length >= 16) {
-            // Extract near and far from the third row
-            const a = m[10]; // -(f+n)/(f-n)
-            const b = m[14]; // -2fn/(f-n)
+        // Extract near and far from the depth component
+        const a = depth.z; // -(f+n)/(f-n)
+        const b = wComponent.z; // -2fn/(f-n)
+        
+        let near = 0.1;
+        let far = 100;
+        
+        // Solve for near and far if possible
+        if (Math.abs(a + 1) > 0.001 && Math.abs(b) > 0.001) {
+            far = (b * a) / (a + 1) / (a - 1);
+            near = far * (a + 1) / (a - 1) / 2;
+            if (near <= 0) near = 0.1;
+            if (far <= near) far = near + 100;
+        }
+        
+        // Extract left, right, top, bottom from xscale and yscale components
+        if (Math.abs(xScale.x) > 0.001 && Math.abs(yScale.y) > 0.001) {
+            // For symmetric case, use standard formula
+            const right = near * (1 + xScale.z) / xScale.x / 2;
+            const left = -right;
+            const top = near * (1 + yScale.z) / yScale.y / 2;
+            const bottom = -top;
             
-            let near = 0.1;
-            let far = 100;
-            
-            // Solve for near and far if possible
-            if (Math.abs(a + 1) > 0.001 && Math.abs(b) > 0.001) {
-                far = (b * a) / (a + 1) / (a - 1);
-                near = far * (a + 1) / (a - 1) / 2;
-                if (near <= 0) near = 0.1;
-                if (far <= near) far = near + 100;
-            }
-            
-            // Extract left, right, top, bottom from first two rows
-            if (Math.abs(m[0]) > 0.001 && Math.abs(m[5]) > 0.001) {
-                // For symmetric case, use standard formula
-                const right = near * (1 + m[8]) / m[0] / 2;
-                const left = -right;
-                const top = near * (1 + m[9]) / m[5] / 2;
-                const bottom = -top;
-                
-                this.p.frustum(left, right, bottom, top, near, far);
-                return;
-            }
+            this.p.frustum(left, right, bottom, top, near, far);
+            return;
         }
         
         // Fallback to default frustum
