@@ -3,7 +3,6 @@ import {describe, expect, it} from "vitest";
 import {
     type CarModifier,
     DEFAULT_SETTINGS,
-    MatrixToArray,
     type NudgeModifier,
     type SceneSettings,
     type StickModifier,
@@ -13,6 +12,7 @@ import { ScreenModifier, ScreenConfig } from "./modifiers/screen_modifier.ts";
 
 import {SceneManager} from "./scene_manager.ts";
 import {createMockState} from "./mock/mock_scene_state.mock.ts";
+import {MatrixToArray} from "./modifiers/projection_matrix_utils.ts";
 
 const mockCar = (id: string, priority: number, pos: Vector3): CarModifier => ({
     name: `MockCar_${id}`,
