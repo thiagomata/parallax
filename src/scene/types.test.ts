@@ -58,7 +58,7 @@ describe('Parallax Engine Type Coherence Test', () => {
         sceneId: 0,
         settings: {
             window: {width: 800, height: 600, aspectRatio: 1.33},
-            camera: {position: {x: 0, y: 0, z: 500}, lookAt: {x: 0, y: 0, z: 0}},
+            camera: {position: {x: 0, y: 0, z: 500}, lookAt: {x: 0, y: 0, z: 0}, fov: Math.PI/3, near: 0.1, far: 1000},
             playback: {isLoop: true, timeSpeed: 1, startTime: 0},
             debug: false,
             startPaused: false,
@@ -68,6 +68,9 @@ describe('Parallax Engine Type Coherence Test', () => {
         camera: {
             position: {x: 0, y: 0, z: 500},
             lookAt: {x: 0, y: 0, z: 0},
+            fov: Math.PI/3,
+            near: 0.1,
+            far: 1000,
             yaw: 0,
             pitch: 0,
             roll: 0,

@@ -48,7 +48,7 @@ const mockState: SceneState = {
     sceneId: 0,
     settings: {
         window: {width: 800, height: 600, aspectRatio: 1.33},
-        camera: {position: mockOrigin, lookAt: mockOrigin},
+        camera: {position: mockOrigin, lookAt: mockOrigin, fov: Math.PI/3, near: 0.1, far: 1000},
         playback: {isLoop: true, timeSpeed: 1, startTime: 0},
         debug: false,
         startPaused: false,
@@ -58,6 +58,9 @@ const mockState: SceneState = {
     camera: {
         position: mockOrigin,
         lookAt: mockOrigin,
+        fov: Math.PI/3,
+        near: 0.1,
+        far: 1000,
         yaw: 0,
         pitch: 0,
         roll: 0,

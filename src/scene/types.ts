@@ -52,12 +52,25 @@ export interface SceneWindow {
     readonly aspectRatio: number;
 }
 
+export interface StickRotationLimits {
+    yaw: { min: number; max: number };
+    pitch: { min: number; max: number };
+    roll: { min: number; max: number };
+}
+
+export const DEFAULT_ROTATION_LIMITS: StickRotationLimits = {
+    yaw: { min: -Math.PI/2, max: Math.PI/2 },      // ±90 degrees
+    pitch: { min: -Math.PI/3, max: Math.PI/3 },     // ±60 degrees  
+    roll: { min: -Math.PI/6, max: Math.PI/6 },      // ±30 degrees
+};
+
 export interface SceneCameraSettings {
     readonly position: Vector3;
     readonly lookAt: Vector3;
-    readonly fov?: number;
-    readonly near?: number;
-    readonly far?: number;
+    readonly fov: number; // in radians
+    readonly near: number;
+    readonly far: number;
+    readonly rotationLimits?: StickRotationLimits;
 }
 
 export interface SceneCameraState extends SceneCameraSettings {
@@ -113,7 +126,8 @@ export const DEFAULT_SETTINGS: SceneSettings = {
         lookAt: {x: 0, y: 0, z: 0} as Vector3,
         fov: Math.PI / 3, // 60 degrees
         near: 0.1,
-        far: DEFAULT_CAMERA_FAR
+        far: DEFAULT_CAMERA_FAR,
+        rotationLimits: DEFAULT_ROTATION_LIMITS
     },
     playback: {
         duration: 5000,
@@ -147,6 +161,7 @@ export interface StickResult {
     readonly distance: number;
     readonly roll: number;
     readonly priority: number;
+    readonly confidence?: number; // Optional confidence for future weighting
 }
 
 export interface Modifier {

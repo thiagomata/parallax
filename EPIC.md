@@ -61,17 +61,34 @@ Acceptance Criteria:
 - Uses p5's built-in `frustum()` method for custom projection
 - All existing tests pass, confirming system integrity
 
-## Ticket 5 — Combine Stick Rotation
+## Ticket 5 — Combine Stick Rotation ✅
 
 Description: Ensure StickModifier (yaw/pitch/roll) still applies to the view matrix after head-tracked eye offsets.
 
 Acceptance Criteria:
 
-Rotation is applied to camera view matrix, not to the projection matrix.
+✅ Rotation is applied to camera view matrix, not to the projection matrix.
 
-Moving the head does not affect rotation logic.
+✅ Moving the head does not affect rotation logic.
 
-Unit test confirms head tracking and rotation combine additively.
+✅ Unit test confirms head tracking and rotation combine additively.
+
+**Implementation Details:**
+- Created `CompositeStick` class for additive combination of multiple StickModifier sources
+- Added rotation limits to scene settings with conservative defaults (±90° yaw, ±60° pitch, ±30° roll)
+- Enhanced StickResult interface to include optional confidence for future weighting support
+- Updated HeadTrackingModifier to provide confidence metrics based on tracking status
+- Supports multiple combination strategies: 'sum' and 'weighted_average'
+- Configurable distance strategies: 'average', 'min', 'max'
+- Comprehensive test suite with real-world examples (gamepad + head tracking, animation + enrichment)
+- Backward compatible with existing StickModifier interface and ChainedStick fallback patterns
+- Documentation and usage examples provided for different use case scenarios
+
+**Use Cases Supported:**
+- Fallback: Head tracking if available, fallback to traditional input (existing ChainedStick)
+- Enhancement: Traditional input + head tracking enrichment (new CompositeStick)
+- Additive: Multiple rotation sources combined simultaneously
+- Safety-first: Conservative distance and rotation limits for VR applications
 
 ## Ticket 6 — Debug & Visualization
 
