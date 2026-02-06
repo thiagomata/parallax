@@ -203,12 +203,12 @@ describe("PortalSceneManager - Stage 2 (Nudge)", () => {
             mockNudge({x: 100, y: 200, z: 300})
         );
         const state = manager.calculateScene(1000, 10, 60, mockState);
-        
+
         // Camera position should be unchanged (nudges only affect eye position per EPIC)
         expect(state.camera.position.x).toBe(0);
         expect(state.camera.position.y).toBe(0);
         expect(state.camera.position.z).toBe(0);
-        
+
         // Debug log should still capture the nudge values
         expect(state.debugStateLog?.nudges[0]?.x).toBe(100);
         expect(state.debugStateLog?.nudges[0]?.y).toBe(200);
@@ -588,7 +588,7 @@ describe("PortalSceneManager - Pause, Resume, and Debug", () => {
     it("should pause and resume scene calculation", () => {
         const manager = new SceneManager(DEFAULT_SETTINGS);
         const initialState = manager.initialState();
-        
+
         // Add a modifier that changes position over time
         manager.addCarModifier({
             name: "MovingCar",
@@ -600,23 +600,23 @@ describe("PortalSceneManager - Pause, Resume, and Debug", () => {
 
         // First calculation - should not be paused (default state)
         expect(manager.isPaused()).toBe(false);
-        
+
         // Calculate scene while playing
         const playingState = manager.calculateScene(1000, 16, 60, initialState);
         expect(playingState.camera.position.x).toBe(100);
-        
+
         // Pause and verify
         manager.pause();
         expect(manager.isPaused()).toBe(true);
-        
+
         // Calculate scene while paused - should return previous state
         const pausedState = manager.calculateScene(2000, 16, 60, playingState);
         expect(pausedState).toEqual(playingState);
-        
+
         // Resume and verify
         manager.resume();
         expect(manager.isPaused()).toBe(false);
-        
+
         // Calculate scene again - should continue from where left off
         const resumedState = manager.calculateScene(3000, 16, 60, pausedState);
         expect(resumedState.camera.position.x).toBe(100);
@@ -624,17 +624,17 @@ describe("PortalSceneManager - Pause, Resume, and Debug", () => {
 
     it("should set debug mode and return manager for chaining", () => {
         const manager = new SceneManager(DEFAULT_SETTINGS);
-        
+
         // Test initial state
         expect(manager.isDebug()).toBe(false);
         expect(manager.debug).toBe(false);
-        
+
         // Set debug to true and test chaining
         const result = manager.setDebug(true);
         expect(result).toBe(manager);
         expect(manager.isDebug()).toBe(true);
         expect(manager.debug).toBe(true);
-        
+
         // Set debug to false and test chaining
         const result2 = manager.setDebug(false);
         expect(result2).toBe(manager);
@@ -645,7 +645,7 @@ describe("PortalSceneManager - Pause, Resume, and Debug", () => {
     it("should include debug logs when debug is enabled", () => {
         const manager = new SceneManager(DEFAULT_SETTINGS);
         const initialState = manager.initialState();
-        
+
         // Add modifiers for testing
         manager.addCarModifier(mockCar("test", 100, {x: 50, y: 60, z: 70}))
                .addNudgeModifier(mockNudge({x: 10, y: 20, z: 30}))
@@ -668,15 +668,15 @@ describe("PortalSceneManager - Pause, Resume, and Debug", () => {
     it("should respect initial settings from constructor", () => {
         const debugSettings = {...DEFAULT_SETTINGS, debug: true, paused: false};
         const manager = new SceneManager(debugSettings);
-        
+
         expect(manager.isDebug()).toBe(true);
         expect(manager.debug).toBe(true);
         expect(manager.isPaused()).toBe(false);
         expect(manager.paused).toBe(false);
-        
+
         const nonDebugSettings = {...DEFAULT_SETTINGS, debug: false, startPaused: true};
         const manager2 = new SceneManager(nonDebugSettings);
-        
+
         expect(manager2.isDebug()).toBe(false);
         expect(manager2.debug).toBe(false);
         expect(manager2.isPaused()).toBe(true);
@@ -686,20 +686,20 @@ describe("PortalSceneManager - Pause, Resume, and Debug", () => {
     it("should handle pause/resume with time calculations correctly", () => {
         const manager = new SceneManager(DEFAULT_SETTINGS);
         const initialState = manager.initialState();
-        
+
         // Resume from paused state
         manager.resume();
-        
+
         // Calculate first scene
         const state1 = manager.calculateScene(1000, 16, 60, initialState);
         expect(state1.playback.now).toBe(1000);
-        
+
         // Pause the scene
         manager.pause();
         const state2 = manager.calculateScene(2000, 16, 60, state1);
         // Should return the same state when paused
         expect(state2).toEqual(state1);
-        
+
         // Resume and calculate again
         manager.resume();
         const state3 = manager.calculateScene(3000, 16, 60, state2);
@@ -770,10 +770,10 @@ describe("PortalSceneManager - ScreenModifier Integration", () => {
 
         // Projection matrix should be based on eye position = camera + head nudges = (17, 31, 45)
         expect(state.projectionMatrix).toBeDefined();
-        
+
         const matrixWithWorldOnly = screenModifier.buildFrustum({ x: 12, y: 21, z: 30 });
         const matrixWithFullHybrid = screenModifier.buildFrustum({ x: 17, y: 31, z: 45 });
-        
+
         expect(state.projectionMatrix).toEqual(matrixWithFullHybrid);
         expect(state.projectionMatrix).not.toEqual(matrixWithWorldOnly);
     });
@@ -822,7 +822,7 @@ describe("PortalSceneManager - ScreenModifier Integration", () => {
             })
         };
 
-        // Add a nudge modifier that adds (5, 10, 15) 
+        // Add a nudge modifier that adds (5, 10, 15)
         const nudgeModifier: NudgeModifier = {
             name: "TestNudge",
             active: true,
@@ -844,11 +844,11 @@ describe("PortalSceneManager - ScreenModifier Integration", () => {
 
         // Projection matrix should be based on eye position = camera + nudge = (15, 30, 45)
         expect(state.projectionMatrix).toBeDefined();
-        
+
         // Verify the matrix is different from what we'd get with just the camera position
         const matrixWithOnlyCamera = screenModifier.buildFrustum({ x: 10, y: 20, z: 30 });
         const matrixWithEyeOffset = screenModifier.buildFrustum({ x: 15, y: 30, z: 45 });
-        
+
         expect(state.projectionMatrix).toEqual(matrixWithEyeOffset);
         expect(state.projectionMatrix).not.toEqual(matrixWithOnlyCamera);
     });
@@ -905,7 +905,7 @@ describe("PortalSceneManager - ScreenModifier Integration", () => {
 
         // Test with no head tracking - eye at (0,0,0)
         const state1 = manager.calculateScene(1000, 16, 60, initialState);
-        
+
         // Add head tracking that moves eye to (10, 0, 0)
         const nudgeModifier: NudgeModifier = {
             name: "HeadNudge",
@@ -916,14 +916,14 @@ describe("PortalSceneManager - ScreenModifier Integration", () => {
                 value: { x: 10, y: 0, z: 0 }
             })
         };
-        
+
         manager.addNudgeModifier(nudgeModifier);
         const state2 = manager.calculateScene(2000, 16, 60, state1);
 
         // Projection matrices should be different and valid (no NaN)
         expect(state1.projectionMatrix).toBeDefined();
         expect(state2.projectionMatrix).toBeDefined();
-        
+
         // Check for NaN values
         if (state1.projectionMatrix) {
             const array1 = MatrixToArray(state1.projectionMatrix);
@@ -931,14 +931,14 @@ describe("PortalSceneManager - ScreenModifier Integration", () => {
                 expect(Number.isNaN(array1[i])).toBe(false);
             }
         }
-        
+
         if (state2.projectionMatrix) {
             const array2 = MatrixToArray(state2.projectionMatrix);
             for (let i = 0; i < array2.length; i++) {
                 expect(Number.isNaN(array2[i])).toBe(false);
             }
         }
-        
+
         expect(state1.projectionMatrix).not.toEqual(state2.projectionMatrix);
     });
 });

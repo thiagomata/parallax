@@ -3,15 +3,15 @@ import { P5GraphicProcessor } from './p5_graphic_processor.ts';
 import { ASSET_STATUS, ELEMENT_TYPES } from '../types.ts';
 import { createMockP5 } from '../mock/mock_p5.mock.ts';
 import { createProjectionMatrix } from '../modifiers/projection_matrix_utils.ts';
-import type { 
-    SceneState, 
-    Vector3, 
-    ColorRGBA, 
-    ElementAssets, 
-    ResolvedBox, 
-    ResolvedSphere, 
-    ResolvedPanel, 
-    ResolvedText, 
+import type {
+    SceneState,
+    Vector3,
+    ColorRGBA,
+    ElementAssets,
+    ResolvedBox,
+    ResolvedSphere,
+    ResolvedPanel,
+    ResolvedText,
     ResolvedFloor,
     ResolvedPyramid,
     ResolvedCone,
@@ -79,14 +79,14 @@ describe('P5GraphicProcessor', () => {
         mockAssets = {
             texture: {
                 status: ASSET_STATUS.READY,
-                value: { 
+                value: {
                     texture: { path: 'test.png', width: 100, height: 100 },
                     internalRef: 'mockTexture' as any
                 }
             },
             font: {
                 status: ASSET_STATUS.READY,
-                value: { 
+                value: {
                     font: { name: 'Test', path: 'test.ttf' },
                     internalRef: 'mockFont' as any
                 }
@@ -410,36 +410,36 @@ describe('P5GraphicProcessor', () => {
         it('should calculate distance between vectors', () => {
             const v1: Vector3 = { x: 0, y: 0, z: 0 };
             const v2: Vector3 = { x: 3, y: 4, z: 0 };
-            
+
             const distance = processor.dist(v1, v2);
-            
+
             expect(distance).toBe(5); // 3-4-5 triangle
             expect(mockP5.dist).toHaveBeenCalledWith(0, 0, 0, 3, 4, 0);
         });
 
         it('should map values', () => {
             mockP5.map.mockReturnValue(50);
-            
+
             const result = processor.map(25, 0, 100, 0, 200);
-            
+
             expect(result).toBe(50);
             expect(mockP5.map).toHaveBeenCalledWith(25, 0, 100, 0, 200, undefined);
         });
 
         it('should map values with clamp', () => {
             mockP5.map.mockReturnValue(75);
-            
+
             const result = processor.map(150, 0, 100, 0, 200, true);
-            
+
             expect(result).toBe(75);
             expect(mockP5.map).toHaveBeenCalledWith(150, 0, 100, 0, 200, true);
         });
 
         it('should lerp values', () => {
             mockP5.lerp.mockReturnValue(7.5);
-            
+
             const result = processor.lerp(5, 10, 0.5);
-            
+
             expect(result).toBe(7.5);
             expect(mockP5.lerp).toHaveBeenCalledWith(5, 10, 0.5);
         });
@@ -1167,7 +1167,7 @@ describe('P5GraphicProcessor', () => {
 
                 expect(mockP5.frustum).toHaveBeenCalled();
                 const [symLeft, symRight, symBottom, symTop, symNear, symFar] = mockP5.frustum.mock.calls[0];
-                
+
                 // Verify all parameters are defined
                 expect(symLeft).toBeDefined();
                 expect(symRight).toBeDefined();
@@ -1175,13 +1175,13 @@ describe('P5GraphicProcessor', () => {
                 expect(symTop).toBeDefined();
                 expect(symNear).toBeDefined();
                 expect(symFar).toBeDefined();
-                
+
                 // For symmetric case, left should equal -right and bottom should equal -top
                 expect(symLeft).toBeCloseTo(-symRight, 5);
                 expect(symBottom).toBeCloseTo(-symTop, 5);
                 expect(symNear).toBeGreaterThan(0);
                 expect(symFar).toBeGreaterThan(symNear);
-                
+
                 // Verify the frustum parameters for symmetric case
                 // For a symmetric matrix with scale 2, we expect: left=-2, right=2, bottom=-2, top=2
                 // Near/far are extracted from the matrix: near=1 (from -m[10]), far=100 (default fallback)
@@ -1201,7 +1201,7 @@ describe('P5GraphicProcessor', () => {
 
                 expect(mockP5.frustum).toHaveBeenCalled();
                 const [offLeft, offRight, offBottom, offTop, offNear, offFar] = mockP5.frustum.mock.calls[0];
-                
+
                 // Verify all parameters are defined
                 expect(offLeft).toBeDefined();
                 expect(offRight).toBeDefined();
@@ -1209,7 +1209,7 @@ describe('P5GraphicProcessor', () => {
                 expect(offTop).toBeDefined();
                 expect(offNear).toBeDefined();
                 expect(offFar).toBeDefined();
-                
+
                 // Verify values are computed (exact extraction depends on complex matrix math)
                 expect(typeof offNear).toBe('number');
                 expect(typeof offFar).toBe('number');
@@ -1227,7 +1227,7 @@ describe('P5GraphicProcessor', () => {
 
                 expect(mockP5.frustum).toHaveBeenCalled();
                 const [edgeLeft, edgeRight, edgeBottom, edgeTop, edgeNear, edgeFar] = mockP5.frustum.mock.calls[0];
-                
+
                 // Verify all parameters are defined
                 expect(edgeLeft).toBeDefined();
                 expect(edgeRight).toBeDefined();
@@ -1235,7 +1235,7 @@ describe('P5GraphicProcessor', () => {
                 expect(edgeTop).toBeDefined();
                 expect(edgeNear).toBeDefined();
                 expect(edgeFar).toBeDefined();
-                
+
                 // Should handle extreme values gracefully
                 expect(mockP5.frustum).toHaveBeenCalledTimes(1);
             });

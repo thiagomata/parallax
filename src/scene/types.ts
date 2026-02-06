@@ -60,7 +60,7 @@ export interface StickRotationLimits {
 
 export const DEFAULT_ROTATION_LIMITS: StickRotationLimits = {
     yaw: { min: -Math.PI/2, max: Math.PI/2 },      // ±90 degrees
-    pitch: { min: -Math.PI/3, max: Math.PI/3 },     // ±60 degrees  
+    pitch: { min: -Math.PI/3, max: Math.PI/3 },     // ±60 degrees
     roll: { min: -Math.PI/6, max: Math.PI/6 },      // ±30 degrees
 };
 

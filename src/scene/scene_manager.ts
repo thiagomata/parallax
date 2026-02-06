@@ -288,7 +288,7 @@ export class SceneManager {
 
         for (const m of this.nudgeModifiers) {
             if (!m.active) continue;
-            
+
             // Filter by category (undefined defaults to 'head' for backward compatibility)
             const modifierCategory = m.category ?? 'head';
             if (modifierCategory !== category) continue;

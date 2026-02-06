@@ -1005,7 +1005,7 @@ describe('SceneResolver with Effect Bundles', () => {
     describe('loopResolve safety checks', () => {
         it('should handle objects without prototype safely', () => {
             const resolver = new SceneResolver({});
-            
+
             // Create an object with no prototype (Object.create(null))
             const objWithoutPrototype = Object.create(null);
             objWithoutPrototype.test = 42;
