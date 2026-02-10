@@ -42,23 +42,39 @@ describe('CompositeStick', () => {
         sceneId: 1,
         settings: {
             window: { width: 800, height: 600, aspectRatio: 4/3 },
-            camera: { position: { x: 0, y: 0, z: 500 }, lookAt: { x: 0, y: 0, z: 0 }, fov: Math.PI/3, near: 0.1, far: 5000 },
+            projection: {
+                kind: "camera",
+                camera: {
+                    position: {x: 0, y: 0, z: 500},
+                    lookAt: {x: 0, y: 0, z: 0},
+                    fov: Math.PI / 3,
+                    near: 0.1,
+                    far: 5000,
+                    yaw: 0,
+                    pitch: 0,
+                    roll: 0,
+                    direction: {x: 0, y: 0, z: -1},
+                },
+            },
             playback: { isLoop: true, timeSpeed: 1.0, startTime: 0 },
             debug: false,
             startPaused: false,
             alpha: 1
         },
         playback: { now: 0, delta: 0, progress: 0, frameCount: 0 },
-        camera: { 
-            position: { x: 0, y: 0, z: 500 }, 
-            lookAt: { x: 0, y: 0, z: 0 }, 
-            fov: Math.PI/3, 
-            near: 0.1, 
-            far: 5000,
-            yaw: 0,
-            pitch: 0,
-            roll: 0,
-            direction: { x: 0, y: 0, z: -1 }
+        projection: {
+            kind: "camera",
+            camera: {
+                position: { x: 0, y: 0, z: 500 },
+                lookAt: { x: 0, y: 0, z: 0 },
+                fov: Math.PI/3,
+                near: 0.1,
+                far: 5000,
+                yaw: 0,
+                pitch: 0,
+                roll: 0,
+                direction: { x: 0, y: 0, z: -1 }
+            }
         }
     };
     const mockFinalPos: Vector3 = { x: 0, y: 0, z: 0 };

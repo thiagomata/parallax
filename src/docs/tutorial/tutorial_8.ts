@@ -24,16 +24,23 @@ export function tutorial_8(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         {
             ...DEFAULT_SETTINGS,
             startPaused: config.paused,
-            camera: {
-                lookAt: {
-                    x: 0,
-                    y: 0,
-                    z: 0,
-                },
-                position: {
-                    x: 0,
-                    y: 0,
-                    z: 500,
+            projection: {
+                kind: "camera",
+                camera: {
+                    lookAt: {
+                        x: 0,
+                        y: 0,
+                        z: 0,
+                    },
+                    position: {
+                        x: 0,
+                        y: 0,
+                        z: 500,
+                    },
+                    fov: Math.PI / 3,
+                    near: 0.1,
+                    far: 5000,
+                    rotationLimits: { yaw: { min: -Math.PI/2, max: Math.PI/2 }, pitch: { min: -Math.PI/3, max: Math.PI/3 }, roll: { min: -Math.PI/6, max: Math.PI/6 } }
                 }
             }
         }

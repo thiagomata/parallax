@@ -59,14 +59,12 @@ describe('README Examples Validation', () => {
         });
 
         const state = manager.calculateScene(1000, 16, 60, manager.initialState());
+        expect(state.projection.kind).toBe("camera");
+        if(state.projection.kind !== "camera") return;
 
-        // Validate logic: Car should set position, Nudge should only affect eye position (not camera per EPIC)
-        expect(state.camera.position.x).toBe(100);
-        expect(state.camera.position.y).toBe(50); // Camera Y unaffected by nudge
-        
-        // Note: Eye position would include nudge: (100, 50 + Math.sin(1000 * 0.002) * 15, 0)
-        // If we had a ScreenModifier, the projection matrix would be built with eye position including nudge
-        // But camera position remains unaffected by head tracking per EPIC
+        // Validate the logic: Car should set position, Nudge should modify Y
+        expect(state.projection.camera.position.x).toBe(100);
+        expect(state.projection.camera.position.y).toBeCloseTo(50 + Math.sin(1000 * 0.002) * 15);
     });
 
     it('should validate the Recursive Spec Resolution examples', () => {

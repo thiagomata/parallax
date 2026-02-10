@@ -16,6 +16,7 @@ import type {
     BundleDynamicElement,
     SceneState
 } from "./types.ts";
+import { ScreenModifier } from "./modifiers/screen_modifier.ts";
 import {Stage} from "./stage.ts";
 
 export class World<TBundle extends GraphicsBundle, TEffectLib extends EffectLib> {
@@ -92,11 +93,24 @@ export class World<TBundle extends GraphicsBundle, TEffectLib extends EffectLib>
             gp.frameCount(),
             this.sceneState
         );
-        gp.setCamera(draftNewState.camera.position, draftNewState.camera.lookAt);
+        // Set camera position based on projection type
+        if (draftNewState.projection?.kind === "camera") {
+            gp.setCamera(draftNewState.projection.camera.position, draftNewState.projection.camera.lookAt);
+        } else if (draftNewState.projection?.kind === "screen") {
+            // For screen projection, position camera at eye position, look at screen center
+            gp.setCamera(draftNewState.projection.eye, { x: 0, y: 0, z: 0 });
+        }
         
         // Apply off-axis projection if available
         if (draftNewState.projectionMatrix && gp.setProjectionMatrix) {
             gp.setProjectionMatrix(draftNewState.projectionMatrix);
+        } else if (draftNewState.projection.kind === "screen") {
+            // For screen projection, generate off-axis projection matrix from eye position
+            const screenModifier = new ScreenModifier(draftNewState.projection.screen);
+            const projectionMatrix = screenModifier.buildFrustum(draftNewState.projection.eye);
+            if (gp.setProjectionMatrix) {
+                gp.setProjectionMatrix(projectionMatrix);
+            }
         }
         
         this.sceneState = this.stage.render(gp, draftNewState);

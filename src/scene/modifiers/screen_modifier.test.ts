@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ScreenModifier, ScreenConfig } from "./screen_modifier.ts";
+import { ScreenModifier } from "./screen_modifier.ts";
+import { ScreenConfig } from "../types.ts";
 import {type ProjectionMatrix} from "../types.ts";
 import {projectPoint} from "./projection_matrix_utils.ts";
 

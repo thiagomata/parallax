@@ -2,7 +2,7 @@ import {
     type CarModifier,
     DEFAULT_SETTINGS,
     type Modifier,
-    type NudgeModifier, type ProjectionMatrix,
+    type NudgeModifier,
     type SceneCameraState,
     type ScenePlaybackState,
     type SceneSettings,
@@ -12,7 +12,6 @@ import {
     type StickResult,
     type Vector3,
 } from "./types";
-import { ScreenModifier } from "./modifiers/screen_modifier.ts";
 import {type DeepPartial, merge} from "./utils/merge.ts";
 
 export class SceneManager {
@@ -21,7 +20,6 @@ export class SceneManager {
     private carModifiers: CarModifier[] = [];
     private nudgeModifiers: NudgeModifier[] = [];
     private stickModifiers: StickModifier[] = [];
-    public screenModifier: ScreenModifier | null = null;
     public debug: boolean = false;
     public paused: boolean = false;
     private startTime: number;
@@ -40,7 +38,6 @@ export class SceneManager {
         this.carModifiers = [];
         this.nudgeModifiers = [];
         this.stickModifiers = [];
-        this.screenModifier = null;
     }
 
     public setDebug(isDebug: boolean): SceneManager {
@@ -96,38 +93,17 @@ export class SceneManager {
         return this;
     }
 
-    public setScreenModifier(screenModifier: ScreenModifier): SceneManager {
-        this.screenModifier = screenModifier;
-        return this;
-    }
-
     public initialState(): SceneState {
         return {
             sceneId: 0,
             settings: this.settings,
+            projection: this.settings.projection,
             playback: {
                 now: 0,
                 delta: 0,
                 frameCount: 60,
                 progress: 0,
             } as ScenePlaybackState,
-            camera: {
-                fov: this.settings.camera.fov ?? Math.PI / 3,
-                near: this.settings.camera.near ?? 0.1,
-                far: this.settings.camera.far ?? 1000,
-                position: this.settings.camera.position,
-                lookAt: this.settings.camera.lookAt ?? 0,
-                yaw: 0,
-                pitch: 0,
-                roll: 0,
-                direction: this.calculateDirection({
-                    yaw: 0,
-                    pitch: 0,
-                    roll: 0,
-                    distance: this.stickDistance,
-                    priority: 0,
-                }),
-            } as SceneCameraState,
             debugStateLog: undefined,
         } as SceneState;
     }
@@ -141,12 +117,22 @@ export class SceneManager {
             return previousState;
         }
 
+        let previousPos: Vector3;
+        let initialPos: Vector3;
+        if (previousState.projection.kind !== "camera" || previousState.settings.projection.kind !== "camera") {
+            // @Fixme
+            throw new Error("Screen not yet supported");
+        }
+        previousPos = previousState.projection.camera.position;
+        initialPos = previousState.settings.projection.camera.position;
+
+
+
         if (this.pausedAt !== null) {
             this.startTime += (millis - this.pausedAt);
             this.pausedAt = null;
         }
 
-        let basePos: Vector3 = {...this.settings.camera.position};
         const debugLog = this.debug ? this.createEmptyDebugLog() : null;
 
         const startTime = millis - this.startTime;
@@ -158,6 +144,11 @@ export class SceneManager {
 
         let currentState = {
             ...previousState,
+            projection: {
+                camera: {
+                    ...previousState.projection.camera
+                }
+            },
             playback: {
                 ...previousState.playback,
                 now: millis,
@@ -177,44 +168,28 @@ export class SceneManager {
         for (const modifier of this.carModifiers) {
             if (!modifier.active) continue;
 
-            const res = modifier.getCarPosition(this.settings.camera.position, currentState);
+            const res = modifier.getCarPosition(initialPos, currentState);
             if (!res.success && this.debug && debugLog) {
                 debugLog.errors.push({name: modifier.name, message: res.error});
                 continue;
             }
 
             if (res.success && res.value) {
-                basePos = res.value.position;
+                previousPos = res.value.position;
                 if (this.debug && debugLog) {
                     debugLog.car = {
                         name: res.value.name,
                         priority: modifier.priority,
-                        x: basePos.x,
-                        y: basePos.y,
-                        z: basePos.z,
+                        x: previousPos.x,
+                        y: previousPos.y,
+                        z: previousPos.z,
                     };
                 }
                 break;
             }
         }
 
-        // Hybrid approach: separate world nudges (camera) from head nudges (eye)
-        const worldNudgeOffsets = this.processNudgesByCategory('world', {x: 0, y: 0, z: 0}, null, currentState);
-        const headNudgeOffsets = this.processNudgesByCategory('head', {x: 0, y: 0, z: 0}, debugLog, currentState);
-
-        // Camera position = CarModifier + world nudges (car shake, engine vibration, etc.)
-        const finalCamPos = {
-            x: basePos.x + worldNudgeOffsets.x,
-            y: basePos.y + worldNudgeOffsets.y,
-            z: basePos.z + worldNudgeOffsets.z,
-        };
-
-        // Eye position = Camera position + head nudges (user head tracking)
-        const finalEyePos = {
-            x: finalCamPos.x + headNudgeOffsets.x,
-            y: finalCamPos.y + headNudgeOffsets.y,
-            z: finalCamPos.z + headNudgeOffsets.z,
-        };
+        const finalCamPos = this.processNudges(previousPos, debugLog, currentState);
 
         let stickRes: StickResult = {
             yaw: 0,
@@ -247,33 +222,28 @@ export class SceneManager {
 
         const lookAt = this.calculateLookAt(finalCamPos, stickRes);
 
-        // Build off-axis projection if ScreenModifier is available
-        let projectionMatrix: ProjectionMatrix | undefined;
-        if (this.screenModifier) {
-            projectionMatrix = this.screenModifier.buildFrustum(finalEyePos);
-        }
-
         return {
+            sceneId: currentState.sceneId,
             settings: this.settings,
+            projection: {
+                kind: "camera",
+                camera: {
+                    ...previousState.projection.camera,
+                    position: finalCamPos,
+                    lookAt: lookAt,
+                    yaw: stickRes.yaw,
+                    pitch: stickRes.pitch,
+                    roll: stickRes.roll,
+                    direction: this.calculateDirection(stickRes),
+                } as SceneCameraState,
+            },
             playback: {
                 now: scaledNow,
                 delta: scaledDelta,
                 frameCount: frameCount,
                 progress: progress,
             } as ScenePlaybackState,
-            camera: {
-                fov: this.settings.camera.fov ?? Math.PI / 3,
-                near: this.settings.camera.near ?? 0.1,
-                far: this.settings.camera.far ?? 1000,
-                position: finalCamPos,
-                lookAt: lookAt,
-                yaw: stickRes.yaw,
-                pitch: stickRes.pitch,
-                roll: stickRes.roll,
-                direction: this.calculateDirection(stickRes),
-            } as SceneCameraState,
             debugStateLog: debugLog ?? undefined,
-            projectionMatrix,
         } as SceneState;
     }
 
@@ -283,15 +253,11 @@ export class SceneManager {
         }
     }
 
-    private processNudgesByCategory(category: 'world' | 'head', basePos: Vector3, debugLog: SceneStateDebugLog | null, currentState: SceneState): Vector3 {
+    private processNudges(basePos: Vector3, debugLog: SceneStateDebugLog | null, currentState: SceneState): Vector3 {
         const votes: Record<keyof Vector3, number[]> = {x: [], y: [], z: []};
 
         for (const m of this.nudgeModifiers) {
             if (!m.active) continue;
-
-            // Filter by category (undefined defaults to 'head' for backward compatibility)
-            const modifierCategory = m.category ?? 'head';
-            if (modifierCategory !== category) continue;
 
             const res = m.getNudge(basePos, currentState);
             if (res.success) {
@@ -332,22 +298,20 @@ export class SceneManager {
         };
     }
 
-    private calculateDirection(stickRes: StickResult): Vector3 {
-        return {
-            x: Math.sin(stickRes.yaw) * Math.cos(stickRes.pitch),
-            y: Math.sin(stickRes.pitch),
-            z: -Math.cos(stickRes.yaw) * Math.cos(stickRes.pitch)
-        }
-    }
-
     private createEmptyDebugLog(): NonNullable<SceneStateDebugLog> {
+        const initialState = this.initialState();
+        if (initialState.settings.projection.kind !== "camera") {
+            // @fixme do the projection screen
+            throw new Error("Screen not yet supported");
+        }
+        const cameraSettings = initialState.settings.projection.camera;
         return {
             car: {
                 name: "initialCam",
                 priority: -1,
-                x: this.settings.camera.position.x,
-                y: this.settings.camera.position.y,
-                z: this.settings.camera.position.z,
+                x: cameraSettings.position.x,
+                y: cameraSettings.position.y,
+                z: cameraSettings.position.z,
             },
             nudges: [],
             stick: {
@@ -359,5 +323,13 @@ export class SceneManager {
             },
             errors: [],
         };
+    }
+
+    private calculateDirection(stickRes: StickResult): Vector3 {
+        return {
+            x: Math.sin(stickRes.yaw) * Math.cos(stickRes.pitch),
+            y: Math.sin(stickRes.pitch),
+            z: -Math.cos(stickRes.yaw) * Math.cos(stickRes.pitch)
+        }
     }
 }

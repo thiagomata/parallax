@@ -64,7 +64,11 @@ export const DEFAULT_ROTATION_LIMITS: StickRotationLimits = {
     roll: { min: -Math.PI/6, max: Math.PI/6 },      // ±30 degrees
 };
 
-export interface SceneCameraSettings {
+export interface SceneCameraState {
+    readonly yaw: number;
+    readonly pitch: number;
+    readonly roll: number;
+    readonly direction: Vector3;
     readonly position: Vector3;
     readonly lookAt: Vector3;
     readonly fov: number; // in radians
@@ -73,12 +77,76 @@ export interface SceneCameraSettings {
     readonly rotationLimits?: StickRotationLimits;
 }
 
-export interface SceneCameraState extends SceneCameraSettings {
-    readonly yaw: number;
-    readonly pitch: number;
-    readonly roll: number;
-    readonly direction: Vector3;
+export type ScreenConfigInput = {
+    width: number;
+    height: number;
+    z: number;
+    near: number;
+    far: number;
+    epsilon: number;
+};
+
+/**
+ * A standard 27-inch monitor at 1080p scale (approximate dimensions in mm)
+ * Screen is at the world origin (z: 0),
+ * assuming the eye starts at some distance (e.g., z: 600)
+ */
+const DEFAULT_SCREEN_CONFIG: ScreenConfigInput = {
+    width: 600,
+    height: 337,
+    z: 0,
+    near: 10,
+    far: 10000,
+    epsilon: 0.001
+};
+
+export class ScreenConfig {
+    public readonly input: ScreenConfigInput;
+
+    public readonly halfWidth: number;
+    public readonly halfHeight: number;
+
+    private constructor(input: ScreenConfigInput) {
+        this.input = input;
+
+        this.halfWidth = input.width * 0.5;
+        this.halfHeight = input.height * 0.5;
+    }
+
+    static create(
+        params: Partial<ScreenConfigInput> = {}
+    ): ScreenConfig {
+
+        const input: ScreenConfigInput = {
+            ...DEFAULT_SCREEN_CONFIG,
+            ...params
+        };
+
+        // validation
+        if (input.width <= 0 || input.height <= 0) {
+            throw new Error("Physical dimensions must be positive.");
+        }
+        if (input.near <= 0 || input.far <= input.near) {
+            throw new Error("Invalid clipping planes.");
+        }
+        if (input.epsilon <= 0) {
+            throw new Error("Epsilon must be positive.");
+        }
+
+        return new ScreenConfig(input);
+    }
+
+    get width() { return this.input.width; }
+    get height() { return this.input.height; }
+    get z() { return this.input.z; }
+    get near() { return this.input.near; }
+    get far() { return this.input.far; }
+    get epsilon() { return this.input.epsilon; }
 }
+
+export type ProjectionSource =
+    | { kind: "camera"; camera: SceneCameraState }
+    | { kind: "screen"; screen: ScreenConfig; eye: Vector3 };
 
 export interface PlaybackSettings {
     readonly duration?: number;
@@ -96,7 +164,7 @@ export interface ScenePlaybackState {
 
 export interface SceneSettings {
     window: SceneWindow;
-    camera: SceneCameraSettings;
+    projection: ProjectionSource;
     playback: PlaybackSettings;
     debug: boolean;
     alpha: number;
@@ -107,7 +175,7 @@ export interface SceneState {
     sceneId: number;
     settings: SceneSettings;
     playback: ScenePlaybackState;
-    camera: SceneCameraState;
+    projection: ProjectionSource;
     debugStateLog?: SceneStateDebugLog;
     elements?: Map<string, ResolvedElement>;
     projectionMatrix?: ProjectionMatrix;
@@ -121,13 +189,20 @@ export const DEFAULT_SETTINGS: SceneSettings = {
         height: 600,
         aspectRatio: 800 / 600
     },
-    camera: {
-        position: {x: 0, y: 0, z: 500} as Vector3,
-        lookAt: {x: 0, y: 0, z: 0} as Vector3,
-        fov: Math.PI / 3, // 60 degrees
-        near: 0.1,
-        far: DEFAULT_CAMERA_FAR,
-        rotationLimits: DEFAULT_ROTATION_LIMITS
+    projection: {
+        kind: "camera",
+        camera: {
+            position: { x: 0, y: 0, z: 500 } as Vector3,
+            lookAt: { x: 0, y: 0, z: 0 } as Vector3,
+            fov: Math.PI / 3, // 60 degrees
+            near: 0.1,
+            far: DEFAULT_CAMERA_FAR,
+            rotationLimits: DEFAULT_ROTATION_LIMITS,
+            yaw: 0,
+            pitch: 0,
+            roll: 0,
+            direction: { x: 0, y: 0, z: 0 },
+        }
     },
     playback: {
         duration: 5000,
@@ -179,7 +254,6 @@ export interface CarModifier extends Modifier {
 }
 
 export interface NudgeModifier extends Modifier {
-    readonly category?: 'world' | 'head'; // undefined defaults to 'head' for backward compatibility
     getNudge(currentCarPos: Vector3, currentState: SceneState): FailableResult<Partial<Vector3>>;
 }
 
@@ -251,17 +325,7 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
 
     setProjectionMatrix?(projectionMatrix: ProjectionMatrix): void;
 
-    // push(): void;
-
-    // pop(): void;
-
     translate(pos: Vector3): void;
-
-    // rotateX(angle: number): void;
-    //
-    // rotateY(angle: number): void;
-    //
-    // rotateZ(angle: number): void;
 
     fill(color: ColorRGBA, alpha?: number): void;
 

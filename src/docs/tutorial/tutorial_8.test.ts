@@ -27,7 +27,9 @@ describe('Tutorial 8: The Billboard (Integration)', () => {
         // Verify we can get the current scene state
         const sceneState = world.getCurrentSceneState();
         expect(sceneState).toBeDefined();
-        expect(sceneState.camera).toBeDefined();
+        expect(sceneState.projection.kind).toBe("camera");
+        if (sceneState.projection.kind !== "camera") return;
+        expect(sceneState.projection.camera).toBeDefined();
         
         // Verify world has the expected methods
         expect(typeof world.step).toBe('function');

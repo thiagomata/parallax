@@ -40,12 +40,24 @@ describe('P5GraphicProcessor', () => {
             sceneId: 1,
             settings: {
                 window: { width: 800, height: 600, aspectRatio: 4/3 },
-                camera: {
-                    position: { x: 0, y: 0, z: 500 },
-                    lookAt: { x: 0, y: 0, z: 0 },
-                    fov: Math.PI / 3,
-                    near: 0.1,
-                    far: 5000
+                projection: {
+                    kind: "camera",
+                    camera: {
+                        position: {x: 0, y: 0, z: 500},
+                        lookAt: {x: 0, y: 0, z: 0},
+                        fov: Math.PI / 3,
+                        near: 0.1,
+                        far: 5000,
+                        rotationLimits: {
+                            yaw: {min: -Math.PI / 2, max: Math.PI / 2},
+                            pitch: {min: -Math.PI / 3, max: Math.PI / 3},
+                            roll: {min: -Math.PI / 6, max: Math.PI / 6}
+                        },
+                        yaw: 0,
+                        pitch: 0,
+                        roll: 0,
+                        direction: {x: 0, y: 0, z: -1},
+                    },
                 },
                 playback: {
                     duration: 5000,
@@ -57,23 +69,31 @@ describe('P5GraphicProcessor', () => {
                 alpha: 1.0,
                 startPaused: false
             },
+            projection: {
+                kind: "camera",
+                camera: {
+                    position: {x: 0, y: 0, z: 500},
+                    lookAt: {x: 0, y: 0, z: 0},
+                    fov: Math.PI / 3,
+                    near: 0.1,
+                    far: 5000,
+                    rotationLimits: {
+                        yaw: {min: -Math.PI / 2, max: Math.PI / 2},
+                        pitch: {min: -Math.PI / 3, max: Math.PI / 3},
+                        roll: {min: -Math.PI / 6, max: Math.PI / 6}
+                    },
+                    yaw: 0,
+                    pitch: 0,
+                    roll: 0,
+                    direction: {x:0, y:0, z:-1},
+                }
+            },
             playback: {
                 now: 1000,
                 delta: 16,
                 progress: 0.2,
                 frameCount: 60
             },
-            camera: {
-                position: { x: 0, y: 0, z: 500 },
-                lookAt: { x: 0, y: 0, z: 0 },
-                fov: Math.PI / 3,
-                near: 0.1,
-                far: 5000,
-                yaw: Math.PI / 4,
-                pitch: Math.PI / 6,
-                roll: Math.PI / 8,
-                direction: { x: 0, y: 0, z: -1 }
-            }
         };
 
         mockAssets = {
@@ -1183,9 +1203,9 @@ describe('P5GraphicProcessor', () => {
                 expect(symFar).toBeGreaterThan(symNear);
 
                 // Verify the frustum parameters for symmetric case
-                // For a symmetric matrix with scale 2, we expect: left=-2, right=2, bottom=-2, top=2
-                // Near/far are extracted from the matrix: near=1 (from -m[10]), far=100 (default fallback)
-                expect(mockP5.frustum).toHaveBeenCalledWith(-2, 2, -2, 2, 1, 100);
+                // For a symmetric matrix with scale 2, we expect: left=-0.025, right=0.025, bottom=-0.025, top=0.025
+                // Near/far are extracted from matrix: near=0.1 (default fallback), far=100 (default fallback)
+                expect(mockP5.frustum).toHaveBeenCalledWith(-0.025, 0.025, -0.025, 0.025, 0.1, 100);
             });
 
             it('should handle off-axis projection matrix correctly', () => {

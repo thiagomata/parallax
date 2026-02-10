@@ -51,18 +51,24 @@ describe('Tutorial 7: The Observer (Integration)', () => {
         mockProvider.getFace.mockReturnValue(centerFace);
         mockP5.draw();
 
+        const currentState = world.getCurrentSceneState();
+        expect(currentState.projection.kind).toBe("camera");
+        if (currentState.projection.kind !== "camera") return;
+
         // Get initial state to handle any inherent offsets (like the eye-to-nose Y gap)
-        const baselineYaw = world.getCurrentSceneState().camera.yaw;
+        const baselineYaw = currentState.projection.camera.yaw;
 
         // Rotate
         const rotatedFace = factory.rotate(centerFace, yawAngle, 0);
         mockProvider.getFace.mockReturnValue(rotatedFace);
         mockP5.draw();
 
-        const state = world.getCurrentSceneState();
+        const afterState = world.getCurrentSceneState();
+        expect(afterState.projection.kind).toBe("camera");
+        if (afterState.projection.kind !== "camera") return;
 
-        expect(state.camera.yaw).toBeDefined();
-        expect(state.camera.yaw).not.eq(baselineYaw)
+        expect(afterState.projection.camera.yaw).toBeDefined();
+        expect(afterState.projection.camera.yaw).not.eq(baselineYaw)
     });
 
     it('should maintain the "Car" anchor while the "Camera" nudges', async () => {
@@ -78,11 +84,13 @@ describe('Tutorial 7: The Observer (Integration)', () => {
         mockP5.draw();
 
         const state = world.getCurrentSceneState();
+        expect(state.projection.kind).toBe("camera");
+        if (state.projection.kind !== "camera") return;
 
         // In Tutorial 7, the "Car" (Chassis) is static at the settings position
         if (state.debugStateLog) {
             expect(state.debugStateLog.car.x).toBe(0); // The "Tripod" hasn't moved
-            expect(state.camera.position.x).toBeCloseTo(40); // The "Lens" has nudged
+            expect(state.projection.camera.position.x).toBeCloseTo(40); // The "Lens" has nudged
         }
     });
 
@@ -100,13 +108,20 @@ describe('Tutorial 7: The Observer (Integration)', () => {
         // Establish offset
         mockProvider.getFace.mockReturnValue(factory.shiftX(null, 0.2));
         mockP5.draw();
-        const offsetPos = world.getCurrentSceneState().camera.position.x;
+        const currentState = world.getCurrentSceneState();
+        expect(currentState.projection.kind).toBe("camera");
+        if (currentState.projection.kind !== "camera") return;
+
+        const offsetPos = currentState.projection.camera.position.x;
 
         //  Lose tracking
         mockProvider.getFace.mockReturnValue(null);
         mockP5.draw(); // One tick of drifting back
 
-        const driftedPos = world.getCurrentSceneState().camera.position.x;
+        const afterState = world.getCurrentSceneState();
+        expect(afterState.projection.kind).toBe("camera");
+        if (afterState.projection.kind !== "camera") return;
+        const driftedPos = afterState.projection.camera.position.x;
 
         // The position should be moving back toward zero or staying same
         expect(Math.abs(driftedPos)).toBeLessThanOrEqual(Math.abs(offsetPos));

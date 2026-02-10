@@ -24,9 +24,11 @@ describe('Tutorial 4: SceneManager & Camera Injection', () => {
         mockP5.draw(); // Calculate state -> Render
 
         const state0 = world.getCurrentSceneState();
+        if (state0.projection.kind !== "camera") return;
+        expect(state0.projection.camera).toBeDefined();
 
         // Orbit starting position at distance 800
-        expect(state0.camera.position.z).toBeCloseTo(800, 0);
+        expect(state0.projection.camera.position.z).toBeCloseTo(800, 0);
 
         // Verify the 5 boxes registered in the loop were drawn
         expect(mockP5.box).toHaveBeenCalledTimes(5);
@@ -37,12 +39,14 @@ describe('Tutorial 4: SceneManager & Camera Injection', () => {
         mockP5.draw();
 
         const state50 = world.getCurrentSceneState();
+        if (state50.projection.kind !== "camera") return;
+        expect(state50.projection.camera).toBeDefined();
 
         // OrbitModifier: cos(PI) * 800 = -800
-        expect(state50.camera.position.z).toBeCloseTo(-800, 0);
+        expect(state50.projection.camera.position.z).toBeCloseTo(-800, 0);
 
         // Ensure the CenterFocusModifier is keeping the camera pointed at origin
-        expect(state50.camera.lookAt).toMatchObject({x: 0, y: 0, z: 0});
+        expect(state50.projection.camera.lookAt).toMatchObject({x: 0, y: 0, z: 0});
     });
 
     // Use the shared pause test utility

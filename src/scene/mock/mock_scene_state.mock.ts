@@ -5,20 +5,39 @@ export function createMockState(
     lookAt = {x: 0, y: 0, z: 100},
     now = Date.now(),
 ): SceneState {
+
+    if (DEFAULT_SETTINGS.projection.kind !== "camera") {
+        throw new Error("Screen is not supported");
+    }
+
     return {
-        settings: DEFAULT_SETTINGS,
+        sceneId: 1,
+        settings: {
+            ...DEFAULT_SETTINGS,
+            projection: {
+                kind: "camera",
+                camera: {
+                    ...DEFAULT_SETTINGS.projection.camera,
+                    position: position,
+                    lookAt: lookAt,
+                }
+            },
+        },
         playback: {
             now: now,
             delta: 0,
             progress: 0,
             frameCount: 60
         } as ScenePlaybackState,
-        camera: {
-            position: position,
-            lookAt: lookAt,
-            yaw: 0,
-            pitch: 0,
-            direction: {x: 0, y: 0, z: 1},
-        } as SceneCameraState
+        projection: {
+            kind: "camera",
+            camera: {
+                position: position,
+                lookAt: lookAt,
+                yaw: 0,
+                pitch: 0,
+                direction: {x: 0, y: 0, z: 1},
+            } as SceneCameraState,
+        }
     } as SceneState;
 }

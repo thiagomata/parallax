@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { LookAtEffect, LookAtDefaultConfig, type LookAtEffectConfig } from './look_at_effect.ts';
-import { ELEMENT_TYPES } from '../types.ts';
+import {ELEMENT_TYPES, type ProjectionSource, type SceneCameraState} from '../types.ts';
 import type { SceneState, ResolvedBaseVisual, ResolvedElement } from '../types.ts';
 
 describe('LookAtEffect', () => {
@@ -13,12 +13,24 @@ describe('LookAtEffect', () => {
             sceneId: 1,
             settings: {
                 window: { width: 800, height: 600, aspectRatio: 4/3 },
-                camera: {
-                    position: { x: 0, y: 0, z: 500 },
-                    lookAt: { x: 0, y: 0, z: 0 },
-                    fov: Math.PI / 3,
-                    near: 0.1,
-                    far: 5000
+                projection: {
+                    kind: "camera",
+                    camera: {
+                        position: {x: 0, y: 0, z: 500},
+                        lookAt: {x: 0, y: 0, z: 0},
+                        fov: Math.PI / 3,
+                        near: 0.1,
+                        far: 5000,
+                        rotationLimits: {
+                            yaw: {min: -Math.PI / 2, max: Math.PI / 2},
+                            pitch: {min: -Math.PI / 3, max: Math.PI / 3},
+                            roll: {min: -Math.PI / 6, max: Math.PI / 6}
+                        },
+                        yaw: 0,
+                        pitch: 0,
+                        roll: 0,
+                        direction: {x: 0, y:0, z:0},
+                    },
                 },
                 playback: {
                     duration: 5000,
@@ -30,22 +42,30 @@ describe('LookAtEffect', () => {
                 alpha: 1,
                 startPaused: false
             },
+            projection: {
+                kind: "camera",
+                camera: {
+                    position: {x: 0, y: 0, z: 500},
+                    lookAt: {x: 0, y: 0, z: 0},
+                    fov: Math.PI / 3,
+                    near: 0.1,
+                    far: 5000,
+                    rotationLimits: {
+                        yaw: {min: -Math.PI / 2, max: Math.PI / 2},
+                        pitch: {min: -Math.PI / 3, max: Math.PI / 3},
+                        roll: {min: -Math.PI / 6, max: Math.PI / 6}
+                    },
+                    yaw: 0,
+                    pitch: 0,
+                    roll: 0,
+                    direction: {x: 0, y:0, z:0 },
+                }
+            },
             playback: {
                 now: 1000,
                 delta: 16,
                 progress: 0.2,
                 frameCount: 60
-            },
-            camera: {
-                position: { x: 0, y: 0, z: 500 },
-                lookAt: { x: 0, y: 0, z: 0 },
-                fov: Math.PI / 3,
-                near: 0.1,
-                far: 5000,
-                yaw: Math.PI / 4,
-                pitch: Math.PI / 6,
-                roll: Math.PI / 8,
-                direction: { x: 0, y: 0, z: -1 }
             },
             elements: new Map()
         };
@@ -86,8 +106,11 @@ describe('LookAtEffect', () => {
 
             const result = LookAtEffect.apply(mockCurrent, mockState, config);
 
-            expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x + mockState.camera.pitch);
-            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.camera.yaw);
+            expect(mockState.projection.kind).toBe("camera");
+            if (mockState.projection.kind !== "camera") return;
+
+            expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x + mockState.projection.camera.pitch);
+            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.projection.camera.yaw);
             expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // z is false by default
         });
 
@@ -100,8 +123,11 @@ describe('LookAtEffect', () => {
 
             const result = LookAtEffect.apply(mockCurrent, mockState, config);
 
+            expect(mockState.projection.kind).toBe("camera");
+            if (mockState.projection.kind !== "camera") return;
+
             expect(result.rotate!.x).toBe(mockCurrent.rotate!.x);
-            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.camera.yaw);
+            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.projection.camera!.yaw);
             expect(result.rotate!.z).toBe(mockCurrent.rotate!.z);
         });
 
@@ -121,8 +147,11 @@ describe('LookAtEffect', () => {
 
             const result = LookAtEffect.apply(currentWithoutRotate, mockState, config);
 
-            expect(result.rotate!.x).toBeCloseTo(mockState.camera.pitch);
-            expect(result.rotate!.y).toBeCloseTo(-mockState.camera.yaw);
+            expect(mockState.projection.kind).toBe("camera");
+            if (mockState.projection.kind !== "camera") return;
+
+            expect(result.rotate!.x).toBeCloseTo(mockState.projection.camera.pitch);
+            expect(result.rotate!.y).toBeCloseTo(-mockState.projection.camera.yaw);
             expect(result.rotate!.z).toBe(0); // z is false by default
         });
     });
@@ -243,8 +272,11 @@ describe('LookAtEffect', () => {
 
             const result = LookAtEffect.apply(mockCurrentWithNegative, mockState, config);
 
-            expect(result.rotate!.x).toBeCloseTo(-Math.PI/4 + mockState.camera.pitch);
-            expect(result.rotate!.y).toBeCloseTo(-Math.PI/4 - mockState.camera.yaw);
+            expect(mockState.projection.kind).toBe("camera");
+            if (mockState.projection.kind !== "camera") return;
+
+            expect(result.rotate!.x).toBeCloseTo(-Math.PI/4 + mockState.projection.camera.pitch);
+            expect(result.rotate!.y).toBeCloseTo(-Math.PI/4 - mockState.projection.camera.yaw);
             expect(result.rotate!.z).toBe(-Math.PI/4); // z is false by default
         });
     });
@@ -273,8 +305,11 @@ describe('LookAtEffect', () => {
 
             const result = LookAtEffect.apply(mockCurrent, mockState, config);
 
+            expect(mockState.projection.kind).toBe("camera");
+            if (mockState.projection.kind !== "camera") return;
+
             expect(result.rotate!.x).toBe(mockCurrent.rotate!.x); // x unchanged
-            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.camera.yaw);
+            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.projection.camera.yaw);
             expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // z unchanged
         });
 
@@ -286,8 +321,10 @@ describe('LookAtEffect', () => {
             };
 
             const result = LookAtEffect.apply(mockCurrent, mockState, config);
+            expect(mockState.projection.kind).toBe("camera");
+            if (mockState.projection.kind !== "camera") return;
 
-            expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x + mockState.camera.pitch);
+            expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x + mockState.projection.camera.pitch);
             expect(result.rotate!.y).toBe(mockCurrent.rotate!.y); // y unchanged
             expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // z unchanged
         });
@@ -300,10 +337,12 @@ describe('LookAtEffect', () => {
             };
 
             const result = LookAtEffect.apply(mockCurrent, mockState, config);
+            expect(mockState.projection.kind).toBe("camera");
+            if (mockState.projection.kind !== "camera") return;
 
             expect(result.rotate!.x).toBe(mockCurrent.rotate!.x); // x unchanged
             expect(result.rotate!.y).toBe(mockCurrent.rotate!.y); // y unchanged
-            expect(result.rotate!.z).toBeCloseTo(mockCurrent.rotate!.z - mockState.camera.roll);
+            expect(result.rotate!.z).toBeCloseTo(mockCurrent.rotate!.z - mockState.projection.camera.roll);
         });
 
         it('should test all axis locks individually with camera', () => {
@@ -315,9 +354,12 @@ describe('LookAtEffect', () => {
 
             const result = LookAtEffect.apply(mockCurrent, mockState, config);
 
-            expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x + mockState.camera.pitch);
-            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.camera.yaw);
-            expect(result.rotate!.z).toBeCloseTo(mockCurrent.rotate!.z - mockState.camera.roll);
+            expect(mockState.projection.kind).toBe("camera");
+            if (mockState.projection.kind !== "camera") return;
+
+            expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x + mockState.projection.camera.pitch);
+            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.projection.camera.yaw);
+            expect(result.rotate!.z).toBeCloseTo(mockCurrent.rotate!.z - mockState.projection.camera.roll);
         });
 
         it('should test all axis locks as false with camera', () => {
@@ -337,15 +379,23 @@ describe('LookAtEffect', () => {
 
     describe('Edge Cases and Error Conditions', () => {
         it('should handle extreme camera values', () => {
+
+            expect(mockState.projection.kind).toBe("camera");
+            if (mockState.projection.kind !== "camera") return;
+
             const extremeState = {
                 ...mockState,
-                camera: {
-                    ...mockState.camera,
-                    yaw: Math.PI * 2,
-                    pitch: -Math.PI / 2,
-                    roll: Math.PI
-                }
-            };
+                projection: {
+                    kind: "camera",
+                    camera: {
+                        ...mockState.projection.camera,
+                        yaw: Math.PI * 2,
+                        pitch: -Math.PI / 2,
+                        roll: Math.PI,
+                        direction: {x: 0, y: 0, z: -1}
+                    } as SceneCameraState
+                } as ProjectionSource
+            } as SceneState;
 
             const config: LookAtEffectConfig = {
                 ...LookAtDefaultConfig,

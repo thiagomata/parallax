@@ -32,7 +32,11 @@ function lookAtCamera(state: SceneState, settings: LookAtEffectConfig, rotate: {
     y: number;
     z: number
 }, current: ResolvedBaseVisual) {
-    const cam = state.camera;
+    if (state.projection.kind !== "camera") {
+        // @fixme do the projection screen
+        throw new Error("Screen is not supported");
+    }
+    const cam = state.projection.camera;
     const locks = settings.axis || {};
 
     if (locks.y) rotate.y -= cam.yaw;

@@ -232,25 +232,6 @@ export class HeadTrackingModifier implements CarModifier, NudgeModifier, StickMo
 
     getStick(): FailableResult<StickResult> {
         if (!this.cache) return { success: false, error: "Tracking lost" };
-        
-        // Calculate confidence based on tracking status and stability
-        let confidence = 1.0;
-        const status = this.provider.getStatus();
-        
-        if (status === 'DISCONNECTED') {
-            confidence = 0.0;
-        } else if (status === 'DRIFTING') {
-            confidence = 0.3;
-        } else if (status === 'READY') {
-            confidence = 0.9;
-        }
-        
-        return { 
-            success: true, 
-            value: {
-                ...this.cache.stick,
-                confidence
-            }
-        };
+        return { success: true, value: this.cache.stick };
     }
 }

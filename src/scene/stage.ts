@@ -37,12 +37,17 @@ export class Stage<
 
     public render(graphicProcessor: GraphicProcessor<TGraphicBundle>, state: SceneState): SceneState {
 
+        if (state.projection.kind !== "camera" ) {
+            // @fixme do the projection screen
+            return state;
+        }
+        let camera = state.projection.camera;
         // Optimized Painter's Algorithm: Sort far-to-near
         const renderQueue = Array.from(this.registry.all())
             .map(element => ({
                 element,
                 distance: graphicProcessor.dist(
-                    state.camera.position,
+                    camera.position,
                     this.resolver.resolveProperty(element.dynamic.position, state)
                 )
             }))

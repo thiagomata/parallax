@@ -662,10 +662,13 @@ describe('World Orchestration (Dependency Injection)', () => {
 
             world.step(mockGP);
 
+            expect(stateWithProjection.projection.kind).toBe("camera");
+            if(stateWithProjection.projection.kind !== "camera") return;
+
             // Both camera and projection should be set
             expect(mockGP.setCamera).toHaveBeenCalledWith(
-                stateWithProjection.camera.position,
-                stateWithProjection.camera.lookAt
+                stateWithProjection!.projection!.camera.position,
+                stateWithProjection!.projection!.camera.lookAt
             );
             expect(mockGP.setProjectionMatrix).toHaveBeenCalledWith(stateWithProjection.projectionMatrix);
         });
