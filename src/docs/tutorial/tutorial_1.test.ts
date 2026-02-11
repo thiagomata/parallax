@@ -20,7 +20,8 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
             const world = new World(manager, loader);
 
             // Use the new extreme typed method instead of addElement/toProps
-            world.addBox('test-box', {
+            world.addBox({
+                id: 'test-box',
                 type: ELEMENT_TYPES.BOX,
                 width: 100,
                 position: {x: 10, y: 20, z: 30},
@@ -40,7 +41,8 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
             const world = new World(manager, loader);
             const mockGP = createMockGraphicProcessor();
 
-            world.addBox('dynamic-box', {
+            world.addBox({
+                id: 'dynamic-box',
                 type: ELEMENT_TYPES.BOX,
                 width: (state: SceneState) => state.playback.now > 1000 ? 200 : 100,
                 position: {x: 0, y: 0, z: 0}

@@ -22,8 +22,9 @@ export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
         // Just one static floor to check coordinate space
-        world.addFloor('floor', {
+        world.addFloor({
             type: ELEMENT_TYPES.FLOOR,
+            id: 'floor',
             width: 500,
             depth: 500,
             position: {x: 0, y: 100, z: 0},
@@ -36,8 +37,9 @@ export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         });
 
         // The Hero: Testing Hybrid Props (Atomic Position + Granular Color)
-        world.addSphere('hero-sphere', {
+        world.addSphere({
             type: ELEMENT_TYPES.SPHERE,
+            id: 'hero-sphere',
             position: (s: SceneState) => ({
                 x: Math.sin(s.playback.progress * Math.PI * 2) * 100,
                 y: 0,

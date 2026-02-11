@@ -72,6 +72,7 @@ describe('README Examples Validation', () => {
 
         // Example 1: Static & Computed Props
         const blueprint = toBlueprint<ResolvedBox>({
+            id: 'test-box',
             type: ELEMENT_TYPES.BOX,
             position: {x: 0, y: 0, z: 0},
             width: (s: SceneState) => 50 + (s.playback.progress * 20),
@@ -84,6 +85,7 @@ describe('README Examples Validation', () => {
 
         // Example 2: Deep Resolution (Granular)
         const granularBlueprint = toBlueprint<ResolvedBox>({
+            id: 'granular-box',
             type: ELEMENT_TYPES.BOX,
             position: {
                 x: (_s: SceneState) => 100,

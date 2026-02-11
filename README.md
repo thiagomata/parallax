@@ -56,7 +56,8 @@ sequenceDiagram
 Elements are registered as **Blueprints**. These are reactive contracts supporting deep-tree branches. A property can be a static value, a nested object, or a function `(state) => T` at any node level.
 
 ```typescript
-world.addSphere('hero', {
+world.addSphere({
+    id: 'hero',
     type: ELEMENT_TYPES.SPHERE,
     radius: (s: SceneState) => 50 + Math.sin(s.playback.progress), // Dynamic node
     position: { x: 0, y: (s: SceneState) => s.camera.pitch * 10 } // Nested reactivity

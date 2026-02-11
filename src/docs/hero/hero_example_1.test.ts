@@ -24,7 +24,7 @@ describe('Hero Demo Integration: World Animation', () => {
 
         const state0 = world.getCurrentSceneState();
         // We get the element from the world's internal registry
-        const midElement0 = world.getElement('mid');
+        const midElement0 = world.getElement('mid-cylinder');
         const resolver = new SceneResolver({});
         const resolved0 = resolver.resolve(midElement0!, state0) as { resolved: ResolvedCylinder };
 
@@ -64,7 +64,7 @@ describe('Hero Demo Integration: World Animation', () => {
         mockP5.millis.mockReturnValue(1234);
         mockP5.draw();
 
-        const backElement = world.getElement('back');
+        const backElement = world.getElement('back-pyramid');
         const resolver = new SceneResolver({});
         const resolvedBundle = resolver.resolve(backElement!, world.getCurrentSceneState()) as { resolved: ResolvedPyramid };
 

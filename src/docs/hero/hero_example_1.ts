@@ -30,8 +30,9 @@ import type {SketchConfig} from "./hero.demo.ts";
 
         // ==== REGISTRATION WITH NEW SHAPES ====
 
-        world.addPyramid('back', {
-            type: 'pyramid',
+        world.addPyramid({
+            type: ELEMENT_TYPES.PYRAMID,
+            id: 'back-pyramid',
             baseSize: 200,
             height: 150,
             position: { x: -100, y: 0, z: -200 },
@@ -39,8 +40,9 @@ import type {SketchConfig} from "./hero.demo.ts";
             strokeColor: { red: 255, green: 255, blue: 255 }
         });
 
-        world.addCylinder('mid', {
+        world.addCylinder({
             type: ELEMENT_TYPES.CYLINDER,
+            id: 'mid-cylinder',
             radius: (state: SceneState) => 50 + 50 * Math.cos(2 * Math.PI * state.playback.progress),
             height: 100,
             rotate: (state: SceneState) => ({
@@ -57,8 +59,9 @@ import type {SketchConfig} from "./hero.demo.ts";
             strokeColor: { red: 255, green: 255, blue: 255 }
         });
 
-        world.addCone('front', {
+        world.addCone({
             type: ELEMENT_TYPES.CONE,
+            id: 'front-cone',
             radius: 60,
             height: 120,
             position: { x: 100, y: 0, z: 200 },
@@ -66,8 +69,9 @@ import type {SketchConfig} from "./hero.demo.ts";
             strokeColor: { red: 255, green: 255, blue: 255 }
         });
 
-        world.addTorus('ring', {
+        world.addTorus({
             type: ELEMENT_TYPES.TORUS,
+            id: 'ring-torus',
             radius: 80,
             tubeRadius: 20,
             position: { x: 0, y: 50, z: -50 },
@@ -75,8 +79,9 @@ import type {SketchConfig} from "./hero.demo.ts";
             strokeColor: { red: 0, green: 0, blue: 0 }
         });
 
-        world.addElliptical('egg', {
+        world.addElliptical({
             type: ELEMENT_TYPES.ELLIPTICAL,
+            id: 'egg-elliptical',
             rx: 50,
             ry: 30,
             rz: 70,
@@ -85,8 +90,9 @@ import type {SketchConfig} from "./hero.demo.ts";
             strokeColor: { red: 255, green: 255, blue: 255 }
         });
 
-        world.addText('title', {
+        world.addText({
             type: ELEMENT_TYPES.TEXT,
+            id: 'title-text',
             text: "PARALLAX",
             size: 40,
             position: { x: 50, y: 0, z: 0 },

@@ -37,8 +37,9 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
         // REGISTRATION
         // Using the "Extreme Typed" addBox method (no manual toProps/casting)
-        world.addBox('box', {
+        world.addBox({
             type: ELEMENT_TYPES.BOX,
+            id: 'box',
             width: 100,
             
             // Dynamic Rotation: Continuous rotation

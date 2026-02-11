@@ -31,6 +31,7 @@ describe('AssetRegistry', () => {
         it('should create a RenderableElement and trigger texture hydration', () => {
             const id = 'textured-box';
             const blueprint = {
+                id: 'textured-box',
                 type: ELEMENT_TYPES.BOX,
                 position: {x: 0, y: 0, z: 0},
                 width: 10,
@@ -51,6 +52,7 @@ describe('AssetRegistry', () => {
 
         it('should return the existing instance and PREVENT re-hydration if ID is already registered', () => {
             const blueprint = {
+                id: 'repeat-box',
                 type: ELEMENT_TYPES.BOX,
                 width: 5,
                 position: {x: 0, y: 0, z: 0},
@@ -73,11 +75,13 @@ describe('AssetRegistry', () => {
     describe('Collection Integrity', () => {
         it('should correctly store heterogeneous RenderableElements', () => {
             registry.register('box-1', {
+                id: 'box-1',
                 type: ELEMENT_TYPES.BOX,
                 width: 1,
                 position: {x: 0, y: 0, z: 0}
             });
             registry.register('text-1', {
+                id: 'text-1',
                 type: ELEMENT_TYPES.TEXT,
                 text: 'hi',
                 size: 12,

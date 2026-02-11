@@ -79,7 +79,8 @@ describe('Tutorial 9: Look At The Object (Integration)', () => {
         expect(addSphereSpy).toHaveBeenCalledTimes(1);
         
         // First call should be the moving object
-        expect(addSphereSpy).toHaveBeenNthCalledWith(1, 'obj', expect.objectContaining({
+        expect(addSphereSpy).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            id: 'obj',
             type: ELEMENT_TYPES.SPHERE,
             radius: 20,
             fillColor: {red: 255, green: 0, blue: 0,},
@@ -87,7 +88,8 @@ describe('Tutorial 9: Look At The Object (Integration)', () => {
         }));
         
         // Second call should be the object that looks at the first
-        expect(addCylinderSpy).toHaveBeenNthCalledWith(1, 'look-to-obj', expect.objectContaining({
+        expect(addCylinderSpy).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            id: 'look-to-obj',
             type: ELEMENT_TYPES.CYLINDER,
             radius: 20,
             height: 50,
@@ -115,10 +117,10 @@ describe('Tutorial 9: Look At The Object (Integration)', () => {
         const addSphere = vi.spyOn(world, 'addSphere');
         mockP5.setup();
         
-        // Get the position function from the first box call
+        // Get the position function from the first sphere call
         const addSphereCalls = addSphere.mock.calls;
-        const firstBoxConfig = addSphereCalls[0][1];
-        const positionFunction = firstBoxConfig.position;
+        const firstSphereConfig = addSphereCalls[0][0];
+        const positionFunction = firstSphereConfig.position;
         
         expect(typeof positionFunction).toBe('function');
     });
@@ -181,9 +183,9 @@ describe('Tutorial 9: Look At The Object (Integration)', () => {
         const addCylinderSpy = vi.spyOn(world, 'addCylinder');
         mockP5.setup();
         
-        const addBoxCalls = addCylinderSpy.mock.calls;
-        const secondBoxConfig = addBoxCalls[0][1];
-        const effects = secondBoxConfig.effects || [];
+        const addCylinderCalls = addCylinderSpy.mock.calls;
+        const cylinderConfig = addCylinderCalls[0][0];
+        const effects = cylinderConfig.effects || [];
         const effect = effects[0];
         
         expect(effect.type).toBe('look_at');

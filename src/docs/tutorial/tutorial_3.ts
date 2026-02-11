@@ -30,8 +30,9 @@ export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
         // REGISTRATION
         // Defining the Orbit as a function of the Engine Progress
-        world.addBox('orbit-box', {
+        world.addBox({
             type: ELEMENT_TYPES.BOX,
+            id: 'orbit-box',
             width: 50,
 
             // Orbital Position Logic: x = cos(t), y = sin(t)

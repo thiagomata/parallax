@@ -30,8 +30,9 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
         // Registration
         // We use the blueprint functions to define effect over time
-        world.addBox('pulsing-box', {
+        world.addBox({
             type: ELEMENT_TYPES.BOX,
+            id: 'pulsing-box',
             position: {x: 0, y: 0, z: 0},
 
             // Dynamic Size: Pulse between 50 and 150

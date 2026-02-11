@@ -75,8 +75,9 @@ export function tutorial_9(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
         // REGISTRATION
-        world.addSphere('obj', {
+        world.addSphere({
             type: ELEMENT_TYPES.SPHERE,
+            id: 'obj',
             radius: 20,
             position: (currentState) => {
                 const circularProgress = currentState.playback.progress * 4 * Math.PI;
@@ -101,8 +102,9 @@ export function tutorial_9(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             strokeColor: {red: 0, green: 0, blue: 255},
         });
 
-        world.addCylinder('look-to-obj', {
+        world.addCylinder({
             type: ELEMENT_TYPES.CYLINDER,
+            id: 'look-to-obj',
             radius: 20,
             height: 50,
             rotate: {

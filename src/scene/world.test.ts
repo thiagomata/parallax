@@ -106,8 +106,8 @@ describe('World Orchestration (Dependency Injection)', () => {
             const sphereBlueprint = createMockBlueprint('sphere');
             
             // Add elements
-            world.addBox('test-box', boxBlueprint as any);
-            world.addSphere('test-sphere', sphereBlueprint as any);
+            world.addBox({id: 'test-box', ...boxBlueprint} as any);
+            world.addSphere({id: 'test-sphere', ...sphereBlueprint} as any);
             
             // Retrieve elements
             const box = world.getElement('test-box');
@@ -128,7 +128,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             const blueprint = createMockBlueprint('box');
             
             // Add element
-            world.addBox('removable-box', blueprint as any);
+            world.addBox({id: 'removable-box', ...blueprint} as any);
             expect(world.getElement('removable-box')).toBeDefined();
             
             // Remove element
@@ -160,16 +160,16 @@ describe('World Orchestration (Dependency Injection)', () => {
             };
 
             // Add all element types
-            world.addBox('test-box', blueprints.box as any);
-            world.addSphere('test-sphere', blueprints.sphere as any);
-            world.addCone('test-cone', blueprints.cone as any);
-            world.addPyramid('test-pyramid', blueprints.pyramid as any);
-            world.addCylinder('test-cylinder', blueprints.cylinder as any);
-            world.addTorus('test-torus', blueprints.torus as any);
-            world.addElliptical('test-elliptical', blueprints.elliptical as any);
-            world.addText('test-text', blueprints.text as any);
-            world.addFloor('test-floor', blueprints.floor as any);
-            world.addPanel('test-panel', blueprints.panel as any);
+            world.addBox({id: 'test-box', ...blueprints.box} as any);
+            world.addSphere({id: 'test-sphere', ...blueprints.sphere} as any);
+            world.addCone({id: 'test-cone', ...blueprints.cone} as any);
+            world.addPyramid({id: 'test-pyramid', ...blueprints.pyramid} as any);
+            world.addCylinder({id: 'test-cylinder', ...blueprints.cylinder} as any);
+            world.addTorus({id: 'test-torus', ...blueprints.torus} as any);
+            world.addElliptical({id: 'test-elliptical', ...blueprints.elliptical} as any);
+            world.addText({id: 'test-text', ...blueprints.text} as any);
+            world.addFloor({id: 'test-floor', ...blueprints.floor} as any);
+            world.addPanel({id: 'test-panel', ...blueprints.panel} as any);
 
             // Verify all elements exist
             Object.keys(blueprints).forEach(id => {
@@ -184,12 +184,12 @@ describe('World Orchestration (Dependency Injection)', () => {
             const blueprint2 = createMockBlueprint('sphere');
             
             // Add first element
-            world.addBox('duplicate-id', blueprint1 as any);
+            world.addBox({id: 'duplicate-id', ...blueprint1} as any);
             const element1 = world.getElement('duplicate-id');
             expect(element1?.id).toBe('duplicate-id');
             
             // Add second element with same ID (should replace/return existing)
-            world.addSphere('duplicate-id', blueprint2 as any);
+            world.addSphere({id: 'duplicate-id', ...blueprint2} as any);
             const element2 = world.getElement('duplicate-id');
             
             // Should still have the same reference (first element takes precedence)
@@ -200,7 +200,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             const blueprint = createMockBlueprint('box');
             
             // Add element
-            world.addBox('cycle-test', blueprint as any);
+            world.addBox({id: 'cycle-test', ...blueprint} as any);
             const element1 = world.getElement('cycle-test');
             expect(element1).toBeDefined();
             
@@ -209,7 +209,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             expect(world.getElement('cycle-test')).toBeUndefined();
             
             // Add element again with same ID
-            world.addSphere('cycle-test', createMockBlueprint('sphere') as any);
+            world.addSphere({id: 'cycle-test', ...createMockBlueprint('sphere')} as any);
             const element2 = world.getElement('cycle-test');
             
             expect(element2).toBeDefined();
@@ -226,8 +226,8 @@ describe('World Orchestration (Dependency Injection)', () => {
             const blueprint = createMockBlueprint('box');
             
             // Test add
-            world.addBox('integration-test', blueprint as any);
-            expect(stageSpy).toHaveBeenCalledWith('integration-test', blueprint);
+            world.addBox({id: 'integration-test', ...blueprint} as any);
+            expect(stageSpy).toHaveBeenCalledWith('integration-test', expect.objectContaining(blueprint));
             
             // Test get
             world.getElement('integration-test');
@@ -242,9 +242,9 @@ describe('World Orchestration (Dependency Injection)', () => {
             const renderSpy = vi.spyOn(stage, 'render');
             
             // Add multiple elements
-            world.addBox('render-box-1', createMockBlueprint('box') as any);
-            world.addSphere('render-sphere', createMockBlueprint('sphere') as any);
-            world.addCone('render-cone', createMockBlueprint('cone') as any);
+            world.addBox({id: 'render-box-1', ...createMockBlueprint('box')} as any);
+            world.addSphere({id: 'render-sphere', ...createMockBlueprint('sphere')} as any);
+            world.addCone({id: 'render-cone', ...createMockBlueprint('cone')} as any);
             
             // Step through the scene (which triggers rendering)
             world.step(mockGP);
@@ -262,7 +262,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             const blueprint = createMockBlueprint('box');
             
             // Add element
-            world.addBox('temp-element', blueprint as any);
+            world.addBox({id: 'temp-element', ...blueprint} as any);
             expect(world.getElement('temp-element')).toBeDefined();
             
             // Step through scene (render with element)
@@ -288,7 +288,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             } as any;
             
             // Add element with complex properties
-            world.addBox('complex-box', complexBlueprint);
+            world.addBox({id: 'complex-box', ...complexBlueprint});
             
             // Retrieve and verify element exists
             const element = world.getElement('complex-box');
@@ -309,7 +309,7 @@ describe('World Orchestration (Dependency Injection)', () => {
                 const id = `cycle-${i}`;
                 
                 // Add element
-                world.addBox(id, blueprint as any);
+                world.addBox({id, ...blueprint} as any);
                 expect(world.getElement(id)).toBeDefined();
                 
                 // Remove element
@@ -346,9 +346,9 @@ describe('World Orchestration (Dependency Injection)', () => {
 
         it('should update scene state with resolved elements after render', () => {
             // Add some elements to the stage
-            world.addBox('test-box-1', createMockBlueprint('box', 'test-box-1') as any);
-            world.addSphere('test-sphere-1', createMockBlueprint('sphere', 'test-sphere-1') as any);
-            world.addCone('test-cone-1', createMockBlueprint('cone', 'test-cone-1') as any);
+            world.addBox(createMockBlueprint('box', 'test-box-1') as any);
+            world.addSphere(createMockBlueprint('sphere', 'test-sphere-1') as any);
+            world.addCone(createMockBlueprint('cone', 'test-cone-1') as any);
             
             // Step through rendering
             world.step(mockGP);
@@ -368,8 +368,8 @@ describe('World Orchestration (Dependency Injection)', () => {
 
         it('should reflect element removal in resolved elements map', () => {
             // Add elements
-            world.addBox('removable-box', createMockBlueprint('box', 'removable-box') as any);
-            world.addSphere('persistent-sphere', createMockBlueprint('sphere', 'persistent-sphere') as any);
+            world.addBox(createMockBlueprint('box', 'removable-box') as any);
+            world.addSphere(createMockBlueprint('sphere', 'persistent-sphere') as any);
             
             // First render - both elements should be present
             world.step(mockGP);
@@ -389,7 +389,7 @@ describe('World Orchestration (Dependency Injection)', () => {
 
         it('should update resolved elements on each render cycle', () => {
             // Start with one element
-            world.addBox('initial-box', createMockBlueprint('box', 'initial-box') as any);
+            world.addBox(createMockBlueprint('box', 'initial-box') as any);
             
             // First render
             world.step(mockGP);
@@ -398,8 +398,8 @@ describe('World Orchestration (Dependency Injection)', () => {
             expect(currentState.elements?.size).toBe(1);
             
             // Add more elements
-            world.addSphere('added-sphere', createMockBlueprint('sphere', 'added-sphere') as any);
-            world.addCone('added-cone', createMockBlueprint('cone', 'added-cone') as any);
+            world.addSphere(createMockBlueprint('sphere', 'added-sphere') as any);
+            world.addCone(createMockBlueprint('cone', 'added-cone') as any);
             
             // Second render - should have all three elements
             world.step(mockGP);
@@ -418,8 +418,8 @@ describe('World Orchestration (Dependency Injection)', () => {
                 {id: 'consistency-cone', blueprint: createMockBlueprint('cone', 'consistency-cone')}
             ];
             
-            elements.forEach(({id, blueprint}) => {
-                world.addBox(id, blueprint as any);
+            elements.forEach(({blueprint}) => {
+                world.addBox(blueprint as any);
             });
             
             // Render to populate resolved elements
@@ -439,8 +439,8 @@ describe('World Orchestration (Dependency Injection)', () => {
 
         it('should handle empty scene state after clearing all elements', () => {
             // Add elements
-            world.addBox('clear-box', createMockBlueprint('box', 'clear-box') as any);
-            world.addSphere('clear-sphere', createMockBlueprint('sphere', 'clear-sphere') as any);
+            world.addBox(createMockBlueprint('box', 'clear-box') as any);
+            world.addSphere(createMockBlueprint('sphere', 'clear-sphere') as any);
             
             // Render with elements
             world.step(mockGP);
@@ -470,7 +470,7 @@ describe('World Orchestration (Dependency Injection)', () => {
                 color: 'red'
             } as any;
 
-            world.addBox('value-test-box', mockBlueprint);
+            world.addBox(mockBlueprint);
 
             // Spy on what gets sent to the graphic processor
             let capturedResolvedBox: any = null;
@@ -527,7 +527,7 @@ describe('World Orchestration (Dependency Injection)', () => {
                 capturedResolvedSphere = resolved;
             });
 
-            world.addSphere('value-test-sphere', {
+            world.addSphere({
                 type: 'sphere',
                 id: 'value-test-sphere', 
                 position: {x: 200, y: 300, z: 400},

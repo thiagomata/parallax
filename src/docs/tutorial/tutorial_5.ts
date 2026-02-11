@@ -32,8 +32,9 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         // Hydration starts automatically when the element is added
 
         // Textured Box
-        world.addBox('textured-box', {
+        world.addBox({
             type: ELEMENT_TYPES.BOX,
+            id: 'textured-box',
             width: 150,
             position: {x: 0, y: 0, z: -100},
             strokeWidth: 0,
@@ -50,8 +51,9 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         });
 
         // 3D Text with Custom Font
-        world.addText('title', {
+        world.addText({
             type: ELEMENT_TYPES.TEXT,
+            id: 'title',
             text: "TEXTURES",
             size: 30,
             position: {x: -30, y: 0, z: 50},

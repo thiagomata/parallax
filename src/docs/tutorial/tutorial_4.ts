@@ -38,8 +38,9 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         // REGISTRATION
         // Creating a "Gallery" of boxes to visualize the camera orbit
         for (let i = 0; i < 5; i++) {
-            world.addBox(`box-${i}`, {
+            world.addBox({
                 type: ELEMENT_TYPES.BOX,
+                id: `box-${i}`,
                 width: 40,
                 position: {x: (i - 2) * 100, y: 0, z: 0},
                 fillColor: {

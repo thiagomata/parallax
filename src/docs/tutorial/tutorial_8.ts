@@ -71,16 +71,18 @@ export function tutorial_8(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         // REGISTRATION
         
         // Add reference objects to show camera movement
-        world.addBox('reference-cube', {
+        world.addBox({
             type: ELEMENT_TYPES.BOX,
+            id: 'reference-cube',
             width: 50,
             position: {x: 150, y: 0, z: 0},
             fillColor: {red: 100, green: 100, blue: 255},
             strokeColor: {red: 255, green: 255, blue: 255},
         });
 
-        world.addPanel('ref-panel', {
+        world.addPanel({
             type: ELEMENT_TYPES.PANEL,
+            id: 'ref-panel',
             position: {x: 50, y: 0, z: 0},
             fillColor: {red: 100, green: 100, blue: 255},
             strokeColor: {red: 255, green: 255, blue: 255},
@@ -88,8 +90,9 @@ export function tutorial_8(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             height: 50,
         });
 
-        world.addBox('billboard-cube', {
+        world.addBox({
             type: ELEMENT_TYPES.BOX,
+            id: 'billboard-cube',
             width: 50,
             position: {x: -150, y: 0, z: 0},
             fillColor: {red: 100, green: 100, blue: 255},
@@ -106,8 +109,9 @@ export function tutorial_8(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             }
         });
 
-        world.addPanel('billboard-panel', {
+        world.addPanel({
             type: ELEMENT_TYPES.PANEL,
+            id: 'billboard-panel',
             width: 50,
             height: 50,
             position: {x: -50, y: 0, z: 0},

@@ -41,8 +41,9 @@ new p5((p: p5) => {
         // We use world.add (which delegates to stage.add)
         // No more manual 'toProps'—the Registry handles that!
 
-        world.addBox('back', {
+        world.addBox({
             type: ELEMENT_TYPES.BOX,
+            id: 'back',
             width: 200,
             position: {x: -100, y: 0, z: -200},
             fillColor: {red: 0, green: 255, blue: 0, alpha: 1.0},
@@ -50,8 +51,9 @@ new p5((p: p5) => {
             strokeWidth: 1,
         });
 
-        world.addBox('mid', {
+        world.addBox({
             type: ELEMENT_TYPES.BOX,
+            id: 'mid',
             width: (state: SceneState) => (Math.cos(2 * Math.PI * state.playback.progress) * 50) + 100,
             rotate: (state: SceneState) => ({
                 x: 0,
@@ -68,8 +70,9 @@ new p5((p: p5) => {
             strokeWidth: 1,
         });
 
-        world.addBox('front', {
+        world.addBox({
             type: ELEMENT_TYPES.BOX,
+            id: 'front',
             width: 100,
             position: {x: 100, y: 0, z: 200},
             fillColor: {red: 0, green: 0, blue: 255, alpha: 1.0},
@@ -77,8 +80,9 @@ new p5((p: p5) => {
             strokeWidth: 1,
         });
 
-        world.addText('title-label', {
+        world.addText({
             type: ELEMENT_TYPES.TEXT,
+            id: 'title-label',
             text: "HELLO WORLD",
             size: 40,
             position: {x: 50, y: 0, z: 0},

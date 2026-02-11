@@ -43,8 +43,9 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         for (let z = 200; z > -2000; z -= 200) {
             for (let x = -500; x <= 500; x += 200) {
                 const id = `sphere-${x}-${z}`;
-                world.addSphere(id, {
+                world.addSphere({
                     type: ELEMENT_TYPES.SPHERE,
+                    id: id,
                     radius: 20,
                     position: { x, y: 50, z },
                     fillColor: {
@@ -56,8 +57,9 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             }
         }
 
-        world.addBox(`cube-middle`, {
+        world.addBox({
             type: ELEMENT_TYPES.BOX,
+            id: 'cube-middle',
             position: { x: 0, y: -30, z: -300 },
             width: 30,
             fillColor: { red: 30, green: 30, blue: 235 },
@@ -66,8 +68,9 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
         // // Add a floating cubes to make the headtracking projection easier to be noticed
         for (let z = 600; z > -600; z -= 60) {
-            world.addBox(`cube-${z}`, {
+            world.addBox({
                 type: ELEMENT_TYPES.BOX,
+                id: `cube-${z}`,
                 position: { x: z, y: -100, z: -600 },
                 width: 10,
                 depth: 10,

@@ -421,10 +421,24 @@ export type MapToDynamic<T> = { [K in keyof T]: K extends StaticKeys ? T[K] : Dy
 export type Unwrapped<T> = T extends DynamicProperty<infer U> ? Unwrapped<U> : T extends object ? { [K in keyof T]: Unwrapped<T[K]> } : T;
 
 /**
+ * These Ids should not be used to define new elements, as boxes since they are reference
+ * to world elements.
+ */
+export type ReservedElementId =
+    | 'camera'
+    | 'eyes'
+    | 'screen'
+    | 'player'
+    | 'world'
+    | 'origin';
+
+export type ElementId<T extends string> = T extends ReservedElementId ? never : T;
+
+/**
  * ELEMENT DEFINITIONS
  */
-export interface ResolvedBaseVisual {
-    readonly id?: string;
+export interface ResolvedBaseVisual<TID extends string = string> {
+    readonly id: ElementId<TID>;
     readonly type: typeof ELEMENT_TYPES[keyof typeof ELEMENT_TYPES];
     readonly position: Vector3;
     readonly alpha?: number;

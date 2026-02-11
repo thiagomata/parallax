@@ -14,7 +14,7 @@ import type {
     GraphicProcessor,
     GraphicsBundle,
     BundleDynamicElement,
-    SceneState
+    SceneState, ElementId
 } from "./types.ts";
 import { ScreenModifier } from "./modifiers/screen_modifier.ts";
 import {Stage} from "./stage.ts";
@@ -38,44 +38,64 @@ export class World<TBundle extends GraphicsBundle, TEffectLib extends EffectLib>
         return this.sceneManager.isPaused();
     }
 
-    public addBox(id: string, blueprint: BlueprintBox): void {
-        this.stage.add(id, blueprint);
+    public addBox<TID extends string>(
+        blueprint: BlueprintBox & { id: ElementId<TID> }
+    ): void {
+        this.stage.add(blueprint.id, blueprint);
     }
 
-    public addSphere(id: string, blueprint: BlueprintSphere): void {
-        this.stage.add(id, blueprint);
+    public addSphere<TID extends string>(
+        blueprint: BlueprintSphere & { id: ElementId<TID> }
+    ): void {
+        this.stage.add(blueprint.id, blueprint);
     }
 
-    public addCone(id: string, blueprint: BlueprintCone): void {
-        this.stage.add(id, blueprint);
+    public addCone<TID extends string>(
+        blueprint: BlueprintCone & { id: ElementId<TID> }
+    ): void {
+        this.stage.add(blueprint.id, blueprint);
     }
 
-    public addPyramid(id: string, blueprint: BlueprintPyramid): void {
-        this.stage.add(id, blueprint);
+    public addPyramid<TID extends string>(
+        blueprint: BlueprintPyramid & { id: ElementId<TID> }
+    ): void {
+        this.stage.add(blueprint.id, blueprint);
     }
 
-    public addElliptical(id: string, blueprint: BlueprintElliptical): void {
-        this.stage.add(id, blueprint);
+    public addElliptical<TID extends string>(
+        blueprint: BlueprintElliptical & { id: ElementId<TID> }
+    ): void {
+        this.stage.add(blueprint.id, blueprint);
     }
 
-    public addCylinder(id: string, blueprint: BlueprintCylinder): void {
-        this.stage.add(id, blueprint);
+    public addCylinder<TID extends string>(
+        blueprint: BlueprintCylinder & { id: ElementId<TID> }
+    ): void {
+        this.stage.add(blueprint.id, blueprint);
     }
 
-    public addTorus(id: string, blueprint: BlueprintTorus): void {
-        this.stage.add(id, blueprint);
+    public addTorus<TID extends string>(
+        blueprint: BlueprintTorus & { id: ElementId<TID> }
+    ): void {
+        this.stage.add(blueprint.id, blueprint);
     }
 
-    public addText(id: string, blueprint: BlueprintText): void {
-        this.stage.add(id, blueprint);
+    public addText<TID extends string>(
+        blueprint: BlueprintText & { id: ElementId<TID> }
+    ): void {
+        this.stage.add(blueprint.id, blueprint);
     }
 
-    public addFloor(id: string, blueprint: BlueprintFloor): void {
-        this.stage.add(id, blueprint);
+    public addFloor<TID extends string>(
+        blueprint: BlueprintFloor & { id: ElementId<TID> }
+    ): void {
+        this.stage.add(blueprint.id, blueprint);
     }
 
-    public addPanel(id: string, blueprint: BlueprintPanel): void {
-        this.stage.add(id, blueprint);
+    public addPanel<TID extends string>(
+        blueprint: BlueprintPanel & { id: ElementId<TID> }
+    ): void {
+        this.stage.add(blueprint.id, blueprint);
     }
 
     public getElement(id: string): BundleDynamicElement<any, TBundle> | undefined {
