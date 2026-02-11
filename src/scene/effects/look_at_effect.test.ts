@@ -71,6 +71,7 @@ describe('LookAtEffect', () => {
         };
 
         mockCurrent = {
+            id: "some-box",
             type: ELEMENT_TYPES.BOX,
             position: { x: 100, y: 50, z: 0 },
             rotate: { x: 0, y: 0, z: 0 },
@@ -133,6 +134,7 @@ describe('LookAtEffect', () => {
 
         it('should handle missing rotate in current visual', () => {
             const currentWithoutRotate = {
+                id: "some-box",
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 100, y: 50, z: 0 },
                 width: 50,

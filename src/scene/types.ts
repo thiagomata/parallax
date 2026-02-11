@@ -410,7 +410,7 @@ export type FlexibleSpec<T> =
     | (T extends object ? BlueprintTree<T> : never);
 export type BlueprintTree<T> = { [K in keyof T]?: FlexibleSpec<T[K]>; };
 
-export const IDENTITY_KEYS = ['type', 'texture', 'font', 'modifiers'] as const;
+export const IDENTITY_KEYS = ['type', 'texture', 'font', 'modifiers', 'id'] as const;
 type StaticKeys = typeof IDENTITY_KEYS[number];
 export type MapToBlueprint<T> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K]>; } & {
     effects?: EffectBlueprint[];

@@ -20,6 +20,7 @@ describe('Stage (Spatial Orchestration)', () => {
 
     it('should register and render an element', () => {
         stage.add('box-1', {
+            id: 'box-1',
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 0, z: 0},
             width: 5
@@ -39,6 +40,7 @@ describe('Stage (Spatial Orchestration)', () => {
 
 
         const nearBox = {
+            id: "near",
             type: ELEMENT_TYPES.BOX,
             position: nearPos,
             width: 1
@@ -46,6 +48,7 @@ describe('Stage (Spatial Orchestration)', () => {
         stage.add('near', nearBox);
 
         const farBox = {
+            id: "far",
             type: ELEMENT_TYPES.BOX,
             position: farPos,
             width: 1
@@ -65,7 +68,8 @@ describe('Stage (Spatial Orchestration)', () => {
 
     it('should resolve dynamic positions during the sorting phase', () => {
         // Proof that resolveProperty is working inside the sort
-        stage.add('dynamic-box', {
+        stage.add('some-box', {
+            id: "some-box",
             type: ELEMENT_TYPES.BOX,
             position: (s: any) => ({x: s.playback.now, y: 0, z: 0}),
             width: 1
@@ -77,6 +81,7 @@ describe('Stage (Spatial Orchestration)', () => {
         };
 
         const expectedBox = {
+            id: "some-box",
             type: ELEMENT_TYPES.BOX,
             position: {x: 999, y: 0, z: 0},
             width: 1,
@@ -99,7 +104,8 @@ describe('Stage (Spatial Orchestration)', () => {
         const afterState = {
             ...customState,
             elements: new Map([
-                ["dynamic-box", {
+                ["some-box", {
+                    id: "some-box",
                     position: {x: 999, y: 0, z: 0},
                     width: 1,
                     type: "box"
@@ -116,6 +122,7 @@ describe('Stage (Spatial Orchestration)', () => {
     it('should maintain single instances even with multiple add calls (Idempotency)', () => {
         const spy = vi.spyOn(loader, 'hydrateTexture');
         const bluePrint = {
+            id: "some-box",
             type: ELEMENT_TYPES.BOX,
             position: {x: 0, y: 0, z: 0},
             width: 1,
@@ -134,6 +141,7 @@ describe('Stage (Spatial Orchestration)', () => {
         
         // Add an element first
         stage.add(elementId, {
+            id: "some-box",
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 0, z: 0},
             width: 5
@@ -154,6 +162,7 @@ describe('Stage (Spatial Orchestration)', () => {
         
         // Add an element
         stage.add(elementId, {
+            id: "some-box",
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 0, z: 0},
             width: 5

@@ -129,6 +129,7 @@ describe('Parallax Engine Type Coherence Test', () => {
     it('should resolve deep nested computed values within branches', () => {
         // Set up the Complex Dynamic Plan
         const boxDynamic: DynamicBox = {
+            id: "dynamic-box",
             type: ELEMENT_TYPES.BOX,
             width: {
                 kind: SPEC_KINDS.COMPUTED,
@@ -150,6 +151,7 @@ describe('Parallax Engine Type Coherence Test', () => {
 
         // Execution
         const resolvedBox: ResolvedBox = {
+            id: "some-box",
             type: boxDynamic.type,
             width: resolveValue(boxDynamic.width),
             position: resolveValue(boxDynamic.position) // This must resolve to Vector3 {x,y,z}
@@ -193,11 +195,13 @@ describe('Parallax Engine Type Coherence Test', () => {
 
         it('Box resolves correctly', () => {
             const dynamic: DynamicBox = {
+                id: "some-box",
                 type: ELEMENT_TYPES.BOX,
                 position: { kind: SPEC_KINDS.STATIC, value: { x: 1, y: 2, z: 3 } },
                 width: { kind: SPEC_KINDS.COMPUTED, compute: () => 10 },
             };
             const resolved: ResolvedBox = {
+                id: "some-box",
                 type: dynamic.type,
                 position: resolveValue(dynamic.position),
                 width: resolveValue(dynamic.width),
@@ -208,12 +212,14 @@ describe('Parallax Engine Type Coherence Test', () => {
 
         it('Panel resolves correctly', () => {
             const dynamic: DynamicPanel = {
+                id: "some-panel",
                 type: ELEMENT_TYPES.PANEL,
                 position: { kind: SPEC_KINDS.STATIC, value: { x: 0, y: 0, z: 0 } },
                 width: { kind: SPEC_KINDS.STATIC, value: 100 },
                 height: { kind: SPEC_KINDS.COMPUTED, compute: () => 50 },
             };
             const resolved: ResolvedPanel = {
+                id: "some-panel",
                 type: dynamic.type,
                 position: resolveValue(dynamic.position),
                 width: resolveValue(dynamic.width),
@@ -225,11 +231,13 @@ describe('Parallax Engine Type Coherence Test', () => {
 
         it('Sphere resolves correctly', () => {
             const dynamic: DynamicSphere = {
+                id: "some-sphere",
                 type: ELEMENT_TYPES.SPHERE,
                 position: { kind: SPEC_KINDS.STATIC, value: { x: 0, y: 0, z: 0 } },
                 radius: { kind: SPEC_KINDS.STATIC, value: 8 },
             };
             const resolved: ResolvedSphere = {
+                id: "some-sphere",
                 type: dynamic.type,
                 position: resolveValue(dynamic.position),
                 radius: resolveValue(dynamic.radius),
@@ -239,12 +247,14 @@ describe('Parallax Engine Type Coherence Test', () => {
 
         it('Floor resolves correctly', () => {
             const dynamic: DynamicFloor = {
+                id: "some-floor",
                 type: ELEMENT_TYPES.FLOOR,
                 position: { kind: SPEC_KINDS.STATIC, value: { x: 0, y: -1, z: 0 } },
                 width: { kind: SPEC_KINDS.STATIC, value: 500 },
                 depth: { kind: SPEC_KINDS.STATIC, value: 300 },
             };
             const resolved: ResolvedFloor = {
+                id: "some-floor",
                 type: dynamic.type,
                 position: resolveValue(dynamic.position),
                 width: resolveValue(dynamic.width),
@@ -256,12 +266,14 @@ describe('Parallax Engine Type Coherence Test', () => {
 
         it('Text resolves correctly', () => {
             const dynamic: DynamicText = {
+                id: "some-text",
                 type: ELEMENT_TYPES.TEXT,
                 position: { kind: SPEC_KINDS.STATIC, value: {x:0,y:0,z:0}},
                 text: { kind: SPEC_KINDS.STATIC, value: 'Hello' },
                 size: { kind: SPEC_KINDS.STATIC, value: 12 },
             };
             const resolved: ResolvedText = {
+                id: "some-text",
                 type: dynamic.type,
                 position: resolveValue(dynamic.position),
                 text: resolveValue(dynamic.text),
@@ -272,12 +284,14 @@ describe('Parallax Engine Type Coherence Test', () => {
         });
         it('Pyramid resolves correctly', () => {
             const dynamic: DynamicPyramid = {
+                id: "some-pyramid",
                 type: ELEMENT_TYPES.PYRAMID,
                 position: { kind: SPEC_KINDS.STATIC, value: {x:0,y:0,z:0}},
                 baseSize: { kind: SPEC_KINDS.COMPUTED, compute: () => 10 },
                 height: { kind: SPEC_KINDS.STATIC, value: 20 },
             };
             const resolved: ResolvedPyramid = {
+                id: "some-pyramid",
                 type: dynamic.type,
                 position: resolveValue(dynamic.position),
                 baseSize: resolveValue(dynamic.baseSize),
@@ -289,12 +303,14 @@ describe('Parallax Engine Type Coherence Test', () => {
 
         it('Cylinder resolves correctly', () => {
             const dynamic: DynamicCylinder = {
+                id: "some-cylinder",
                 type: ELEMENT_TYPES.CYLINDER,
                 position: { kind: SPEC_KINDS.STATIC, value: {x:0,y:0,z:0}},
                 radius: { kind: SPEC_KINDS.STATIC, value: 5 },
                 height: { kind: SPEC_KINDS.COMPUTED, compute: () => 15 }
             };
             const resolved: ResolvedCylinder = {
+                id: "some-cylinder",
                 type: dynamic.type,
                 position: resolveValue(dynamic.position),
                 radius: resolveValue(dynamic.radius),
@@ -306,12 +322,14 @@ describe('Parallax Engine Type Coherence Test', () => {
 
         it('Cone resolves correctly', () => {
             const dynamic: DynamicCone = {
+                id: "some-cone",
                 type: ELEMENT_TYPES.CONE,
                 position: { kind: SPEC_KINDS.STATIC, value: {x:0,y:0,z:0}},
                 radius: { kind: SPEC_KINDS.STATIC, value: 4 },
                 height: { kind: SPEC_KINDS.STATIC, value: 12 }
             };
             const resolved: ResolvedCone = {
+                id: "some-cone",
                 type: dynamic.type,
                 position: resolveValue(dynamic.position),
                 radius: resolveValue(dynamic.radius),
@@ -323,12 +341,14 @@ describe('Parallax Engine Type Coherence Test', () => {
 
         it('Torus resolves correctly', () => {
             const dynamic: DynamicTorus = {
+                id: "some-torus",
                 type: ELEMENT_TYPES.TORUS,
                 position: { kind: SPEC_KINDS.STATIC, value: {x:0,y:0,z:0}},
                 radius: { kind: SPEC_KINDS.STATIC, value: 8 },
                 tubeRadius: { kind: SPEC_KINDS.STATIC, value: 2 }
             };
             const resolved: ResolvedTorus = {
+                id: "some-torus",
                 type: dynamic.type,
                 position: resolveValue(dynamic.position),
                 radius: resolveValue(dynamic.radius),
@@ -340,6 +360,7 @@ describe('Parallax Engine Type Coherence Test', () => {
 
         it('Elliptical resolves correctly', () => {
             const dynamic: DynamicElliptical = {
+                id: "some-elliptical",
                 type: ELEMENT_TYPES.ELLIPTICAL,
                 position: { kind: SPEC_KINDS.STATIC, value: {x:0,y:0,z:0}},
                 rx: { kind: SPEC_KINDS.STATIC, value: 3 },
@@ -347,6 +368,7 @@ describe('Parallax Engine Type Coherence Test', () => {
                 rz: { kind: SPEC_KINDS.STATIC, value: 5 }
             };
             const resolved: ResolvedElliptical = {
+                id: "some-elliptical",
                 type: dynamic.type,
                 position: resolveValue(dynamic.position),
                 rx: resolveValue(dynamic.rx),

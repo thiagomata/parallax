@@ -99,7 +99,12 @@ describe('AssetRegistry', () => {
 
     describe('Lifecycle: Removal', () => {
         it('should clean up the registry completely on remove', () => {
-            registry.register('target', {type: ELEMENT_TYPES.BOX, width: 1, position: {x: 0, y: 0, z: 0}});
+            registry.register('target', {
+                id: 'target',
+                type: ELEMENT_TYPES.BOX,
+                width: 1,
+                position: {x: 0, y: 0, z: 0}
+            });
             expect(registry.get('target')).toBeDefined();
 
             registry.remove('target');

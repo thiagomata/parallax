@@ -108,6 +108,7 @@ describe('resolver.createRenderable & Resolver Loop', () => {
 
     it('should initialize with PENDING assets if blueprint has refs, or READY if empty', () => {
         const blueprint = {
+            id: "test-1",
             type: ELEMENT_TYPES.BOX,
             position: mockOrigin,
             width: 10,
@@ -126,7 +127,12 @@ describe('resolver.createRenderable & Resolver Loop', () => {
     });
 
     it('should cull rendering (early return) if distance > far', () => {
-        const blueprint = {type: ELEMENT_TYPES.BOX, position: mockOrigin, width: 10};
+        const blueprint = {
+            id: "id-1",
+            type: ELEMENT_TYPES.BOX,
+            position: mockOrigin,
+            width: 10
+        };
         const renderable = resolver.prepare('id-1', blueprint, loader);
 
         vi.mocked(gp.dist).mockReturnValue(6000); // Beyond default far
@@ -139,6 +145,7 @@ describe('resolver.createRenderable & Resolver Loop', () => {
 
     it('should render a BOX correctly with resolved dynamic props', () => {
         const blueprint = {
+            id: "box-1",
             type: ELEMENT_TYPES.BOX,
             position: mockOrigin,
             width: (state: SceneState) => state.playback.progress * 100
@@ -163,6 +170,7 @@ describe('resolver.createRenderable & Resolver Loop', () => {
 
     it('should recursively resolve nested objects like fillColor', () => {
         const blueprint = {
+            id: "box-1",
             type: ELEMENT_TYPES.BOX,
             position: mockOrigin,
             width: 10,
@@ -184,6 +192,7 @@ describe('resolver.createRenderable & Resolver Loop', () => {
 
     it('should pass through static keys (type, texture, font) without wrapping', () => {
         const blueprint = {
+            id: "id-1",
             type: ELEMENT_TYPES.BOX,
             texture: {path: 'test.png', width: 100, height: 100},
             position: mockOrigin,
@@ -202,6 +211,7 @@ describe('resolver.createRenderable & Resolver Loop', () => {
 
     it('should handle atomic function resolution for position', () => {
         const blueprint = {
+            id: "box-1",
             type: ELEMENT_TYPES.BOX,
             position: (s: SceneState) => ({x: s.playback.now, y: 0, z: 0}),
             width: 10
@@ -215,6 +225,7 @@ describe('resolver.createRenderable & Resolver Loop', () => {
 
     it('should update assets when the loader promise resolves', async () => {
         const blueprint = {
+            id: "box-1",
             type: ELEMENT_TYPES.BOX,
             position: mockOrigin,
             width: 10,
@@ -257,6 +268,7 @@ describe('resolver.toDynamic Structural Integrity', () => {
 
     it('should treat a static object as a single STATIC leaf (Short-circuit)', () => {
         const blueprint = {
+            id: "box-1",
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 20, z: 30}, // Purely static data
             width: 10
@@ -276,6 +288,7 @@ describe('resolver.toDynamic Structural Integrity', () => {
 
     it('should treat an object with a function as a BRANCH', () => {
         const blueprint = {
+            id: "box-1",
             type: ELEMENT_TYPES.BOX,
             position: mockOrigin,
             fillColor: {
@@ -303,6 +316,7 @@ describe('resolver.toDynamic Structural Integrity', () => {
 
     it('should handle deep nesting with appropriate branching', () => {
         const blueprint = {
+            id: "box-1",
             type: ELEMENT_TYPES.BOX,
             position: mockOrigin,
             width: 10,
@@ -330,6 +344,7 @@ describe('resolver.toDynamic Structural Integrity', () => {
     it('should preserve identity for "Static Keys" defined in the Manifest', () => {
         const textureRef = {path: 'test.png', width: 100, height: 100};
         const blueprint = {
+            id: "box-1",
             type: ELEMENT_TYPES.BOX,
             texture: textureRef,
             position: mockOrigin,
@@ -349,6 +364,7 @@ describe('resolver.toDynamic Structural Integrity', () => {
     it('should handle root-level functions as COMPUTED properties', () => {
         // A blueprint where a property IS a function
         const blueprint = {
+            id: "box-1",
             type: ELEMENT_TYPES.TEXT,
             position: mockOrigin,
             text: (s: SceneState) => `Time: ${s.playback.now}`,
@@ -453,6 +469,7 @@ describe('Shape Rendering', () => {
 
     it('should render BOX elements', () => {
         const dynamicBundle = resolver.prepare('test-box', {
+            id: 'test-box',
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 20, z: 30},
             width: 50
@@ -478,6 +495,7 @@ describe('Shape Rendering', () => {
 
     it('should render PANEL elements', () => {
         const renderable = resolver.prepare('test-panel', {
+            id: "test-panel",
             type: ELEMENT_TYPES.PANEL,
             position: {x: 15, y: 25, z: 35},
             width: 100,
@@ -501,6 +519,7 @@ describe('Shape Rendering', () => {
 
     it('should render SPHERE elements', () => {
         const renderable = resolver.prepare('test-sphere', {
+            id: 'test-sphere',
             type: ELEMENT_TYPES.SPHERE,
             position: {x: 5, y: 10, z: 15},
             radius: 25,
@@ -524,6 +543,7 @@ describe('Shape Rendering', () => {
 
     it('should render CONE elements', () => {
         const renderable = resolver.prepare('test-cone', {
+            id: 'test-cone',
             type: ELEMENT_TYPES.CONE,
             position: {x: 10, y: 20, z: 30},
             radius: 15,
@@ -547,6 +567,7 @@ describe('Shape Rendering', () => {
 
     it('should render PYRAMID elements', () => {
         const renderable = resolver.prepare('test-pyramid', {
+            id: 'test-pyramid',
             type: ELEMENT_TYPES.PYRAMID,
             position: {x: 7, y: 14, z: 21},
             baseSize: 30,
@@ -570,6 +591,7 @@ describe('Shape Rendering', () => {
 
     it('should render CYLINDER elements', () => {
         const renderable = resolver.prepare('test-cylinder', {
+            id: 'test-cylinder',
             type: ELEMENT_TYPES.CYLINDER,
             position: {x: 12, y: 24, z: 36},
             radius: 20,
@@ -593,6 +615,7 @@ describe('Shape Rendering', () => {
 
     it('should render TORUS elements', () => {
         const renderable = resolver.prepare('test-torus', {
+            id: 'test-torus',
             type: ELEMENT_TYPES.TORUS,
             position: {x: 8, y: 16, z: 24},
             radius: 30,
@@ -616,6 +639,7 @@ describe('Shape Rendering', () => {
 
     it('should render ELLIPTICAL elements', () => {
         const renderable = resolver.prepare('test-elliptical', {
+            id: 'test-elliptical',
             type: ELEMENT_TYPES.ELLIPTICAL,
             position: {x: 9, y: 18, z: 27},
             rx: 12,
@@ -641,6 +665,7 @@ describe('Shape Rendering', () => {
 
     it('should render FLOOR elements', () => {
         const renderable = resolver.prepare('test-floor', {
+            id: 'test-floor',
             type: ELEMENT_TYPES.FLOOR,
             position: {x: 0, y: -10, z: -30},
             width: 200,
@@ -664,6 +689,7 @@ describe('Shape Rendering', () => {
 
     it('should render TEXT elements', () => {
         const renderable = resolver.prepare('test-text', {
+            id: 'test-text',
             type: ELEMENT_TYPES.TEXT,
             position: {x: 100, y: 150, z: 0},
             text: 'Hello World',
@@ -689,6 +715,7 @@ describe('Shape Rendering', () => {
 
         // Test the error case by directly calling resolve with unknown type
         const renderable = resolver.prepare('test-unknown', {
+            id: 'test-unknown',
             type: "SECRET",
             position: {x:0, y:0, z:0}
         } as unknown as ResolvedBox, loader);
@@ -777,6 +804,7 @@ describe('SceneResolver with Effect Bundles', () => {
             });
 
             const blueprintBox = {
+                id: "box456",
                 type: ELEMENT_TYPES.BOX,
                 width: 5,
                 position: mockOrigin,
@@ -844,6 +872,7 @@ describe('SceneResolver with Effect Bundles', () => {
             } as any);
 
             const blueprintBox = {
+                id: "box789",
                 type: ELEMENT_TYPES.BOX,
                 width: 10,
                 position: {x: 1, y: 2, z: 3},
@@ -942,6 +971,7 @@ describe('SceneResolver with Effect Bundles', () => {
             });
 
             const blueprintBox = {
+                id: 'box-disabled',
                 type: ELEMENT_TYPES.BOX,
                 width: 15,
                 position: mockOrigin,
@@ -984,6 +1014,7 @@ describe('SceneResolver with Effect Bundles', () => {
             } as any);
 
             const blueprintBox = {
+                id: "box-error",
                 type: ELEMENT_TYPES.BOX,
                 width: 10,
                 position: mockOrigin,

@@ -208,6 +208,7 @@ describe('P5GraphicProcessor', () => {
 
         beforeEach(() => {
             boxProps = {
+                id: "some-box",
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 10, y: 20, z: 30 },
                 rotate: { x: 0.1, y: 0.2, z: 0.3 },
@@ -251,6 +252,7 @@ describe('P5GraphicProcessor', () => {
 
         beforeEach(() => {
             sphereProps = {
+                id: "some-sphere",
                 type: ELEMENT_TYPES.SPHERE,
                 position: { x: 0, y: 0, z: 0 },
                 rotate: { x: 0, y: 0, z: 0 },
@@ -273,6 +275,7 @@ describe('P5GraphicProcessor', () => {
 
         beforeEach(() => {
             panelProps = {
+                id: "some-panel",
                 type: ELEMENT_TYPES.PANEL,
                 position: { x: 5, y: 10, z: 15 },
                 rotate: { x: 0, y: 0, z: 0 },
@@ -296,6 +299,7 @@ describe('P5GraphicProcessor', () => {
 
         beforeEach(() => {
             floorProps = {
+                id: "some-floor",
                 type: ELEMENT_TYPES.FLOOR,
                 position: { x: 0, y: -50, z: 0 },
                 rotate: { x: 0, y: 0.5, z: 0 },
@@ -321,6 +325,7 @@ describe('P5GraphicProcessor', () => {
 
         beforeEach(() => {
             textProps = {
+                id: "some-text",
                 type: ELEMENT_TYPES.TEXT,
                 position: { x: 10, y: 20, z: 30 },
                 rotate: { x: 0, y: 0, z: 0 },
@@ -354,6 +359,7 @@ describe('P5GraphicProcessor', () => {
     describe('Drawing Methods - Other Shapes', () => {
         it('should draw pyramid', () => {
             const pyramidProps: ResolvedPyramid = {
+                id: "some-pyramid",
                 type: ELEMENT_TYPES.PYRAMID,
                 position: { x: 0, y: 0, z: 0 },
                 rotate: { x: 0, y: 0, z: 0 },
@@ -370,6 +376,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should draw cone', () => {
             const coneProps: ResolvedCone = {
+                id: 'some-cone',
                 type: ELEMENT_TYPES.CONE,
                 position: { x: 0, y: 0, z: 0 },
                 rotate: { x: 0, y: 0, z: 0 },
@@ -384,6 +391,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should draw elliptical', () => {
             const ellipticalProps: ResolvedElliptical = {
+                id: 'some-elliptical',
                 type: ELEMENT_TYPES.ELLIPTICAL,
                 position: { x: 0, y: 0, z: 0 },
                 rotate: { x: 0, y: 0, z: 0 },
@@ -399,6 +407,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should draw cylinder', () => {
             const cylinderProps: ResolvedCylinder = {
+                id: 'some-cylinder',
                 type: ELEMENT_TYPES.CYLINDER,
                 position: { x: 0, y: 0, z: 0 },
                 rotate: { x: 0, y: 0, z: 0 },
@@ -413,6 +422,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should draw torus', () => {
             const torusProps: ResolvedTorus = {
+                id: 'some-torus',
                 type: ELEMENT_TYPES.TORUS,
                 position: { x: 0, y: 0, z: 0 },
                 rotate: { x: 0, y: 0, z: 0 },
@@ -504,6 +514,7 @@ describe('P5GraphicProcessor', () => {
     describe('Helper Methods', () => {
         it('should handle stroke when strokeWidth is zero', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -518,6 +529,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should handle missing strokeColor', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -531,6 +543,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should handle missing fillColor', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50
@@ -545,6 +558,7 @@ describe('P5GraphicProcessor', () => {
     describe('drawTexture Helper Method', () => {
         it('should apply texture when ready', () => {
             const props = {
+                id: "some-box",
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -563,6 +577,7 @@ describe('P5GraphicProcessor', () => {
                 texture: { status: ASSET_STATUS.LOADING, value: null }
             };
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -577,6 +592,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should handle missing texture asset', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -595,6 +611,7 @@ describe('P5GraphicProcessor', () => {
                 settings: { ...mockState.settings, alpha: 0.7 }
             };
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -610,6 +627,7 @@ describe('P5GraphicProcessor', () => {
     describe('drawFill Helper Method', () => {
         it('should apply fill with correct alpha calculation', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -624,6 +642,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should use default alpha when not specified', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -637,6 +656,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should call noFill when fillColor is missing', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50
@@ -651,6 +671,7 @@ describe('P5GraphicProcessor', () => {
     describe('drawStroke Helper Method', () => {
         it('should apply stroke with correct alpha and weight', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -667,6 +688,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should use default stroke width when not specified', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -680,6 +702,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should call noStroke when strokeColor is missing', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -693,6 +716,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should call noStroke when strokeWidth is zero', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -709,6 +733,7 @@ describe('P5GraphicProcessor', () => {
     describe('rotate Helper Method', () => {
         it('should apply rotations in correct order when all axes specified', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -724,6 +749,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should only apply non-zero rotations', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -739,6 +765,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should handle undefined rotation', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50
@@ -753,6 +780,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should handle partial rotation vectors', () => {
             const props = {
+                id: 'some-box',
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -772,6 +800,7 @@ describe('P5GraphicProcessor', () => {
 
         beforeEach(() => {
             textProps = {
+                id: 'some-text',
                 type: ELEMENT_TYPES.TEXT,
                 position: { x: 10, y: 20, z: 30 },
                 rotate: { x: 0.1, y: 0.2, z: 0.3 },
@@ -846,6 +875,7 @@ describe('P5GraphicProcessor', () => {
         describe('Box Edge Cases', () => {
             it('should handle box with minimal dimensions', () => {
                 const minimalBox: ResolvedBox = {
+                    id: "some-box",
                     type: ELEMENT_TYPES.BOX,
                     position: { x: 0, y: 0, z: 0 },
                     width: 1
@@ -858,6 +888,7 @@ describe('P5GraphicProcessor', () => {
 
             it('should handle box with zero dimensions', () => {
                 const zeroBox: ResolvedBox = {
+                    id: "some-box",
                     type: ELEMENT_TYPES.BOX,
                     position: { x: 0, y: 0, z: 0 },
                     width: 0,
@@ -874,6 +905,7 @@ describe('P5GraphicProcessor', () => {
         describe('Sphere Edge Cases', () => {
             it('should handle sphere with zero radius', () => {
                 const zeroSphere: ResolvedSphere = {
+                    id: "some-sphere",
                     type: ELEMENT_TYPES.SPHERE,
                     position: { x: 0, y: 0, z: 0 },
                     radius: 0
@@ -886,6 +918,7 @@ describe('P5GraphicProcessor', () => {
 
             it('should handle sphere with negative radius', () => {
                 const negativeSphere: ResolvedSphere = {
+                    id: "some-sphere",
                     type: ELEMENT_TYPES.SPHERE,
                     position: { x: 0, y: 0, z: 0 },
                     radius: -10
@@ -900,6 +933,7 @@ describe('P5GraphicProcessor', () => {
         describe('Floor Edge Cases', () => {
             it('should handle floor with rotation and negative dimensions', () => {
                 const floorProps: ResolvedFloor = {
+                    id: "some-floor",
                     type: ELEMENT_TYPES.FLOOR,
                     position: { x: 0, y: -100, z: 0 },
                     rotate: { x: 0.5, y: 1.0, z: 0.25 },
@@ -921,6 +955,7 @@ describe('P5GraphicProcessor', () => {
         describe('Pyramid Edge Cases', () => {
             it('should handle pyramid with zero base size and height', () => {
                 const zeroPyramid: ResolvedPyramid = {
+                    id: "some-pyramid",
                     type: ELEMENT_TYPES.PYRAMID,
                     position: { x: 0, y: 0, z: 0 },
                     baseSize: 0,
@@ -936,6 +971,7 @@ describe('P5GraphicProcessor', () => {
 
             it('should handle pyramid with negative dimensions', () => {
                 const negativePyramid: ResolvedPyramid = {
+                    id: "some-pyramid",
                     type: ELEMENT_TYPES.PYRAMID,
                     position: { x: 0, y: 0, z: 0 },
                     baseSize: -50,
@@ -953,6 +989,7 @@ describe('P5GraphicProcessor', () => {
         describe('Elliptical Edge Cases', () => {
             it('should handle ellipsoid with zero axes', () => {
                 const zeroElliptical: ResolvedElliptical = {
+                    id: "some-elliptical",
                     type: ELEMENT_TYPES.ELLIPTICAL,
                     position: { x: 0, y: 0, z: 0 },
                     rx: 0,
@@ -967,6 +1004,7 @@ describe('P5GraphicProcessor', () => {
 
             it('should handle ellipsoid with single axis', () => {
                 const singleAxisElliptical: ResolvedElliptical = {
+                    id: "some-elliptical",
                     type: ELEMENT_TYPES.ELLIPTICAL,
                     position: { x: 0, y: 0, z: 0 },
                     rx: 50,
@@ -983,6 +1021,7 @@ describe('P5GraphicProcessor', () => {
         describe('Cylinder and Cone Edge Cases', () => {
             it('should handle cylinder with zero dimensions', () => {
                 const zeroCylinder: ResolvedCylinder = {
+                    id: "some-cylinder",
                     type: ELEMENT_TYPES.CYLINDER,
                     position: { x: 0, y: 0, z: 0 },
                     radius: 0,
@@ -996,6 +1035,7 @@ describe('P5GraphicProcessor', () => {
 
             it('should handle cone with zero dimensions', () => {
                 const zeroCone: ResolvedCone = {
+                    id: "some-cone",
                     type: ELEMENT_TYPES.CONE,
                     position: { x: 0, y: 0, z: 0 },
                     radius: 0,
@@ -1011,6 +1051,7 @@ describe('P5GraphicProcessor', () => {
         describe('Torus Edge Cases', () => {
             it('should handle torus with zero dimensions', () => {
                 const zeroTorus: ResolvedTorus = {
+                    id: "some-torus",
                     type: ELEMENT_TYPES.TORUS,
                     position: { x: 0, y: 0, z: 0 },
                     radius: 0,
@@ -1024,6 +1065,7 @@ describe('P5GraphicProcessor', () => {
 
             it('should handle torus with larger tube radius than radius', () => {
                 const invertedTorus: ResolvedTorus = {
+                    id: "some-torus",
                     type: ELEMENT_TYPES.TORUS,
                     position: { x: 0, y: 0, z: 0 },
                     radius: 10,
@@ -1040,6 +1082,7 @@ describe('P5GraphicProcessor', () => {
     describe('Error Handling and Input Validation', () => {
         it('should handle malformed position vectors', () => {
             const malformedProps = {
+                id: "some-box",
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 'invalid' as any, y: null as any, z: undefined },
                 width: 50
@@ -1052,6 +1095,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should handle invalid color values', () => {
             const invalidColorProps = {
+                id: "some-box",
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -1069,6 +1113,7 @@ describe('P5GraphicProcessor', () => {
             };
 
             const props: ResolvedBox = {
+                id: "some-box",
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50
@@ -1088,6 +1133,7 @@ describe('P5GraphicProcessor', () => {
             } as any;
 
             const props: ResolvedBox = {
+                id: "some-box",
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -1102,6 +1148,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should handle extreme alpha values', () => {
             const extremeAlphaProps = {
+                id: "some-box",
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50,
@@ -1123,6 +1170,7 @@ describe('P5GraphicProcessor', () => {
     describe('Method Call Sequence Verification', () => {
         it('should maintain correct push/pop sequence for box drawing', () => {
             const props = {
+                id: "some-box",
                 type: ELEMENT_TYPES.BOX,
                 position: { x: 0, y: 0, z: 0 },
                 width: 50
@@ -1143,6 +1191,7 @@ describe('P5GraphicProcessor', () => {
 
         it('should verify floor rotation sequence', () => {
             const props = {
+                id: "some-floor",
                 type: ELEMENT_TYPES.FLOOR,
                 position: { x: 0, y: 0, z: 0 },
                 width: 100,
