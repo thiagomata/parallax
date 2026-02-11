@@ -23,8 +23,8 @@ export class Stage<
         this.registry = new AssetRegistry<TGraphicBundle, TEffectLib>(loader, this.resolver);
     }
 
-    public add<T extends ResolvedElement>(id: string, blueprint: MapToBlueprint<T>): void {
-        this.registry.register<T>(id, blueprint);
+    public add<T extends ResolvedElement>(blueprint: MapToBlueprint<T>): void {
+        this.registry.register<T>(blueprint.id, blueprint);
     }
 
     public remove(id: string): void {

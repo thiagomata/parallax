@@ -19,7 +19,7 @@ describe('Stage (Spatial Orchestration)', () => {
     });
 
     it('should register and render an element', () => {
-        stage.add('box-1', {
+        stage.add({
             id: 'box-1',
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 0, z: 0},
@@ -45,7 +45,7 @@ describe('Stage (Spatial Orchestration)', () => {
             position: nearPos,
             width: 1
         }
-        stage.add('near', nearBox);
+        stage.add( nearBox);
 
         const farBox = {
             id: "far",
@@ -53,7 +53,7 @@ describe('Stage (Spatial Orchestration)', () => {
             position: farPos,
             width: 1
         }
-        stage.add('far', farBox);
+        stage.add(farBox);
 
         stage.render(mockGP, mockState);
 
@@ -68,7 +68,7 @@ describe('Stage (Spatial Orchestration)', () => {
 
     it('should resolve dynamic positions during the sorting phase', () => {
         // Proof that resolveProperty is working inside the sort
-        stage.add('some-box', {
+        stage.add({
             id: "some-box",
             type: ELEMENT_TYPES.BOX,
             position: (s: any) => ({x: s.playback.now, y: 0, z: 0}),
@@ -129,8 +129,8 @@ describe('Stage (Spatial Orchestration)', () => {
             texture: {path: 'shared.png', width: 1, height: 1},
         };
 
-        stage.add('unique-id', bluePrint);
-        stage.add('unique-id', bluePrint);
+        stage.add(bluePrint);
+        stage.add(bluePrint);
 
         // Registry should return the existing element rather than creating/hydrating again
         expect(spy).toHaveBeenCalledTimes(1);
@@ -140,8 +140,8 @@ describe('Stage (Spatial Orchestration)', () => {
         const elementId = 'removable-box';
         
         // Add an element first
-        stage.add(elementId, {
-            id: "some-box",
+        stage.add({
+            id: elementId,
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 0, z: 0},
             width: 5
@@ -161,8 +161,8 @@ describe('Stage (Spatial Orchestration)', () => {
         const elementId = 'not-rendered-box';
         
         // Add an element
-        stage.add(elementId, {
-            id: "some-box",
+        stage.add({
+            id: elementId,
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 0, z: 0},
             width: 5

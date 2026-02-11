@@ -227,7 +227,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             
             // Test add
             world.addBox({id: 'integration-test', ...blueprint} as any);
-            expect(stageSpy).toHaveBeenCalledWith('integration-test', expect.objectContaining(blueprint));
+            expect(stageSpy).toHaveBeenCalledWith(expect.objectContaining(blueprint));
             
             // Test get
             world.getElement('integration-test');

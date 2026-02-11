@@ -41,61 +41,61 @@ export class World<TBundle extends GraphicsBundle, TEffectLib extends EffectLib>
     public addBox<TID extends string>(
         blueprint: BlueprintBox & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint.id, blueprint);
+        this.stage.add(blueprint);
     }
 
     public addSphere<TID extends string>(
         blueprint: BlueprintSphere & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint.id, blueprint);
+        this.stage.add(blueprint);
     }
 
     public addCone<TID extends string>(
         blueprint: BlueprintCone & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint.id, blueprint);
+        this.stage.add(blueprint);
     }
 
     public addPyramid<TID extends string>(
         blueprint: BlueprintPyramid & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint.id, blueprint);
+        this.stage.add(blueprint);
     }
 
     public addElliptical<TID extends string>(
         blueprint: BlueprintElliptical & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint.id, blueprint);
+        this.stage.add(blueprint);
     }
 
     public addCylinder<TID extends string>(
         blueprint: BlueprintCylinder & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint.id, blueprint);
+        this.stage.add(blueprint);
     }
 
     public addTorus<TID extends string>(
         blueprint: BlueprintTorus & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint.id, blueprint);
+        this.stage.add(blueprint);
     }
 
     public addText<TID extends string>(
         blueprint: BlueprintText & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint.id, blueprint);
+        this.stage.add(blueprint);
     }
 
     public addFloor<TID extends string>(
         blueprint: BlueprintFloor & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint.id, blueprint);
+        this.stage.add(blueprint);
     }
 
     public addPanel<TID extends string>(
         blueprint: BlueprintPanel & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint.id, blueprint);
+        this.stage.add(blueprint);
     }
 
     public getElement(id: string): BundleDynamicElement<any, TBundle> | undefined {
