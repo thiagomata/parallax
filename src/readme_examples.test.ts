@@ -80,7 +80,7 @@ describe('README Examples Validation', () => {
         });
 
         // We must wrap the blueprint into a Renderable to "compile" the specs
-        const element = resolver.prepare('test-id', blueprint, assetLoader);
+        const element = resolver.prepare(blueprint, assetLoader);
         const elementResolved = resolver.resolve(element, state) as { resolved: ResolvedBox };
 
         // Example 2: Deep Resolution (Granular)
@@ -95,7 +95,7 @@ describe('README Examples Validation', () => {
             width: 10
         });
 
-        const granularElement = resolver.prepare('granular-id', granularBlueprint, assetLoader);
+        const granularElement = resolver.prepare(granularBlueprint, assetLoader);
         const granularResolved = resolver.resolve(granularElement, state) as { resolved: ResolvedBox };
 
         // Assertions

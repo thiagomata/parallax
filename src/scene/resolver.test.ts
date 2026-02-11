@@ -115,7 +115,7 @@ describe('resolver.createRenderable & Resolver Loop', () => {
             texture: {path: 'test.png', width: 100, height: 100}
         };
 
-        const renderable = resolver.prepare('test-1', blueprint, loader);
+        const renderable = resolver.prepare(blueprint, loader);
 
         // Immediate state check
         expect(renderable.assets.texture?.status).toBe(ASSET_STATUS.PENDING);
@@ -133,7 +133,7 @@ describe('resolver.createRenderable & Resolver Loop', () => {
             position: mockOrigin,
             width: 10
         };
-        const renderable = resolver.prepare('id-1', blueprint, loader);
+        const renderable = resolver.prepare(blueprint, loader);
 
         vi.mocked(gp.dist).mockReturnValue(6000); // Beyond default far
 
@@ -150,7 +150,7 @@ describe('resolver.createRenderable & Resolver Loop', () => {
             position: mockOrigin,
             width: (state: SceneState) => state.playback.progress * 100
         };
-        const dynamicBundle = resolver.prepare('box-1', blueprint, loader);
+        const dynamicBundle = resolver.prepare(blueprint, loader);
 
         const resolvedBundle = resolver.resolve(
             dynamicBundle,
@@ -170,7 +170,7 @@ describe('resolver.createRenderable & Resolver Loop', () => {
 
     it('should recursively resolve nested objects like fillColor', () => {
         const blueprint = {
-            id: "box-1",
+            id: "fill-test",
             type: ELEMENT_TYPES.BOX,
             position: mockOrigin,
             width: 10,
@@ -183,7 +183,7 @@ describe('resolver.createRenderable & Resolver Loop', () => {
 
         // NEW: Instead of resolving the 'dynamic' object directly,
         // we resolve the RenderableElement to test the Extraction Logic.
-        const renderable = resolver.prepare('fill-test', blueprint, loader);
+        const renderable = resolver.prepare(blueprint, loader);
         const resolvedBundle = resolver.resolve(renderable, mockState); // No 'as' needed here!
 
         expect(resolvedBundle.resolved.fillColor).toEqual({red: 255, green: 51, blue: 0});
@@ -211,13 +211,13 @@ describe('resolver.createRenderable & Resolver Loop', () => {
 
     it('should handle atomic function resolution for position', () => {
         const blueprint = {
-            id: "box-1",
+            id: "pos-test",
             type: ELEMENT_TYPES.BOX,
             position: (s: SceneState) => ({x: s.playback.now, y: 0, z: 0}),
             width: 10
         };
 
-        const renderable = resolver.prepare('pos-test', blueprint, loader);
+        const renderable = resolver.prepare(blueprint, loader);
         const result = resolver.resolve(renderable, mockState);
 
         expect(result.resolved.position).toEqual({x: 1000, y: 0, z: 0});
@@ -225,7 +225,7 @@ describe('resolver.createRenderable & Resolver Loop', () => {
 
     it('should update assets when the loader promise resolves', async () => {
         const blueprint = {
-            id: "box-1",
+            id: "async-test",
             type: ELEMENT_TYPES.BOX,
             position: mockOrigin,
             width: 10,
@@ -239,7 +239,7 @@ describe('resolver.createRenderable & Resolver Loop', () => {
         });
         vi.mocked(loader.hydrateTexture).mockReturnValue(assetPromise as any);
 
-        const renderable = resolver.prepare('async-test', blueprint, loader);
+        const renderable = resolver.prepare(blueprint, loader);
         expect(renderable.assets.texture?.status).toBe(ASSET_STATUS.PENDING); // Waiting for the asset texture
         expect(renderable.assets.font?.status).toBe(ASSET_STATUS.READY); // Asset font is ready since is none
 
@@ -468,7 +468,7 @@ describe('Shape Rendering', () => {
     });
 
     it('should render BOX elements', () => {
-        const dynamicBundle = resolver.prepare('test-box', {
+        const dynamicBundle = resolver.prepare({
             id: 'test-box',
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 20, z: 30},
@@ -494,7 +494,7 @@ describe('Shape Rendering', () => {
     });
 
     it('should render PANEL elements', () => {
-        const renderable = resolver.prepare('test-panel', {
+        const renderable = resolver.prepare({
             id: "test-panel",
             type: ELEMENT_TYPES.PANEL,
             position: {x: 15, y: 25, z: 35},
@@ -518,7 +518,7 @@ describe('Shape Rendering', () => {
     });
 
     it('should render SPHERE elements', () => {
-        const renderable = resolver.prepare('test-sphere', {
+        const renderable = resolver.prepare({
             id: 'test-sphere',
             type: ELEMENT_TYPES.SPHERE,
             position: {x: 5, y: 10, z: 15},
@@ -542,7 +542,7 @@ describe('Shape Rendering', () => {
     });
 
     it('should render CONE elements', () => {
-        const renderable = resolver.prepare('test-cone', {
+        const renderable = resolver.prepare({
             id: 'test-cone',
             type: ELEMENT_TYPES.CONE,
             position: {x: 10, y: 20, z: 30},
@@ -566,7 +566,7 @@ describe('Shape Rendering', () => {
     });
 
     it('should render PYRAMID elements', () => {
-        const renderable = resolver.prepare('test-pyramid', {
+        const renderable = resolver.prepare({
             id: 'test-pyramid',
             type: ELEMENT_TYPES.PYRAMID,
             position: {x: 7, y: 14, z: 21},
@@ -590,7 +590,7 @@ describe('Shape Rendering', () => {
     });
 
     it('should render CYLINDER elements', () => {
-        const renderable = resolver.prepare('test-cylinder', {
+        const renderable = resolver.prepare({
             id: 'test-cylinder',
             type: ELEMENT_TYPES.CYLINDER,
             position: {x: 12, y: 24, z: 36},
@@ -614,7 +614,7 @@ describe('Shape Rendering', () => {
     });
 
     it('should render TORUS elements', () => {
-        const renderable = resolver.prepare('test-torus', {
+        const renderable = resolver.prepare({
             id: 'test-torus',
             type: ELEMENT_TYPES.TORUS,
             position: {x: 8, y: 16, z: 24},
@@ -638,7 +638,7 @@ describe('Shape Rendering', () => {
     });
 
     it('should render ELLIPTICAL elements', () => {
-        const renderable = resolver.prepare('test-elliptical', {
+        const renderable = resolver.prepare({
             id: 'test-elliptical',
             type: ELEMENT_TYPES.ELLIPTICAL,
             position: {x: 9, y: 18, z: 27},
@@ -664,7 +664,7 @@ describe('Shape Rendering', () => {
     });
 
     it('should render FLOOR elements', () => {
-        const renderable = resolver.prepare('test-floor', {
+        const renderable = resolver.prepare({
             id: 'test-floor',
             type: ELEMENT_TYPES.FLOOR,
             position: {x: 0, y: -10, z: -30},
@@ -688,7 +688,7 @@ describe('Shape Rendering', () => {
     });
 
     it('should render TEXT elements', () => {
-        const renderable = resolver.prepare('test-text', {
+        const renderable = resolver.prepare({
             id: 'test-text',
             type: ELEMENT_TYPES.TEXT,
             position: {x: 100, y: 150, z: 0},
@@ -714,7 +714,7 @@ describe('Shape Rendering', () => {
     it('should handle unknown element types with error', () => {
 
         // Test the error case by directly calling resolve with unknown type
-        const renderable = resolver.prepare('test-unknown', {
+        const renderable = resolver.prepare({
             id: 'test-unknown',
             type: "SECRET",
             position: {x:0, y:0, z:0}
@@ -770,7 +770,6 @@ describe('SceneResolver with Effect Bundles', () => {
             } as BlueprintBox;
 
             const dynamicBundle = resolver.prepare(
-                'box123',
                 blueprintBox,
                 loader
             );
@@ -817,7 +816,6 @@ describe('SceneResolver with Effect Bundles', () => {
             } as BlueprintBox;
 
             const dynamicBundle = resolver.prepare(
-                'box456',
                 blueprintBox,
                 loader
             );
@@ -889,7 +887,6 @@ describe('SceneResolver with Effect Bundles', () => {
             } as BlueprintBox;
 
             const dynamicBundle = resolver.prepare(
-                'box789',
                 blueprintBox,
                 loader
             );
@@ -940,7 +937,6 @@ describe('SceneResolver with Effect Bundles', () => {
             } as BlueprintBox;
 
             const dynamicBundle = resolver.prepare(
-                'box123',
                 blueprintBox,
                 createMockLoader()
             );
@@ -984,7 +980,6 @@ describe('SceneResolver with Effect Bundles', () => {
             } as BlueprintBox;
 
             const dynamicBundle = resolver.prepare(
-                'box-disabled',
                 blueprintBox,
                 createMockLoader()
             );
@@ -1027,7 +1022,6 @@ describe('SceneResolver with Effect Bundles', () => {
             } as BlueprintBox;
 
             const dynamicBundle = resolver.prepare(
-                'box-error',
                 blueprintBox,
                 createMockLoader()
             );
@@ -1054,7 +1048,7 @@ describe('SceneResolver with Effect Bundles', () => {
             } as BlueprintBox;
 
             expect(() => {
-                resolver.prepare('error-box', blueprintBox, createMockLoader());
+                resolver.prepare(blueprintBox, createMockLoader());
             }).toThrow('invalid effect unknownEffect');
         });
     });

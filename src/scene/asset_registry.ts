@@ -35,7 +35,7 @@ export class AssetRegistry<
         // Only create a new one if it doesn't exist
         // This triggers the createRenderable factory
         // and the loader hydration exactly once.
-        const renderable = this.resolver.prepare(blueprint.id, blueprint, this.loader);
+        const renderable = this.resolver.prepare(blueprint, this.loader);
 
         // Store the instance
         this.elements.set(blueprint.id, renderable);

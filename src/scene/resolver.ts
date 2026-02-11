@@ -31,7 +31,6 @@ export class SceneResolver<
     }
 
     prepare<T extends ResolvedElement>(
-        id: string,
         blueprint: MapToBlueprint<T>,
         loader: AssetLoader<TGraphicBundle>
     ): BundleDynamicElement<T, TGraphicBundle> {
@@ -63,7 +62,7 @@ export class SceneResolver<
         }
 
         return {
-            id,
+            id: blueprint.id,
             dynamic,
             assets,
             effects: effectsBundles,
