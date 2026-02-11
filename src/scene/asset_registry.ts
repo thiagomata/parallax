@@ -21,11 +21,10 @@ export class AssetRegistry<
     }
 
     public register<T extends ResolvedElement>(
-        id: string,
         blueprint: MapToBlueprint<T>
     ): BundleDynamicElement<T, TBundle> {
         // Check if we already have this instance
-        const existing = this.elements.get(id);
+        const existing = this.elements.get(blueprint.id);
 
         if (existing) {
             // Return the existing Single Source of Truth
@@ -36,10 +35,10 @@ export class AssetRegistry<
         // Only create a new one if it doesn't exist
         // This triggers the createRenderable factory
         // and the loader hydration exactly once.
-        const renderable = this.resolver.prepare(id, blueprint, this.loader);
+        const renderable = this.resolver.prepare(blueprint.id, blueprint, this.loader);
 
         // Store the instance
-        this.elements.set(id, renderable);
+        this.elements.set(blueprint.id, renderable);
 
         return renderable;
     }

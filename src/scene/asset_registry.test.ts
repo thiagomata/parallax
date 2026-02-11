@@ -38,7 +38,7 @@ describe('AssetRegistry', () => {
                 texture: {path: 'grass.png', width: 64, height: 64}
             };
 
-            const element = registry.register(id, blueprint);
+            const element = registry.register(blueprint);
 
             // Identity & Structure
             expect(element.id).toBe(id);
@@ -52,19 +52,19 @@ describe('AssetRegistry', () => {
 
         it('should return the existing instance and PREVENT re-hydration if ID is already registered', () => {
             const blueprint = {
-                id: 'repeat-box',
+                id: 'item-1',
                 type: ELEMENT_TYPES.BOX,
                 width: 5,
                 position: {x: 0, y: 0, z: 0},
                 texture: {path: 'repeat.png', width: 1, height: 1}
             };
 
-            const first = registry.register('item-1', blueprint);
+            const first = registry.register(blueprint);
 
             // Reset mock to see if second call triggers it again
             vi.mocked(loader.hydrateTexture).mockClear();
 
-            const second = registry.register('item-1', blueprint);
+            const second = registry.register(blueprint);
 
             expect(first).toBe(second);
             // CRITICAL: Respecting efficiency - don't re-hydrate what is already alive
@@ -74,13 +74,13 @@ describe('AssetRegistry', () => {
 
     describe('Collection Integrity', () => {
         it('should correctly store heterogeneous RenderableElements', () => {
-            registry.register('box-1', {
+            registry.register({
                 id: 'box-1',
                 type: ELEMENT_TYPES.BOX,
                 width: 1,
                 position: {x: 0, y: 0, z: 0}
             });
-            registry.register('text-1', {
+            registry.register({
                 id: 'text-1',
                 type: ELEMENT_TYPES.TEXT,
                 text: 'hi',
@@ -99,7 +99,7 @@ describe('AssetRegistry', () => {
 
     describe('Lifecycle: Removal', () => {
         it('should clean up the registry completely on remove', () => {
-            registry.register('target', {
+            registry.register({
                 id: 'target',
                 type: ELEMENT_TYPES.BOX,
                 width: 1,

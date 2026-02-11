@@ -24,7 +24,7 @@ export class Stage<
     }
 
     public add<T extends ResolvedElement>(blueprint: MapToBlueprint<T>): void {
-        this.registry.register<T>(blueprint.id, blueprint);
+        this.registry.register<T>(blueprint);
     }
 
     public remove(id: string): void {
