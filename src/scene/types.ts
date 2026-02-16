@@ -7,6 +7,20 @@ export interface Vector3 {
     readonly z: number;
 }
 
+export interface Rotation3 {
+    /* rotation around X axis */
+    pitch: number;
+    /* rotation around Y axis */
+    yaw: number;
+    /* rotation around Z axis */
+    roll: number;
+}
+
+export interface Pose {
+    position: Vector3
+    rotation: Rotation3
+}
+
 /**
  * A component of the projection matrix containing 4 values.
  */
@@ -26,6 +40,31 @@ export type ProjectionMatrix = {
     readonly yScale: ProjectionMatrixComponent;
     readonly projection: ProjectionMatrixComponent;
     readonly translation: ProjectionMatrixComponent;
+};
+
+export const PROJECTION_TYPES = {
+    WORLD: 'WORLD',
+    PLAYER: 'PLAYER',
+    SCREEN: 'SCREEN',
+    HEAD: 'HEAD',
+    EYE: 'EYE'
+} as const;
+export type ProjectionType = typeof PROJECTION_TYPES[keyof typeof PROJECTION_TYPES];
+
+export interface CameraSpace {
+    position: Vector3;    // camera origin in world
+    rotation: Rotation3;  // yaw/pitch/roll
+    carModifiers: CarModifier[]
+    nudgeModifiers: NudgeModifier[]
+    stickModifiers: StickModifier[]
+}
+
+export const DEFAULT_CAMERA_SPACE: CameraSpace = {
+    position: {x:0, y:0, z: -100},
+    rotation: {pitch: 0, yaw: 0, roll: 0},
+    carModifiers: [],
+    nudgeModifiers: [],
+    stickModifiers: [],
 };
 
 /**
@@ -236,7 +275,6 @@ export interface StickResult {
     readonly distance: number;
     readonly roll: number;
     readonly priority: number;
-    readonly confidence?: number; // Optional confidence for future weighting
 }
 
 export interface Modifier {
