@@ -16,10 +16,97 @@ export interface Rotation3 {
     roll: number;
 }
 
-export interface Pose {
-    position: Vector3
-    rotation: Rotation3
+/**
+ * Modifiers are static refs in the blueprint
+ */
+export interface BaseProjection {
+    readonly type: ProjectionType;
+    readonly id: string;
+    readonly carModifiers?: CarModifier[];
+    readonly nudgeModifiers?: NudgeModifier[];
+    readonly stickModifiers?: StickModifier[];
+    readonly effects?: ProjectionEffectBlueprint[];
 }
+
+export interface ResolvedProjection extends BaseProjection {
+    position: Vector3;
+    rotation: Rotation3;
+    lookAt: Vector3;
+    direction: Vector3;
+    distance: number;
+}
+
+/**
+ * Projection Blueprint - Allows flexible specs for base pose properties.
+ */
+export interface BlueprintProjection extends BaseProjection {
+    readonly position: FlexibleSpec<Vector3>;
+    readonly rotation: FlexibleSpec<Rotation3>;
+    readonly lookAt: FlexibleSpec<Vector3>;
+    readonly direction: FlexibleSpec<Vector3>;
+}
+
+/**
+ * Projection Dynamic - The compiled version ready for the frame loop.
+ */
+export interface DynamicProjection extends BaseProjection {
+    readonly position: DynamicProperty<Vector3>;
+    readonly rotation: DynamicProperty<Rotation3>;
+    readonly lookAt: DynamicProperty<Vector3>;
+    readonly direction: DynamicProperty<Vector3>;
+}
+
+export const DEFAULT_PROJECTION_ELEMENT = {
+    position: { x: 0, y: 0, z: 0 },
+    rotation: { pitch: 0, yaw: 0, roll: 0 },
+    direction: { x: 0, y: 0, z: 0 },
+    lookAt: { x: 0, y: 0, z: 0 },
+    carModifiers: [],
+    nudgeModifiers: [],
+    stickModifiers: [],
+};
+
+export interface ProjectionEffectBundle<
+    TID extends string = string,
+    TConfig extends BaseModifierSettings = BaseModifierSettings,
+    E extends ResolvedProjection = ResolvedProjection,
+> {
+    readonly type: TID;
+    readonly defaults: TConfig;
+    /**
+     * Specifically transforms a spatial projection rather than a visual element.
+     */
+    apply(current: E, state: SceneState, settings: TConfig): E;
+}
+
+export type ProjectionEffectLib = Record<string, ProjectionEffectBundle<any, any, any>>;
+
+export interface ProjectionEffectBlueprint<K extends string = string, TConfig = any> {
+    readonly type: K;
+    readonly settings?: Partial<TConfig>;
+}
+
+export interface ProjectionEffectResolutionGroup<
+    TID extends string = string,
+    TConfig extends BaseModifierSettings = any
+> {
+    readonly type: TID;
+    readonly bundle: ProjectionEffectBundle<TID, TConfig, any>;
+    readonly settings?: TConfig; // Hydrated/Merged settings
+}
+
+// export interface ProjectionElementDebug {
+//     // cars
+//     logFailedCar(element: ProjectionElement,  carModifier: CarModifier, res: { success: false; error: string }): void;
+//     logSuccessCar(element: ProjectionElement,  carModifier: CarModifier, res: { success: true; value: CarResult }): void;
+//     // nudge
+//     logFailedNudge(element: ProjectionElement,  nudgeModifier: NudgeModifier, res: { success: false; error: string }): void;
+//     logSuccessNudge(element: ProjectionElement,  nudgeModifier: NudgeModifier, res: { success: true; value: Partial<Vector3> }): void;
+//     logFinalNudge(element: ProjectionElement,  finalNudge: { x: number; y: number; z: number }): void;
+//     // stick
+//     logFailedStick(element: ProjectionElement,  stickModifier: StickModifier, res: { success: false; error: string }): void;
+//     logSuccessStick(element: ProjectionElement,  stickModifier: StickModifier, res: { success: true; value: StickResult }): void;
+// }
 
 /**
  * A component of the projection matrix containing 4 values.
@@ -448,8 +535,8 @@ export type FlexibleSpec<T> =
     | (T extends object ? BlueprintTree<T> : never);
 export type BlueprintTree<T> = { [K in keyof T]?: FlexibleSpec<T[K]>; };
 
-export const IDENTITY_KEYS = ['type', 'texture', 'font', 'modifiers', 'id'] as const;
-type StaticKeys = typeof IDENTITY_KEYS[number];
+export const STATIC_ELEMENT_KEYS = ['type', 'texture', 'font', 'id'] as const;
+type StaticKeys = typeof STATIC_ELEMENT_KEYS[number];
 export type MapToBlueprint<T> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K]>; } & {
     effects?: EffectBlueprint[];
 };
