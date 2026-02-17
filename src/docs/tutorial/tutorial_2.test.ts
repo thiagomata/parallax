@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {tutorial_2} from './tutorial_2';
 import {SceneManager} from "../../scene/scene_manager.ts";
 import {DEFAULT_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
-import {SceneResolver} from "../../scene/resolver.ts";
+import {SceneResolver} from "../../scene/resolver/resolver.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {createPauseTests} from './pause_test_utils.ts';

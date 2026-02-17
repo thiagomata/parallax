@@ -38,7 +38,6 @@ describe('CompositeStick Integration', () => {
             roll: 0.02,
             distance: 500,
             priority: 20,
-            confidence: 0.9
         });
 
         // Test CompositeStick with weighted average

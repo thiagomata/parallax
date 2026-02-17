@@ -5,7 +5,7 @@ import {
     type ResolvedElement,
     type MapToBlueprint, type EffectLib
 } from "./types.ts";
-import {SceneResolver} from "./resolver.ts";
+import {SceneResolver} from "./resolver/resolver.ts";
 
 export class AssetRegistry<
     TBundle extends GraphicsBundle,

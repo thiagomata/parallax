@@ -2,10 +2,10 @@ import {describe, expect, it} from 'vitest';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {heroExample1} from "./hero_example_1.ts";
-import {SceneResolver} from "../../scene/resolver.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import type {ResolvedCylinder, ResolvedPyramid} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG} from "./hero.demo.ts";
+import {SceneResolver} from "../../scene/resolver/resolver.ts";
 
 describe('Hero Demo Integration: World Animation', () => {
 

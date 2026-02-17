@@ -11,11 +11,11 @@ import {
     type Vector3,
     type BaseModifierSettings,
     type EffectBundle, type BlueprintBox,
-} from './types';
-import type {MockGraphicBundle} from "./mock/mock_type.mock.ts";
+} from '../types';
+import type {MockGraphicBundle} from "../mock/mock_type.mock.ts";
+import {createMockGraphicProcessor} from "../mock/mock_graphic_processor.mock.ts";
+import {createMockState} from "../mock/mock_scene_state.mock.ts";
 import {SceneResolver} from "./resolver.ts";
-import {createMockGraphicProcessor} from "./mock/mock_graphic_processor.mock.ts";
-import {createMockState} from "./mock/mock_scene_state.mock.ts";
 
 const mockOrigin: Vector3 = {x: 0, y: 0, z: 0};
 

@@ -3,12 +3,12 @@ import {tutorial_1} from './tutorial_1';
 import {World} from "../../scene/world";
 import {SceneManager} from "../../scene/scene_manager";
 import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState} from "../../scene/types";
-import {SceneResolver} from "../../scene/resolver";
 import {createMockGraphicProcessor} from "../../scene/mock/mock_graphic_processor.mock.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import p5 from "p5";
 import {createPauseTests} from "./pause_test_utils.ts";
+import {SceneResolver} from "../../scene/resolver/resolver.ts";
 
 describe('Tutorial 1: Foundation & Engine Integration', () => {
 

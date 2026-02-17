@@ -4,7 +4,7 @@ import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {createPauseTests} from './pause_test_utils.ts';
 import {ASSET_STATUS, type ResolvedBox, type ResolvedText} from "../../scene/types.ts";
-import {SceneResolver} from "../../scene/resolver.ts";
+import {SceneResolver} from "../../scene/resolver/resolver.ts";
 
 describe('Tutorial 5 Execution Test: Assets & Hydration', () => {
 

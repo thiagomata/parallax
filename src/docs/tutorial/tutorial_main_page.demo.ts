@@ -1,6 +1,6 @@
 import {World} from "../../scene/world.ts";
 import {SceneManager} from "../../scene/scene_manager.ts";
-import {SceneResolver} from "../../scene/resolver.ts"; // New Manifest-compliant resolver
+import {SceneResolver} from "../../scene/resolver/resolver.ts"; // New Manifest-compliant resolver
 import {HeadTrackingModifier} from "../../scene/modifiers/head_tracking_modifier.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";

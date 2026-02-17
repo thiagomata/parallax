@@ -6,7 +6,7 @@ import {createMockState} from "../mock/mock_scene_state.mock.ts";
 import {ProjectionResolver} from "./projection_resolver.ts";
 
 describe('ProjectionResolver', () => {
-    const resolver = new ProjectionResolver();
+    const resolver = new ProjectionResolver({});
     const mockState = createMockState(
         {x: 0, y: 0, z: 0},
         {x: 0, y: 0, z: 100},

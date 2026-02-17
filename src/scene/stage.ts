@@ -9,7 +9,7 @@ import type {
     SceneState, BundleResolvedElement
 } from "./types.ts";
 import {AssetRegistry} from "./asset_registry.ts";
-import {SceneResolver} from "./resolver.ts";
+import {SceneResolver} from "./resolver/resolver.ts";
 
 export class Stage<
     TGraphicBundle extends GraphicsBundle,

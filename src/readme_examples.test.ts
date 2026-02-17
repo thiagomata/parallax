@@ -1,8 +1,8 @@
 import {beforeEach, describe, expect, it} from 'vitest';
 import {SceneManager} from "./scene/scene_manager.ts";
 import {toBlueprint, DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState,} from "./scene/types.ts";
-import {SceneResolver} from "./scene/resolver.ts";
 import {ChaosLoader} from "./scene/mock/mock_asset_loader.mock.ts";
+import {SceneResolver} from "./scene/resolver/resolver.ts";
 
 describe('README Examples Validation', () => {
 

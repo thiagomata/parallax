@@ -17,7 +17,7 @@ import {
     type SceneState,
     SPEC_KINDS,
     type Unwrapped, type BundleResolvedElement,
-} from "./types";
+} from "../types";
 
 export class SceneResolver<
     TGraphicBundle extends GraphicsBundle,
