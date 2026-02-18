@@ -300,11 +300,7 @@ export class SceneManager {
 
     private createEmptyDebugLog(): NonNullable<SceneStateDebugLog> {
         const initialState = this.initialState();
-        if (initialState.settings.projection.kind !== "camera") {
-            // @fixme do the projection screen
-            throw new Error("Screen not yet supported");
-        }
-        const cameraSettings = initialState.settings.projection.camera;
+        // const cameraSettings = initialState.settings.projection.camera;
         return {
             car: {
                 name: "initialCam",

@@ -6,7 +6,7 @@ import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
-export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any> {
+export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let graphicProcessor: P5GraphicProcessor;
 
     // Scene Orchestration (5s circular loop)
@@ -22,7 +22,7 @@ export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
-    const world = new World<P5Bundler, any>(activeManager, loader);
+    const world = new World<P5Bundler, any, any>(activeManager, loader);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);

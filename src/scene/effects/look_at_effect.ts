@@ -27,27 +27,27 @@ export const LookAtDefaultConfig: LookAtEffectConfig = {
     lookAt: 'CAMERA',
 }
 
-function lookAtCamera(state: SceneState, settings: LookAtEffectConfig, rotate: {
-    x: number;
-    y: number;
-    z: number
-}, current: ResolvedBaseVisual) {
-    if (state.projection.kind !== "camera") {
-        // @fixme do the projection screen
-        throw new Error("Screen is not supported");
-    }
-    const cam = state.projection.camera;
-    const locks = settings.axis || {};
-
-    if (locks.y) rotate.y -= cam.yaw;
-    if (locks.x) rotate.x += cam.pitch;
-    if (locks.z) rotate.z -= cam.roll;
-
-    return {
-        ...current,
-        rotate
-    };
-}
+// function lookAtCamera(state: SceneState, settings: LookAtEffectConfig, rotate: {
+//     x: number;
+//     y: number;
+//     z: number
+// }, current: ResolvedBaseVisual) {
+//     if (state.projection.kind !== "camera") {
+//         // @fixme do the projection screen
+//         throw new Error("Screen is not supported");
+//     }
+//     const cam = state.projection.camera;
+//     const locks = settings.axis || {};
+//
+//     if (locks.y) rotate.y -= cam.yaw;
+//     if (locks.x) rotate.x += cam.pitch;
+//     if (locks.z) rotate.z -= cam.roll;
+//
+//     return {
+//         ...current,
+//         rotate
+//     };
+// }
 
 function lookAtElement(
     state: SceneState,
@@ -59,6 +59,12 @@ function lookAtElement(
         return current;
     }
     const targetElement = state.elements.get(settings.lookAt)
+
+    if (!targetElement) {
+
+    }
+
+
     if (!targetElement) {
         return current;
     }
@@ -111,9 +117,9 @@ export const LookAtEffect: EffectBundle<'look_at', LookAtEffectConfig> = {
         };
 
         if (settings.lookAt == 'CAMERA') {
-            return lookAtCamera(state, settings, rotate, current);
-        } else {
-            return lookAtElement(state, settings, rotate, current);
+            throw new Error("Screen is not supported");
         }
+
+        return lookAtElement(state, settings, rotate, current);
     }
 };

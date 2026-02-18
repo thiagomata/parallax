@@ -1,6 +1,5 @@
 import {
-    type BlueprintProjection,
-    DEFAULT_PROJECTION_ELEMENT,
+    type BlueprintProjection, DEFAULT_PROJECTION_ELEMENT,
     type DynamicProjection,
     type ProjectionEffectBlueprint,
     type ProjectionEffectLib,
@@ -12,18 +11,18 @@ import {
     type Vector3
 } from "../types.ts";
 import {BaseResolver} from "../resolver/base_resolver.ts";
+import {ProjectionAssetRegistry} from "../registry/projection_asset_registry.ts";
 
 export class ProjectionResolver<
-    TProjectionEffectLib extends ProjectionEffectLib
-> extends BaseResolver<TProjectionEffectLib, ProjectionEffectResolutionGroup> {
+    TProjectionEffectLib extends ProjectionEffectLib,
+> extends BaseResolver<TProjectionEffectLib, ProjectionEffectResolutionGroup, ResolvedProjection> {
 
     /**
      * Static Sanctuary:
      * We protect IDs and the Modifier lists from being wrapped as dynamic.
      */
     protected readonly staticKeys = [
-        "id", "type", "effects",
-        "carModifiers", "nudgeModifiers", "stickModifiers"
+        "id", "type", "effects", "modifiers"
     ];
 
     constructor(effectLib: TProjectionEffectLib) {
@@ -34,20 +33,21 @@ export class ProjectionResolver<
      * Phase: Registration
      */
     prepare(
-        blueprint: Partial<BlueprintProjection> & { id: string, type: ProjectionType }
+        blueprint: Partial<BlueprintProjection> & { id: string, type: ProjectionType },
+        registry: ProjectionAssetRegistry<TProjectionEffectLib>,
     ): DynamicProjection {
+
+        // validate
+        this.validateBlueprint(blueprint, registry);
+
         // Use parent engine to wrap standard properties (position, rotation, etc.)
-        const dynamic = this.toDynamic<Partial<BlueprintProjection>, DynamicProjection>(blueprint);
+        const dynamic = this.toDynamic<Partial<BlueprintProjection>, DynamicProjection>(
+            {...DEFAULT_PROJECTION_ELEMENT, ...blueprint}
+        );
 
         // Enhance with defaults and sorted modifiers
         return {
             ...dynamic,
-            position:  this.compileProperty(blueprint.position  ?? DEFAULT_PROJECTION_ELEMENT.position),
-            rotation:  this.compileProperty(blueprint.rotation  ?? DEFAULT_PROJECTION_ELEMENT.rotation),
-            lookAt:    this.compileProperty(blueprint.lookAt    ?? DEFAULT_PROJECTION_ELEMENT.lookAt),
-            direction: this.compileProperty(blueprint.direction ?? DEFAULT_PROJECTION_ELEMENT.direction),
-
-            // Identity-based properties remain static via toDynamic + staticKeys
             modifiers: {
                 carModifiers:   this.sortMods(blueprint.modifiers?.carModifiers),
                 nudgeModifiers: blueprint.modifiers?.nudgeModifiers ?? [],
@@ -57,16 +57,100 @@ export class ProjectionResolver<
         };
     }
 
-    /**
-     * Phase: The Frame Loop (Resolution + Math Stack)
-     */
-    resolve(dynamic: DynamicProjection, state: SceneState): ResolvedProjection {
-        // 1. Resolve Dynamic Properties via parent
-        const resolved = this.loopResolve<DynamicProjection>(dynamic, state);
-        const initialDistance = this.getDistance(resolved);
+    private validateBlueprint(
+        blueprint: Partial<BlueprintProjection> & {
+            id: string;
+            type: ProjectionType
+        },
+        registry: ProjectionAssetRegistry<TProjectionEffectLib>
+    ) {
+        if (!blueprint.targetId) return;
 
-        // 2. Car Modifiers (Sequential priority)
+        if (blueprint.targetId === blueprint.id) {
+            throw new Error(`Self-Reference: Projection "${blueprint.id}" cannot target itself.`);
+        }
+
+        const target = registry.get(blueprint.targetId);
+
+        if (!target) {
+            throw new Error(
+                `Hierarchy Violation: Target "${blueprint.targetId}" not found. ` +
+                `Targets must be registered before their followers.`
+            );
+        }
+
+        if (!this.validateHierarchy(blueprint.id, blueprint.targetId, registry)){
+            throw new Error(
+                `Hierarchy Violation: Target "${blueprint.targetId}" has recursive reference.`
+            )
+        }
+    }
+
+    private validateHierarchy(
+        id: string,
+        targetId: string,
+        registry: ProjectionAssetRegistry<TProjectionEffectLib>
+    ): boolean {
+        let currentId: string | undefined = targetId;
+        const visited = new Set<string>([id]);
+
+        while (currentId) {
+            if (visited.has(currentId)) return false; // Loop detected
+            visited.add(currentId);
+
+            const next = registry.get(currentId);
+            currentId = next?.targetId;
+        }
+        return true;
+    }
+
+    /**
+     * The Frame Loop (Resolution + Math Stack)
+     */
+    resolve(
+        dynamic: DynamicProjection,
+        state: SceneState,
+        resolutionPool: Record<string, ResolvedProjection> = {} as Record<string, ResolvedProjection>
+    ): ResolvedProjection {
+
+        // 1. Resolve Dynamic Properties via parent (incorporates resolutionPool context)
+        const resolved = this.loopResolve(dynamic, state, resolutionPool);
+
+        // 2. THE HIERARCHY ANCHOR (World Space Origin Shift)
         let currentPosition = { ...resolved.position };
+        let currentRotation = { ...resolved.rotation };
+
+        if (dynamic.targetId) {
+            // Find our parent in the current frame pool or the previous state
+            // const target = resolutionPool[dynamic.targetId];
+            let target: ResolvedProjection | null = null;
+            if (dynamic.targetId in resolutionPool) {
+                target = resolutionPool[dynamic.targetId];
+            }
+            if (target == null && state.projections && state.projections.has(dynamic.targetId)) {
+                target = state.projections.get(dynamic.targetId) ?? target;
+            }
+            if (target) {
+                // Shift Position relative to parent
+                currentPosition.x += target.position.x;
+                currentPosition.y += target.position.y;
+                currentPosition.z += target.position.z;
+
+                // Shift Rotation (YXZ inheritance)
+                currentRotation.yaw += target.rotation.yaw;
+                currentRotation.pitch += target.rotation.pitch;
+                currentRotation.roll += target.rotation.roll;
+            }
+        }
+
+        const initialDistance = this.getDistance({
+            ...resolved,
+            position: currentPosition,
+            rotation: currentRotation
+        });
+
+        // 3. Car Modifiers (Sequential priority)
+        // Now operating on the world-space anchored position
         for (const carModifier of dynamic.modifiers?.carModifiers ?? []) {
             const res = carModifier.getCarPosition(currentPosition, state);
             if (res.success) {
@@ -75,7 +159,7 @@ export class ProjectionResolver<
             }
         }
 
-        // 3. Nudge Modifiers (Averaging/Voting)
+        // 4. Nudge Modifiers (Averaging/Voting)
         const votes = { x: [] as number[], y: [] as number[], z: [] as number[] };
         for (const nudgeModifier of dynamic.modifiers?.nudgeModifiers ?? []) {
             const res = nudgeModifier.getNudge(currentPosition, state);
@@ -94,8 +178,7 @@ export class ProjectionResolver<
             z: currentPosition.z + avg(votes.z),
         };
 
-        // 4. Stick Modifiers (Priority winner)
-        let currentRotation = { ...resolved.rotation };
+        // 5. Stick Modifiers (Priority winner)
         let distanceModifier = 0;
 
         for (const stickModifier of dynamic.modifiers?.stickModifiers ?? []) {
@@ -131,8 +214,12 @@ export class ProjectionResolver<
      * Phase: The Frame Loop (Effects)
      * Using parent's applyEffects logic.
      */
-    apply(resolved: ResolvedProjection, state: SceneState): ResolvedProjection {
-        return this.applyEffects(resolved, resolved.effects, state);
+    apply(
+        resolved: ResolvedProjection,
+        state: SceneState,
+        resolutionPool: Record<string, ResolvedProjection> = {} as Record<string, ResolvedProjection>
+    ): ResolvedProjection {
+        return this.applyEffects(resolved, resolved.effects, state, resolutionPool);
     }
 
     /**
@@ -157,8 +244,6 @@ export class ProjectionResolver<
             };
         });
     }
-
-    // --- Math Utilities ---
 
     private sortMods<T extends { priority: number }>(mods?: ReadonlyArray<T> | undefined): ReadonlyArray<T> {
         if (!mods) return [] as ReadonlyArray<T>;

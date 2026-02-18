@@ -1,7 +1,7 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {AssetRegistry} from './asset_registry';
-import {ASSET_STATUS, type AssetLoader, ELEMENT_TYPES,} from './types';
-import type {MockGraphicBundle} from "./mock/mock_type.mock.ts";
+import {ASSET_STATUS, type AssetLoader, ELEMENT_TYPES,} from '../types';
+import {ElementAssetRegistry} from "./element_asset_registry.ts";
+import type {MockGraphicBundle} from "../mock/mock_type.mock.ts";
 
 /**
  * Mocking the Loader to observe resolution triggers
@@ -20,11 +20,11 @@ const createMockLoader = (): AssetLoader<MockGraphicBundle> => ({
 
 describe('AssetRegistry', () => {
     let loader: AssetLoader<MockGraphicBundle>;
-    let registry: AssetRegistry<MockGraphicBundle, {}>;
+    let registry: ElementAssetRegistry<MockGraphicBundle, {}>;
 
     beforeEach(() => {
         loader = createMockLoader();
-        registry = new AssetRegistry<MockGraphicBundle, {}>(loader);
+        registry = new ElementAssetRegistry<MockGraphicBundle, {}>(loader);
     });
 
     describe('register', () => {

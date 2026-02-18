@@ -4,10 +4,10 @@ import {
     type BundleDynamicElement,
     type ResolvedElement,
     type MapToBlueprint, type EffectLib
-} from "./types.ts";
-import {ElementResolver} from "./resolver/element_resolver.ts";
+} from "../types.ts";
+import {ElementResolver} from "../resolver/element_resolver.ts";
 
-export class AssetRegistry<
+export class ElementAssetRegistry<
     TBundle extends GraphicsBundle,
     TEffectLib extends EffectLib> {
     // The ONLY list: A map of IDs to the actual Renderable instances

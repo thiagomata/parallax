@@ -13,7 +13,7 @@ Object.assign(window, {
     CenterFocusModifier,
 });
 
-export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any> {
+export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let graphicProcessor: P5GraphicProcessor;
 
     // Scene Orchestration
@@ -29,7 +29,7 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
-    const world = new World<P5Bundler, any>(activeManager, loader);
+    const world = new World<P5Bundler, any, any>(activeManager, loader);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);

@@ -14,20 +14,23 @@ import type {
     GraphicProcessor,
     GraphicsBundle,
     BundleDynamicElement,
-    SceneState, ElementId
+    SceneState, ElementId, ProjectionEffectLib
 } from "./types.ts";
-import { ScreenModifier } from "./modifiers/screen_modifier.ts";
 import {Stage} from "./stage.ts";
 
-export class World<TBundle extends GraphicsBundle, TEffectLib extends EffectLib> {
-    public readonly stage: Stage<TBundle, TEffectLib>;
+export class World<
+    TBundle extends GraphicsBundle,
+    TElementEffectLib extends EffectLib,
+    TProjectionEffectLib extends ProjectionEffectLib,
+> {
+    public readonly stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib>;
     private sceneManager: SceneManager;
     private sceneState: SceneState;
 
-    constructor(sceneManager: SceneManager, loader: AssetLoader<TBundle>, stage?: Stage<TBundle, TEffectLib>) {
+    constructor(sceneManager: SceneManager, loader: AssetLoader<TBundle>, stage?: Stage<TBundle, TElementEffectLib, TProjectionEffectLib>) {
         this.sceneManager = sceneManager;
         this.sceneState = sceneManager.initialState();
-        this.stage = stage ?? new Stage<TBundle, TEffectLib>(loader);
+        this.stage = stage ?? new Stage<TBundle, TElementEffectLib, TProjectionEffectLib>(loader);
     }
 
     public getCurrentSceneState(): SceneState {
@@ -41,61 +44,61 @@ export class World<TBundle extends GraphicsBundle, TEffectLib extends EffectLib>
     public addBox<TID extends string>(
         blueprint: BlueprintBox & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint);
+        this.stage.addElement(blueprint);
     }
 
     public addSphere<TID extends string>(
         blueprint: BlueprintSphere & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint);
+        this.stage.addElement(blueprint);
     }
 
     public addCone<TID extends string>(
         blueprint: BlueprintCone & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint);
+        this.stage.addElement(blueprint);
     }
 
     public addPyramid<TID extends string>(
         blueprint: BlueprintPyramid & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint);
+        this.stage.addElement(blueprint);
     }
 
     public addElliptical<TID extends string>(
         blueprint: BlueprintElliptical & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint);
+        this.stage.addElement(blueprint);
     }
 
     public addCylinder<TID extends string>(
         blueprint: BlueprintCylinder & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint);
+        this.stage.addElement(blueprint);
     }
 
     public addTorus<TID extends string>(
         blueprint: BlueprintTorus & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint);
+        this.stage.addElement(blueprint);
     }
 
     public addText<TID extends string>(
         blueprint: BlueprintText & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint);
+        this.stage.addElement(blueprint);
     }
 
     public addFloor<TID extends string>(
         blueprint: BlueprintFloor & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint);
+        this.stage.addElement(blueprint);
     }
 
     public addPanel<TID extends string>(
         blueprint: BlueprintPanel & { id: ElementId<TID> }
     ): void {
-        this.stage.add(blueprint);
+        this.stage.addElement(blueprint);
     }
 
     public getElement(id: string): BundleDynamicElement<any, TBundle> | undefined {
@@ -103,7 +106,7 @@ export class World<TBundle extends GraphicsBundle, TEffectLib extends EffectLib>
     }
 
     public removeElement(id: string): void {
-        this.stage.remove(id);
+        this.stage.removeElement(id);
     }
 
     public step(gp: GraphicProcessor<TBundle>): void {
@@ -113,26 +116,7 @@ export class World<TBundle extends GraphicsBundle, TEffectLib extends EffectLib>
             gp.frameCount(),
             this.sceneState
         );
-        // Set camera position based on projection type
-        if (draftNewState.projection?.kind === "camera") {
-            gp.setCamera(draftNewState.projection.camera.position, draftNewState.projection.camera.lookAt);
-        } else if (draftNewState.projection?.kind === "screen") {
-            // For screen projection, position camera at eye position, look at screen center
-            gp.setCamera(draftNewState.projection.eye, { x: 0, y: 0, z: 0 });
-        }
-        
-        // Apply off-axis projection if available
-        if (draftNewState.projectionMatrix && gp.setProjectionMatrix) {
-            gp.setProjectionMatrix(draftNewState.projectionMatrix);
-        } else if (draftNewState.projection.kind === "screen") {
-            // For screen projection, generate off-axis projection matrix from eye position
-            const screenModifier = new ScreenModifier(draftNewState.projection.screen);
-            const projectionMatrix = screenModifier.buildFrustum(draftNewState.projection.eye);
-            if (gp.setProjectionMatrix) {
-                gp.setProjectionMatrix(projectionMatrix);
-            }
-        }
-        
+
         this.sceneState = this.stage.render(gp, draftNewState);
         if (this.sceneState.settings.debug) {
             this.renderDebug(gp, this.sceneState);

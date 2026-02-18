@@ -8,7 +8,7 @@ import {SceneManager} from "../../scene/scene_manager.ts";
 import p5 from "p5";
 import type {SketchConfig} from "./hero.demo.ts";
 
-    export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any> => {
+    export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any, any> => {
     let gp: P5GraphicProcessor;
 
     const manager = new SceneManager({
@@ -22,7 +22,7 @@ import type {SketchConfig} from "./hero.demo.ts";
     manager.addStickModifier(new CenterFocusModifier());
 
     const loader = config?.loader ?? new P5AssetLoader(p);
-    const world = new World<P5Bundler, any>(manager, loader);
+    const world = new World<P5Bundler, any, any>(manager, loader);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);

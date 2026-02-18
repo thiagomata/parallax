@@ -50,48 +50,10 @@ const mockState: SceneState = {
     sceneId: 0,
     settings: {
         window: {width: 800, height: 600, aspectRatio: 1.33},
-        projection: {
-            kind: "camera",
-            camera: {
-                position: mockOrigin,
-                lookAt: mockOrigin,
-                fov: Math.PI / 3,
-                near: 0.1,
-                far: 1000,
-                rotationLimits: {
-                    yaw: {min: -Math.PI / 2, max: Math.PI / 2},
-                    pitch: {min: -Math.PI / 3, max: Math.PI / 3},
-                    roll: {min: -Math.PI / 6, max: Math.PI / 6}
-                },
-                yaw: 0,
-                pitch: 0,
-                roll: 0,
-                direction: { x: 0, y: 0, z: -1 },
-            }
-        },
         playback: {isLoop: true, timeSpeed: 1, startTime: 0},
         debug: false,
         startPaused: false,
         alpha: 1
-    },
-    projection: {
-        kind: "camera",
-        camera: {
-            position: mockOrigin,
-            lookAt: mockOrigin,
-            fov: Math.PI / 3,
-            near: 0.1,
-            far: 1000,
-            rotationLimits: {
-                yaw: {min: -Math.PI / 2, max: Math.PI / 2},
-                pitch: {min: -Math.PI / 3, max: Math.PI / 3},
-                roll: {min: -Math.PI / 6, max: Math.PI / 6}
-            },
-            yaw: 0,
-            pitch: 0,
-            roll: 0,
-            direction: { x: 0, y: 0, z: -1 },
-        }
     },
     playback: {now: 1000, delta: 16, progress: 0.2, frameCount: 60},
 };

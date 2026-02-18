@@ -7,9 +7,9 @@ import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState} from "../../scene/type
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
 
-export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any> {
+export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let graphicProcessor: P5GraphicProcessor;
-    let world: World<P5Bundler, any>;
+    let world: World<P5Bundler, any, any>;
 
     // Scene Orchestration (5s rotating loop)
     const activeManager = config.manager ?? new SceneManager({
@@ -27,7 +27,7 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     const loader = new P5AssetLoader(p);
 
     // World Initialization
-    world = new World<P5Bundler, any>(activeManager, loader);
+    world = new World<P5Bundler, any, any>(activeManager, loader);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);

@@ -11,7 +11,7 @@ import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.dem
  * TUTORIAL 7: THE OBSERVER
  * Demonstrating 1:1 head-to-camera mapping using MediaPipe.
  */
-export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any> {
+export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let gp: P5GraphicProcessor;
 
     // Create the manager
@@ -30,7 +30,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
-    const world = new World<P5Bundler, any>(activeManager, loader);
+    const world = new World<P5Bundler, any, any>(activeManager, loader);
 
     headTracker.init().catch(console.error);
 

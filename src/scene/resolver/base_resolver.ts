@@ -12,7 +12,21 @@ import {
  */
 export abstract class BaseResolver<
     TLib extends Record<string, any>,
-    TResolutionGroup extends { type: string, bundle: any, settings?: any }
+    // TResolutionGroup extends { type: string, bundle: any, settings?: any },
+    TResolutionGroup extends {
+        type: string,
+        bundle: {
+            defaults: any,
+            apply(
+                current: TResolved,
+                state: SceneState,
+                settings: any,
+                resolutionPool: Record<string, TResolved>
+            ): TResolved;
+        },
+        settings?: any
+    },
+    TResolved = unknown,
 >{
     protected readonly effectLib: TLib;
 
@@ -60,16 +74,20 @@ export abstract class BaseResolver<
      * The return type is Unwrapped<T>, representing the raw data after
      * all computations and branches are flattened.
      */
-    loopResolve<T>(src: T, state: SceneState): Unwrapped<T> {
+    loopResolve<T>(
+        src: T,
+        state: SceneState,
+        resolutionPool: Record<string, TResolved> = {} as Record<string, TResolved>
+    ): Unwrapped<T> {
         // 1. Handle the DynamicProperty Container
         if (this.isDynamicProperty(src)) {
             switch (src.kind) {
                 case SPEC_KINDS.STATIC:
                     return src.value as Unwrapped<T>;
                 case SPEC_KINDS.BRANCH:
-                    return this.loopResolve(src.value, state) as Unwrapped<T>;
+                    return this.loopResolve(src.value, state, resolutionPool) as Unwrapped<T>;
                 case SPEC_KINDS.COMPUTED:
-                    return this.loopResolve(src.compute(state), state) as Unwrapped<T>;
+                    return this.loopResolve(src.compute(state, resolutionPool), state, resolutionPool) as Unwrapped<T>;
             }
         }
 
@@ -81,7 +99,7 @@ export abstract class BaseResolver<
                     if (this.staticKeys.includes(key)) {
                         result[key] = src[key];
                     } else {
-                        result[key] = this.loopResolve(src[key], state);
+                        result[key] = this.loopResolve(src[key], state, resolutionPool);
                     }
                 }
             }
@@ -95,12 +113,12 @@ export abstract class BaseResolver<
     /**
      * Compiles a value or function into a DynamicProperty.
      */
-    public compileProperty<V>(value: FlexibleSpec<V> | V): DynamicProperty<V> {
+    public compileProperty<V>(value: FlexibleSpec<V> | V): DynamicProperty<V, TResolved> {
         // Function -> Computed
         if (typeof value === 'function') {
             return {
                 kind: SPEC_KINDS.COMPUTED,
-                compute: value as (state: SceneState) => V
+                compute: value as (state: SceneState, pool: Record<string, TResolved>) => V
             };
         }
 
@@ -153,11 +171,12 @@ export abstract class BaseResolver<
      * Shared Execution Loop for Effects/Behaviors.
      * Takes a resolved object and runs its attached effects library sequentially.
      */
-    protected applyEffects<E>(
-        resolved: E,
+    protected applyEffects(
+        resolved: TResolved,
         effects: ReadonlyArray<TResolutionGroup> | undefined,
-        state: SceneState
-    ): E {
+        state: SceneState,
+        resolutionPool: Record<string, TResolved> = {} as Record<string, TResolved>,
+    ): TResolved {
         if (!effects || effects.length === 0) return resolved;
 
         let result = { ...resolved };
@@ -165,7 +184,7 @@ export abstract class BaseResolver<
         for (const group of effects) {
             const settings = group.settings ?? {enabled: true};
             if (settings.enabled !== false) {
-                result = group.bundle.apply(result, state, settings);
+                result = group.bundle.apply(result, state, settings, resolutionPool);
             }
         }
 

@@ -6,7 +6,7 @@ import {createMockGraphicProcessor} from './mock/mock_graphic_processor.mock.ts'
 import {ELEMENT_TYPES, type GraphicProcessor} from './types.ts';
 
 describe('Stage (Spatial Orchestration)', () => {
-    let stage: Stage<any, any>;
+    let stage: Stage<any, any, any>;
     let loader: ChaosLoader<any>;
     let mockGP: GraphicProcessor<any>;
     const mockState = createMockState({x: 0, y: 0, z: 0});
@@ -19,7 +19,7 @@ describe('Stage (Spatial Orchestration)', () => {
     });
 
     it('should register and render an element', () => {
-        stage.add({
+        stage.addElement({
             id: 'box-1',
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 0, z: 0},
@@ -45,7 +45,7 @@ describe('Stage (Spatial Orchestration)', () => {
             position: nearPos,
             width: 1
         }
-        stage.add( nearBox);
+        stage.addElement( nearBox);
 
         const farBox = {
             id: "far",
@@ -53,7 +53,7 @@ describe('Stage (Spatial Orchestration)', () => {
             position: farPos,
             width: 1
         }
-        stage.add(farBox);
+        stage.addElement(farBox);
 
         stage.render(mockGP, mockState);
 
@@ -68,7 +68,7 @@ describe('Stage (Spatial Orchestration)', () => {
 
     it('should resolve dynamic positions during the sorting phase', () => {
         // Proof that resolveProperty is working inside the sort
-        stage.add({
+        stage.addElement({
             id: "some-box",
             type: ELEMENT_TYPES.BOX,
             position: (s: any) => ({x: s.playback.now, y: 0, z: 0}),
@@ -129,8 +129,8 @@ describe('Stage (Spatial Orchestration)', () => {
             texture: {path: 'shared.png', width: 1, height: 1},
         };
 
-        stage.add(bluePrint);
-        stage.add(bluePrint);
+        stage.addElement(bluePrint);
+        stage.addElement(bluePrint);
 
         // Registry should return the existing element rather than creating/hydrating again
         expect(spy).toHaveBeenCalledTimes(1);
@@ -140,7 +140,7 @@ describe('Stage (Spatial Orchestration)', () => {
         const elementId = 'removable-box';
         
         // Add an element first
-        stage.add({
+        stage.addElement({
             id: elementId,
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 0, z: 0},
@@ -151,7 +151,7 @@ describe('Stage (Spatial Orchestration)', () => {
         expect(stage.getElement(elementId)).toBeDefined();
 
         // Remove the element
-        stage.remove(elementId);
+        stage.removeElement(elementId);
 
         // Verify element is no longer present
         expect(stage.getElement(elementId)).toBeUndefined();
@@ -161,7 +161,7 @@ describe('Stage (Spatial Orchestration)', () => {
         const elementId = 'not-rendered-box';
         
         // Add an element
-        stage.add({
+        stage.addElement({
             id: elementId,
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 0, z: 0},
@@ -169,7 +169,7 @@ describe('Stage (Spatial Orchestration)', () => {
         });
 
         // Remove the element
-        stage.remove(elementId);
+        stage.removeElement(elementId);
 
         // Render the stage
         stage.render(mockGP, mockState);

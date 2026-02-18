@@ -6,7 +6,7 @@ import {World} from "../../scene/world.ts";
 import p5 from "p5";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
-export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any> {
+export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let graphicProcessor: P5GraphicProcessor;
     const manager = config.manager ?? new SceneManager({
         ...DEFAULT_SETTINGS,
@@ -15,7 +15,7 @@ export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     });
 
     const loader = config.loader ?? new P5AssetLoader(p);
-    const world = new World<P5Bundler, any>(manager, loader);
+    const world = new World<P5Bundler, any, any>(manager, loader);
 
     p.setup = async () => {
         p.createCanvas(config.width, config.height, p.WEBGL);

@@ -8,7 +8,7 @@ import {OrbitModifier} from "../modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../modifiers/center_focus_modifier.ts";
 
 new p5((p: p5) => {
-    let world: World<P5Bundler, any>;
+    let world: World<P5Bundler, any, any>;
     let gp: P5GraphicProcessor;
 
     p.setup = () => {

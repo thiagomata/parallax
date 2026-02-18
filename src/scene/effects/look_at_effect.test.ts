@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { LookAtEffect, LookAtDefaultConfig, type LookAtEffectConfig } from './look_at_effect.ts';
-import {ELEMENT_TYPES, type ProjectionSource, type SceneCameraState} from '../types.ts';
+import {ELEMENT_TYPES} from '../types.ts';
 import type { SceneState, ResolvedBaseVisual, ResolvedElement } from '../types.ts';
 
 describe('LookAtEffect', () => {
@@ -13,25 +13,6 @@ describe('LookAtEffect', () => {
             sceneId: 1,
             settings: {
                 window: { width: 800, height: 600, aspectRatio: 4/3 },
-                projection: {
-                    kind: "camera",
-                    camera: {
-                        position: {x: 0, y: 0, z: 500},
-                        lookAt: {x: 0, y: 0, z: 0},
-                        fov: Math.PI / 3,
-                        near: 0.1,
-                        far: 5000,
-                        rotationLimits: {
-                            yaw: {min: -Math.PI / 2, max: Math.PI / 2},
-                            pitch: {min: -Math.PI / 3, max: Math.PI / 3},
-                            roll: {min: -Math.PI / 6, max: Math.PI / 6}
-                        },
-                        yaw: 0,
-                        pitch: 0,
-                        roll: 0,
-                        direction: {x: 0, y:0, z:0},
-                    },
-                },
                 playback: {
                     duration: 5000,
                     isLoop: true,
@@ -41,25 +22,6 @@ describe('LookAtEffect', () => {
                 debug: false,
                 alpha: 1,
                 startPaused: false
-            },
-            projection: {
-                kind: "camera",
-                camera: {
-                    position: {x: 0, y: 0, z: 500},
-                    lookAt: {x: 0, y: 0, z: 0},
-                    fov: Math.PI / 3,
-                    near: 0.1,
-                    far: 5000,
-                    rotationLimits: {
-                        yaw: {min: -Math.PI / 2, max: Math.PI / 2},
-                        pitch: {min: -Math.PI / 3, max: Math.PI / 3},
-                        roll: {min: -Math.PI / 6, max: Math.PI / 6}
-                    },
-                    yaw: 0,
-                    pitch: 0,
-                    roll: 0,
-                    direction: {x: 0, y:0, z:0 },
-                }
             },
             playback: {
                 now: 1000,
@@ -98,65 +60,58 @@ describe('LookAtEffect', () => {
         });
     });
 
-    describe('Look at Camera', () => {
-        it('should rotate towards camera with default axis settings', () => {
-            const config: LookAtEffectConfig = {
-                ...LookAtDefaultConfig,
-                lookAt: 'CAMERA'
-            };
-
-            const result = LookAtEffect.apply(mockCurrent, mockState, config);
-
-            expect(mockState.projection.kind).toBe("camera");
-            if (mockState.projection.kind !== "camera") return;
-
-            expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x + mockState.projection.camera.pitch);
-            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.projection.camera.yaw);
-            expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // z is false by default
-        });
-
-        it('should respect axis locks for camera', () => {
-            const config: LookAtEffectConfig = {
-                ...LookAtDefaultConfig,
-                lookAt: 'CAMERA',
-                axis: { x: false, y: true, z: false }
-            };
-
-            const result = LookAtEffect.apply(mockCurrent, mockState, config);
-
-            expect(mockState.projection.kind).toBe("camera");
-            if (mockState.projection.kind !== "camera") return;
-
-            expect(result.rotate!.x).toBe(mockCurrent.rotate!.x);
-            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.projection.camera!.yaw);
-            expect(result.rotate!.z).toBe(mockCurrent.rotate!.z);
-        });
-
-        it('should handle missing rotate in current visual', () => {
-            const currentWithoutRotate = {
-                id: "some-box",
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 100, y: 50, z: 0 },
-                width: 50,
-                height: 50,
-                depth: 50
-            } as ResolvedBaseVisual;
-
-            const config: LookAtEffectConfig = {
-                ...LookAtDefaultConfig,
-                lookAt: 'CAMERA'
-            };
-
-            const result = LookAtEffect.apply(currentWithoutRotate, mockState, config);
-
-            expect(mockState.projection.kind).toBe("camera");
-            if (mockState.projection.kind !== "camera") return;
-
-            expect(result.rotate!.x).toBeCloseTo(mockState.projection.camera.pitch);
-            expect(result.rotate!.y).toBeCloseTo(-mockState.projection.camera.yaw);
-            expect(result.rotate!.z).toBe(0); // z is false by default
-        });
-    });
+    // describe('Look at Camera', () => {
+    //     it('should rotate towards camera with default axis settings', () => {
+    //         const config: LookAtEffectConfig = {
+    //             ...LookAtDefaultConfig,
+    //             lookAt: 'CAMERA'
+    //         };
+    //
+    //         const result = LookAtEffect.apply(mockCurrent, mockState, config);
+    //
+    //         expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x + mockState.screen.rotation.pitch);
+    //         expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.screen.rotation.yaw);
+    //         expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // z is false by default
+    //     });
+    //
+    //     it('should respect axis locks for camera', () => {
+    //         const config: LookAtEffectConfig = {
+    //             ...LookAtDefaultConfig,
+    //             lookAt: 'CAMERA',
+    //             axis: { x: false, y: true, z: false }
+    //         };
+    //
+    //         const result = LookAtEffect.apply(mockCurrent, mockState, config);
+    //
+    //         expect(result.rotate!.x).toBe(mockCurrent.rotate!.x);
+    //         expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.screen.rotation.yaw);
+    //         expect(result.rotate!.z).toBe(mockCurrent.rotate!.z);
+    //     });
+    //
+    //     it('should handle missing rotate in current visual', () => {
+    //         const currentWithoutRotate = {
+    //             id: "some-box",
+    //             type: ELEMENT_TYPES.BOX,
+    //             position: { x: 100, y: 50, z: 0 },
+    //             width: 50,
+    //             height: 50,
+    //             depth: 50
+    //         } as ResolvedBaseVisual;
+    //
+    //         const config: LookAtEffectConfig = {
+    //             ...LookAtDefaultConfig,
+    //             lookAt: 'CAMERA'
+    //         };
+    //
+    //         const result = LookAtEffect.apply(currentWithoutRotate, mockState, config);
+    //
+    //         expect(mockState.screen.type).toBe(PROJECTION_TYPES.SCREEN);
+    //
+    //         expect(result.rotate!.x).toBeCloseTo(mockState.screen.rotation.pitch);
+    //         expect(result.rotate!.y).toBeCloseTo(-mockState.screen.rotation.yaw);
+    //         expect(result.rotate!.z).toBe(0); // z is false by default
+    //     });
+    // });
 
     describe('Look at Element', () => {
         beforeEach(() => {
@@ -261,155 +216,147 @@ describe('LookAtEffect', () => {
             expect(result.rotate!.y).toBe(mockCurrent.rotate!.y);
         });
 
-        it('should handle negative axis values', () => {
-            const mockCurrentWithNegative = {
-                ...mockCurrent,
-                rotate: { x: -Math.PI/4, y: -Math.PI/4, z: -Math.PI/4 }
-            } as ResolvedBaseVisual;
-
-            const config: LookAtEffectConfig = {
-                ...LookAtDefaultConfig,
-                lookAt: 'CAMERA'
-            };
-
-            const result = LookAtEffect.apply(mockCurrentWithNegative, mockState, config);
-
-            expect(mockState.projection.kind).toBe("camera");
-            if (mockState.projection.kind !== "camera") return;
-
-            expect(result.rotate!.x).toBeCloseTo(-Math.PI/4 + mockState.projection.camera.pitch);
-            expect(result.rotate!.y).toBeCloseTo(-Math.PI/4 - mockState.projection.camera.yaw);
-            expect(result.rotate!.z).toBe(-Math.PI/4); // z is false by default
-        });
+        // it('should handle negative axis values', () => {
+        //     const mockCurrentWithNegative = {
+        //         ...mockCurrent,
+        //         rotate: { x: -Math.PI/4, y: -Math.PI/4, z: -Math.PI/4 }
+        //     } as ResolvedBaseVisual;
+        //
+        //     const config: LookAtEffectConfig = {
+        //         ...LookAtDefaultConfig,
+        //         lookAt: 'CAMERA'
+        //     };
+        //
+        //     const result = LookAtEffect.apply(mockCurrentWithNegative, mockState, config);
+        //
+        //     expect(result.rotate!.x).toBeCloseTo(-Math.PI/4 + mockState.screen.rotation.pitch);
+        //     expect(result.rotate!.y).toBeCloseTo(-Math.PI/4 - mockState.screen.rotation.yaw);
+        //     expect(result.rotate!.z).toBe(-Math.PI/4); // z is false by default
+        // });
     });
 
     describe('Individual Axis Locks for Camera Coverage', () => {
-        it('should handle undefined axis in settings', () => {
-            const configWithoutAxis = {
-                enabled: true,
-                lookAt: 'CAMERA'
-            } as LookAtEffectConfig;
+        // it('should handle undefined axis in settings', () => {
+        //     const configWithoutAxis = {
+        //         enabled: true,
+        //         lookAt: 'CAMERA'
+        //     } as LookAtEffectConfig;
+        //
+        //     const result = LookAtEffect.apply(mockCurrent, mockState, configWithoutAxis);
+        //
+        //     // Should use empty object as default
+        //     expect(result.rotate!.x).toBe(mockCurrent.rotate!.x); // no change
+        //     expect(result.rotate!.y).toBe(mockCurrent.rotate!.y); // no change
+        //     expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // no change
+        // });
 
-            const result = LookAtEffect.apply(mockCurrent, mockState, configWithoutAxis);
+        // it('should test individual Y axis lock with camera', () => {
+        //     const config: LookAtEffectConfig = {
+        //         enabled: true,
+        //         lookAt: 'CAMERA',
+        //         axis: { y: true }
+        //     };
+        //
+        //     const result = LookAtEffect.apply(mockCurrent, mockState, config);
+        //
+        //     expect(result.rotate!.x).toBe(mockCurrent.rotate!.x); // x unchanged
+        //     expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.screen.rotation.yaw);
+        //     expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // z unchanged
+        // });
 
-            // Should use empty object as default
-            expect(result.rotate!.x).toBe(mockCurrent.rotate!.x); // no change
-            expect(result.rotate!.y).toBe(mockCurrent.rotate!.y); // no change
-            expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // no change
-        });
+        // it('should test individual X axis lock with camera', () => {
+        //     const config: LookAtEffectConfig = {
+        //         enabled: true,
+        //         lookAt: 'CAMERA',
+        //         axis: { x: true }
+        //     };
+        //
+        //     const result = LookAtEffect.apply(mockCurrent, mockState, config);
+        //     expect(mockState.screen.type).toBe(PROJECTION_TYPES.SCREEN);
+        //
+        //     expect(result.rotate!.x).toBeCloseTo(
+        //         mockCurrent.rotate!.x +
+        //         mockState.screen.rotation.pitch
+        //     );
+        //     expect(result.rotate!.y).toBe(mockCurrent.rotate!.y); // y unchanged
+        //     expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // z unchanged
+        // });
 
-        it('should test individual Y axis lock with camera', () => {
-            const config: LookAtEffectConfig = {
-                enabled: true,
-                lookAt: 'CAMERA',
-                axis: { y: true }
-            };
+        // it('should test individual Z axis lock with camera', () => {
+        //     const config: LookAtEffectConfig = {
+        //         enabled: true,
+        //         lookAt: 'CAMERA',
+        //         axis: { z: true }
+        //     };
+        //
+        //     const result = LookAtEffect.apply(mockCurrent, mockState, config);
+        //     expect(mockState.screen.type).toBe(PROJECTION_TYPES.SCREEN);
+        //
+        //     expect(result.rotate!.x).toBe(mockCurrent.rotate!.x); // x unchanged
+        //     expect(result.rotate!.y).toBe(mockCurrent.rotate!.y); // y unchanged
+        //     expect(result.rotate!.z).toBeCloseTo(mockCurrent.rotate!.z - mockState.screen.rotation.roll);
+        // });
 
-            const result = LookAtEffect.apply(mockCurrent, mockState, config);
-
-            expect(mockState.projection.kind).toBe("camera");
-            if (mockState.projection.kind !== "camera") return;
-
-            expect(result.rotate!.x).toBe(mockCurrent.rotate!.x); // x unchanged
-            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.projection.camera.yaw);
-            expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // z unchanged
-        });
-
-        it('should test individual X axis lock with camera', () => {
-            const config: LookAtEffectConfig = {
-                enabled: true,
-                lookAt: 'CAMERA',
-                axis: { x: true }
-            };
-
-            const result = LookAtEffect.apply(mockCurrent, mockState, config);
-            expect(mockState.projection.kind).toBe("camera");
-            if (mockState.projection.kind !== "camera") return;
-
-            expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x + mockState.projection.camera.pitch);
-            expect(result.rotate!.y).toBe(mockCurrent.rotate!.y); // y unchanged
-            expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // z unchanged
-        });
-
-        it('should test individual Z axis lock with camera', () => {
-            const config: LookAtEffectConfig = {
-                enabled: true,
-                lookAt: 'CAMERA',
-                axis: { z: true }
-            };
-
-            const result = LookAtEffect.apply(mockCurrent, mockState, config);
-            expect(mockState.projection.kind).toBe("camera");
-            if (mockState.projection.kind !== "camera") return;
-
-            expect(result.rotate!.x).toBe(mockCurrent.rotate!.x); // x unchanged
-            expect(result.rotate!.y).toBe(mockCurrent.rotate!.y); // y unchanged
-            expect(result.rotate!.z).toBeCloseTo(mockCurrent.rotate!.z - mockState.projection.camera.roll);
-        });
-
-        it('should test all axis locks individually with camera', () => {
-            const config: LookAtEffectConfig = {
-                enabled: true,
-                lookAt: 'CAMERA',
-                axis: { x: true, y: true, z: true }
-            };
-
-            const result = LookAtEffect.apply(mockCurrent, mockState, config);
-
-            expect(mockState.projection.kind).toBe("camera");
-            if (mockState.projection.kind !== "camera") return;
-
-            expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x + mockState.projection.camera.pitch);
-            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.projection.camera.yaw);
-            expect(result.rotate!.z).toBeCloseTo(mockCurrent.rotate!.z - mockState.projection.camera.roll);
-        });
-
-        it('should test all axis locks as false with camera', () => {
-            const config: LookAtEffectConfig = {
-                enabled: true,
-                lookAt: 'CAMERA',
-                axis: { x: false, y: false, z: false }
-            };
-
-            const result = LookAtEffect.apply(mockCurrent, mockState, config);
-
-            expect(result.rotate!.x).toBe(mockCurrent.rotate!.x);
-            expect(result.rotate!.y).toBe(mockCurrent.rotate!.y);
-            expect(result.rotate!.z).toBe(mockCurrent.rotate!.z);
-        });
+        // it('should test all axis locks individually with camera', () => {
+        //     const config: LookAtEffectConfig = {
+        //         enabled: true,
+        //         lookAt: 'CAMERA',
+        //         axis: { x: true, y: true, z: true }
+        //     };
+        //
+        //     const result = LookAtEffect.apply(mockCurrent, mockState, config);
+        //
+        //     expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x + mockState.screen.rotation.pitch);
+        //     expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - mockState.screen.rotation.yaw);
+        //     expect(result.rotate!.z).toBeCloseTo(mockCurrent.rotate!.z - mockState.screen.rotation.roll);
+        // });
+        //
+        // it('should test all axis locks as false with camera', () => {
+        //     const config: LookAtEffectConfig = {
+        //         enabled: true,
+        //         lookAt: 'CAMERA',
+        //         axis: { x: false, y: false, z: false }
+        //     };
+        //
+        //     const result = LookAtEffect.apply(mockCurrent, mockState, config);
+        //
+        //     expect(result.rotate!.x).toBe(mockCurrent.rotate!.x);
+        //     expect(result.rotate!.y).toBe(mockCurrent.rotate!.y);
+        //     expect(result.rotate!.z).toBe(mockCurrent.rotate!.z);
+        // });
     });
 
     describe('Edge Cases and Error Conditions', () => {
-        it('should handle extreme camera values', () => {
-
-            expect(mockState.projection.kind).toBe("camera");
-            if (mockState.projection.kind !== "camera") return;
-
-            const extremeState = {
-                ...mockState,
-                projection: {
-                    kind: "camera",
-                    camera: {
-                        ...mockState.projection.camera,
-                        yaw: Math.PI * 2,
-                        pitch: -Math.PI / 2,
-                        roll: Math.PI,
-                        direction: {x: 0, y: 0, z: -1}
-                    } as SceneCameraState
-                } as ProjectionSource
-            } as SceneState;
-
-            const config: LookAtEffectConfig = {
-                ...LookAtDefaultConfig,
-                lookAt: 'CAMERA'
-            };
-
-            const result = LookAtEffect.apply(mockCurrent, extremeState, config);
-
-            expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x - Math.PI / 2);
-            expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - Math.PI * 2);
-            expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // z is false by default
-        });
+    //     it('should handle extreme camera values', () => {
+    //
+    //         expect(mockState.projection.kind).toBe("camera");
+    //         if (mockState.projection.kind !== "camera") return;
+    //
+    //         const extremeState = {
+    //             ...mockState,
+    //             projection: {
+    //                 kind: "camera",
+    //                 camera: {
+    //                     ...mockState.projection.camera,
+    //                     yaw: Math.PI * 2,
+    //                     pitch: -Math.PI / 2,
+    //                     roll: Math.PI,
+    //                     direction: {x: 0, y: 0, z: -1}
+    //                 } as SceneCameraState
+    //             } as ProjectionSource
+    //         } as SceneState;
+    //
+    //         const config: LookAtEffectConfig = {
+    //             ...LookAtDefaultConfig,
+    //             lookAt: 'CAMERA'
+    //         };
+    //
+    //         const result = LookAtEffect.apply(mockCurrent, extremeState, config);
+    //
+    //         expect(result.rotate!.x).toBeCloseTo(mockCurrent.rotate!.x - Math.PI / 2);
+    //         expect(result.rotate!.y).toBeCloseTo(mockCurrent.rotate!.y - Math.PI * 2);
+    //         expect(result.rotate!.z).toBe(mockCurrent.rotate!.z); // z is false by default
+    //     });
 
         it('should handle Infinity and NaN positions gracefully', () => {
             const targetWithInfinity = {

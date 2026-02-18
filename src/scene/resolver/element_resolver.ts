@@ -21,8 +21,8 @@ import {BaseResolver} from "./base_resolver.ts";
 
 export class ElementResolver<
     TGraphicBundle extends GraphicsBundle,
-    TEffectLib extends EffectLib
-> extends BaseResolver<TEffectLib, EffectResolutionGroup>{
+    TEffectLib extends EffectLib,
+> extends BaseResolver<TEffectLib, EffectResolutionGroup, ResolvedElement>{
 
     /**
      * Properties protected from the Dynamic Engine.

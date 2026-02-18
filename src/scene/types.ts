@@ -22,6 +22,7 @@ export interface Rotation3 {
 export interface BaseProjection {
     readonly type: ProjectionType;
     readonly id: string;
+    readonly targetId?: string;
 }
 
 export interface ResolvedProjection extends BaseProjection {
@@ -70,9 +71,11 @@ export const DEFAULT_PROJECTION_ELEMENT = {
     rotation: { pitch: 0, yaw: 0, roll: 0 },
     direction: { x: 0, y: 0, z: 0 },
     lookAt: { x: 0, y: 0, z: 0 },
-    carModifiers: [],
-    nudgeModifiers: [],
-    stickModifiers: [],
+    modifiers: {
+        carModifiers: [],
+        nudgeModifiers: [],
+        stickModifiers: [],
+    },
 };
 
 export interface ProjectionEffectBundle<
@@ -85,7 +88,7 @@ export interface ProjectionEffectBundle<
     /**
      * Specifically transforms a spatial projection rather than a visual element.
      */
-    apply(current: E, state: SceneState, settings: TConfig): E;
+    apply(current: E, state: SceneState, settings: TConfig, resolutionPool: Record<string, E>): E;
 }
 
 export type ProjectionEffectLib = Record<string, ProjectionEffectBundle<any, any, any>>;
@@ -183,18 +186,18 @@ export const DEFAULT_ROTATION_LIMITS: StickRotationLimits = {
     roll: { min: -Math.PI/6, max: Math.PI/6 },      // ±30 degrees
 };
 
-export interface SceneCameraState {
-    readonly yaw: number;
-    readonly pitch: number;
-    readonly roll: number;
-    readonly direction: Vector3;
-    readonly position: Vector3;
-    readonly lookAt: Vector3;
-    readonly fov: number; // in radians
-    readonly near: number;
-    readonly far: number;
-    readonly rotationLimits?: StickRotationLimits;
-}
+// export interface SceneCameraState {
+//     readonly yaw: number;
+//     readonly pitch: number;
+//     readonly roll: number;
+//     readonly direction: Vector3;
+//     readonly position: Vector3;
+//     readonly lookAt: Vector3;
+//     readonly fov: number; // in radians
+//     readonly near: number;
+//     readonly far: number;
+//     readonly rotationLimits?: StickRotationLimits;
+// }
 
 export type ScreenConfigInput = {
     width: number;
@@ -263,10 +266,6 @@ export class ScreenConfig {
     get epsilon() { return this.input.epsilon; }
 }
 
-export type ProjectionSource =
-    | { kind: "camera"; camera: SceneCameraState }
-    | { kind: "screen"; screen: ScreenConfig; eye: Vector3 };
-
 export interface PlaybackSettings {
     readonly duration?: number;
     readonly isLoop: boolean;
@@ -283,7 +282,6 @@ export interface ScenePlaybackState {
 
 export interface SceneSettings {
     window: SceneWindow;
-    projection: ProjectionSource;
     playback: PlaybackSettings;
     debug: boolean;
     alpha: number;
@@ -294,10 +292,11 @@ export interface SceneState {
     sceneId: number;
     settings: SceneSettings;
     playback: ScenePlaybackState;
-    projection: ProjectionSource;
     debugStateLog?: SceneStateDebugLog;
     elements?: Map<string, ResolvedElement>;
-    projectionMatrix?: ProjectionMatrix;
+    projections?: Map<string, ResolvedProjection>;
+    screen?: ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN};
+    eyes?: ResolvedProjection & {type: typeof PROJECTION_TYPES.EYE};
 }
 
 export const DEFAULT_CAMERA_FAR = 5000;
@@ -307,21 +306,6 @@ export const DEFAULT_SETTINGS: SceneSettings = {
         width: 800,
         height: 600,
         aspectRatio: 800 / 600
-    },
-    projection: {
-        kind: "camera",
-        camera: {
-            position: { x: 0, y: 0, z: 500 } as Vector3,
-            lookAt: { x: 0, y: 0, z: 0 } as Vector3,
-            fov: Math.PI / 3, // 60 degrees
-            near: 0.1,
-            far: DEFAULT_CAMERA_FAR,
-            rotationLimits: DEFAULT_ROTATION_LIMITS,
-            yaw: 0,
-            pitch: 0,
-            roll: 0,
-            direction: { x: 0, y: 0, z: 0 },
-        }
     },
     playback: {
         duration: 5000,
@@ -516,12 +500,21 @@ export const ALL_ELEMENT_TYPES = Object.values(ELEMENT_TYPES);
 
 export const SPEC_KINDS = {STATIC: 'static', COMPUTED: 'computed', BRANCH: 'branch'} as const;
 
-export type DynamicProperty<T> =
+export type DynamicProperty<T, TResolved = unknown> =
     | { kind: typeof SPEC_KINDS.STATIC; value: T }
-    | { kind: typeof SPEC_KINDS.COMPUTED; compute: (state: SceneState) => T | DynamicProperty<T> | DynamicTree<T> }
-    | { kind: typeof SPEC_KINDS.BRANCH; value: DynamicTree<T> };
+    | {
+    kind: typeof SPEC_KINDS.COMPUTED;
+    compute: (
+        state: SceneState,
+        resolutionPool: Record<string, TResolved>
+    ) => T | DynamicProperty<T, TResolved> | DynamicTree<T, TResolved>
+}
+    | { kind: typeof SPEC_KINDS.BRANCH; value: DynamicTree<T, TResolved> };
 
-export type DynamicTree<T> = { [K in keyof T]?: DynamicProperty<T[K]>; };
+export type DynamicTree<T, TResolved = unknown> = {
+    [K in keyof T]: T[K] | DynamicProperty<T[K], TResolved> | DynamicTree<T[K], TResolved>;
+};
+
 export type FlexibleSpec<T> =
     T
     | ((state: SceneState) => T | DynamicProperty<T> | DynamicTree<T>)
@@ -826,7 +819,7 @@ export interface EffectBundle<
     readonly type: TID;
     readonly targets: ReadonlyArray<E['type']>;
     readonly defaults: TConfig;
-    apply(current: E, state: SceneState, settings: TConfig): E;
+    apply(current: E, state: SceneState, settings: TConfig, resolutionPool: Record<string, E>): E;
 }
 
 export type EffectLib = Record<string, EffectBundle<any, any, any>>;

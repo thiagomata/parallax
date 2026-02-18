@@ -17,7 +17,7 @@ import {DEFAULT_EFFECTS} from "../../scene/effects/effects.ts";
  */
 export function tutorial_9(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, typeof DEFAULT_EFFECTS> {
     let graphicProcessor: P5GraphicProcessor;
-    let world: World<P5Bundler, any>;
+    let world: World<P5Bundler, any, any>;
 
     // Scene Orchestration
     const activeManager = config.manager ?? new SceneManager(
@@ -66,7 +66,7 @@ export function tutorial_9(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     const stage = new Stage<P5Bundler, typeof effects>(loader, effects);
 
     // World Initialization
-    world = new World<P5Bundler, any>(activeManager, loader, stage);
+    world = new World<P5Bundler, any, any>(activeManager, loader, stage);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
