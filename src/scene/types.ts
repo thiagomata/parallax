@@ -22,10 +22,9 @@ export interface Rotation3 {
 export interface BaseProjection {
     readonly type: ProjectionType;
     readonly id: string;
-    readonly carModifiers?: CarModifier[];
-    readonly nudgeModifiers?: NudgeModifier[];
-    readonly stickModifiers?: StickModifier[];
-    readonly effects?: ProjectionEffectBlueprint[];
+    readonly carModifiers?: readonly CarModifier[];
+    readonly nudgeModifiers?: readonly NudgeModifier[];
+    readonly stickModifiers?: readonly StickModifier[];
 }
 
 export interface ResolvedProjection extends BaseProjection {
@@ -34,6 +33,7 @@ export interface ResolvedProjection extends BaseProjection {
     lookAt: Vector3;
     direction: Vector3;
     distance: number;
+    readonly effects: readonly ProjectionEffectResolutionGroup[];
 }
 
 /**
@@ -44,6 +44,7 @@ export interface BlueprintProjection extends BaseProjection {
     readonly rotation: FlexibleSpec<Rotation3>;
     readonly lookAt: FlexibleSpec<Vector3>;
     readonly direction: FlexibleSpec<Vector3>;
+    readonly effects?: ProjectionEffectBlueprint[]
 }
 
 /**
@@ -54,6 +55,7 @@ export interface DynamicProjection extends BaseProjection {
     readonly rotation: DynamicProperty<Rotation3>;
     readonly lookAt: DynamicProperty<Vector3>;
     readonly direction: DynamicProperty<Vector3>;
+    readonly effects: ProjectionEffectResolutionGroup[];
 }
 
 export const DEFAULT_PROJECTION_ELEMENT = {
@@ -540,8 +542,23 @@ type StaticKeys = typeof STATIC_ELEMENT_KEYS[number];
 export type MapToBlueprint<T> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K]>; } & {
     effects?: EffectBlueprint[];
 };
-export type MapToDynamic<T> = { [K in keyof T]: K extends StaticKeys ? T[K] : DynamicProperty<T[K]>; } & {
-    effects?: EffectResolutionGroup[];
+// export type MapToDynamic<T> = { [K in keyof T]: K extends StaticKeys ? T[K] : DynamicProperty<T[K]>; } & {
+//     effects?: EffectResolutionGroup[];
+// };
+/**
+ * MapToDynamic strictly transforms a blueprint into a dynamic tree
+ */
+export type MapToDynamic<T> = {
+    [K in keyof T]:                     // Iterate over every key K in the provided type T
+    K extends StaticKeys                // Check if the current key is one of our protected StaticKeys
+        ? T[K] extends { kind: any }    // If it is a StaticKey, check if its value T[K] contains a "kind" property
+            ? never                     // If a StaticKey has a "kind" property, resolve to never to trigger a type error
+            : T[K]                      // If it is a StaticKey and is a "clean" value, return the raw type T[K]
+        : T[K] extends { kind: any }    // If the key is NOT a StaticKey, check if its value already has a "kind"
+            ? never                     // If a dynamic key already has a "kind", resolve to never to prevent double-wrapping
+            : DynamicProperty<T[K]>;    // If the dynamic key is a "clean" value, wrap it in a DynamicProperty container
+} & {
+    effects?: EffectResolutionGroup[];  // Attach an optional group for visual effect resolution post-hydration
 };
 export type Unwrapped<T> = T extends DynamicProperty<infer U> ? Unwrapped<U> : T extends object ? { [K in keyof T]: Unwrapped<T[K]> } : T;
 

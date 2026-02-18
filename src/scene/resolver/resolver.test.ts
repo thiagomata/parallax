@@ -10,7 +10,9 @@ import {
     type SceneState,
     type Vector3,
     type BaseModifierSettings,
-    type EffectBundle, type BlueprintBox,
+    type EffectBundle,
+    type BlueprintBox,
+    type DynamicBox,
 } from '../types';
 import type {MockGraphicBundle} from "../mock/mock_type.mock.ts";
 import {createMockGraphicProcessor} from "../mock/mock_graphic_processor.mock.ts";
@@ -197,9 +199,9 @@ describe('resolver.createRenderable & Resolver Loop', () => {
             texture: {path: 'test.png', width: 100, height: 100},
             position: mockOrigin,
             width: 10
-        };
+        } as BlueprintBox;
 
-        const dynamic = resolver.toDynamic(blueprint);
+        const dynamic = resolver.toDynamic<BlueprintBox,DynamicBox>(blueprint);
 
         // Verify key mirroring (Structural Identity)
         expect(dynamic.type).toBe(ELEMENT_TYPES.BOX);
@@ -215,7 +217,7 @@ describe('resolver.createRenderable & Resolver Loop', () => {
             type: ELEMENT_TYPES.BOX,
             position: (s: SceneState) => ({x: s.playback.now, y: 0, z: 0}),
             width: 10
-        };
+        } as BlueprintBox;
 
         const renderable = resolver.prepare(blueprint, loader);
         const result = resolver.resolve(renderable, mockState);
@@ -272,9 +274,9 @@ describe('resolver.toDynamic Structural Integrity', () => {
             type: ELEMENT_TYPES.BOX,
             position: {x: 10, y: 20, z: 30}, // Purely static data
             width: 10
-        };
+        } as BlueprintBox;
 
-        const dynamic = resolver.toDynamic(blueprint);
+        const dynamic = resolver.toDynamic<BlueprintBox,DynamicBox>(blueprint);
 
         expect(dynamic.position).toEqual({
             kind: SPEC_KINDS.STATIC,
@@ -297,9 +299,9 @@ describe('resolver.toDynamic Structural Integrity', () => {
                 blue: 0
             },
             width: 10
-        };
+        } as BlueprintBox;
 
-        const dynamic = resolver.toDynamic(blueprint);
+        const dynamic = resolver.toDynamic<BlueprintBox,DynamicBox>(blueprint);
 
         // static value
         expect(dynamic.position.kind).toBe(SPEC_KINDS.STATIC);
@@ -329,7 +331,7 @@ describe('resolver.toDynamic Structural Integrity', () => {
             }
         };
 
-        const dynamic = resolver.toDynamic(blueprint);
+        const dynamic = resolver.toDynamic(blueprint) as any;
 
         expect(dynamic.userData.kind).toBe(SPEC_KINDS.BRANCH);
 
@@ -349,9 +351,9 @@ describe('resolver.toDynamic Structural Integrity', () => {
             texture: textureRef,
             position: mockOrigin,
             width: 10
-        };
+        } as BlueprintBox;
 
-        const dynamic = resolver.toDynamic(blueprint);
+        const dynamic = resolver.toDynamic<BlueprintBox,DynamicBox>(blueprint);
 
         // Static keys should be unwrapped identity values
         expect(dynamic.type).toBe(ELEMENT_TYPES.BOX);
@@ -1049,7 +1051,7 @@ describe('SceneResolver with Effect Bundles', () => {
 
             expect(() => {
                 resolver.prepare(blueprintBox, createMockLoader());
-            }).toThrow('invalid effect unknownEffect');
+            }).toThrow('Invalid effect: unknownEffect');
         });
     });
 

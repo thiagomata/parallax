@@ -11,31 +11,40 @@ import {
     type GraphicProcessor,
     type GraphicsBundle,
     type MapToBlueprint,
-    type MapToDynamic,
     type BundleDynamicElement,
     type ResolvedElement,
     type SceneState,
     SPEC_KINDS,
-    type Unwrapped, type BundleResolvedElement,
+    type BundleResolvedElement,
 } from "../types";
+import {BaseResolver} from "./base_resolver.ts";
 
 export class SceneResolver<
     TGraphicBundle extends GraphicsBundle,
     TEffectLib extends EffectLib
-> {
+> extends BaseResolver<TEffectLib, EffectResolutionGroup>{
 
-    private readonly effectLib: TEffectLib;
+    /**
+     * Properties protected from the Dynamic Engine.
+     * These remain static IDs or metadata used by the Loader/Processor.
+     */
+    readonly staticKeys: string[] = ["texture", "font", "id", "type", "effects"];
 
     constructor(effectLib: TEffectLib= {} as TEffectLib) {
-        this.effectLib = effectLib;
+        super(effectLib);
     }
 
+    /**
+     * Phase: Registration & Hydration
+     * Orchestrates the transition from Blueprint to a Hydrated Dynamic Element.
+     */
     prepare<T extends ResolvedElement>(
         blueprint: MapToBlueprint<T>,
         loader: AssetLoader<TGraphicBundle>
     ): BundleDynamicElement<T, TGraphicBundle> {
 
-        const dynamic = this.toDynamic(blueprint) as DynamicElement<T>;
+        // Use parent engine to wrap properties while respecting staticKeys
+        const dynamic = this.toDynamic<MapToBlueprint<T>, DynamicElement<T>>(blueprint);
         const effectsBundles = this.bundleBehaviors(blueprint.effects);
 
         const assets: ElementAssets<TGraphicBundle> = {
@@ -49,6 +58,7 @@ export class SceneResolver<
             }
         };
 
+        // Side-effects (Async Loading) are explicitly handled during preparation
         if (blueprint.texture) {
             loader.hydrateTexture(blueprint.texture)
                 .then(asset => assets.texture = asset);
@@ -56,9 +66,7 @@ export class SceneResolver<
 
         if (blueprint.font) {
             loader.hydrateFont(blueprint.font)
-                .then(asset => {
-                    assets.font = asset
-                });
+                .then(asset => assets.font = asset);
         }
 
         return {
@@ -69,131 +77,83 @@ export class SceneResolver<
         };
     };
 
-    resolve<
-        T extends ResolvedElement
-    >(
+    /**
+     * Phase: The Frame Loop (Structural Resolution)
+     */
+    resolve<T extends ResolvedElement>(
         element: BundleDynamicElement<T, TGraphicBundle>,
         state: SceneState
     ): BundleResolvedElement {
-        const unwrapped:  Unwrapped<DynamicElement<T>> =  this.loopResolve(element.dynamic, state);
-        const resolved = unwrapped as T;
+        // Parent loopResolve performs the recursive unwrapping
+        const resolved = this.loopResolve<DynamicElement<T>>(element.dynamic, state) as T;
+
         return {
             id: element.id,
-            assets: element.assets ?? [],
+            assets: element.assets,
             effects: element.effects ?? [],
             resolved: resolved,
         };
     }
 
-    effect<
-        E extends ResolvedElement
-    >(
+    /**
+     * Phase: The Frame Loop (Behavioral Application)
+     */
+    effect<E extends ResolvedElement>(
         bundle: BundleResolvedElement<E, TGraphicBundle>,
         state: SceneState
     ): BundleResolvedElement<E, TGraphicBundle> {
-        if (!bundle.effects || bundle.effects.length === 0) {
-            return bundle;
-        }
-
-        let resolved = bundle.resolved;
-        for (const effectBlueprint of bundle.effects ) {
-            if (effectBlueprint.settings?.enabled) {
-                const effectBundle = this.effectLib[effectBlueprint.type];
-                resolved = effectBundle.apply(
-                    resolved,
-                    state,
-                    effectBlueprint.settings,
-                    // bundle.assets
-                )
-            }
-        }
         return {
             ...bundle,
-            resolved: resolved,
-        }
+            // Centralized execution logic from BaseResolver
+            resolved: this.applyEffects(bundle.resolved, bundle.effects, state)
+        };
     }
 
+    /**
+     * Phase: The Frame Loop (Graphic Processing)
+     */
     render<E extends ResolvedElement>(
         bundle: BundleResolvedElement<E, TGraphicBundle>,
         graphicProcessor: GraphicProcessor<TGraphicBundle>,
         state: SceneState
     ) {
+        const { resolved, assets } = bundle;
 
-        switch (bundle.resolved.type) {
-            case ELEMENT_TYPES.BOX:
-                graphicProcessor.drawBox(bundle.resolved, bundle.assets, state);
-                break;
-            case ELEMENT_TYPES.PANEL:
-                graphicProcessor.drawPanel(bundle.resolved, bundle.assets, state);
-                break;
-            case ELEMENT_TYPES.SPHERE:
-                graphicProcessor.drawSphere(bundle.resolved, bundle.assets, state);
-                break;
-            case ELEMENT_TYPES.CONE:
-                graphicProcessor.drawCone(bundle.resolved, bundle.assets, state);
-                break;
-            case ELEMENT_TYPES.PYRAMID:
-                graphicProcessor.drawPyramid(bundle.resolved, bundle.assets, state);
-                break;
-            case ELEMENT_TYPES.ELLIPTICAL:
-                graphicProcessor.drawElliptical(bundle.resolved, bundle.assets, state);
-                break;
-            case ELEMENT_TYPES.CYLINDER:
-                graphicProcessor.drawCylinder(bundle.resolved, bundle.assets, state);
-                break;
-            case ELEMENT_TYPES.TORUS:
-                graphicProcessor.drawTorus(bundle.resolved, bundle.assets, state);
-                break;
-            case ELEMENT_TYPES.FLOOR:
-                graphicProcessor.drawFloor(bundle.resolved, bundle.assets, state);
-                break;
-            case ELEMENT_TYPES.TEXT:
-                graphicProcessor.drawText(bundle.resolved, bundle.assets, state);
-                break;
+        switch (resolved.type) {
+            case ELEMENT_TYPES.BOX:        graphicProcessor.drawBox(resolved, assets, state); break;
+            case ELEMENT_TYPES.PANEL:      graphicProcessor.drawPanel(resolved, assets, state); break;
+            case ELEMENT_TYPES.SPHERE:     graphicProcessor.drawSphere(resolved, assets, state); break;
+            case ELEMENT_TYPES.CONE:       graphicProcessor.drawCone(resolved, assets, state); break;
+            case ELEMENT_TYPES.PYRAMID:    graphicProcessor.drawPyramid(resolved, assets, state); break;
+            case ELEMENT_TYPES.ELLIPTICAL: graphicProcessor.drawElliptical(resolved, assets, state); break;
+            case ELEMENT_TYPES.CYLINDER:   graphicProcessor.drawCylinder(resolved, assets, state); break;
+            case ELEMENT_TYPES.TORUS:      graphicProcessor.drawTorus(resolved, assets, state); break;
+            case ELEMENT_TYPES.FLOOR:      graphicProcessor.drawFloor(resolved, assets, state); break;
+            case ELEMENT_TYPES.TEXT:       graphicProcessor.drawText(resolved, assets, state); break;
             default:
                 const strange = bundle.resolved as unknown;
                 throw new Error(`Unknown type ${strange?.constructor?.name} ` + JSON.stringify(strange));
         }
     }
 
-    toDynamic<T extends ResolvedElement>(
-        blueprint: MapToBlueprint<T>
-    ): MapToDynamic<T> {
-        const {type, texture, font, effects, ...rest} = blueprint;
-
-        const dynamicProps: any = {};
-        for (const key in rest) {
-            dynamicProps[key] = this.compileProperty((rest as any)[key]);
-        }
-        return {
-            type,
-            texture,
-            font,
-            effects: effects,
-            ...dynamicProps
-        } as MapToDynamic<T>;
-    }
-
-    bundleBehaviors<K extends keyof TEffectLib & string>(
+    /**
+     * Logic for transforming Effect Blueprints into Resolution Groups.
+     */
+    protected bundleBehaviors<K extends keyof TEffectLib & string>(
         instructions?: EffectBlueprint<K, TEffectLib[K]['defaults']>[]
     ): EffectResolutionGroup[] {
         if (!instructions) return [];
 
         return instructions.map( instruction => {
-
-            const bundle = this.effectLib[instruction.type]
-
-            if (!bundle) {
-                // should never happen
-                throw new Error(`invalid effect ${instruction.type}`)
-            }
+            const bundle = this.effectLib[instruction.type];
+            if (!bundle) throw new Error(`Invalid effect: ${instruction.type}`);
 
             return {
                 type: instruction.type,
                 bundle: bundle,
                 settings: {
                     ...bundle.defaults,
-                    ...instruction.settings || {enable: true},
+                    ...(instruction.settings || { enabled: true }),
                 }
             };
         });
@@ -215,64 +175,34 @@ export class SceneResolver<
         return true;
     }
 
-    compileProperty<V>(value: V): DynamicProperty<V> {
-        // Function -> Computed
-        if (typeof value === 'function') {
-            return {
-                kind: SPEC_KINDS.COMPUTED,
-                compute: value as (state: SceneState) => any
-            };
-        }
-
-        // Objects
-        if (value && typeof value === 'object' && !Array.isArray(value)) {
-            // SHORT-CIRCUIT: If the whole object is static (like a Vector3),
-            // wrap it once and stop. No "Static Inception."
-            if (this.isStaticData(value)) {
-                return {kind: SPEC_KINDS.STATIC, value};
-            }
-
-            // Otherwise, it's a Branch: recursively compile its children
-            const dynamicBranch: any = {};
-            for (const key in value) {
-                dynamicBranch[key] = this.compileProperty(value[key]);
-            }
-
-            return {kind: SPEC_KINDS.BRANCH, value: dynamicBranch};
-        }
-
-        // Leaf Primitives
-        return {kind: SPEC_KINDS.STATIC, value};
-    }
-
-    loopResolve<T>(src: T, state: SceneState): Unwrapped<T> {
-        // Handle DynamicProperty (The Container)
-        if (this.isDynamicProperty(src)) {
-            switch (src.kind) {
-                case SPEC_KINDS.STATIC:
-                    return src.value as Unwrapped<T>;
-                case SPEC_KINDS.BRANCH:
-                    return this.loopResolve(src.value, state) as Unwrapped<T>;
-                case SPEC_KINDS.COMPUTED:
-                    // Recursive call handles computed functions that return objects or other properties
-                    return this.loopResolve(src.compute(state), state) as Unwrapped<T>;
-            }
-        }
-
-        // Handle Objects (The Branch)
-        if (src && typeof src === 'object' && !Array.isArray(src)) {
-            const result = {} as any;
-            for (const key in src) {
-                if (Object.prototype.hasOwnProperty.call(src, key)) {
-                    result[key] = this.loopResolve(src[key], state);
-                }
-            }
-            return result as Unwrapped<T>;
-        }
-
-        // Leaf / Primitive identity
-        return src as Unwrapped<T>;
-    }
+    // loopResolve<T>(src: T, state: SceneState): Unwrapped<T> {
+    //     // Handle DynamicProperty (The Container)
+    //     if (this.isDynamicProperty(src)) {
+    //         switch (src.kind) {
+    //             case SPEC_KINDS.STATIC:
+    //                 return src.value as Unwrapped<T>;
+    //             case SPEC_KINDS.BRANCH:
+    //                 return this.loopResolve(src.value, state) as Unwrapped<T>;
+    //             case SPEC_KINDS.COMPUTED:
+    //                 // Recursive call handles computed functions that return objects or other properties
+    //                 return this.loopResolve(src.compute(state), state) as Unwrapped<T>;
+    //         }
+    //     }
+    //
+    //     // Handle Objects (The Branch)
+    //     if (src && typeof src === 'object' && !Array.isArray(src)) {
+    //         const result = {} as any;
+    //         for (const key in src) {
+    //             if (Object.prototype.hasOwnProperty.call(src, key)) {
+    //                 result[key] = this.loopResolve(src[key], state);
+    //             }
+    //         }
+    //         return result as Unwrapped<T>;
+    //     }
+    //
+    //     // Leaf / Primitive identity
+    //     return src as Unwrapped<T>;
+    // }
 
     /**
      * Internal Type Guard for DynamicProperty
