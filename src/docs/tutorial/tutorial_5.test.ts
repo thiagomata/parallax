@@ -4,7 +4,7 @@ import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {createPauseTests} from './pause_test_utils.ts';
 import {ASSET_STATUS, type ResolvedBox, type ResolvedText} from "../../scene/types.ts";
-import {SceneResolver} from "../../scene/resolver/resolver.ts";
+import {ElementResolver} from "../../scene/resolver/element_resolver.ts";
 
 describe('Tutorial 5 Execution Test: Assets & Hydration', () => {
 
@@ -29,7 +29,7 @@ describe('Tutorial 5 Execution Test: Assets & Hydration', () => {
         mockP5.draw(); // Frame Loop
 
         const state = world.getCurrentSceneState();
-        const resolver = new SceneResolver({});
+        const resolver = new ElementResolver({});
         const resolvedBox = resolver.resolve(boxElement!, state) as { resolved: ResolvedBox };
 
         // Math: progress(0.25) * PI * 2 = PI / 2

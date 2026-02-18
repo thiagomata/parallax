@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {tutorial_3} from './tutorial_3';
 import {SceneManager} from "../../scene/scene_manager.ts";
 import {DEFAULT_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
-import {SceneResolver} from "../../scene/resolver/resolver.ts"; // The surgical resolver
+import {ElementResolver} from "../../scene/resolver/element_resolver.ts"; // The surgical resolver
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {createPauseTests} from './pause_test_utils.ts';
@@ -35,7 +35,7 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
         const element = world.getElement('orbit-box');
         if (!element) throw new Error("orbit-box not registered");
 
-        const resolver = new SceneResolver({});
+        const resolver = new ElementResolver({});
         const resolved0 = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
 
         expect(resolved0.resolved.position).toMatchObject({

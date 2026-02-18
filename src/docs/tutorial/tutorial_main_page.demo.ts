@@ -1,6 +1,6 @@
 import {World} from "../../scene/world.ts";
 import {SceneManager} from "../../scene/scene_manager.ts";
-import {SceneResolver} from "../../scene/resolver/resolver.ts"; // New Manifest-compliant resolver
+import {ElementResolver} from "../../scene/resolver/element_resolver.ts"; // New Manifest-compliant resolver
 import {HeadTrackingModifier} from "../../scene/modifiers/head_tracking_modifier.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
@@ -74,7 +74,7 @@ Object.assign(window, {
     DEFAULT_SETTINGS,
     ASSET_STATUS,
     DEFAULT_SKETCH_CONFIG,
-    resolver: new SceneResolver({}),
+    resolver: new ElementResolver({}),
 });
 
 import { transform } from 'sucrase';

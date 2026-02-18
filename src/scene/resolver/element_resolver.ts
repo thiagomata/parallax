@@ -19,7 +19,7 @@ import {
 } from "../types";
 import {BaseResolver} from "./base_resolver.ts";
 
-export class SceneResolver<
+export class ElementResolver<
     TGraphicBundle extends GraphicsBundle,
     TEffectLib extends EffectLib
 > extends BaseResolver<TEffectLib, EffectResolutionGroup>{
@@ -174,35 +174,6 @@ export class SceneResolver<
         }
         return true;
     }
-
-    // loopResolve<T>(src: T, state: SceneState): Unwrapped<T> {
-    //     // Handle DynamicProperty (The Container)
-    //     if (this.isDynamicProperty(src)) {
-    //         switch (src.kind) {
-    //             case SPEC_KINDS.STATIC:
-    //                 return src.value as Unwrapped<T>;
-    //             case SPEC_KINDS.BRANCH:
-    //                 return this.loopResolve(src.value, state) as Unwrapped<T>;
-    //             case SPEC_KINDS.COMPUTED:
-    //                 // Recursive call handles computed functions that return objects or other properties
-    //                 return this.loopResolve(src.compute(state), state) as Unwrapped<T>;
-    //         }
-    //     }
-    //
-    //     // Handle Objects (The Branch)
-    //     if (src && typeof src === 'object' && !Array.isArray(src)) {
-    //         const result = {} as any;
-    //         for (const key in src) {
-    //             if (Object.prototype.hasOwnProperty.call(src, key)) {
-    //                 result[key] = this.loopResolve(src[key], state);
-    //             }
-    //         }
-    //         return result as Unwrapped<T>;
-    //     }
-    //
-    //     // Leaf / Primitive identity
-    //     return src as Unwrapped<T>;
-    // }
 
     /**
      * Internal Type Guard for DynamicProperty

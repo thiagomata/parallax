@@ -9,17 +9,17 @@ import type {
     SceneState, BundleResolvedElement
 } from "./types.ts";
 import {AssetRegistry} from "./asset_registry.ts";
-import {SceneResolver} from "./resolver/resolver.ts";
+import {ElementResolver} from "./resolver/element_resolver.ts";
 
 export class Stage<
     TGraphicBundle extends GraphicsBundle,
     TEffectLib extends EffectLib
 > {
     private readonly registry: AssetRegistry<TGraphicBundle, {}>;
-    private readonly resolver: SceneResolver<TGraphicBundle, TEffectLib>;
+    private readonly resolver: ElementResolver<TGraphicBundle, TEffectLib>;
 
     constructor(loader: AssetLoader<TGraphicBundle>, effectLib?: TEffectLib) {
-        this.resolver = new SceneResolver<TGraphicBundle, TEffectLib>(effectLib ?? {} as TEffectLib);
+        this.resolver = new ElementResolver<TGraphicBundle, TEffectLib>(effectLib ?? {} as TEffectLib);
         this.registry = new AssetRegistry<TGraphicBundle, TEffectLib>(loader, this.resolver);
     }
 

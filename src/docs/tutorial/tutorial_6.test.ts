@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {type ResolvedFloor, type ResolvedSphere} from "../../scene/types.ts";
-import {SceneResolver} from "../../scene/resolver/resolver.ts";
+import {ElementResolver} from "../../scene/resolver/element_resolver.ts";
 import {createPauseTests} from './pause_test_utils.ts';
 import {tutorial_6} from "./tutorial_6.ts";
 
@@ -28,7 +28,7 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
 
         // Verify THE HERO SPHERE (The Hybrid Test)
         const sphereElement = world.getElement('hero-sphere');
-        const resolver = new SceneResolver({});
+        const resolver = new ElementResolver({});
         const resSphere = resolver.resolve(sphereElement!, state) as { resolved: ResolvedSphere };
 
         // Position X (Atomic): sin(0.25 * 2PI) * 100 = 100
@@ -65,7 +65,7 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
 
         const state = world.getCurrentSceneState();
         const sphereElement = world.getElement('hero-sphere');
-        const resolver = new SceneResolver({});
+        const resolver = new ElementResolver({});
         const resSphere = resolver.resolve(sphereElement!, state) as { resolved: ResolvedSphere };
 
         // Position X: sin(1.5PI) * 100 = -100

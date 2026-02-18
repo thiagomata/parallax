@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-    type ProjectionType,
+    type BlueprintProjection,
+    type ProjectionType, type StickModifier,
 } from '../types';
 import {createMockState} from "../mock/mock_scene_state.mock.ts";
 import {ProjectionResolver} from "./projection_resolver.ts";
@@ -12,7 +13,6 @@ describe('ProjectionResolver', () => {
         {x: 0, y: 0, z: 100},
     );
 
-
     describe('prepare', () => {
         it('should wrap static properties into dynamic containers', () => {
             const blueprint = {
@@ -21,11 +21,11 @@ describe('ProjectionResolver', () => {
                 position: { x: 10, y: 0, z: 0 }
             };
 
-            const dynamic = resolver.prepare(blueprint as any);
+            const dynamic = resolver.prepare(blueprint);
 
             expect(dynamic.id).toBe('test-cam');
             // Check if it was compiled into a Static DynamicProperty
-            expect((dynamic.position as any).kind).toBe('static');
+            expect((dynamic.position).kind).toBe('static');
             expect((dynamic.position as any).value.x).toBe(10);
         });
     });
@@ -43,7 +43,7 @@ describe('ProjectionResolver', () => {
                 stickModifiers: []
             };
 
-            const dynamic = resolver.prepare(blueprint as any);
+            const dynamic = resolver.prepare(blueprint);
             const resolved = resolver.resolve(dynamic, mockState);
 
             expect(resolved.distance).toBe(100);
@@ -53,13 +53,21 @@ describe('ProjectionResolver', () => {
 
         it('should accumulate position changes from Car and Nudge modifiers', () => {
             const carMod = {
+                priority: 1,
+                name: "test-car",
+                active: true,
+                tick: () => {},
                 getCarPosition: () => (
-                    { success: true, value: { position: { x: 50, y: 0, z: 0 } } }
+                    { success: true, value: { position: { x: 50, y: 0, z: 0 }, name: "test-car" } }
                 )
             };
             const nudgeMod = {
+                priority: 1,
+                name: "test-nudge-mod",
+                active: true,
+                tick: () => {},
                 getNudge: () => (
-                    { success: true, value: { x: 5 } }
+                    { success: true, value: { x: 5, name: "test-nudge-mod" } }
                 )
             };
 
@@ -68,11 +76,15 @@ describe('ProjectionResolver', () => {
                 type: 'PLAYER' as ProjectionType,
                 position: { x: 0, y: 0, z: 0 },
                 lookAt: { x: 0, y: 0, z: 100 },
-                carModifiers: [carMod],
-                nudgeModifiers: [nudgeMod]
-            };
+                rotation: { pitch: 0, yaw: 0, roll: 0 },
+                direction: { x: 0, y: 0, z: 0 },
+                modifiers: {
+                    carModifiers: [carMod],
+                    nudgeModifiers: [nudgeMod]
+                }
+            } as BlueprintProjection;
 
-            const dynamic = resolver.prepare(blueprint as any);
+            const dynamic = resolver.prepare(blueprint);
             const resolved = resolver.resolve(dynamic, mockState);
 
             // 50 (Car) + 5 (Nudge) = 55
@@ -83,11 +95,21 @@ describe('ProjectionResolver', () => {
 
         it('should modify rotation and distance via Stick modifiers', () => {
             const stickMod = {
+                priority: 1,
+                name: "test-stick",
+                active: true,
+                tick: () => {},
                 getStick: () => ({
                     success: true,
-                    value: { pitch: 0, yaw: Math.PI / 2, roll: 0, distance: 50 }
+                    value: {
+                        pitch: 0, yaw: Math.PI / 2,
+                        roll: 0,
+                        distance: 50,
+                        name: "test-stick",
+                        priority: 1,
+                    }
                 })
-            };
+            } as StickModifier;
 
             const blueprint = {
                 id: 'stick-test',
@@ -95,10 +117,12 @@ describe('ProjectionResolver', () => {
                 position: { x: 0, y: 0, z: 0 },
                 lookAt: { x: 0, y: 0, z: 100 }, // Initial distance 100
                 rotation: { pitch: 0, yaw: 0, roll: 0 },
-                stickModifiers: [stickMod]
+                modifiers: {
+                    stickModifiers: [stickMod]
+                }
             };
 
-            const dynamic = resolver.prepare(blueprint as any);
+            const dynamic = resolver.prepare(blueprint);
             const resolved = resolver.resolve(dynamic, mockState);
 
             // New yaw is 90 degrees, so direction should be { x: 1, y: 0, z: 0 }

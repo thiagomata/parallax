@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {tutorial_2} from './tutorial_2';
 import {SceneManager} from "../../scene/scene_manager.ts";
 import {DEFAULT_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
-import {SceneResolver} from "../../scene/resolver/resolver.ts";
+import {ElementResolver} from "../../scene/resolver/element_resolver.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {createPauseTests} from './pause_test_utils.ts';
@@ -38,7 +38,7 @@ describe('Tutorial 2: Progression Integration', () => {
         const element = world.getElement('pulsing-box');
         if (!element) throw new Error("Pulsing box not registered");
 
-        const resolver = new SceneResolver({});
+        const resolver = new ElementResolver({});
         const props0 = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
 
         // Size: 100 + sin(0) * 50 = 100

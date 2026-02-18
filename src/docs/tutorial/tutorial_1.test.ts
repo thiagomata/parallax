@@ -8,7 +8,7 @@ import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import p5 from "p5";
 import {createPauseTests} from "./pause_test_utils.ts";
-import {SceneResolver} from "../../scene/resolver/resolver.ts";
+import {ElementResolver} from "../../scene/resolver/element_resolver.ts";
 
 describe('Tutorial 1: Foundation & Engine Integration', () => {
 
@@ -85,7 +85,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
             if (!element) throw new Error("Tutorial box missing");
 
             // Use our deterministic resolver
-            const resolver = new SceneResolver({});
+            const resolver = new ElementResolver({});
             const resolvedBundle = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
             expect(resolvedBundle.resolved.width).toBe(100);
             expect(resolvedBundle.resolved.fillColor?.blue).toBe(255);

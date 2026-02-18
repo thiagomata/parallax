@@ -22,9 +22,6 @@ export interface Rotation3 {
 export interface BaseProjection {
     readonly type: ProjectionType;
     readonly id: string;
-    readonly carModifiers?: readonly CarModifier[];
-    readonly nudgeModifiers?: readonly NudgeModifier[];
-    readonly stickModifiers?: readonly StickModifier[];
 }
 
 export interface ResolvedProjection extends BaseProjection {
@@ -45,6 +42,11 @@ export interface BlueprintProjection extends BaseProjection {
     readonly lookAt: FlexibleSpec<Vector3>;
     readonly direction: FlexibleSpec<Vector3>;
     readonly effects?: ProjectionEffectBlueprint[]
+    readonly modifiers?: {
+        readonly carModifiers?: readonly CarModifier[];
+        readonly nudgeModifiers?: readonly NudgeModifier[];
+        readonly stickModifiers?: readonly StickModifier[];
+    }
 }
 
 /**
@@ -56,6 +58,11 @@ export interface DynamicProjection extends BaseProjection {
     readonly lookAt: DynamicProperty<Vector3>;
     readonly direction: DynamicProperty<Vector3>;
     readonly effects: ProjectionEffectResolutionGroup[];
+    readonly modifiers?: {
+        readonly carModifiers?: readonly CarModifier[];
+        readonly nudgeModifiers?: readonly NudgeModifier[];
+        readonly stickModifiers?: readonly StickModifier[];
+    }
 }
 
 export const DEFAULT_PROJECTION_ELEMENT = {
@@ -139,22 +146,6 @@ export const PROJECTION_TYPES = {
     EYE: 'EYE'
 } as const;
 export type ProjectionType = typeof PROJECTION_TYPES[keyof typeof PROJECTION_TYPES];
-
-export interface CameraSpace {
-    position: Vector3;    // camera origin in world
-    rotation: Rotation3;  // yaw/pitch/roll
-    carModifiers: CarModifier[]
-    nudgeModifiers: NudgeModifier[]
-    stickModifiers: StickModifier[]
-}
-
-export const DEFAULT_CAMERA_SPACE: CameraSpace = {
-    position: {x:0, y:0, z: -100},
-    rotation: {pitch: 0, yaw: 0, roll: 0},
-    carModifiers: [],
-    nudgeModifiers: [],
-    stickModifiers: [],
-};
 
 /**
  * A container for operations that can fail.

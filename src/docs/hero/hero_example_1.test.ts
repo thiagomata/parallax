@@ -5,7 +5,7 @@ import {heroExample1} from "./hero_example_1.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import type {ResolvedCylinder, ResolvedPyramid} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG} from "./hero.demo.ts";
-import {SceneResolver} from "../../scene/resolver/resolver.ts";
+import {ElementResolver} from "../../scene/resolver/element_resolver.ts";
 
 describe('Hero Demo Integration: World Animation', () => {
 
@@ -25,7 +25,7 @@ describe('Hero Demo Integration: World Animation', () => {
         const state0 = world.getCurrentSceneState();
         // We get the element from the world's internal registry
         const midElement0 = world.getElement('mid-cylinder');
-        const resolver = new SceneResolver({});
+        const resolver = new ElementResolver({});
         const resolved0 = resolver.resolve(midElement0!, state0) as { resolved: ResolvedCylinder };
 
         expect(resolved0.resolved.radius).toBe(100);
@@ -65,7 +65,7 @@ describe('Hero Demo Integration: World Animation', () => {
         mockP5.draw();
 
         const backElement = world.getElement('back-pyramid');
-        const resolver = new SceneResolver({});
+        const resolver = new ElementResolver({});
         const resolvedBundle = resolver.resolve(backElement!, world.getCurrentSceneState()) as { resolved: ResolvedPyramid };
 
         // Verify the resolved values match the blueprint for static objects

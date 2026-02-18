@@ -17,7 +17,7 @@ import {
 import type {MockGraphicBundle} from "../mock/mock_type.mock.ts";
 import {createMockGraphicProcessor} from "../mock/mock_graphic_processor.mock.ts";
 import {createMockState} from "../mock/mock_scene_state.mock.ts";
-import {SceneResolver} from "./resolver.ts";
+import {ElementResolver} from "./element_resolver.ts";
 
 const mockOrigin: Vector3 = {x: 0, y: 0, z: 0};
 
@@ -99,12 +99,12 @@ const mockState: SceneState = {
 describe('resolver.createRenderable & Resolver Loop', () => {
     let gp: GraphicProcessor<MockGraphicBundle>;
     let loader: AssetLoader<MockGraphicBundle>;
-    let resolver: SceneResolver<MockGraphicBundle, {}>;
+    let resolver: ElementResolver<MockGraphicBundle, {}>;
 
     beforeEach(() => {
         gp = createMockGP();
         loader = createMockLoader();
-        resolver = new SceneResolver<MockGraphicBundle, {}>({});
+        resolver = new ElementResolver<MockGraphicBundle, {}>({});
         vi.mocked(gp.dist).mockReturnValue(0);
     });
 
@@ -260,11 +260,11 @@ describe('resolver.toDynamic Structural Integrity', () => {
     const mockOrigin: Vector3 = {x: 0, y: 0, z: 0};
 
     let gp: GraphicProcessor<MockGraphicBundle>;
-    let resolver: SceneResolver<MockGraphicBundle, {}>;
+    let resolver: ElementResolver<MockGraphicBundle, {}>;
 
     beforeEach(() => {
         gp = createMockGP();
-        resolver = new SceneResolver<MockGraphicBundle, any>({});
+        resolver = new ElementResolver<MockGraphicBundle, any>({});
         vi.mocked(gp.dist).mockReturnValue(0);
     });
 
@@ -383,10 +383,10 @@ describe('resolver.toDynamic Structural Integrity', () => {
 
 describe('resolver.resolveProperty', () => {
     const mockState = createMockState({x: 0, y: 0, z: 0}, {x: 0, y: 0, z: 100});
-    let resolver: SceneResolver<MockGraphicBundle, {}>;
+    let resolver: ElementResolver<MockGraphicBundle, {}>;
 
     beforeEach(() => {
-        resolver = new SceneResolver({});
+        resolver = new ElementResolver({});
     });
 
     it('should resolve a STATIC property immediately', () => {
@@ -460,13 +460,13 @@ describe('resolver.resolveProperty', () => {
 describe('Shape Rendering', () => {
     let gp: GraphicProcessor<MockGraphicBundle>;
     let loader: AssetLoader<MockGraphicBundle>;
-    let resolver: SceneResolver<MockGraphicBundle, {}>;
+    let resolver: ElementResolver<MockGraphicBundle, {}>;
     const mockState = createMockState({x: 0, y: 0, z: 0}, {x: 0, y: 0, z: 100});
 
     beforeEach(() => {
         gp = createMockGP();
         loader = createMockLoader();
-        resolver = new SceneResolver({});
+        resolver = new ElementResolver({});
     });
 
     it('should render BOX elements', () => {
@@ -739,7 +739,7 @@ describe('SceneResolver with Effect Bundles', () => {
 
     describe('Constructor with Effect Library', () => {
         it('should work with empty effect library', () => {
-            const resolver = new SceneResolver({});
+            const resolver = new ElementResolver({});
             expect(resolver).toBeDefined();
         });
 
@@ -756,7 +756,7 @@ describe('SceneResolver with Effect Bundles', () => {
                 }
             };
 
-            const resolver = new SceneResolver<MockGraphicBundle, Record<string, any>>({
+            const resolver = new ElementResolver<MockGraphicBundle, Record<string, any>>({
                 'sizeMultiplier': sizeModifier
             } as any);
 
@@ -800,7 +800,7 @@ describe('SceneResolver with Effect Bundles', () => {
                 }
             };
 
-            const resolver = new SceneResolver({
+            const resolver = new ElementResolver({
                 'sizeMultiplier': sizeModifier
             });
 
@@ -866,7 +866,7 @@ describe('SceneResolver with Effect Bundles', () => {
                 }
             };
 
-            const resolver = new SceneResolver<MockGraphicBundle, Record<string, any>>({
+            const resolver = new ElementResolver<MockGraphicBundle, Record<string, any>>({
                 'sizeMultiplier': sizeModifier,
                 'positionOffset': positionModifier
             } as any);
@@ -921,7 +921,7 @@ describe('SceneResolver with Effect Bundles', () => {
                 }
             };
 
-            const resolver = new SceneResolver(
+            const resolver = new ElementResolver(
                 {
                     'noSettings': modifierNoSettings,
                 }
@@ -964,7 +964,7 @@ describe('SceneResolver with Effect Bundles', () => {
                 }
             };
 
-            const resolver = new SceneResolver<MockGraphicBundle, Record<string, any>>({
+            const resolver = new ElementResolver<MockGraphicBundle, Record<string, any>>({
                 'optionalSize': sizeModifier
             });
 
@@ -1006,7 +1006,7 @@ describe('SceneResolver with Effect Bundles', () => {
                 }
             };
 
-            const resolver = new SceneResolver<MockGraphicBundle, Record<string, any>>({
+            const resolver = new ElementResolver<MockGraphicBundle, Record<string, any>>({
                 'errorEffect': errorEffect
             } as any);
 
@@ -1036,7 +1036,7 @@ describe('SceneResolver with Effect Bundles', () => {
     });
 
         it('should throw error for unknown effect type', () => {
-            const resolver = new SceneResolver({});
+            const resolver = new ElementResolver({});
 
             const blueprintBox = {
                 type: ELEMENT_TYPES.BOX,
@@ -1057,7 +1057,7 @@ describe('SceneResolver with Effect Bundles', () => {
 
     describe('loopResolve safety checks', () => {
         it('should handle objects without prototype safely', () => {
-            const resolver = new SceneResolver({});
+            const resolver = new ElementResolver({});
 
             // Create an object with no prototype (Object.create(null))
             const objWithoutPrototype = Object.create(null);

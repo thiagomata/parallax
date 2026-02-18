@@ -2,16 +2,16 @@ import {beforeEach, describe, expect, it} from 'vitest';
 import {SceneManager} from "./scene/scene_manager.ts";
 import {toBlueprint, DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState,} from "./scene/types.ts";
 import {ChaosLoader} from "./scene/mock/mock_asset_loader.mock.ts";
-import {SceneResolver} from "./scene/resolver/resolver.ts";
+import {ElementResolver} from "./scene/resolver/element_resolver.ts";
 
 describe('README Examples Validation', () => {
 
     let manager: SceneManager;
     let assetLoader = new ChaosLoader();
-    let resolver: SceneResolver<any, {}>;
+    let resolver: ElementResolver<any, {}>;
     beforeEach(() => {
         manager = new SceneManager(DEFAULT_SETTINGS);
-        resolver = new SceneResolver({});
+        resolver = new ElementResolver({});
     });
 
     it('should validate the Car, Nudge, and Stick modifier examples', () => {

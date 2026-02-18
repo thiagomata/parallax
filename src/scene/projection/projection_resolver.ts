@@ -48,10 +48,12 @@ export class ProjectionResolver<
             direction: this.compileProperty(blueprint.direction ?? DEFAULT_PROJECTION_ELEMENT.direction),
 
             // Identity-based properties remain static via toDynamic + staticKeys
-            carModifiers:   this.sortMods(blueprint.carModifiers),
-            nudgeModifiers: blueprint.nudgeModifiers ?? [],
-            stickModifiers: this.sortMods(blueprint.stickModifiers),
-            effects:        this.bundleBehaviors(blueprint.effects),
+            modifiers: {
+                carModifiers:   this.sortMods(blueprint.modifiers?.carModifiers),
+                nudgeModifiers: blueprint.modifiers?.nudgeModifiers ?? [],
+                stickModifiers: this.sortMods(blueprint.modifiers?.stickModifiers),
+            },
+            effects: this.bundleBehaviors(blueprint.effects),
         };
     }
 
@@ -65,7 +67,7 @@ export class ProjectionResolver<
 
         // 2. Car Modifiers (Sequential priority)
         let currentPosition = { ...resolved.position };
-        for (const carModifier of dynamic.carModifiers ?? []) {
+        for (const carModifier of dynamic.modifiers?.carModifiers ?? []) {
             const res = carModifier.getCarPosition(currentPosition, state);
             if (res.success) {
                 currentPosition = res.value.position;
@@ -75,7 +77,7 @@ export class ProjectionResolver<
 
         // 3. Nudge Modifiers (Averaging/Voting)
         const votes = { x: [] as number[], y: [] as number[], z: [] as number[] };
-        for (const nudgeModifier of dynamic.nudgeModifiers ?? []) {
+        for (const nudgeModifier of dynamic.modifiers?.nudgeModifiers ?? []) {
             const res = nudgeModifier.getNudge(currentPosition, state);
             if (res.success) {
                 const { x, y, z } = res.value;
@@ -96,7 +98,7 @@ export class ProjectionResolver<
         let currentRotation = { ...resolved.rotation };
         let distanceModifier = 0;
 
-        for (const stickModifier of dynamic.stickModifiers ?? []) {
+        for (const stickModifier of dynamic.modifiers?.stickModifiers ?? []) {
             const res = stickModifier.getStick(currentPosition, state);
             if (res.success) {
                 currentRotation.pitch += res.value.pitch;
@@ -112,9 +114,6 @@ export class ProjectionResolver<
 
         return {
             ...resolved,
-            carModifiers: dynamic.carModifiers,
-            nudgeModifiers: dynamic.nudgeModifiers,
-            stickModifiers: dynamic.stickModifiers,
             effects: dynamic.effects ?? [],
             position: currentPosition,
             rotation: currentRotation,

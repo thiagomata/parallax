@@ -55,8 +55,6 @@ export abstract class BaseResolver<
      */
     protected abstract bundleBehaviors(instructions?: any[]): TResolutionGroup[];
 
-    // --- Core Resolution Engine ---
-
     /**
      * Resolves a property tree recursively.
      * The return type is Unwrapped<T>, representing the raw data after
@@ -80,7 +78,6 @@ export abstract class BaseResolver<
             const result: any = {};
             for (const key in src) {
                 if (Object.prototype.hasOwnProperty.call(src, key)) {
-                    // result[key] = this.loopResolve((src as any)[key], state);
                     if (this.staticKeys.includes(key)) {
                         result[key] = src[key];
                     } else {

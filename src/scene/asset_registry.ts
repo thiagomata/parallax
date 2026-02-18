@@ -5,7 +5,7 @@ import {
     type ResolvedElement,
     type MapToBlueprint, type EffectLib
 } from "./types.ts";
-import {SceneResolver} from "./resolver/resolver.ts";
+import {ElementResolver} from "./resolver/element_resolver.ts";
 
 export class AssetRegistry<
     TBundle extends GraphicsBundle,
@@ -13,11 +13,11 @@ export class AssetRegistry<
     // The ONLY list: A map of IDs to the actual Renderable instances
     private readonly elements: Map<string, BundleDynamicElement<any, TBundle>> = new Map();
     private readonly loader: AssetLoader<TBundle>;
-    private readonly resolver: SceneResolver<TBundle, TEffectLib>;
+    private readonly resolver: ElementResolver<TBundle, TEffectLib>;
 
-    constructor(loader: AssetLoader<TBundle>, resolver?: SceneResolver<TBundle, TEffectLib>) {
+    constructor(loader: AssetLoader<TBundle>, resolver?: ElementResolver<TBundle, TEffectLib>) {
         this.loader = loader;
-        this.resolver = resolver ?? new SceneResolver({} as TEffectLib);
+        this.resolver = resolver ?? new ElementResolver({} as TEffectLib);
     }
 
     public register<T extends ResolvedElement>(
