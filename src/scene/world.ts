@@ -1,22 +1,24 @@
-import type {SceneManager} from "./scene_manager.ts";
-import type {
-    AssetLoader,
-    BlueprintBox,
-    BlueprintCone,
-    BlueprintCylinder,
-    BlueprintElliptical,
-    BlueprintFloor,
-    BlueprintPanel,
-    BlueprintPyramid,
-    BlueprintSphere,
-    BlueprintText,
-    BlueprintTorus, EffectLib,
-    GraphicProcessor,
-    GraphicsBundle,
-    BundleDynamicElement,
-    SceneState, ElementId, ProjectionEffectLib
+import type {SceneClock} from "./scene_clock.ts";
+import {
+    type AssetLoader,
+    type BlueprintBox,
+    type BlueprintCone,
+    type BlueprintCylinder,
+    type BlueprintElliptical,
+    type BlueprintFloor,
+    type BlueprintPanel,
+    type BlueprintPyramid,
+    type BlueprintSphere,
+    type BlueprintText,
+    type BlueprintTorus, type EffectLib,
+    type GraphicProcessor,
+    type GraphicsBundle,
+    type BundleDynamicElement,
+    type SceneState, type ElementId, type ProjectionEffectLib, type SceneSettings, DEFAULT_SETTINGS, ScreenConfig
 } from "./types.ts";
 import {Stage} from "./stage.ts";
+import {merge} from "./utils/merge.ts";
+import {calculateOffAxisMatrix} from "./modifiers/projection_matrix_utils.ts";
 
 export class World<
     TBundle extends GraphicsBundle,
@@ -24,21 +26,29 @@ export class World<
     TProjectionEffectLib extends ProjectionEffectLib,
 > {
     public readonly stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib>;
-    private sceneManager: SceneManager;
-    private sceneState: SceneState;
+    private sceneClock: SceneClock;
+    private readonly settings: SceneSettings;
 
-    constructor(sceneManager: SceneManager, loader: AssetLoader<TBundle>, stage?: Stage<TBundle, TElementEffectLib, TProjectionEffectLib>) {
-        this.sceneManager = sceneManager;
-        this.sceneState = sceneManager.initialState();
-        this.stage = stage ?? new Stage<TBundle, TElementEffectLib, TProjectionEffectLib>(loader);
+    constructor(
+        clock: SceneClock,
+        loader: AssetLoader<TBundle>,
+        settings: Partial<SceneSettings> = {},
+        stage?: Stage<TBundle, TElementEffectLib, TProjectionEffectLib>,
+    ) {
+        this.settings = merge(DEFAULT_SETTINGS, settings);
+        this.sceneClock = clock;
+        this.stage = stage ?? new Stage<TBundle, TElementEffectLib, TProjectionEffectLib>(
+            this.settings,
+            loader
+        );
     }
 
-    public getCurrentSceneState(): SceneState {
-        return this.sceneState;
+    public getCurrenState(): SceneState {
+        return this.stage.getCurrentState()
     }
 
     public isPaused(): boolean {
-        return this.sceneManager.isPaused();
+        return this.sceneClock.isPaused();
     }
 
     public addBox<TID extends string>(
@@ -110,36 +120,29 @@ export class World<
     }
 
     public step(gp: GraphicProcessor<TBundle>): void {
-        const draftNewState = this.sceneManager.calculateScene(
-            gp.millis(),
-            gp.deltaTime(),
-            gp.frameCount(),
-            this.sceneState
+        const clockState = this.sceneClock.calculateScene(
+            gp.millis(), gp.deltaTime(), gp.frameCount(), this.getCurrenState()
         );
 
-        this.sceneState = this.stage.render(gp, draftNewState);
-        if (this.sceneState.settings.debug) {
-            this.renderDebug(gp, this.sceneState);
+        const finalState = this.stage.render(gp, clockState);
+        const { eye, screen } = finalState;
+
+        if (eye && screen) {
+            // Now passing the whole projection object
+            gp.setCamera(eye);
+
+            let screeConfig : ScreenConfig = null; // @TODO create screen screen settings and state
+
+            // finalState.settings.window
+            // export interface SceneWindow {
+            //     readonly width: number;
+            //     readonly height: number;
+            //     readonly aspectRatio: number;
+            // }
+
+            // Off-axis math using the ScreenConfig and Eye/Screen relationship
+            const matrix = calculateOffAxisMatrix(eye, screen, screeConfig);
+            gp.setProjectionMatrix(matrix);
         }
-    }
-
-    private renderDebug(gp: GraphicProcessor<TBundle>, state: SceneState) {
-        if (!state.debugStateLog) return;
-        const log = state.debugStateLog;
-
-        if (log.car.x !== undefined) {
-            gp.drawLabel(`CAR: ${log.car.name}`, {x: log.car.x, y: log.car.y, z: log.car.z});
-        }
-
-        log.nudges.forEach(nudge => {
-            if (nudge.x !== undefined) {
-                gp.drawCrosshair({x: nudge.x, y: nudge.y, z: nudge.z}, 5);
-                gp.text(`Nudge: ${nudge.name}`, {x: nudge.x, y: nudge.y, z: nudge.z});
-            }
-        });
-
-        log.errors.forEach((err, i) => {
-            gp.drawHUDText(`Error: ${err.message}`, 20, 20 + (i * 20));
-        });
     }
 }

@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {tutorial_4} from './tutorial_4';
-import {SceneManager} from "../../scene/scene_manager.ts";
+import {SceneClock} from "../../scene/scene_clock.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {createPauseTests} from './pause_test_utils.ts';
@@ -12,7 +12,7 @@ describe('Tutorial 4: SceneManager & Camera Injection', () => {
         const mockP5 = createMockP5();
 
         // Initialize manager (The Temporal/Camera Brain)
-        const manager = new SceneManager();
+        const manager = new SceneClock();
 
         // Execute tutorial logic
         // We pass our manager to control time and modifiers from the test
@@ -23,7 +23,7 @@ describe('Tutorial 4: SceneManager & Camera Injection', () => {
         mockP5.millis.mockReturnValue(0);
         mockP5.draw(); // Calculate state -> Render
 
-        const state0 = world.getCurrentSceneState();
+        const state0 = world.getCurrenState();
         if (state0.projection.kind !== "camera") return;
         expect(state0.projection.camera).toBeDefined();
 
@@ -38,7 +38,7 @@ describe('Tutorial 4: SceneManager & Camera Injection', () => {
         mockP5.millis.mockReturnValue(2500);
         mockP5.draw();
 
-        const state50 = world.getCurrentSceneState();
+        const state50 = world.getCurrenState();
         if (state50.projection.kind !== "camera") return;
         expect(state50.projection.camera).toBeDefined();
 

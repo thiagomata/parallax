@@ -3,7 +3,7 @@ import {World} from './world.ts';
 import {Stage} from './stage.ts';
 import {createMockState} from './mock/mock_scene_state.mock.ts';
 import {ChaosLoader} from './mock/mock_asset_loader.mock.ts';
-import type {SceneManager} from './scene_manager.ts';
+import type {SceneClock} from './scene_clock.ts';
 import type {GraphicProcessor} from './types.ts';
 import {createMockGraphicProcessor} from "./mock/mock_graphic_processor.mock.ts";
 import { createProjectionMatrix } from './modifiers/projection_matrix_utils.ts';
@@ -11,7 +11,7 @@ import { createProjectionMatrix } from './modifiers/projection_matrix_utils.ts';
 describe('World Orchestration (Dependency Injection)', () => {
     let world: World<any, any, any>;
     let stage: Stage<any, any, any>;
-    let mockManager: SceneManager;
+    let mockManager: SceneClock;
     let mockGP: GraphicProcessor<any>;
     let loader: ChaosLoader<any>;
     const initialState = createMockState({x: 0, y: 0, z: 0});
@@ -26,7 +26,7 @@ describe('World Orchestration (Dependency Injection)', () => {
         mockManager = {
             initialState: vi.fn().mockReturnValue(initialState),
             calculateScene: vi.fn().mockReturnValue(initialState),
-        } as unknown as SceneManager;
+        } as unknown as SceneClock;
 
         mockGP = createMockGraphicProcessor<any>();
 
@@ -337,7 +337,7 @@ describe('World Orchestration (Dependency Injection)', () => {
         });
 
         it('should return initial scene state before any rendering', () => {
-            const initialState = world.getCurrentSceneState();
+            const initialState = world.getCurrenState();
             
             expect(initialState).toBeDefined();
             expect(initialState).toBe(initialState); // Should be the initial mock state
@@ -354,7 +354,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             world.step(mockGP);
             
             // Get the updated scene state
-            const currentState = world.getCurrentSceneState();
+            const currentState = world.getCurrenState();
             
             // Verify that elements are populated after render
             expect(currentState.elements).toBeDefined();
@@ -373,7 +373,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             
             // First render - both elements should be present
             world.step(mockGP);
-            let currentState = world.getCurrentSceneState();
+            let currentState = world.getCurrenState();
             expect(currentState.elements?.has('removable-box')).toBe(true);
             expect(currentState.elements?.has('persistent-sphere')).toBe(true);
             
@@ -382,7 +382,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             
             // Second render - removed element should not be present
             world.step(mockGP);
-            currentState = world.getCurrentSceneState();
+            currentState = world.getCurrenState();
             expect(currentState.elements?.has('removable-box')).toBe(false);
             expect(currentState.elements?.has('persistent-sphere')).toBe(true);
         });
@@ -393,7 +393,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             
             // First render
             world.step(mockGP);
-            let currentState = world.getCurrentSceneState();
+            let currentState = world.getCurrenState();
             expect(currentState.elements?.has('initial-box')).toBe(true);
             expect(currentState.elements?.size).toBe(1);
             
@@ -403,7 +403,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             
             // Second render - should have all three elements
             world.step(mockGP);
-            currentState = world.getCurrentSceneState();
+            currentState = world.getCurrenState();
             expect(currentState.elements?.has('initial-box')).toBe(true);
             expect(currentState.elements?.has('added-sphere')).toBe(true);
             expect(currentState.elements?.has('added-cone')).toBe(true);
@@ -424,7 +424,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             
             // Render to populate resolved elements
             world.step(mockGP);
-            const currentState = world.getCurrentSceneState();
+            const currentState = world.getCurrenState();
             
             // Verify all elements from stage are in resolved elements
             elements.forEach(({id}) => {
@@ -444,7 +444,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             
             // Render with elements
             world.step(mockGP);
-            let currentState = world.getCurrentSceneState();
+            let currentState = world.getCurrenState();
             expect(currentState.elements?.size).toBeGreaterThan(0);
             
             // Remove all elements
@@ -453,7 +453,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             
             // Render without elements
             world.step(mockGP);
-            currentState = world.getCurrentSceneState();
+            currentState = world.getCurrenState();
             
             // Should have empty resolved elements (or at least not contain the removed elements)
             expect(currentState.elements?.has('clear-box')).toBe(false);
@@ -482,7 +482,7 @@ describe('World Orchestration (Dependency Injection)', () => {
             world.step(mockGP);
 
             // Get the updated scene state
-            const currentState = world.getCurrentSceneState();
+            const currentState = world.getCurrenState();
 
             // Verify the element exists in the resolved map
             expect(currentState.elements?.has('value-test-box')).toBe(true);
@@ -537,7 +537,7 @@ describe('World Orchestration (Dependency Injection)', () => {
 
             world.step(mockGP);
 
-            const updatedState = world.getCurrentSceneState();
+            const updatedState = world.getCurrenState();
             
             // Check both elements have proper resolved values
             const boxElement = updatedState.elements?.get('value-test-box');

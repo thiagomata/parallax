@@ -51,7 +51,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
         mockProvider.getFace.mockReturnValue(centerFace);
         mockP5.draw();
 
-        const currentState = world.getCurrentSceneState();
+        const currentState = world.getCurrenState();
         expect(currentState.projection.kind).toBe("camera");
         if (currentState.projection.kind !== "camera") return;
 
@@ -63,7 +63,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
         mockProvider.getFace.mockReturnValue(rotatedFace);
         mockP5.draw();
 
-        const afterState = world.getCurrentSceneState();
+        const afterState = world.getCurrenState();
         expect(afterState.projection.kind).toBe("camera");
         if (afterState.projection.kind !== "camera") return;
 
@@ -83,7 +83,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
         mockProvider.getFace.mockReturnValue(factory.shiftX(null, -0.2));
         mockP5.draw();
 
-        const state = world.getCurrentSceneState();
+        const state = world.getCurrenState();
         expect(state.projection.kind).toBe("camera");
         if (state.projection.kind !== "camera") return;
 
@@ -108,7 +108,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
         // Establish offset
         mockProvider.getFace.mockReturnValue(factory.shiftX(null, 0.2));
         mockP5.draw();
-        const currentState = world.getCurrentSceneState();
+        const currentState = world.getCurrenState();
         expect(currentState.projection.kind).toBe("camera");
         if (currentState.projection.kind !== "camera") return;
 
@@ -118,7 +118,7 @@ describe('Tutorial 7: The Observer (Integration)', () => {
         mockProvider.getFace.mockReturnValue(null);
         mockP5.draw(); // One tick of drifting back
 
-        const afterState = world.getCurrentSceneState();
+        const afterState = world.getCurrenState();
         expect(afterState.projection.kind).toBe("camera");
         if (afterState.projection.kind !== "camera") return;
         const driftedPos = afterState.projection.camera.position.x;

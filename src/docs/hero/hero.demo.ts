@@ -1,5 +1,5 @@
 import {World} from "../../scene/world.ts";
-import {SceneManager} from "../../scene/scene_manager.ts";
+import {SceneClock} from "../../scene/scene_clock.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {type AssetLoader, DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
@@ -29,7 +29,7 @@ import {tutorialStepTemplate} from "../tutorial/tutorial.template.ts";
  */
 Object.assign(window, {
     World,
-    SceneManager,
+    SceneManager: SceneClock,
     P5AssetLoader,
     P5GraphicProcessor,
     ELEMENT_TYPES,
@@ -42,7 +42,7 @@ export interface SketchConfig {
     width: number;
     height: number;
     backgroundColor?: string;
-    manager?: SceneManager,
+    manager?: SceneClock,
     loader?: AssetLoader<P5Bundler>,
     paused: boolean,
 }

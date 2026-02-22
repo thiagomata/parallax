@@ -25,6 +25,13 @@ export interface BaseProjection {
     readonly targetId?: string;
 }
 
+export function projectionIsType<T extends ProjectionType>(
+    resolvedProjection: ResolvedProjection,
+    type: T
+): resolvedProjection is ResolvedProjection & { type: T } {
+    return resolvedProjection.type === type;
+}
+
 export interface ResolvedProjection extends BaseProjection {
     position: Vector3;
     rotation: Rotation3;
@@ -296,7 +303,7 @@ export interface SceneState {
     elements?: Map<string, ResolvedElement>;
     projections?: Map<string, ResolvedProjection>;
     screen?: ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN};
-    eyes?: ResolvedProjection & {type: typeof PROJECTION_TYPES.EYE};
+    eye?: ResolvedProjection & {type: typeof PROJECTION_TYPES.EYE};
 }
 
 export const DEFAULT_CAMERA_FAR = 5000;
@@ -423,62 +430,44 @@ export type ColorRGBA = { red: number; green: number; blue: number; alpha?: numb
 export interface GraphicProcessor<TBundle extends GraphicsBundle> {
     readonly loader: AssetLoader<TBundle>;
 
-    setCamera(pos: Vector3, lookAt: Vector3): void;
+    /* --- Act 1: The Perspective Rig --- */
 
-    setProjectionMatrix?(projectionMatrix: ProjectionMatrix): void;
+    /**
+     * Positions the hardware camera using the resolved Eye projection.
+     * The processor uses eye.position and eye.lookAt to mount the view.
+     */
+    setCamera(eye: ResolvedProjection): void;
 
-    translate(pos: Vector3): void;
+    /**
+     * Applies the off-axis frustum matrix.
+     */
+    setProjectionMatrix(projectionMatrix: ProjectionMatrix): void;
 
-    fill(color: ColorRGBA, alpha?: number): void;
-
-    noFill(): void;
-
-    stroke(color: ColorRGBA, weight: number, globalAlpha?: number): void;
-
-    noStroke(): void;
-
+    /* --- Act 2: The Drawing Pipeline --- */
     drawBox(props: ResolvedBox, assets: ElementAssets<TBundle>, state: SceneState): void;
-
     drawPanel(props: ResolvedPanel, assets: ElementAssets<TBundle>, state: SceneState): void;
-
     drawSphere(resolved: ResolvedSphere, assets: ElementAssets<TBundle>, state: SceneState): void;
-
     drawCone(resolved: ResolvedCone, assets: ElementAssets<TBundle>, state: SceneState): void;
-
     drawPyramid(resolved: ResolvedPyramid, assets: ElementAssets<TBundle>, state: SceneState): void;
-
     drawElliptical(resolved: ResolvedElliptical, assets: ElementAssets<TBundle>, state: SceneState): void;
-
     drawCylinder(resolved: ResolvedCylinder, assets: ElementAssets<TBundle>, state: SceneState): void;
-
     drawTorus(resolved: ResolvedTorus, assets: ElementAssets<TBundle>, state: SceneState): void;
-
     drawFloor(resolved: ResolvedFloor, assets: ElementAssets<TBundle>, state: SceneState): void;
-
     drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: SceneState): void;
 
-    drawLabel(s: string, pos: Partial<Vector3>): void;
-
-    drawCrosshair(pos: Partial<Vector3>, size: number): void;
-
-    drawHUDText(s: string, x: number, y: number): void;
-
-    // plane(width: number, height: number): void;
-
+    /* --- Act 3: Spatial & Temporal Context --- */
     dist(v1: Vector3, v2: Vector3): number;
-
     map(val: number, s1: number, st1: number, s2: number, st2: number, clamp?: boolean): number;
-
     lerp(start: number, stop: number, amt: number): number;
-
-    text(s: string, pos: Partial<Vector3>): void;
-
     millis(): number;
-
     deltaTime(): number;
-
     frameCount(): number;
 
+    /* --- Act 4: UI & Debugging --- */
+    drawLabel(s: string, pos: Partial<Vector3>): void;
+    drawCrosshair(pos: Partial<Vector3>, size: number): void;
+    drawHUDText(s: string, x: number, y: number): void;
+    text(s: string, pos: Partial<Vector3>): void;
 }
 
 /**
@@ -552,7 +541,7 @@ export type Unwrapped<T> = T extends DynamicProperty<infer U> ? Unwrapped<U> : T
  */
 export type ReservedElementId =
     | 'camera'
-    | 'eyes'
+    | 'eye'
     | 'screen'
     | 'player'
     | 'world'

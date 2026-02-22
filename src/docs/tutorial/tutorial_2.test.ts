@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {tutorial_2} from './tutorial_2';
-import {SceneManager} from "../../scene/scene_manager.ts";
+import {SceneClock} from "../../scene/scene_clock.ts";
 import {DEFAULT_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
 import {ElementResolver} from "../../scene/resolver/element_resolver.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
@@ -14,7 +14,7 @@ describe('Tutorial 2: Progression Integration', () => {
         mockP5.millis.mockReturnValue(0);
 
         // Inject a manager with 4000ms duration for predictable math
-        const manager = new SceneManager({
+        const manager = new SceneClock({
             ...DEFAULT_SETTINGS,
             playback: {
                 ...DEFAULT_SETTINGS.playback,
@@ -39,7 +39,7 @@ describe('Tutorial 2: Progression Integration', () => {
         if (!element) throw new Error("Pulsing box not registered");
 
         const resolver = new ElementResolver({});
-        const props0 = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
+        const props0 = resolver.resolve(element, world.getCurrenState()) as { resolved: ResolvedBox };
 
         // Size: 100 + sin(0) * 50 = 100
         expect(props0.resolved.width).toBe(100);
@@ -50,7 +50,7 @@ describe('Tutorial 2: Progression Integration', () => {
         mockP5.millis.mockReturnValue(1000);
         mockP5.draw();
 
-        const props25 = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
+        const props25 = resolver.resolve(element, world.getCurrenState()) as { resolved: ResolvedBox };
 
         // Size: 100 + sin(PI/2) * 50 = 150
         expect(props25.resolved.width).toBeCloseTo(150, 0);
@@ -63,7 +63,7 @@ describe('Tutorial 2: Progression Integration', () => {
         mockP5.millis.mockReturnValue(2000);
         mockP5.draw();
 
-        const props50 = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
+        const props50 = resolver.resolve(element, world.getCurrenState()) as { resolved: ResolvedBox };
         // Size: 100 + sin(PI) * 50 = 100
         expect(props50.resolved.width).toBeCloseTo(100, 5);
         // Blue: 127 + 127 * cos(PI) = 0

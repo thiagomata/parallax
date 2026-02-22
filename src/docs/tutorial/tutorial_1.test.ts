@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {tutorial_1} from './tutorial_1';
 import {World} from "../../scene/world";
-import {SceneManager} from "../../scene/scene_manager";
+import {SceneClock} from "../../scene/scene_clock.ts";
 import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState} from "../../scene/types";
 import {createMockGraphicProcessor} from "../../scene/mock/mock_graphic_processor.mock.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
@@ -16,7 +16,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
         it('should correctly register and find elements in the world', () => {
             const mockP5 = createMockP5();
             const loader = new P5AssetLoader(mockP5 as unknown as p5);
-            const manager = new SceneManager(DEFAULT_SETTINGS);
+            const manager = new SceneClock(DEFAULT_SETTINGS);
             const world = new World(manager, loader);
 
             // Use the new extreme typed method instead of addElement/toProps
@@ -28,7 +28,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
                 fillColor: {red: 100, green: 100, blue: 255},
             });
 
-            const state = world.getCurrentSceneState();
+            const state = world.getCurrenState();
 
             expect(state.settings.window.width).toBe(800);
             expect(world.getElement('test-box')).toBeDefined();
@@ -37,7 +37,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
         it('should resolve computed properties dynamically during world.step', () => {
             const mockP5 = createMockP5();
             const loader = new P5AssetLoader(mockP5 as unknown as p5);
-            const manager = new SceneManager(DEFAULT_SETTINGS);
+            const manager = new SceneClock(DEFAULT_SETTINGS);
             const world = new World(manager, loader);
             const mockGP = createMockGraphicProcessor();
 
@@ -86,7 +86,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
 
             // Use our deterministic resolver
             const resolver = new ElementResolver({});
-            const resolvedBundle = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
+            const resolvedBundle = resolver.resolve(element, world.getCurrenState()) as { resolved: ResolvedBox };
             expect(resolvedBundle.resolved.width).toBe(100);
             expect(resolvedBundle.resolved.fillColor?.blue).toBe(255);
 

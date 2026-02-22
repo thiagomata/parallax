@@ -23,7 +23,7 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
         mockP5.millis.mockReturnValue(1250);
         mockP5.draw();
 
-        const state = world.getCurrentSceneState();
+        const state = world.getCurrenState();
         expect(state.playback.progress).toBe(0.25);
 
         // Verify THE HERO SPHERE (The Hybrid Test)
@@ -63,7 +63,7 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
         mockP5.millis.mockReturnValue(3750);
         mockP5.draw();
 
-        const state = world.getCurrentSceneState();
+        const state = world.getCurrenState();
         const sphereElement = world.getElement('hero-sphere');
         const resolver = new ElementResolver({});
         const resSphere = resolver.resolve(sphereElement!, state) as { resolved: ResolvedSphere };

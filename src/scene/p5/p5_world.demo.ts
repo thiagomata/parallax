@@ -3,7 +3,7 @@ import {World} from '../world';
 import {P5GraphicProcessor} from './p5_graphic_processor';
 import {P5AssetLoader, type P5Bundler} from './p5_asset_loader';
 import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "../types.ts";
-import {SceneManager} from "../scene_manager.ts";
+import {SceneClock} from "../scene_clock.ts";
 import {OrbitModifier} from "../modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../modifiers/center_focus_modifier.ts";
 
@@ -15,7 +15,7 @@ new p5((p: p5) => {
         p.createCanvas(window.innerWidth, window.innerHeight, p.WEBGL);
 
         // Scene Orchestration
-        const manager = new SceneManager({
+        const manager = new SceneClock({
             ...DEFAULT_SETTINGS,
             playback: {
                 ...DEFAULT_SETTINGS.playback,

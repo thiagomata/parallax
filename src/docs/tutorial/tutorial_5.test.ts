@@ -28,7 +28,7 @@ describe('Tutorial 5 Execution Test: Assets & Hydration', () => {
         mockP5.millis.mockReturnValue(1250);
         mockP5.draw(); // Frame Loop
 
-        const state = world.getCurrentSceneState();
+        const state = world.getCurrenState();
         const resolver = new ElementResolver({});
         const resolvedBox = resolver.resolve(boxElement!, state) as { resolved: ResolvedBox };
 

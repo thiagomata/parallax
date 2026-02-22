@@ -1,16 +1,16 @@
 import {beforeEach, describe, expect, it} from 'vitest';
-import {SceneManager} from "./scene/scene_manager.ts";
+import {SceneClock} from "./scene/scene_clock.ts";
 import {toBlueprint, DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState,} from "./scene/types.ts";
 import {ChaosLoader} from "./scene/mock/mock_asset_loader.mock.ts";
 import {ElementResolver} from "./scene/resolver/element_resolver.ts";
 
 describe('README Examples Validation', () => {
 
-    let manager: SceneManager;
+    let manager: SceneClock;
     let assetLoader = new ChaosLoader();
     let resolver: ElementResolver<any, {}>;
     beforeEach(() => {
-        manager = new SceneManager(DEFAULT_SETTINGS);
+        manager = new SceneClock(DEFAULT_SETTINGS);
         resolver = new ElementResolver({});
     });
 

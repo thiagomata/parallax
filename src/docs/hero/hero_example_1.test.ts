@@ -22,7 +22,7 @@ describe('Hero Demo Integration: World Animation', () => {
         mockP5.millis.mockReturnValue(0);
         mockP5.draw(); //  Frame Loop (Calculates SceneState)
 
-        const state0 = world.getCurrentSceneState();
+        const state0 = world.getCurrenState();
         // We get the element from the world's internal registry
         const midElement0 = world.getElement('mid-cylinder');
         const resolver = new ElementResolver({});
@@ -35,7 +35,7 @@ describe('Hero Demo Integration: World Animation', () => {
         mockP5.millis.mockReturnValue(2500);
         mockP5.draw();
 
-        const state25 = world.getCurrentSceneState();
+        const state25 = world.getCurrenState();
         const resolved25 = resolver.resolve(midElement0!, state25) as { resolved: ResolvedCylinder };
         // const resolved25 = midElement0?.resolve(state25) as ResolvedBox;
 
@@ -47,7 +47,7 @@ describe('Hero Demo Integration: World Animation', () => {
         mockP5.millis.mockReturnValue(5000);
         mockP5.draw();
 
-        const state50 = world.getCurrentSceneState();
+        const state50 = world.getCurrenState();
         // const resolved50 = midElement0?.resolve(state50) as ResolvedBox;
         const resolved50 = resolver.resolve(midElement0!, state50) as { resolved: ResolvedCylinder };
 
@@ -66,7 +66,7 @@ describe('Hero Demo Integration: World Animation', () => {
 
         const backElement = world.getElement('back-pyramid');
         const resolver = new ElementResolver({});
-        const resolvedBundle = resolver.resolve(backElement!, world.getCurrentSceneState()) as { resolved: ResolvedPyramid };
+        const resolvedBundle = resolver.resolve(backElement!, world.getCurrenState()) as { resolved: ResolvedPyramid };
 
         // Verify the resolved values match the blueprint for static objects
         expect(resolvedBundle.resolved.position).toMatchObject({x: -100, y: 0, z: -200});

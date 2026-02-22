@@ -9,7 +9,7 @@ import {
     type Vector3,
 } from "./types";
 
-import {SceneManager} from "./scene_manager.ts";
+import {SceneClock} from "./scene_clock.ts";
 import {createMockState} from "./mock/mock_scene_state.mock.ts";
 
 const mockCar = (id: string, priority: number, pos: Vector3): CarModifier => ({
@@ -39,29 +39,8 @@ const mockNudge = (val: Partial<Vector3>, active: boolean = true): NudgeModifier
 });
 
 const createMockSettings = function (pos: Vector3 = {x: 0, y: 0, z: 0}): SceneSettings {
-    if (DEFAULT_SETTINGS.projection.kind !== "camera") {
-        // @fixme do the projection screen
-        throw new Error("Screen is not supported");
-    }
-
     return {
         ...DEFAULT_SETTINGS,
-        projection: {
-            kind: "camera",
-            camera: {
-                ...DEFAULT_SETTINGS.projection.camera,
-                lookAt: {x: 0, y: 0, z: 0},
-                fov: Math.PI / 3,
-                near: 0.1,
-                far: 5000,
-                rotationLimits: {
-                    yaw: {min: -Math.PI / 2, max: Math.PI / 2},
-                    pitch: {min: -Math.PI / 3, max: Math.PI / 3},
-                    roll: {min: -Math.PI / 6, max: Math.PI / 6}
-                },
-                position: pos
-            }
-        }
     }
 };
 
@@ -97,7 +76,7 @@ const mockState = createMockState(
 describe("PortalSceneManager - Stage 1 (Car)", () => {
 
     it("should pick the highest priority car", () => {
-        const manager = new SceneManager(mockState.settings);
+        const manager = new SceneClock(mockState.settings);
         manager
             .addCarModifier(mockCar("low", 0, {x: 10, y: 11, z: 12}))
             .addCarModifier(mockCar("high", 100, {x: 50, y: 51, z: 52}));
@@ -112,7 +91,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
     });
 
     it("should fall back to lower priority if the highest fails with an error", () => {
-        const manager = new SceneManager(DEFAULT_SETTINGS);
+        const manager = new SceneClock(DEFAULT_SETTINGS);
 
         const failingHigh: CarModifier = {
             name: "FailingHigh",
@@ -138,7 +117,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
     });
 
     it("should completely ignore inactive modifiers", () => {
-        const manager = new SceneManager(DEFAULT_SETTINGS);
+        const manager = new SceneClock(DEFAULT_SETTINGS);
 
         const inactiveCar = mockCar("high", 100, {x: 50, y: 50, z: 50});
         inactiveCar.active = false; // The switch is off
@@ -160,7 +139,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
     it("should return initialCam and default orientation when no modifiers exist", () => {
 
         const initial = {x: 1, y: 2, z: 3};
-        const manager = new SceneManager(createMockSettings(initial)).setStickDistance(200);
+        const manager = new SceneClock(createMockSettings(initial)).setStickDistance(200);
 
         const state = manager.calculateScene(1000, 10, 60, manager.initialState());
         expect(state.projection.kind).toBe("camera");
@@ -172,7 +151,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
     });
 
     it("should pick the first one added if priorities are tied", () => {
-        const manager = new SceneManager(DEFAULT_SETTINGS);
+        const manager = new SceneClock(DEFAULT_SETTINGS);
 
         manager
             .addCarModifier(mockCar("first", 10, {x: 1, y: 11, z: 111}))
@@ -190,7 +169,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
 
     it("should return to initial defaults if all active modifiers return errors", () => {
         const initial = {x: 500, y: 500, z: 500};
-        const manager = new SceneManager(createMockSettings(initial));
+        const manager = new SceneClock(createMockSettings(initial));
 
         const brokenCar: CarModifier = {
             name: "BrokenCar",
@@ -232,7 +211,7 @@ describe("PortalSceneManager - Stage 1 (Car)", () => {
 
 describe("PortalSceneManager - Stage 2 (Nudge)", () => {
     it("should set all dimensions", () => {
-        const manager = new SceneManager(createMockSettings());
+        const manager = new SceneClock(createMockSettings());
         manager.setDebug(true);
         manager.addNudgeModifier(
             mockNudge({x: 100, y: 200, z: 300})
@@ -251,7 +230,7 @@ describe("PortalSceneManager - Stage 2 (Nudge)", () => {
     });
 
     it("should average dimensions independently and not dilute missing axes", () => {
-        const manager = new SceneManager(createMockSettings());
+        const manager = new SceneClock(createMockSettings());
 
         manager
             .addNudgeModifier(mockNudge({x: 10})) // Only votes for X
@@ -274,7 +253,7 @@ describe("PortalSceneManager - Stage 2 (Nudge)", () => {
 
 describe("PortalSceneManager - Stage 3 (Stick)", () => {
     it("should project lookAt correctly based on yaw/pitch", () => {
-        const manager = new SceneManager(createMockSettings());
+        const manager = new SceneClock(createMockSettings());
 
         const forwardStick: StickModifier = {
             name: "ForwardStick",
@@ -306,7 +285,7 @@ describe("PortalSceneManager - Stage 3 (Stick)", () => {
 });
 
 describe("PortalSceneManager - calculateLookAt Math", () => {
-    const manager = new SceneManager(createMockSettings({x: 0, y: 0, z: 0}));
+    const manager = new SceneClock(createMockSettings({x: 0, y: 0, z: 0}));
     const origin = {x: 0, y: 0, z: 0};
     const DIST = 10;
 
@@ -376,14 +355,14 @@ describe("PortalSceneManager - Debug Output", () => {
     const initial = {x: 10, y: 10, z: 10};
 
     it("should not include the debug property when isDebug is false", () => {
-        const manager = new SceneManager(createMockSettings(initial));
+        const manager = new SceneClock(createMockSettings(initial));
         manager.setDebug(false);
         const state = manager.calculateScene(1000, 10, 60, mockState);
         expect(state.debugStateLog).toBeUndefined();
     });
 
     it("should capture failed car modifier in the debug log", () => {
-        const manager = new SceneManager(createMockSettings(initial));
+        const manager = new SceneClock(createMockSettings(initial));
         manager.setDebug(true);
 
         const failingCar: CarModifier = {
@@ -425,7 +404,7 @@ describe("PortalSceneManager - Debug Output", () => {
     });
 
     it("should capture the winning car details in the debug log", () => {
-        const manager = new SceneManager(createMockSettings(initial)).setDebug(true);
+        const manager = new SceneClock(createMockSettings(initial)).setDebug(true);
 
         const highPriorityCar: CarModifier = {
             name: "highPriorityCar",
@@ -450,7 +429,7 @@ describe("PortalSceneManager - Debug Output", () => {
     });
 
     it("should accumulate all successful nudges in the debug audit", () => {
-        const manager = new SceneManager(createMockSettings(initial));
+        const manager = new SceneClock(createMockSettings(initial));
 
         manager
             .addNudgeModifier({
@@ -493,7 +472,7 @@ describe("PortalSceneManager - Debug Output", () => {
     });
 
     it("should capture errors for failing modifiers in the debug log", () => {
-        const manager = new SceneManager(createMockSettings(initial)).setDebug(true);
+        const manager = new SceneClock(createMockSettings(initial)).setDebug(true);
 
         const failingCar: CarModifier = {
             name: "FailingCar",
@@ -513,7 +492,7 @@ describe("PortalSceneManager - Debug Output", () => {
     });
 
     it("should capture failing nudge", () => {
-        const manager = new SceneManager(createMockSettings(initial)).setDebug(true);
+        const manager = new SceneClock(createMockSettings(initial)).setDebug(true);
 
         const failingNudge: NudgeModifier = {
             name: "FailingNudge",
@@ -535,7 +514,7 @@ describe("PortalSceneManager - Multi-Stick Logic", () => {
     const initialPos = {x: 0, y: 0, z: 0};
 
     it("should settle on the highest priority stick and log its name", () => {
-        const manager = new SceneManager(createMockSettings(initialPos)).setDebug(true);
+        const manager = new SceneClock(createMockSettings(initialPos)).setDebug(true);
 
         manager
             .addStickModifier(mockStick("Disabled", 1000, 10, false))
@@ -559,7 +538,7 @@ describe("PortalSceneManager - Multi-Stick Logic", () => {
 it("should log multiple errors if higher priority sticks fail", () => {
     const initialPos = {x: 0, y: 0, z: 0};
 
-    const manager = new SceneManager(createMockSettings(initialPos));
+    const manager = new SceneClock(createMockSettings(initialPos));
     manager.setDebug(true);
 
     const broken1: StickModifier = {
@@ -603,7 +582,7 @@ it("should log multiple errors if higher priority sticks fail", () => {
 });
 
 it('should completely reset spatial logic after clearModifiers', () => {
-    const manager = new SceneManager();
+    const manager = new SceneClock();
 
     const state = manager.initialState();
     expect(state.projection.kind).toBe("camera");
@@ -637,7 +616,7 @@ it('should completely reset spatial logic after clearModifiers', () => {
 
 describe("PortalSceneManager - Pause, Resume, and Debug", () => {
     it("should pause and resume scene calculation", () => {
-        const manager = new SceneManager(DEFAULT_SETTINGS);
+        const manager = new SceneClock(DEFAULT_SETTINGS);
         const initialState = manager.initialState();
 
         // Add a modifier that changes position over time
@@ -679,7 +658,7 @@ describe("PortalSceneManager - Pause, Resume, and Debug", () => {
     });
 
     it("should set debug mode and return manager for chaining", () => {
-        const manager = new SceneManager(DEFAULT_SETTINGS);
+        const manager = new SceneClock(DEFAULT_SETTINGS);
 
         // Test initial state
         expect(manager.isDebug()).toBe(false);
@@ -699,7 +678,7 @@ describe("PortalSceneManager - Pause, Resume, and Debug", () => {
     });
 
     it("should include debug logs when debug is enabled", () => {
-        const manager = new SceneManager(DEFAULT_SETTINGS);
+        const manager = new SceneClock(DEFAULT_SETTINGS);
         const initialState = manager.initialState();
 
         // Add modifiers for testing
@@ -723,7 +702,7 @@ describe("PortalSceneManager - Pause, Resume, and Debug", () => {
 
     it("should respect initial settings from constructor", () => {
         const debugSettings = {...DEFAULT_SETTINGS, debug: true, paused: false};
-        const manager = new SceneManager(debugSettings);
+        const manager = new SceneClock(debugSettings);
 
         expect(manager.isDebug()).toBe(true);
         expect(manager.debug).toBe(true);
@@ -731,7 +710,7 @@ describe("PortalSceneManager - Pause, Resume, and Debug", () => {
         expect(manager.paused).toBe(false);
 
         const nonDebugSettings = {...DEFAULT_SETTINGS, debug: false, startPaused: true};
-        const manager2 = new SceneManager(nonDebugSettings);
+        const manager2 = new SceneClock(nonDebugSettings);
 
         expect(manager2.isDebug()).toBe(false);
         expect(manager2.debug).toBe(false);
@@ -740,7 +719,7 @@ describe("PortalSceneManager - Pause, Resume, and Debug", () => {
     });
 
     it("should handle pause/resume with time calculations correctly", () => {
-        const manager = new SceneManager(DEFAULT_SETTINGS);
+        const manager = new SceneClock(DEFAULT_SETTINGS);
         const initialState = manager.initialState();
 
         // Resume from paused state

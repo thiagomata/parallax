@@ -25,7 +25,7 @@ describe('Tutorial 8: The Billboard (Integration)', () => {
         mockP5.setup();
         
         // Verify we can get the current scene state
-        const sceneState = world.getCurrentSceneState();
+        const sceneState = world.getCurrenState();
         expect(sceneState).toBeDefined();
         expect(sceneState.projection.kind).toBe("camera");
         if (sceneState.projection.kind !== "camera") return;
@@ -33,10 +33,10 @@ describe('Tutorial 8: The Billboard (Integration)', () => {
         
         // Verify world has the expected methods
         expect(typeof world.step).toBe('function');
-        expect(typeof world.getCurrentSceneState).toBe('function');
+        expect(typeof world.getCurrenState).toBe('function');
         
         // Verify world is properly initialized
-        const finalState = world.getCurrentSceneState();
+        const finalState = world.getCurrenState();
         expect(finalState).toBeDefined();
         
         // Use world to satisfy linter
@@ -81,7 +81,7 @@ describe('Tutorial 8: The Billboard (Integration)', () => {
         // Mock background to prevent actual drawing
         mockP5.background = vi.fn();
         
-        const state = world.getCurrentSceneState();
+        const state = world.getCurrenState();
         expect(state).toBeDefined();
         
         // Use world to avoid unused variable warning

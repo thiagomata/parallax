@@ -1,12 +1,19 @@
-import type {
-    AssetLoader,
-    EffectLib,
-    GraphicProcessor,
-    GraphicsBundle,
-    MapToBlueprint,
-    BundleDynamicElement,
-    ResolvedElement,
-    SceneState, BundleResolvedElement, ProjectionEffectLib, BlueprintProjection, ResolvedProjection, DynamicProjection
+import {
+    type AssetLoader,
+    type EffectLib,
+    type GraphicProcessor,
+    type GraphicsBundle,
+    type MapToBlueprint,
+    type BundleDynamicElement,
+    type ResolvedElement,
+    type SceneState,
+    type BundleResolvedElement,
+    type ProjectionEffectLib,
+    type BlueprintProjection,
+    type ResolvedProjection,
+    type DynamicProjection,
+    PROJECTION_TYPES,
+    projectionIsType, type ScenePlaybackState, type SceneSettings
 } from "./types.ts";
 import {ElementResolver} from "./resolver/element_resolver.ts";
 import {ProjectionResolver} from "./projection/projection_resolver.ts";
@@ -22,17 +29,43 @@ export class Stage<
     private readonly projectionRegistry: ProjectionAssetRegistry<TProjectionEffectLib>;
     private readonly elementResolver: ElementResolver<TGraphicBundle, TElementEffectLib>;
     private readonly projectionResolver: ProjectionResolver<TProjectionEffectLib>;
+    private readonly settings: SceneSettings;
+
+    private lastFrameState: SceneState | null = null;
 
     constructor(
+        settings: SceneSettings,
         loader: AssetLoader<TGraphicBundle>,
         elementEffectLib: TElementEffectLib = {} as TElementEffectLib,
         projectionEffectLib: TProjectionEffectLib = {} as TProjectionEffectLib,
     ) {
+        this.settings = settings;
+
         this.elementResolver = new ElementResolver<TGraphicBundle, TElementEffectLib>(elementEffectLib);
         this.projectionResolver = new ProjectionResolver<TProjectionEffectLib>(projectionEffectLib);
 
         this.elementRegistry = new ElementAssetRegistry<TGraphicBundle, TElementEffectLib>(loader, this.elementResolver);
         this.projectionRegistry = new ProjectionAssetRegistry<TProjectionEffectLib>(this.projectionResolver);
+    }
+
+    /**
+     * Bootstraps the engine with the base environment.
+     * Note: Environmental blueprints (Screen/Eye) are now seeds for the Stage to hydrate.
+     */
+    public initialState(): SceneState {
+        return {
+            sceneId: 0,
+            settings: this.settings,
+            playback: {
+                now: 0,
+                delta: 0,
+                frameCount: 0,
+                progress: 0,
+            } as ScenePlaybackState,
+            // Maps start empty; Stage handles the registration of defaults or users.
+            elements: new Map(),
+            projections: new Map(),
+        } as SceneState;
     }
 
     public addElement<T extends ResolvedElement>(blueprint: MapToBlueprint<T>): void {
@@ -89,7 +122,8 @@ export class Stage<
         }
 
         // 2 - select from the projection elements the current screen and eyes
-        const resolvedProjectionsMap = new Map(Object.entries(resolutionPool));
+        let screenProjection = this.getScreenProjection(resolutionPool, state);
+        let eyeProjection = this.getEyeProjection(resolutionPool, state);
 
         //  3 - define the render queue based in the scene screen
         // Optimized Painter's Algorithm: Sort far-to-near
@@ -97,7 +131,7 @@ export class Stage<
             .map(element => ({
                 element,
                 distance: graphicProcessor.dist(
-                    screen.position,
+                    screenProjection.position,
                     this.elementResolver.resolveProperty(element.dynamic.position, state)
                 )
             }))
@@ -141,17 +175,15 @@ export class Stage<
             }
         )
 
-        const finalElementsMap = new Map(
-            finalElements.map(pair => [pair.id, pair.bundle.resolved])
-        );
-
         // 7 - apply the effects in the projection elements
-        // MISSING
 
-        const finalState = {
+        const finalState: SceneState = {
             ...stateBeforeEffect,
-            elements: finalElementsMap
-        } as SceneState;
+            elements: new Map(finalElements.map(p => [p.id, p.bundle.resolved])),
+            // Set the active viewports for the processor/next frame
+            screen: screenProjection,
+            eye: eyeProjection
+        };
 
         finalElements.map(
             pair => {
@@ -159,8 +191,67 @@ export class Stage<
             }
         )
 
-        //
+        this.lastFrameState = finalState;
 
         return finalState;
+    }
+
+    private getScreenProjection(
+        resolutionPool: Record<string, ResolvedProjection>,
+        state: SceneState
+    ): ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN } {
+        const resolvedProjectionsMap = new Map(Object.entries(resolutionPool));
+        if (!state.screen) {
+            return {
+                id: 'screen',
+                type: PROJECTION_TYPES.SCREEN,
+                position: {x: 0, y: 0, z: -100},
+                rotation: {pitch: 0, yaw: 0, roll: 0},
+                lookAt: {x: 0, y: 0, z: 0},
+                direction: {x: 0, y: 0, z: -1},
+                distance: 100,
+                effects: [],
+            };
+        }
+        const screenProjection = resolvedProjectionsMap.get(state.screen.id);
+        if (!screenProjection) {
+            throw new Error(`Projection ${state.screen.id} for screen not found`);
+        }
+        if(!projectionIsType(screenProjection, PROJECTION_TYPES.SCREEN)) {
+            throw new Error(`ScreenProjection ${state.screen.id} is not type screen`);
+        }
+        return screenProjection;
+    }
+
+    private getEyeProjection(
+        resolutionPool: Record<string, ResolvedProjection>,
+        state: SceneState
+    ): ResolvedProjection & {type: typeof PROJECTION_TYPES.EYE } {
+        const resolvedProjectionsMap = new Map(Object.entries(resolutionPool));
+        if (!state.eye) {
+            return {
+                id: 'eye',
+                targetId: state.screen?.id ?? 'screen',
+                type: PROJECTION_TYPES.EYE,
+                position: {x: 0, y: 0, z: 50},
+                rotation: {pitch: 0, yaw: 0, roll: 0},
+                lookAt: {x: 0, y: 0, z: 0},
+                direction: {x: 0, y: 0, z: -1},
+                distance: 50,
+                effects: [],
+            };
+        }
+        let eyeProjection = resolvedProjectionsMap.get(state.eye.id);
+        if (!eyeProjection) {
+            throw new Error(`Projection ${state.eye.id} for eye not found`);
+        }
+        if(!projectionIsType(eyeProjection, PROJECTION_TYPES.EYE)) {
+            throw new Error(`ScreenProjection ${state.eye.id} is not type eye`);
+        }
+        return eyeProjection;
+    }
+
+    getCurrentState() {
+        return this.lastFrameState ?? this.initialState()
     }
 }

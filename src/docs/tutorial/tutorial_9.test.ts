@@ -37,7 +37,7 @@ describe('Tutorial 9: Look At The Object (Integration)', () => {
         mockP5.setup();
         
         // Verify we can get current scene state
-        const sceneState = world.getCurrentSceneState();
+        const sceneState = world.getCurrenState();
         expect(sceneState).toBeDefined();
         expect(sceneState.projection.kind).toBe("camera");
         if(sceneState.projection.kind !== "camera") return;
@@ -45,11 +45,11 @@ describe('Tutorial 9: Look At The Object (Integration)', () => {
         
         // Verify world has expected methods
         expect(typeof world.step).toBe('function');
-        expect(typeof world.getCurrentSceneState).toBe('function');
+        expect(typeof world.getCurrenState).toBe('function');
         expect(typeof world.addBox).toBe('function');
         
         // Verify world is properly initialized
-        const finalState = world.getCurrentSceneState();
+        const finalState = world.getCurrenState();
         expect(finalState).toBeDefined();
         
         // Use world to satisfy linter

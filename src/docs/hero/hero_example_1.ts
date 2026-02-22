@@ -4,14 +4,14 @@ import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {World} from "../../scene/world.ts";
 import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
 import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
-import {SceneManager} from "../../scene/scene_manager.ts";
+import {SceneClock} from "../../scene/scene_clock.ts";
 import p5 from "p5";
 import type {SketchConfig} from "./hero.demo.ts";
 
     export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any, any> => {
     let gp: P5GraphicProcessor;
 
-    const manager = new SceneManager({
+    const manager = new SceneClock({
         ...DEFAULT_SETTINGS,
         playback: { ...DEFAULT_SETTINGS.playback, duration: 10000, isLoop: true }
     });

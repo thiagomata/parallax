@@ -1,7 +1,7 @@
 import p5 from 'p5';
 import { World } from "../../scene/world.ts";
 import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
-import { SceneManager } from "../../scene/scene_manager.ts";
+import { SceneClock } from "../../scene/scene_clock.ts";
 import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts"; // Our new class
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
 import { DEFAULT_SETTINGS, ELEMENT_TYPES } from "../../scene/types.ts";
@@ -15,7 +15,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     let gp: P5GraphicProcessor;
 
     // Create the manager
-    const activeManager = config.manager ?? new SceneManager({
+    const activeManager = config.manager ?? new SceneClock({
         ...DEFAULT_SETTINGS,
         startPaused: config.paused,
         debug: false

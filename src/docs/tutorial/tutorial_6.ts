@@ -1,5 +1,5 @@
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
-import {SceneManager} from "../../scene/scene_manager.ts";
+import {SceneClock} from "../../scene/scene_clock.ts";
 import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState} from "../../scene/types.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {World} from "../../scene/world.ts";
@@ -8,7 +8,7 @@ import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.dem
 
 export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let graphicProcessor: P5GraphicProcessor;
-    const manager = config.manager ?? new SceneManager({
+    const manager = config.manager ?? new SceneClock({
         ...DEFAULT_SETTINGS,
         startPaused: config.paused,
         playback: {...DEFAULT_SETTINGS.playback, duration: 5000, isLoop: true}

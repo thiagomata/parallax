@@ -1,5 +1,5 @@
 import {World} from "../../scene/world.ts";
-import {SceneManager} from "../../scene/scene_manager.ts";
+import {SceneClock} from "../../scene/scene_clock.ts";
 import {ElementResolver} from "../../scene/resolver/element_resolver.ts"; // New Manifest-compliant resolver
 import {HeadTrackingModifier} from "../../scene/modifiers/head_tracking_modifier.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
@@ -40,7 +40,7 @@ export interface SketchConfig {
     width: number;
     height: number;
     backgroundColor?: string;
-    manager?: SceneManager,
+    manager?: SceneClock,
     cameraModifier?: HeadTrackingModifier,
     loader?: P5AssetLoader,
     paused: boolean,
@@ -63,7 +63,7 @@ export type P5Sketch = (p: p5, config: SketchConfig) => void;
 Object.assign(window, {
     p5,
     World,
-    SceneManager,
+    SceneManager: SceneClock,
     CameraModifier: HeadTrackingModifier,
     P5AssetLoader,
     P5GraphicProcessor,

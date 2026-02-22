@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {tutorial_3} from './tutorial_3';
-import {SceneManager} from "../../scene/scene_manager.ts";
+import {SceneClock} from "../../scene/scene_clock.ts";
 import {DEFAULT_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
 import {ElementResolver} from "../../scene/resolver/element_resolver.ts"; // The surgical resolver
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
@@ -14,7 +14,7 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
         const mockP5 = createMockP5();
 
         // Inject manager with 5000ms duration
-        const manager = new SceneManager({
+        const manager = new SceneClock({
             ...DEFAULT_SETTINGS,
             playback: {
                 ...DEFAULT_SETTINGS.playback,
@@ -36,7 +36,7 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
         if (!element) throw new Error("orbit-box not registered");
 
         const resolver = new ElementResolver({});
-        const resolved0 = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
+        const resolved0 = resolver.resolve(element, world.getCurrenState()) as { resolved: ResolvedBox };
 
         expect(resolved0.resolved.position).toMatchObject({
             x: 50,
@@ -49,7 +49,7 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
         mockP5.millis.mockReturnValue(1250);
         mockP5.draw();
 
-        const resolved25 = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
+        const resolved25 = resolver.resolve(element, world.getCurrenState()) as { resolved: ResolvedBox };
 
         expect(resolved25.resolved.position.x).toBeCloseTo(0, 5);
         expect(resolved25.resolved.position.y).toBeCloseTo(50, 5);
@@ -59,7 +59,7 @@ describe('Tutorial 3 Integration: Computed Orbit', () => {
         mockP5.millis.mockReturnValue(2500);
         mockP5.draw();
 
-        const resolved50 = resolver.resolve(element, world.getCurrentSceneState()) as { resolved: ResolvedBox };
+        const resolved50 = resolver.resolve(element, world.getCurrenState()) as { resolved: ResolvedBox };
 
         expect(resolved50.resolved.position.x).toBeCloseTo(-50, 5);
         expect(resolved50.resolved.position.y).toBeCloseTo(0, 5);

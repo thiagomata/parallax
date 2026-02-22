@@ -1,7 +1,7 @@
 import p5 from 'p5';
 import {World} from "../../scene/world.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
-import {SceneManager} from "../../scene/scene_manager.ts";
+import {SceneClock} from "../../scene/scene_clock.ts";
 import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
@@ -17,7 +17,7 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     let graphicProcessor: P5GraphicProcessor;
 
     // Scene Orchestration
-    const activeManager = config.manager ?? new SceneManager({
+    const activeManager = config.manager ?? new SceneClock({
             ...DEFAULT_SETTINGS,
             startPaused: config.paused
         });
