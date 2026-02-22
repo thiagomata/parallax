@@ -172,13 +172,64 @@ export interface GraphicsBundle {
     readonly font: unknown;
 }
 
+interface WindowConfigInput {
+    width: number;
+    height: number;
+    z: number;
+    near: number;
+    far: number;
+    epsilon: number;
+}
+
 /**
- * SCENE DATA STRUCTURES
+ * Baseline portal dimensions (approx. 27-inch monitor in mm).
  */
-export interface SceneWindow {
-    readonly width: number;
-    readonly height: number;
-    readonly aspectRatio: number;
+export const DEFAULT_WINDOW_CONFIG = {
+    width: 600,
+    height: 337,
+    z: 0,
+    near: 10,
+    far: 10000,
+    epsilon: 0.001,
+};
+
+export class WindowConfig {
+    public readonly width: number;
+    public readonly height: number;
+    public readonly halfWidth: number;
+    public readonly halfHeight: number;
+    public readonly aspectRatio: number;
+    public readonly z: number;
+    public readonly near: number;
+    public readonly far: number;
+    public readonly epsilon: number;
+
+    private constructor(input: WindowConfigInput) {
+        this.width = input.width;
+        this.height = input.height;
+        this.z = input.z;
+        this.near = input.near;
+        this.far = input.far;
+        this.epsilon = input.epsilon;
+
+        this.halfWidth = input.width * 0.5;
+        this.halfHeight = input.height * 0.5;
+        this.aspectRatio = input.width / input.height;
+    }
+
+    /**
+     * Merges user overrides with the static default object.
+     */
+    static create(params: Partial<WindowConfigInput> = {}): WindowConfig {
+        const input = { ...DEFAULT_WINDOW_CONFIG, ...params };
+
+        // Validation logic migrated from the nuked ScreenConfig
+        if (input.width <= 0 || input.height <= 0) throw new Error("Portal width/height must be positive.");
+        if (input.near <= 0 || input.far <= input.near) throw new Error("Invalid clipping planes.");
+        if (input.epsilon <= 0) throw new Error("Invalid epsilon value.");
+
+        return new WindowConfig(input);
+    }
 }
 
 export interface StickRotationLimits {
@@ -193,19 +244,6 @@ export const DEFAULT_ROTATION_LIMITS: StickRotationLimits = {
     roll: { min: -Math.PI/6, max: Math.PI/6 },      // ±30 degrees
 };
 
-// export interface SceneCameraState {
-//     readonly yaw: number;
-//     readonly pitch: number;
-//     readonly roll: number;
-//     readonly direction: Vector3;
-//     readonly position: Vector3;
-//     readonly lookAt: Vector3;
-//     readonly fov: number; // in radians
-//     readonly near: number;
-//     readonly far: number;
-//     readonly rotationLimits?: StickRotationLimits;
-// }
-
 export type ScreenConfigInput = {
     width: number;
     height: number;
@@ -214,64 +252,6 @@ export type ScreenConfigInput = {
     far: number;
     epsilon: number;
 };
-
-/**
- * A standard 27-inch monitor at 1080p scale (approximate dimensions in mm)
- * Screen is at the world origin (z: 0),
- * assuming the eye starts at some distance (e.g., z: 600)
- */
-const DEFAULT_SCREEN_CONFIG: ScreenConfigInput = {
-    width: 600,
-    height: 337,
-    z: 0,
-    near: 10,
-    far: 10000,
-    epsilon: 0.001
-};
-
-export class ScreenConfig {
-    public readonly input: ScreenConfigInput;
-
-    public readonly halfWidth: number;
-    public readonly halfHeight: number;
-
-    private constructor(input: ScreenConfigInput) {
-        this.input = input;
-
-        this.halfWidth = input.width * 0.5;
-        this.halfHeight = input.height * 0.5;
-    }
-
-    static create(
-        params: Partial<ScreenConfigInput> = {}
-    ): ScreenConfig {
-
-        const input: ScreenConfigInput = {
-            ...DEFAULT_SCREEN_CONFIG,
-            ...params
-        };
-
-        // validation
-        if (input.width <= 0 || input.height <= 0) {
-            throw new Error("Physical dimensions must be positive.");
-        }
-        if (input.near <= 0 || input.far <= input.near) {
-            throw new Error("Invalid clipping planes.");
-        }
-        if (input.epsilon <= 0) {
-            throw new Error("Epsilon must be positive.");
-        }
-
-        return new ScreenConfig(input);
-    }
-
-    get width() { return this.input.width; }
-    get height() { return this.input.height; }
-    get z() { return this.input.z; }
-    get near() { return this.input.near; }
-    get far() { return this.input.far; }
-    get epsilon() { return this.input.epsilon; }
-}
 
 export interface PlaybackSettings {
     readonly duration?: number;
@@ -288,12 +268,15 @@ export interface ScenePlaybackState {
 }
 
 export interface SceneSettings {
-    window: SceneWindow;
+    window: WindowConfig;
     playback: PlaybackSettings;
     debug: boolean;
     alpha: number;
     startPaused: boolean;
 }
+
+type ScreeProjection = ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN};
+type EyeProjection   = ResolvedProjection & {type: typeof PROJECTION_TYPES.EYE};
 
 export interface SceneState {
     sceneId: number;
@@ -302,18 +285,12 @@ export interface SceneState {
     debugStateLog?: SceneStateDebugLog;
     elements?: Map<string, ResolvedElement>;
     projections?: Map<string, ResolvedProjection>;
-    screen?: ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN};
-    eye?: ResolvedProjection & {type: typeof PROJECTION_TYPES.EYE};
 }
 
 export const DEFAULT_CAMERA_FAR = 5000;
 
 export const DEFAULT_SETTINGS: SceneSettings = {
-    window: {
-        width: 800,
-        height: 600,
-        aspectRatio: 800 / 600
-    },
+    window: WindowConfig.create(DEFAULT_WINDOW_CONFIG),
     playback: {
         duration: 5000,
         isLoop: true,

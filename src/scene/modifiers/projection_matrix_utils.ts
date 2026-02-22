@@ -2,45 +2,32 @@ import {
     type ProjectionMatrix,
     type ProjectionMatrixComponent,
     type ResolvedProjection,
-    ScreenConfig,
-    type Vector3
+    type Vector3, WindowConfig
 } from "../types.ts";
 
 /**
- * The high-level orchestrator for the Parallax Illusion.
- * Calculates the Off-Axis bounds by pinning the frustum corners to the physical monitor.
+ * Zero-recalculation Off-Axis Utility.
  */
 export function calculateOffAxisMatrix(
     eye: ResolvedProjection,
     screen: ResolvedProjection,
-    screenConfig: ScreenConfig // Using your ScreenConfig class for halfWidth/halfHeight
+    window: WindowConfig
 ): ProjectionMatrix {
-    // 1. Calculate relative head position to the screen center
     const dx = eye.position.x - screen.position.x;
     const dy = eye.position.y - screen.position.y;
 
-    // dz is the perpendicular distance from eye to screen.
-    // We use the config epsilon to prevent division by zero at the glass.
-    const dz = Math.max(Math.abs(eye.position.z - screen.position.z), screenConfig.epsilon);
+    const distance = Math.abs(eye.position.z - screen.position.z);
+    const dz = distance < window.epsilon ? window.epsilon : distance;
 
-    // 2. Map physical screen edges to the Near Clipping Plane (The Illusion)
-    // This scaling factor creates the "Window" effect.
-    const ratio = screenConfig.near / dz;
+    const scale = window.near / dz;
 
-    const left   = (-screenConfig.halfWidth - dx) * ratio;
-    const right  = (screenConfig.halfWidth - dx) * ratio;
-    const bottom = (-screenConfig.halfHeight - dy) * ratio;
-    const top    = (screenConfig.halfHeight - dy) * ratio;
+    // Direct property access - no division/multiplication overhead here
+    const left   = (-window.halfWidth - dx) * scale;
+    const right  = ( window.halfWidth - dx) * scale;
+    const bottom = (-window.halfHeight - dy) * scale;
+    const top    = ( window.halfHeight - dy) * scale;
 
-    // 3. Generate the final 4x4 Off-Axis Matrix
-    return projectionMatrixFromFrustum(
-        left,
-        right,
-        bottom,
-        top,
-        screenConfig.near,
-        screenConfig.far
-    );
+    return projectionMatrixFromFrustum(left, right, bottom, top, window.near, window.far);
 }
 
 /**

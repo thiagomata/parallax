@@ -1,38 +1,67 @@
-import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "../../scene/types.ts";
-import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
-import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
-import {World} from "../../scene/world.ts";
-import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
-import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
-import {SceneClock} from "../../scene/scene_clock.ts";
 import p5 from "p5";
-import type {SketchConfig} from "./hero.demo.ts";
+import {
+    PROJECTION_TYPES,
+    ELEMENT_TYPES,
+    DEFAULT_SETTINGS,
+    WindowConfig,
+    type SceneState,
+    type Vector3
+} from "../../scene/types.ts";
+import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
+import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
+import { World } from "../../scene/world.ts";
+import { SceneClock } from "../../scene/scene_clock.ts";
 
-    export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any, any> => {
+// Modifiers
+// import { CenterFocusModifier } from "../../scene/modifiers/center_focus_modifier.ts";
+// import { OrbitModifier } from "../../scene/modifiers/orbit_modifier.ts";
+
+import type { SketchConfig } from "./hero.demo.ts";
+
+export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any, any> => {
     let gp: P5GraphicProcessor;
 
-    const manager = new SceneClock({
-        ...DEFAULT_SETTINGS,
-        playback: { ...DEFAULT_SETTINGS.playback, duration: 10000, isLoop: true }
-    });
+    // 1. Temporal & Spatial Orchestration
+    const clock = new SceneClock(DEFAULT_SETTINGS);
 
-    manager.setDebug(true);
-    manager.setStickDistance(1000);
-    manager.addCarModifier(new OrbitModifier(p, 1000));
-    manager.addStickModifier(new CenterFocusModifier());
+    const settings = {
+        ...DEFAULT_SETTINGS,
+        window: WindowConfig.create({
+            width: config.width,
+            height: config.height,
+        }),
+        playback: {
+            ...DEFAULT_SETTINGS.playback,
+            duration: 10000,
+            isLoop: true
+        },
+        debug: true
+    };
 
     const loader = config?.loader ?? new P5AssetLoader(p);
-    const world = new World<P5Bundler, any, any>(manager, loader);
+    const world = new World<P5Bundler, any, any>(clock, loader, settings);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
         gp = new P5GraphicProcessor(p, loader);
 
-        // ==== REGISTRATION WITH NEW SHAPES ====
+        // 2. The Projection Rig
+        // Modifiers are now properties of the Eye projection itself.
+        world.stage.setEye({
+            id: 'main-eye',
+            type: PROJECTION_TYPES.EYE,
+            position: { x: 0, y: 0, z: 1000 },
+            lookAt: { x: 0, y: 0, z: 0 },
+            modifiers: {
+                // carModifiers: [new OrbitModifier(p, 1000)],
+                // stickModifiers: [new CenterFocusModifier()]
+            }
+        });
 
+        // 3. Shape Registration
         world.addPyramid({
-            type: ELEMENT_TYPES.PYRAMID,
             id: 'back-pyramid',
+            type: ELEMENT_TYPES.PYRAMID,
             baseSize: 200,
             height: 150,
             position: { x: -100, y: 0, z: -200 },
@@ -41,8 +70,8 @@ import type {SketchConfig} from "./hero.demo.ts";
         });
 
         world.addCylinder({
-            type: ELEMENT_TYPES.CYLINDER,
             id: 'mid-cylinder',
+            type: ELEMENT_TYPES.CYLINDER,
             radius: (state: SceneState) => 50 + 50 * Math.cos(2 * Math.PI * state.playback.progress),
             height: 100,
             rotate: (state: SceneState) => ({
@@ -60,8 +89,8 @@ import type {SketchConfig} from "./hero.demo.ts";
         });
 
         world.addCone({
-            type: ELEMENT_TYPES.CONE,
             id: 'front-cone',
+            type: ELEMENT_TYPES.CONE,
             radius: 60,
             height: 120,
             position: { x: 100, y: 0, z: 200 },
@@ -70,8 +99,8 @@ import type {SketchConfig} from "./hero.demo.ts";
         });
 
         world.addTorus({
-            type: ELEMENT_TYPES.TORUS,
             id: 'ring-torus',
+            type: ELEMENT_TYPES.TORUS,
             radius: 80,
             tubeRadius: 20,
             position: { x: 0, y: 50, z: -50 },
@@ -80,8 +109,8 @@ import type {SketchConfig} from "./hero.demo.ts";
         });
 
         world.addElliptical({
-            type: ELEMENT_TYPES.ELLIPTICAL,
             id: 'egg-elliptical',
+            type: ELEMENT_TYPES.ELLIPTICAL,
             rx: 50,
             ry: 30,
             rz: 70,
@@ -91,8 +120,8 @@ import type {SketchConfig} from "./hero.demo.ts";
         });
 
         world.addText({
-            type: ELEMENT_TYPES.TEXT,
             id: 'title-text',
+            type: ELEMENT_TYPES.TEXT,
             text: "PARALLAX",
             size: 40,
             position: { x: 50, y: 0, z: 0 },

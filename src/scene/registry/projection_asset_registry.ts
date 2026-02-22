@@ -42,10 +42,18 @@ export class ProjectionAssetRegistry<
         return this.projections.get(id);
     }
 
+    public has(id: string): boolean {
+        return this.projections.has(id);
+    }
+
     /**
      * For the Frame Loop
      */
     public all(): IterableIterator<DynamicProjection> {
         return this.projections.values();
+    }
+
+    public delete(id: string): boolean {
+        return this.projections.delete(id);
     }
 }

@@ -10,11 +10,16 @@ import {
     type BlueprintPyramid,
     type BlueprintSphere,
     type BlueprintText,
-    type BlueprintTorus, type EffectLib,
+    type BlueprintTorus,
+    type EffectLib,
     type GraphicProcessor,
     type GraphicsBundle,
     type BundleDynamicElement,
-    type SceneState, type ElementId, type ProjectionEffectLib, type SceneSettings, DEFAULT_SETTINGS, ScreenConfig
+    type SceneState,
+    type ElementId,
+    type ProjectionEffectLib,
+    type SceneSettings,
+    DEFAULT_SETTINGS, type BlueprintProjection, PROJECTION_TYPES,
 } from "./types.ts";
 import {Stage} from "./stage.ts";
 import {merge} from "./utils/merge.ts";
@@ -49,6 +54,20 @@ export class World<
 
     public isPaused(): boolean {
         return this.sceneClock.isPaused();
+    }
+
+    /**
+     * Replaces or sets the Eye projection (The User's position).
+     */
+    public setEye(blueprint: BlueprintProjection & {type: typeof PROJECTION_TYPES.EYE, id: 'eye'}): void {
+        this.stage.setEye(blueprint);
+    }
+
+    /**
+     * Replaces or sets the Screen projection (The Window's spatial pose).
+     */
+    public setScreen(blueprint: BlueprintProjection & {type: typeof PROJECTION_TYPES.SCREEN, id: 'screen'}): void {
+        this.stage.setScreen(blueprint);
     }
 
     public addBox<TID extends string>(
@@ -125,24 +144,19 @@ export class World<
         );
 
         const finalState = this.stage.render(gp, clockState);
-        const { eye, screen } = finalState;
+        const eye = finalState.projections?.get('eye');
+        const screen = finalState.projections?.get('screen');
 
         if (eye && screen) {
+            debugger;
             // Now passing the whole projection object
             gp.setCamera(eye);
 
-            let screeConfig : ScreenConfig = null; // @TODO create screen screen settings and state
-
-            // finalState.settings.window
-            // export interface SceneWindow {
-            //     readonly width: number;
-            //     readonly height: number;
-            //     readonly aspectRatio: number;
-            // }
-
             // Off-axis math using the ScreenConfig and Eye/Screen relationship
-            const matrix = calculateOffAxisMatrix(eye, screen, screeConfig);
-            gp.setProjectionMatrix(matrix);
+            // const matrix = calculateOffAxisMatrix(eye, screen, finalState.settings.window);
+            // gp.setProjectionMatrix(matrix);
+        } else {
+            throw new Error("no screen or eye to render");
         }
     }
 }

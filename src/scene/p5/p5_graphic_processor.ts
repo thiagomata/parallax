@@ -1,8 +1,6 @@
-import p5 from 'p5';
 import {
     ASSET_STATUS,
-    type AssetLoader,
-    type ColorRGBA,
+    type AssetLoader, type ColorRGBA,
     type ElementAssets,
     type GraphicProcessor,
     type ProjectionMatrix,
@@ -12,14 +10,17 @@ import {
     type ResolvedCylinder,
     type ResolvedElliptical,
     type ResolvedFloor,
-    type ResolvedPanel, type ResolvedPyramid,
+    type ResolvedPanel,
+    type ResolvedProjection,
+    type ResolvedPyramid,
     type ResolvedSphere,
-    type ResolvedText, type ResolvedTorus,
+    type ResolvedText,
+    type ResolvedTorus,
     type SceneState,
-    type Vector3,
-} from '../types';
-import type {P5Bundler} from './p5_asset_loader';
-
+    type Vector3
+} from "../types.ts";
+import type {P5Bundler} from "./p5_asset_loader.ts";
+import p5 from "p5";
 
 export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     public readonly loader: AssetLoader<P5Bundler>;
@@ -30,342 +31,215 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.loader = loader;
     }
 
-    // --- Timing ---
-    millis(): number {
-        return this.p.millis();
+    // --- Act 1: The Perspective Rig ---
+
+    public setCamera(eye: ResolvedProjection): void {
+        this.p.camera(
+            eye.position.x, eye.position.y, eye.position.z,
+            eye.lookAt.x, eye.lookAt.y, eye.lookAt.z,
+            0, 1, 0
+        );
     }
 
-    deltaTime(): number {
-        return this.p.deltaTime;
-    }
-
-    frameCount(): number {
-        return this.p.frameCount;
-    }
-
-    // --- Transformations ---
-    setCamera(pos: Vector3, lookAt: Vector3): void {
-        this.p.camera(pos.x, pos.y, pos.z, lookAt.x, lookAt.y, lookAt.z, 0, 1, 0);
-    }
-
-    setProjectionMatrix(projectionMatrix: ProjectionMatrix): void {
-        // Extract frustum parameters from projection matrix using the inverse of the formula
-        // in projection_matrix_utils.projectionMatrixFromFrustum
-        const { xScale, yScale, projection, translation } = projectionMatrix;
-        
-        // Extract near from zScale formula: zScale = -(far + near) / (far - near)
-        const zScale = projection.z;
-        const zOffset = translation.z;
-        
-        let near = 0.1;
-        let far = 100;
-        
-        // Solve for near and far from the standard projection matrix formulas
-        if (Math.abs(zScale + 1) > 0.001 && Math.abs(zOffset) > 0.001) {
-            far = (zOffset * zScale) / (zScale + 1) / (zScale - 1);
-            near = far * (zScale + 1) / (zScale - 1) / 2;
-            if (near <= 0) near = 0.1;
-            if (far <= near) far = near + 100;
+    public setProjectionMatrix(m: ProjectionMatrix): void {
+        const renderer = (this.p as any)._renderer;
+        if (renderer?.uPMatrix) {
+            renderer.uPMatrix.set([
+                m.xScale.x, m.xScale.y, m.xScale.z, m.xScale.w,
+                m.yScale.x, m.yScale.y, m.yScale.z, m.yScale.w,
+                m.projection.x, m.projection.y, m.projection.z, m.projection.w,
+                m.translation.x, m.translation.y, m.translation.z, m.translation.w
+            ]);
         }
-        
-        // Extract frustum bounds from the standard formulas
-        // xScale = 2*near / (right - left)
-        // xOffset = (right + left) / (right - left)  (stored in projection.x)
-        const right = near * (1 + projection.x) / xScale.x / 2;
-        const left = near * (projection.x - 1) / xScale.x / 2;
-        
-        // yScale = 2*near / (top - bottom)
-        // yOffset = (top + bottom) / (top - bottom)  (stored in projection.y)
-        const top = near * (1 + projection.y) / yScale.y / 2;
-        const bottom = near * (projection.y - 1) / yScale.y / 2;
-        
-        this.p.frustum(left, right, bottom, top, near, far);
     }
 
-    private push(): void {
+    // --- Act 2: The Drawing Pipeline ---
+
+    public drawBox(props: ResolvedBox, assets: ElementAssets<P5Bundler>, state: SceneState): void {
         this.p.push();
-    }
-
-    private pop(): void {
+        this.applyContext(props, assets, state);
+        this.p.box(
+            props.width,
+            props.height ?? props.width,
+            props.depth  ?? props.width
+        );
         this.p.pop();
     }
 
-    translate(pos: Partial<Vector3>): void {
-        this.p.translate(pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
-    }
-
-    fill(color: ColorRGBA, alpha: number = 1): void {
-        const baseAlpha = color.alpha ?? 1;
-        const finalAlpha = Math.round(alpha * baseAlpha * 255);
-        this.p.fill(color.red, color.green, color.blue, finalAlpha);
-    }
-
-    noFill(): void {
-        this.p.noFill();
-    }
-
-    stroke(color: ColorRGBA, weight: number = 1, globalAlpha: number = 1): void {
-        const baseAlpha = color.alpha ?? 1;
-        const finalAlpha = (baseAlpha * globalAlpha) * 255;
-        this.p.strokeWeight(weight);
-        this.p.stroke(color.red, color.green, color.blue, finalAlpha);
-    }
-
-    noStroke(): void {
-        this.p.noStroke();
-    }
-
-    drawText(props: ResolvedText, assets: ElementAssets<P5Bundler>, state: SceneState): void {
-        if (assets.font?.status !== ASSET_STATUS.READY || !assets.font.value) return;
-
-        this.push();
-        this.translate(props.position);
-        this.rotate(props.rotate);
-
-        this.p.textFont(assets.font.value.internalRef);
-        this.p.textSize(props.size);
-        this.drawFill(props, state);
-        this.drawStroke(props, state);
-
-        // Render text at local origin
-        this.p.text(props.text, 0, 0);
-        this.pop();
-    }
-
-    drawBox(props: ResolvedBox, assets: ElementAssets<P5Bundler>, state: SceneState): void {
-        this.push();
-        this.translate(props.position);
-        this.rotate(props.rotate);
-
-        this.drawTexture(assets, props, state);
-        this.drawStroke(props, state);
-
-        this.p.box(props.width, props.height ?? props.width, props.depth ?? props.width);
-        this.pop();
-    }
-
-    drawSphere(props: ResolvedSphere, assets: ElementAssets<P5Bundler>, state: SceneState): void {
-        this.push();
-        this.translate(props.position);
-        this.rotate(props.rotate);
-
-        this.drawTexture(assets, props, state);
-        this.drawStroke(props, state);
-
-        this.p.sphere(props.radius);
-        this.pop();
-    }
-
-    drawPanel(props: ResolvedPanel, assets: ElementAssets<P5Bundler>, state: SceneState): void {
-        this.push();
-        this.translate(props.position);
-        this.rotate(props.rotate);
-
-        this.drawTexture(assets, props, state);
-        this.drawStroke(props, state);
-
+    public drawPanel(props: ResolvedPanel, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.p.push();
+        this.applyContext(props, assets, state);
         this.p.plane(props.width, props.height);
-        this.pop();
+        this.p.pop();
     }
 
-    drawFloor(props: ResolvedFloor, assets: ElementAssets<P5Bundler>, state: SceneState): void {
-        this.push();
+    public drawSphere(props: ResolvedSphere, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.p.push();
+        this.applyContext(props, assets, state);
+        this.p.sphere(props.radius);
+        this.p.pop();
+    }
 
-        // Position the center of the floor
-        this.translate(props.position);
-
-        // Base Rotation: Orient to the XZ plane (Standard Floor Behavior)
+    public drawFloor(props: ResolvedFloor, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.p.push();
+        this.applyContext(props, assets, state);
         this.p.rotateX(this.p.HALF_PI);
-
-        // User Rotation: Apply any additional offsets from the blueprint
-        this.rotate(props.rotate);
-
-        // Visual Styles
-        this.drawTexture(assets, props, state);
-        this.drawStroke(props, state);
-
-        // Execution: A floor is a plane with specific width and depth
-        // Note: p5.plane takes (width, height). In floor context, height = depth.
         this.p.plane(props.width, props.depth);
-
-        this.pop();
+        this.p.pop();
     }
 
-    drawPyramid(props: ResolvedPyramid, assets: ElementAssets<P5Bundler>, state: SceneState): void {
-        this.push();
-        this.translate(props.position);
-        this.rotate(props.rotate);
+    public drawTorus(props: ResolvedTorus, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.p.push();
+        this.applyContext(props, assets, state);
+        this.p.torus(props.radius, props.tubeRadius);
+        this.p.pop();
+    }
 
-        this.drawTexture(assets, props, state);
-        this.drawStroke(props, state);
+    public drawCylinder(props: ResolvedCylinder, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.p.push();
+        this.applyContext(props, assets, state);
+        this.p.cylinder(props.radius, props.height);
+        this.p.pop();
+    }
 
-        // Approximate pyramid: base centered at origin, use p.beginShape
+    public drawCone(props: ResolvedCone, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.p.push();
+        this.applyContext(props, assets, state);
+        this.p.cone(props.radius, props.height);
+        this.p.pop();
+    }
+
+    public drawElliptical(props: ResolvedElliptical, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.p.push();
+        this.applyContext(props, assets, state);
+        this.p.ellipsoid(props.rx, props.ry, props.rz);
+        this.p.pop();
+    }
+
+    public drawPyramid(props: ResolvedPyramid, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.p.push();
+        this.applyContext(props, assets, state);
         const s = props.baseSize / 2;
         this.p.beginShape(this.p.TRIANGLES);
         // 4 triangular sides
-        this.p.vertex(-s, 0, -s); this.p.vertex(s, 0, -s); this.p.vertex(0, props.height, 0);
-        this.p.vertex(s, 0, -s); this.p.vertex(s, 0, s); this.p.vertex(0, props.height, 0);
-        this.p.vertex(s, 0, s); this.p.vertex(-s, 0, s); this.p.vertex(0, props.height, 0);
-        this.p.vertex(-s, 0, s); this.p.vertex(-s, 0, -s); this.p.vertex(0, props.height, 0);
+        this.p.vertex(-s, 0, -s); this.p.vertex( s, 0, -s); this.p.vertex(0, props.height, 0);
+        this.p.vertex( s, 0, -s); this.p.vertex( s, 0,  s); this.p.vertex(0, props.height, 0);
+        this.p.vertex( s, 0,  s); this.p.vertex(-s, 0,  s); this.p.vertex(0, props.height, 0);
+        this.p.vertex(-s, 0,  s); this.p.vertex(-s, 0, -s); this.p.vertex(0, props.height, 0);
         // base
-        this.p.vertex(-s, 0, -s); this.p.vertex(s, 0, -s); this.p.vertex(s, 0, s);
-        this.p.vertex(s, 0, s); this.p.vertex(-s, 0, s); this.p.vertex(-s, 0, -s);
+        this.p.vertex(-s, 0, -s); this.p.vertex( s, 0, -s); this.p.vertex( s, 0,  s);
+        this.p.vertex( s, 0,  s); this.p.vertex(-s, 0,  s); this.p.vertex(-s, 0, -s);
         this.p.endShape();
-        this.pop();
+        this.p.pop();
     }
 
-    drawCone(props: ResolvedCone, assets: ElementAssets<P5Bundler>, state: SceneState): void {
-        this.push();
-        this.translate(props.position);
-        this.rotate(props.rotate);
-
-        this.drawTexture(assets, props, state);
-        this.drawStroke(props, state);
-
-        this.p.cone(props.radius, props.height);
-        this.pop();
-    }
-
-    drawElliptical(props: ResolvedElliptical, assets: ElementAssets<P5Bundler>, state: SceneState): void {
-        this.push();
-        this.translate(props.position);
-        this.rotate(props.rotate);
-
-        this.drawTexture(assets, props, state);
-        this.drawStroke(props, state);
-
-        // p5 does not have ellipsoid axes control directly, but p.ellipsoid(rx, ry, rz) exists
-        this.p.ellipsoid(props.rx, props.ry, props.rz);
-        this.pop();
-    }
-
-    drawCylinder(props: ResolvedCylinder, assets: ElementAssets<P5Bundler>, state: SceneState): void {
-        this.push();
-        this.translate(props.position);
-        this.rotate(props.rotate);
-
-        this.drawTexture(assets, props, state);
-        this.drawStroke(props, state);
-
-        this.p.cylinder(props.radius, props.height);
-        this.pop();
-    }
-
-    drawTorus(props: ResolvedTorus, assets: ElementAssets<P5Bundler>, state: SceneState): void {
-        this.push();
-        this.translate(props.position);
-        this.rotate(props.rotate);
-
-        this.drawTexture(assets, props, state);
-        this.drawStroke(props, state);
-
-        this.p.torus(props.radius, props.tubeRadius);
-        this.pop();
-    }
-
-    plane(w: number, h: number): void {
-        this.p.plane(w, h);
-    }
-
-    // --- Internal Helpers ---
-    private drawTexture(assets: ElementAssets<P5Bundler>, props: ResolvedBaseVisual, state: SceneState) {
-        if (assets.texture?.status === ASSET_STATUS.READY && assets.texture.value) {
-            this.p.texture(assets.texture.value.internalRef);
-            this.p.textureMode(this.p.NORMAL);
-            // Tint handles both the element alpha and the scene-wide transition alpha
-            const alpha = this.getP5Alpha(props, state);
-            this.p.tint(255, alpha);
-        } else {
-            this.p.noTint();
-            this.drawFill(props, state);
-        }
-    }
-
-    private drawFill(props: ResolvedBaseVisual, state: SceneState) {
-        if (!props.fillColor) {
-            this.p.noFill();
-            return;
-        }
-        this.p.fill(
-            props.fillColor.red,
-            props.fillColor.green,
-            props.fillColor.blue,
-            this.getP5FillAlpha(props, state)
-        );
-    }
-
-    private drawStroke(props: ResolvedBaseVisual, state: SceneState) {
-        if (!props.strokeColor || props.strokeWidth === 0) {
-            this.p.noStroke();
-            return;
-        }
-        this.p.strokeWeight(props.strokeWidth ?? 1);
-        this.p.stroke(
-            props.strokeColor.red,
-            props.strokeColor.green,
-            props.strokeColor.blue,
-            this.getP5StrokeAlpha(props, state)
-        );
-    }
-
-    private rotate(rot: Vector3 | undefined) {
-        if (!rot) return;
-        if (rot.y !== 0) this.p.rotateY(rot.y);
-        if (rot.x !== 0) this.p.rotateX(rot.x);
-        if (rot.z !== 0) this.p.rotateZ(rot.z);
-    }
-
-    // --- Alpha Calculation Logic ---
-    private getP5Alpha(props: ResolvedBaseVisual, state: SceneState): number {
-        return Math.round((props.alpha ?? 1) * state.settings.alpha * 255);
-    }
-
-    private getP5FillAlpha(props: ResolvedBaseVisual, state: SceneState): number {
-        const fillA = props.fillColor?.alpha ?? 1;
-        return Math.round((props.alpha ?? 1) * state.settings.alpha * fillA * 255);
-    }
-
-    private getP5StrokeAlpha(props: ResolvedBaseVisual, state: SceneState): number {
-        const strokeA = props.strokeColor?.alpha ?? 1;
-        return Math.round((props.alpha ?? 1) * state.settings.alpha * strokeA * 255);
-    }
-
-    // --- Utilities ---
-    dist(v1: Vector3, v2: Vector3): number {
-        return this.p.dist(v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
-    }
-
-    map(v: number, s1: number, st1: number, s2: number, st2: number, c?: boolean): number {
-        return this.p.map(v, s1, st1, s2, st2, c);
-    }
-
-    lerp(s: number, e: number, a: number): number {
-        return this.p.lerp(s, e, a);
-    }
-
-    text(s: string, pos: Partial<Vector3>): void {
-        this.push();
-        this.p.text(s, pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
-        this.pop();
+    public drawText(props: ResolvedText, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        if (assets.font?.status !== ASSET_STATUS.READY || !assets.font.value) return;
+        this.p.push();
+        this.applyContext(props, assets, state);
+        this.p.textFont(assets.font!.value!.internalRef);
+        this.p.textSize(props.size);
+        this.p.textAlign(this.p.CENTER, this.p.CENTER);
+        this.p.text(props.text, 0, 0);
+        this.p.pop();
     }
 
     drawLabel(s: string, pos: Partial<Vector3>): void {
-        this.push();
         this.text(s, pos);
-        this.pop();
     }
 
-    drawHUDText(s: string, x: number, y: number): void {
-        this.push();
+    text(s: string, pos: Partial<Vector3>): void {
+        this.p.push();
+        this.p.text(s, pos.x ?? 0, pos.y ?? 0);
+        this.p.pop();
+    }
+
+
+    // --- Act 3: Spatial & Temporal Context ---
+
+    public millis = () => this.p.millis();
+    public deltaTime = () => this.p.deltaTime;
+    public frameCount = () => this.p.frameCount;
+    public dist = (v1: Vector3, v2: Vector3) => this.p.dist(v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+    public map = (v: number, s1: number, st1: number, s2: number, st2: number, c?: boolean) => this.p.map(v, s1, st1, s2, st2, c);
+    public lerp = (s: number, e: number, a: number) => this.p.lerp(s, e, a);
+
+    // --- Act 4: Orchestration Helpers ---
+
+    private applyContext(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        this.translate(props.position);
+        this.rotate(props.rotate);
+        this.applyVisuals(props, assets, state);
+    }
+
+    private applyVisuals(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+        const combinedAlpha = (props.alpha ?? 1) * state.settings.alpha;
+
+        if (assets.texture?.status === ASSET_STATUS.READY && assets.texture.value) {
+            this.p.texture(assets.texture.value.internalRef);
+            this.p.tint(255, this.to8Bit(combinedAlpha));
+        } else {
+            this.p.noTint();
+            if (props.fillColor) {
+                const f = props.fillColor;
+                this.fill(f,combinedAlpha);
+            } else {
+                this.p.noFill();
+            }
+        }
+
+        if (props.strokeColor && (props.strokeWidth ?? 0) > 0) {
+            const s = props.strokeColor;
+            this.stroke(s, props.strokeWidth, combinedAlpha);
+        } else {
+            this.p.noStroke();
+        }
+    }
+
+    private to8Bit = (val: number) => Math.round(val * 255);
+
+    // --- Debug ---
+
+    public drawHUDText(s: string, x: number, y: number): void {
         this.p.text(s, x, y);
-        this.pop();
     }
 
-    drawCrosshair(pos: Partial<Vector3>, size: number): void {
-        this.push();
-        this.translate(pos);
+    public drawCrosshair(pos: Partial<Vector3>, size: number): void {
+        this.p.push();
+        this.p.translate(pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
         this.p.line(-size, 0, size, 0);
         this.p.line(0, -size, 0, size);
-        this.pop();
+        this.p.pop();
+    }
+
+    private translate(pos: Partial<Vector3>): void {
+        this.p.translate(pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
+    }
+
+    private fill(color: ColorRGBA, alpha: number = 1): void {
+        const baseAlpha = color.alpha ?? 1;
+        const finalAlphaUnitInterval = alpha * baseAlpha;
+        const finalAlphaUnsigned8Bits = this.to8Bit(finalAlphaUnitInterval);
+        this.p.fill(color.red, color.green, color.blue, finalAlphaUnsigned8Bits);
+    }
+
+    private stroke(color: ColorRGBA, weight: number = 1, globalAlpha: number = 1): void {
+        const baseAlpha = color.alpha ?? 1;
+        const finalAlphaUnitInterval = globalAlpha * baseAlpha;
+        const finalAlphaUnsigned8Bits = this.to8Bit(finalAlphaUnitInterval);
+        this.p.strokeWeight(weight);
+        this.p.stroke(color.red, color.green, color.blue, finalAlphaUnsigned8Bits);
+    }
+
+    /**
+     * Ensure rotate YXZ from the Rotation Vector
+     * @param rotate
+     * @private
+     */
+    private rotate(rotate: Vector3 | undefined) {
+        if (!rotate) return;
+        this.p.rotateY(rotate.y);
+        this.p.rotateX(rotate.x);
+        this.p.rotateZ(rotate.z);
     }
 }

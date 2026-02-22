@@ -143,14 +143,7 @@ export class ProjectionResolver<
             }
         }
 
-        const initialDistance = this.getDistance({
-            ...resolved,
-            position: currentPosition,
-            rotation: currentRotation
-        });
-
-        // 3. Car Modifiers (Sequential priority)
-        // Now operating on the world-space anchored position
+    // 3. Car Modifiers (UNCHANGED)
         for (const carModifier of dynamic.modifiers?.carModifiers ?? []) {
             const res = carModifier.getCarPosition(currentPosition, state);
             if (res.success) {
@@ -178,35 +171,53 @@ export class ProjectionResolver<
             z: currentPosition.z + avg(votes.z),
         };
 
-        // 5. Stick Modifiers (Priority winner)
-        let distanceModifier = 0;
-
+    // 5. Stick Modifiers (rotation adjustments allowed, but lookAt remains authority)
         for (const stickModifier of dynamic.modifiers?.stickModifiers ?? []) {
             const res = stickModifier.getStick(currentPosition, state);
             if (res.success) {
                 currentRotation.pitch += res.value.pitch;
                 currentRotation.yaw   += res.value.yaw;
                 currentRotation.roll  += res.value.roll;
-                distanceModifier = res.value.distance;
                 break;
             }
         }
 
-        const direction = this.calculateDirection(currentRotation);
-        const finalDistance = initialDistance + distanceModifier;
+    // ==========================================================
+    // LOOKAT IS AUTHORITATIVE FROM HERE
+    // ==========================================================
+
+    const dx = resolved.lookAt.x - currentPosition.x;
+    const dy = resolved.lookAt.y - currentPosition.y;
+    const dz = resolved.lookAt.z - currentPosition.z;
+
+    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0;
+
+    const inv = distance !== 0 ? 1 / distance : 0;
+
+    const direction = {
+        x: dx * inv,
+        y: dy * inv,
+        z: dz * inv
+    };
+
+    // Derive yaw/pitch from direction (−Z forward convention)
+    const yaw = Math.atan2(direction.x, -direction.z);
+    const pitch = Math.asin(-direction.y);
+
+    const finalRotation = {
+        ...currentRotation,
+        yaw,
+        pitch
+    };
 
         return {
             ...resolved,
             effects: dynamic.effects ?? [],
             position: currentPosition,
-            rotation: currentRotation,
-            distance: finalDistance,
+            rotation: finalRotation,
+            distance,
             direction,
-            lookAt: {
-                x: (currentPosition.x + (direction.x * finalDistance)) || 0,
-                y: (currentPosition.y + (direction.y * finalDistance)) || 0,
-                z: (currentPosition.z + (direction.z * finalDistance)) || 0,
-            }
+            lookAt: resolved.lookAt // preserved — never rebuilt
         };
     }
 
