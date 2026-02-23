@@ -1,4 +1,4 @@
-import type { FailableResult, SceneState, StickModifier, StickResult, Vector3, StickRotationLimits } from './types';
+import type { FailableResult, ResolutionContext, StickModifier, StickResult, Vector3, StickRotationLimits } from './types';
 
 export interface CompositeStickConfig {
     strategy: 'sum' | 'weighted_average';
@@ -61,7 +61,7 @@ export class CompositeStick implements StickModifier {
         }
     }
 
-    getStick(finalPos: Vector3, state: SceneState): FailableResult<StickResult> {
+    getStick(finalPos: Vector3, context: ResolutionContext): FailableResult<StickResult> {
         const activeResults: Array<{ result: StickResult; weight: number }> = [];
         
         // Collect all successful stick results
@@ -69,7 +69,7 @@ export class CompositeStick implements StickModifier {
             const source = this.sources[i];
             if (!source.active) continue;
             
-            const sourceResult = source.getStick(finalPos, state);
+            const sourceResult = source.getStick(finalPos, context);
             if (sourceResult.success) {
                 const weight = this.config.weights?.[i] ?? 1.0;
                 activeResults.push({ 

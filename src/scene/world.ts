@@ -15,15 +15,14 @@ import {
     type GraphicProcessor,
     type GraphicsBundle,
     type BundleDynamicElement,
-    type SceneState,
     type ElementId,
     type ProjectionEffectLib,
     type SceneSettings,
+    type ResolvedSceneState,
     DEFAULT_SETTINGS, type BlueprintProjection, PROJECTION_TYPES,
 } from "./types.ts";
 import {Stage} from "./stage.ts";
 import {merge} from "./utils/merge.ts";
-import {calculateOffAxisMatrix} from "./modifiers/projection_matrix_utils.ts";
 
 export class World<
     TBundle extends GraphicsBundle,
@@ -48,7 +47,7 @@ export class World<
         );
     }
 
-    public getCurrenState(): SceneState {
+    public getCurrenState(): ResolvedSceneState | null {
         return this.stage.getCurrentState()
     }
 
@@ -139,8 +138,10 @@ export class World<
     }
 
     public step(gp: GraphicProcessor<TBundle>): void {
+        const previousResolved = this.stage.getCurrentState();
+        
         const clockState = this.sceneClock.calculateScene(
-            gp.millis(), gp.deltaTime(), gp.frameCount(), this.getCurrenState()
+            gp.millis(), gp.deltaTime(), gp.frameCount(), previousResolved
         );
 
         const finalState = this.stage.render(gp, clockState);

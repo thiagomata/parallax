@@ -6,9 +6,8 @@ import {
     type ProjectionEffectResolutionGroup,
     type ProjectionType,
     type ResolvedProjection,
-    type Rotation3,
-    type SceneState,
-    type Vector3
+    type ResolutionContext,
+    type DynamicSceneState,
 } from "../types.ts";
 import {BaseResolver} from "../resolver/base_resolver.ts";
 import {ProjectionAssetRegistry} from "../registry/projection_asset_registry.ts";
@@ -109,26 +108,36 @@ export class ProjectionResolver<
      */
     resolve(
         dynamic: DynamicProjection,
-        state: SceneState,
-        resolutionPool: Record<string, ResolvedProjection> = {} as Record<string, ResolvedProjection>
+        state: DynamicSceneState,
+        projectionPool: Record<string, ResolvedProjection> = {}
     ): ResolvedProjection {
 
-        // 1. Resolve Dynamic Properties via parent (incorporates resolutionPool context)
-        const resolved = this.loopResolve(dynamic, state, resolutionPool);
+        const resolutionContext: ResolutionContext = {
+            previousResolved: state.previousResolved,
+            playback: state.playback,
+            settings: state.settings,
+            projectionPool,
+            elementPool: {},
+        };
+
+        // 1. Resolve Dynamic Properties via parent (incorporates projectionPool context)
+        const resolved = this.loopResolve(dynamic, resolutionContext);
 
         // 2. THE HIERARCHY ANCHOR (World Space Origin Shift)
         let currentPosition = { ...resolved.position };
         let currentRotation = { ...resolved.rotation };
 
         if (dynamic.targetId) {
-            // Find our parent in the current frame pool or the previous state
-            // const target = resolutionPool[dynamic.targetId];
+            // Find our parent in the current frame pool or the previous resolved state
             let target: ResolvedProjection | null = null;
-            if (dynamic.targetId in resolutionPool) {
-                target = resolutionPool[dynamic.targetId];
+            if (dynamic.targetId in projectionPool) {
+                target = projectionPool[dynamic.targetId];
             }
-            if (target == null && state.projections && state.projections.has(dynamic.targetId)) {
-                target = state.projections.get(dynamic.targetId) ?? target;
+            if (target == null && state.previousResolved?.projections) {
+                const prevProjections = state.previousResolved.projections;
+                if (prevProjections.has(dynamic.targetId)) {
+                    target = prevProjections.get(dynamic.targetId) ?? null;
+                }
             }
             if (target) {
                 // Shift Position relative to parent
@@ -143,9 +152,17 @@ export class ProjectionResolver<
             }
         }
 
-    // 3. Car Modifiers (UNCHANGED)
+        const modifierContext: ResolutionContext = {
+            previousResolved: state.previousResolved,
+            playback: state.playback,
+            settings: state.settings,
+            projectionPool,
+            elementPool: {},
+        };
+
+    // 3. Car Modifiers
         for (const carModifier of dynamic.modifiers?.carModifiers ?? []) {
-            const res = carModifier.getCarPosition(currentPosition, state);
+            const res = carModifier.getCarPosition(currentPosition, modifierContext);
             if (res.success) {
                 currentPosition = res.value.position;
                 break;
@@ -155,7 +172,7 @@ export class ProjectionResolver<
         // 4. Nudge Modifiers (Averaging/Voting)
         const votes = { x: [] as number[], y: [] as number[], z: [] as number[] };
         for (const nudgeModifier of dynamic.modifiers?.nudgeModifiers ?? []) {
-            const res = nudgeModifier.getNudge(currentPosition, state);
+            const res = nudgeModifier.getNudge(currentPosition, modifierContext);
             if (res.success) {
                 const { x, y, z } = res.value;
                 if (x !== undefined) votes.x.push(x);
@@ -173,7 +190,7 @@ export class ProjectionResolver<
 
     // 5. Stick Modifiers (rotation adjustments allowed, but lookAt remains authority)
         for (const stickModifier of dynamic.modifiers?.stickModifiers ?? []) {
-            const res = stickModifier.getStick(currentPosition, state);
+            const res = stickModifier.getStick(currentPosition, modifierContext);
             if (res.success) {
                 currentRotation.pitch += res.value.pitch;
                 currentRotation.yaw   += res.value.yaw;
@@ -227,10 +244,17 @@ export class ProjectionResolver<
      */
     apply(
         resolved: ResolvedProjection,
-        state: SceneState,
-        resolutionPool: Record<string, ResolvedProjection> = {} as Record<string, ResolvedProjection>
+        state: DynamicSceneState,
+        projectionPool: Record<string, ResolvedProjection>
     ): ResolvedProjection {
-        return this.applyEffects(resolved, resolved.effects, state, resolutionPool);
+        const resolutionContext: ResolutionContext = {
+            previousResolved: state.previousResolved,
+            playback: state.playback,
+            settings: state.settings,
+            projectionPool,
+            elementPool: {},
+        };
+        return this.applyEffects(resolved, resolved.effects, resolutionContext);
     }
 
     /**
@@ -261,24 +285,24 @@ export class ProjectionResolver<
         return [...mods].sort((a, b) => b.priority - a.priority);
     }
 
-    private getDistance(base: {
-        position: Vector3;
-        rotation: Rotation3;
-        lookAt: Vector3;
-        direction: Vector3;
-    }): number {
-        const dx = base.lookAt.x - base.position.x;
-        const dy = base.lookAt.y - base.position.y;
-        const dz = base.lookAt.z - base.position.z;
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
-    }
-
-    private calculateDirection(rot: Rotation3): Vector3 {
-        const cosP = Math.cos(rot.pitch);
-        return {
-            x: (Math.sin(rot.yaw) * cosP) || 0,
-            y: (-Math.sin(rot.pitch)) || 0,
-            z: (Math.cos(rot.yaw) * cosP) || 0
-        };
-    }
+    // private getDistance(base: {
+    //     position: Vector3;
+    //     rotation: Rotation3;
+    //     lookAt: Vector3;
+    //     direction: Vector3;
+    // }): number {
+    //     const dx = base.lookAt.x - base.position.x;
+    //     const dy = base.lookAt.y - base.position.y;
+    //     const dz = base.lookAt.z - base.position.z;
+    //     return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    // }
+    //
+    // private calculateDirection(rot: Rotation3): Vector3 {
+    //     const cosP = Math.cos(rot.pitch);
+    //     return {
+    //         x: (Math.sin(rot.yaw) * cosP) || 0,
+    //         y: (-Math.sin(rot.pitch)) || 0,
+    //         z: (Math.cos(rot.yaw) * cosP) || 0
+    //     };
+    // }
 }

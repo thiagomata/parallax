@@ -137,25 +137,25 @@ describe('ProjectionResolver', () => {
         });
     });
 
-    describe('calculateDirection', () => {
-        it('should return a normalized vector pointing forward for zero rotation', () => {
-            const rot = { pitch: 0, yaw: 0, roll: 0 };
-            // @ts-ignore - accessing private for unit test
-            const dir = resolver.calculateDirection(rot);
-            expect(dir).toEqual({ x: 0, y: 0, z: 1 });
-        });
-
-        it('should correctly handle YXZ rotation math', () => {
-            const rot = { pitch: Math.PI / 4, yaw: Math.PI / 4, roll: 0 };
-            // @ts-ignore
-            const dir = resolver.calculateDirection(rot);
-
-            // X: sin(45) * cos(45) = 0.5
-            // Y: sin(-45) = -0.707
-            // Z: cos(45) * cos(45) = 0.5
-            expect(dir.x).toBeCloseTo(0.5);
-            expect(dir.y).toBeCloseTo(-0.707);
-            expect(dir.z).toBeCloseTo(0.5);
-        });
-    });
+    // describe('calculateDirection', () => {
+    //     it('should return a normalized vector pointing forward for zero rotation', () => {
+    //         const rot = { pitch: 0, yaw: 0, roll: 0 };
+    //         // @ts-ignore - accessing private for unit test
+    //         const dir = resolver.calculateDirection(rot);
+    //         expect(dir).toEqual({ x: 0, y: 0, z: 1 });
+    //     });
+    //
+    //     it('should correctly handle YXZ rotation math', () => {
+    //         const rot = { pitch: Math.PI / 4, yaw: Math.PI / 4, roll: 0 };
+    //         // @ts-ignore
+    //         const dir = resolver.calculateDirection(rot);
+    //
+    //         // X: sin(45) * cos(45) = 0.5
+    //         // Y: sin(-45) = -0.707
+    //         // Z: cos(45) * cos(45) = 0.5
+    //         expect(dir.x).toBeCloseTo(0.5);
+    //         expect(dir.y).toBeCloseTo(-0.707);
+    //         expect(dir.z).toBeCloseTo(0.5);
+    //     });
+    // });
 });

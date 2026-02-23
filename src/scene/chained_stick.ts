@@ -1,4 +1,4 @@
-import type {FailableResult, SceneState, StickModifier, StickResult, Vector3,} from "./types";
+import type {FailableResult, ResolutionContext, StickModifier, StickResult, Vector3,} from "./types";
 
 export class ChainedStick implements StickModifier {
     public priority: number;
@@ -19,10 +19,10 @@ export class ChainedStick implements StickModifier {
 
     active = true;
 
-    getStick(finalPos: Vector3, state: SceneState): FailableResult<StickResult> {
+    getStick(finalPos: Vector3, context: ResolutionContext): FailableResult<StickResult> {
         for (const modifier of this.chain) {
             if (!modifier.active) continue;
-            const res = modifier.getStick(finalPos, state);
+            const res = modifier.getStick(finalPos, context);
             if (res.success) {
                 return {
                     success: true,

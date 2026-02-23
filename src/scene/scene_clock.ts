@@ -1,7 +1,8 @@
 import {
     DEFAULT_SETTINGS,
     type SceneSettings,
-    type SceneState,
+    type DynamicSceneState,
+    type ResolvedSceneState,
 } from "./types";
 
 /**
@@ -22,21 +23,34 @@ export class SceneClock {
 
     /**
      * Temporal Resolution: Updates the "Clock" for the current frame.
+     * Input: Previous frame's resolved state (for continuity), can be null for first frame
+     * Output: Dynamic state with updated playback and reference to previous resolved state
      */
     public calculateScene(
         millis: number,
         deltaTime: number,
         frameCount: number,
-        previousState: SceneState
-    ): SceneState {
+        previousState: ResolvedSceneState | null
+    ): DynamicSceneState {
 
         // 1. Handle Pause Logic
         if (this.paused) {
             if (!this.pausedAt) {
                 this.pausedAt = millis;
             }
-            // Return previous state to freeze the world
-            return previousState;
+            // Return minimal state when paused - Stage will use its registries
+            return {
+                sceneId: previousState?.sceneId ?? 0,
+                settings: this.settings,
+                playback: previousState?.playback ?? {
+                    now: 0,
+                    delta: 0,
+                    frameCount: 0,
+                    progress: 0,
+                },
+                projections: new Map(),
+                previousResolved: previousState,
+            };
         }
 
         // Resume: Adjust startTime to account for the gap spent paused
@@ -58,16 +72,18 @@ export class SceneClock {
             : 0;
 
         // 3. Return Temporal Draft
-        // We only modify temporal data. No spatial math (Nudges/Cars) allowed.
+        // We only modify temporal data. Elements/projections come from Stage registries.
         return {
-            ...previousState,
-            sceneId: previousState.sceneId + 1,
+            sceneId: (previousState?.sceneId ?? 0) + 1,
+            settings: this.settings,
             playback: {
                 now: scaledNow,
                 delta: scaledDelta,
                 frameCount: frameCount,
                 progress: progress,
             },
+            projections: new Map(),
+            previousResolved: previousState,
         };
     }
 

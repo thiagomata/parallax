@@ -2,7 +2,7 @@ import p5 from 'p5';
 import {World} from '../world';
 import {P5GraphicProcessor} from './p5_graphic_processor';
 import {P5AssetLoader, type P5Bundler} from './p5_asset_loader';
-import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "../types.ts";
+import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolutionContext, type Vector3} from "../types.ts";
 import {SceneClock} from "../scene_clock.ts";
 import {OrbitModifier} from "../modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../modifiers/center_focus_modifier.ts";
@@ -54,15 +54,15 @@ new p5((p: p5) => {
         world.addBox({
             type: ELEMENT_TYPES.BOX,
             id: 'mid',
-            width: (state: SceneState) => (Math.cos(2 * Math.PI * state.playback.progress) * 50) + 100,
-            rotate: (state: SceneState) => ({
+            width: (ctx: ResolutionContext) => (Math.cos(2 * Math.PI * ctx.playback.progress) * 50) + 100,
+            rotate: (ctx: ResolutionContext) => ({
                 x: 0,
                 y: 0,
-                z: state.playback.progress * 2 * Math.PI
+                z: ctx.playback.progress * 2 * Math.PI
             }),
-            position: (state: SceneState): Vector3 => ({
+            position: (ctx: ResolutionContext): Vector3 => ({
                 x: 0,
-                y: (Math.cos(2 * Math.PI * state.playback.progress) * 100) - 100,
+                y: (Math.cos(2 * Math.PI * ctx.playback.progress) * 100) - 100,
                 z: 0,
             }),
             fillColor: {red: 255, green: 0, blue: 0, alpha: 0.5},

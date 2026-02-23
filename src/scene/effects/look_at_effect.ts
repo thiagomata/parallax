@@ -3,7 +3,7 @@ import {
     type BaseModifierSettings,
     type EffectBundle,
     type ResolvedBaseVisual,
-    type SceneState,
+    type ResolutionContext,
     type Vector3,
 } from "../types.ts";
 
@@ -50,15 +50,16 @@ export const LookAtDefaultConfig: LookAtEffectConfig = {
 // }
 
 function lookAtElement(
-    state: SceneState,
+    context: ResolutionContext,
     settings: LookAtEffectConfig,
     rotate: Vector3,
     current: ResolvedBaseVisual
 ) {
-    if (!state.elements) {
+    const previousResolved = context.previousResolved;
+    if (!previousResolved?.elements) {
         return current;
     }
-    const targetElement = state.elements.get(settings.lookAt)
+    const targetElement = previousResolved.elements.get(settings.lookAt)
 
     if (!targetElement) {
 
@@ -109,7 +110,7 @@ export const LookAtEffect: EffectBundle<'look_at', LookAtEffectConfig> = {
     type: 'look_at',
     targets: ALL_ELEMENT_TYPES,
     defaults: LookAtDefaultConfig,
-    apply(current: ResolvedBaseVisual, state: SceneState, settings: LookAtEffectConfig): ResolvedBaseVisual {
+    apply(current: ResolvedBaseVisual, context: ResolutionContext, settings: LookAtEffectConfig): ResolvedBaseVisual {
         const rotate = {
             x: current.rotate?.x ?? 0,
             y: current.rotate?.y ?? 0,
@@ -120,6 +121,6 @@ export const LookAtEffect: EffectBundle<'look_at', LookAtEffectConfig> = {
             throw new Error("Screen is not supported");
         }
 
-        return lookAtElement(state, settings, rotate, current);
+        return lookAtElement(context, settings, rotate, current);
     }
 };

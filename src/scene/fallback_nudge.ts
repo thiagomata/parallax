@@ -1,4 +1,4 @@
-import type {FailableResult, NudgeModifier, SceneState, Vector3} from "./types";
+import type {FailableResult, NudgeModifier, ResolutionContext, Vector3} from "./types";
 
 export class FallbackNudge implements NudgeModifier {
     public name: string;
@@ -18,16 +18,16 @@ export class FallbackNudge implements NudgeModifier {
         return this.primary.active || this.secondary.active;
     }
 
-    getNudge(currentCarPos: Vector3, state: SceneState): FailableResult<Partial<Vector3>> {
+    getNudge(currentCarPos: Vector3, context: ResolutionContext): FailableResult<Partial<Vector3>> {
         // Try Primary
         if (this.primary.active) {
-            const res = this.primary.getNudge(currentCarPos, state);
+            const res = this.primary.getNudge(currentCarPos, context);
             if (res.success) return res;
         }
 
         // Fallback to Secondary
         if (this.secondary.active) {
-            const res = this.secondary.getNudge(currentCarPos, state);
+            const res = this.secondary.getNudge(currentCarPos, context);
             if (res.success) return res;
         }
 

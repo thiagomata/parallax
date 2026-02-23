@@ -13,7 +13,8 @@ import {
     type MapToBlueprint,
     type BundleDynamicElement,
     type ResolvedElement,
-    type SceneState,
+    type ResolutionContext,
+    type ResolvedSceneState,
     SPEC_KINDS,
     type BundleResolvedElement,
 } from "../types";
@@ -82,10 +83,10 @@ export class ElementResolver<
      */
     resolve<T extends ResolvedElement>(
         element: BundleDynamicElement<T, TGraphicBundle>,
-        state: SceneState
+        context: ResolutionContext
     ): BundleResolvedElement {
         // Parent loopResolve performs the recursive unwrapping
-        const resolved = this.loopResolve<DynamicElement<T>>(element.dynamic, state) as T;
+        const resolved = this.loopResolve<DynamicElement<T>>(element.dynamic, context) as T;
 
         return {
             id: element.id,
@@ -100,12 +101,12 @@ export class ElementResolver<
      */
     effect<E extends ResolvedElement>(
         bundle: BundleResolvedElement<E, TGraphicBundle>,
-        state: SceneState
+        context: ResolutionContext
     ): BundleResolvedElement<E, TGraphicBundle> {
         return {
             ...bundle,
             // Centralized execution logic from BaseResolver
-            resolved: this.applyEffects(bundle.resolved, bundle.effects, state)
+            resolved: this.applyEffects(bundle.resolved, bundle.effects, context) as E
         };
     }
 
@@ -115,7 +116,7 @@ export class ElementResolver<
     render<E extends ResolvedElement>(
         bundle: BundleResolvedElement<E, TGraphicBundle>,
         graphicProcessor: GraphicProcessor<TGraphicBundle>,
-        state: SceneState
+        state: ResolvedSceneState
     ) {
         const { resolved, assets } = bundle;
 
@@ -162,9 +163,9 @@ export class ElementResolver<
 
     resolveProperty<V>(
         prop: DynamicProperty<V>,
-        state: SceneState
+        context: ResolutionContext
     ): V {
-        return this.loopResolve(prop, state) as V;
+        return this.loopResolve(prop, context) as V;
     }
 
     isStaticData(val: any): boolean {

@@ -6,12 +6,14 @@ import {
     type MapToBlueprint,
     type BundleDynamicElement,
     type ResolvedElement,
-    type SceneState,
     type BundleResolvedElement,
     type ProjectionEffectLib,
     type BlueprintProjection,
     type ResolvedProjection,
     type DynamicProjection,
+    type DynamicSceneState,
+    type ResolvedSceneState,
+    type ResolutionContext,
     PROJECTION_TYPES,
     projectionIsType, type ScenePlaybackState, type SceneSettings
 } from "./types.ts";
@@ -31,7 +33,7 @@ export class Stage<
     private readonly projectionResolver: ProjectionResolver<TProjectionEffectLib>;
     private readonly settings: SceneSettings;
 
-    private lastFrameState: SceneState | null = null;
+    private lastFrameState: ResolvedSceneState | null = null;
 
     constructor(
         settings: SceneSettings,
@@ -70,12 +72,13 @@ export class Stage<
     /**
      * Bootstraps the engine with the base environment.
      * Note: Environmental blueprints (Screen/Eye) are now seeds for the Stage to hydrate.
+     * Returns DynamicSceneState with DynamicProjection from registries.
      */
-    public initialState(): SceneState {
+    public initialState(): DynamicSceneState {
 
-        const defaultProjections = new Map();
-        defaultProjections.set("screen", this.projectionRegistry.get('screen'));
-        defaultProjections.set("eye", this.projectionRegistry.get('eye'));
+        const defaultProjections = new Map<string, DynamicProjection>();
+        defaultProjections.set("screen", this.projectionRegistry.get('screen')!);
+        defaultProjections.set("eye", this.projectionRegistry.get('eye')!);
 
         return {
             sceneId: 0,
@@ -86,13 +89,16 @@ export class Stage<
                 frameCount: 0,
                 progress: 0,
             } as ScenePlaybackState,
-            // Maps start empty; Stage handles the registration of defaults or users.
             elements: new Map(),
             projections: defaultProjections,
-        } as SceneState;
+            previousResolved: null,
+        };
     }
 
     public addElement<T extends ResolvedElement>(blueprint: MapToBlueprint<T>): void {
+        if (this.elementRegistry.get(blueprint.id) !== undefined) {
+            throw new Error(`ID collision: Cannot add element '${blueprint.id}' - a projection with the same ID already exists.`);
+        }
         this.elementRegistry.register<T>(blueprint);
     }
 
@@ -105,6 +111,10 @@ export class Stage<
     }
 
     public addProjection(blueprint: BlueprintProjection): void {
+        if (this.elementRegistry.get(blueprint.id) !== undefined) {
+            throw new Error(`ID collision: Cannot add projection '${blueprint.id}' - an element with the same ID already exists.`);
+        }
+
         const targetId = blueprint.targetId;
 
         if (targetId) {
@@ -136,89 +146,100 @@ export class Stage<
         this.addProjection(blueprint);
     }
 
-    public render(graphicProcessor: GraphicProcessor<TGraphicBundle>, state: SceneState): SceneState {
+    public render(
+        graphicProcessor: GraphicProcessor<TGraphicBundle>, 
+        state: DynamicSceneState
+    ): ResolvedSceneState {
 
-        // 1.resolve all the projection elements
-        const resolutionPool: Record<string, ResolvedProjection> = {};
-
+        // ==========================================================
+        // STEP 1: Resolve ALL Projections
+        // ==========================================================
+        const projectionPool: Record<string, ResolvedProjection> = {};
+        
         for (const dynamicProjection of this.projectionRegistry.all()) {
-            // Resolve (incorporates hierarchy logic we just wrote)
-            const resolved = this.projectionResolver.resolve(dynamicProjection, state, resolutionPool);
-
-            // Apply Effects
-            const final = this.projectionResolver.apply(resolved, state, resolutionPool);
-
-            // Store in pool for subsequent projections and elements
-            resolutionPool[final.id] = final;
+            const resolved = this.projectionResolver.resolve(dynamicProjection, state, projectionPool);
+            projectionPool[resolved.id] = resolved;
         }
 
-        // 2 - select from the projection elements the current screen and eyes
-        let screenProjection = this.getScreenProjection(resolutionPool, state);
-        // let eyeProjection = this.getEyeProjection(resolutionPool, state);
+        // ==========================================================
+        // STEP 2: Apply Projection Modifiers
+        // (Already applied inside resolve() via ResolutionContext)
+        // ==========================================================
 
-        //  3 - define the render queue based in the scene screen
-        // Optimized Painter's Algorithm: Sort far-to-near
+        // ==========================================================
+        // STEP 3: Resolve Elements (can see resolved projections)
+        // ==========================================================
+        const screenProjection = this.getScreenProjection(projectionPool);
+        
+        // Create context for element resolution - has access to projectionPool
+        const elementResolutionContext: ResolutionContext = {
+            previousResolved: state.previousResolved,
+            playback: state.playback,
+            settings: state.settings,
+            projectionPool,
+            elementPool: {},
+        };
+
         const renderQueue = Array.from(this.elementRegistry.all())
             .map(element => ({
                 element,
                 distance: graphicProcessor.dist(
                     screenProjection.position,
-                    this.elementResolver.resolveProperty(element.dynamic.position, state)
+                    this.elementResolver.resolveProperty(element.dynamic.position, elementResolutionContext)
                 )
             }))
             .sort((a, b) => b.distance - a.distance)
-            .map(
-                pair => pair.element
-            );
+            .map(pair => pair.element);
 
-        // 4 - resolve elements
+        const resolvedElements = renderQueue.map(bundle => ({
+            id: bundle.id,
+            bundle: this.elementResolver.resolve(bundle, elementResolutionContext) as BundleResolvedElement<ResolvedElement, TGraphicBundle>,
+        }));
 
-        let resolvedElements = renderQueue.map(
-            bundle => {
-                return {
-                    id: bundle.id,
-                    bundle: this.elementResolver.resolve(bundle, state) as BundleResolvedElement<ResolvedElement, TGraphicBundle>,
-                }
-            }
-        );
+        // ==========================================================
+        // STEP 4: Apply Element Modifiers
+        // (Need to implement - for now, elements are resolved without modifiers)
+        // ==========================================================
 
-        // 5 - create the elements map
-
+        // Create intermediate state with resolved elements + projections
         const resolvedMapElements = new Map(
-            resolvedElements.map(
-                pair => [pair.id, pair.bundle.resolved]
-            )
+            resolvedElements.map(pair => [pair.id, pair.bundle.resolved])
         );
 
-        const stateBeforeEffect = {
-            ...state,
-            elements: resolvedMapElements
-        } as SceneState;
-
-        // 6 - apply the effect in the elements
-
-        const finalElements = resolvedElements.map(
-            pair => {
-                return {
-                    id: pair.id,
-                    bundle: this.elementResolver.effect(pair.bundle, stateBeforeEffect),
-                }
-            }
-        )
-
-        // 7 - apply the effects in the projection elements
-
-        const finalState: SceneState = {
-            ...stateBeforeEffect,
-            elements: new Map(finalElements.map(p => [p.id, p.bundle.resolved])),
-            projections: new Map(Object.entries(resolutionPool)),
+        // Create context for effects - has both pools
+        const effectContext: ResolutionContext = {
+            previousResolved: state.previousResolved,
+            playback: state.playback,
+            settings: state.settings,
+            projectionPool,
+            elementPool: Object.fromEntries(resolvedMapElements),
         };
 
-        finalElements.map(
-            pair => {
-                this.elementResolver.render(pair.bundle,graphicProcessor, finalState)
-            }
-        )
+        // ==========================================================
+        // STEP 5: Apply Effects to Elements
+        // ==========================================================
+        const finalElements = resolvedElements.map(pair => ({
+            id: pair.id,
+            bundle: this.elementResolver.effect(pair.bundle, effectContext),
+        }));
+
+        // ==========================================================
+        // STEP 6: Apply Effects to Projections
+        // ==========================================================
+        const finalMapElements = new Map(finalElements.map(p => [p.id, p.bundle.resolved]));
+        
+        const finalState: ResolvedSceneState = {
+            sceneId: state.sceneId,
+            settings: state.settings,
+            playback: state.playback,
+            elements: finalMapElements,
+            projections: new Map(Object.entries(projectionPool)),
+        };
+
+        // Render elements
+        finalElements.map(pair => {
+            this.elementResolver.render(pair.bundle, graphicProcessor, finalState);
+        });
 
         this.lastFrameState = finalState;
 
@@ -226,8 +247,7 @@ export class Stage<
     }
 
     private getScreenProjection(
-        resolutionPool: Record<string, ResolvedProjection>,
-        _state: SceneState
+        resolutionPool: Record<string, ResolvedProjection>
     ): ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN } {
         const resolvedProjectionsMap = new Map(Object.entries(resolutionPool));
         if (!resolvedProjectionsMap.has('screen')) {
@@ -243,8 +263,12 @@ export class Stage<
         return screenProjection;
     }
 
-    getCurrentState() {
-        return this.lastFrameState ?? this.initialState()
+    getCurrentState(): ResolvedSceneState | null {
+        return this.lastFrameState;
+    }
+
+    getInitialState(): DynamicSceneState {
+        return this.initialState();
     }
 
     setEye(blueprint: BlueprintProjection & { type: typeof PROJECTION_TYPES.EYE, id: 'eye' }) {

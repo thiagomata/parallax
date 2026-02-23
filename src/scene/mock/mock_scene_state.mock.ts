@@ -1,10 +1,10 @@
-import {DEFAULT_SETTINGS, type ScenePlaybackState, type SceneState} from "../types.ts";
+import {DEFAULT_SETTINGS, type ScenePlaybackState, type ResolvedSceneState} from "../types.ts";
 
 export function createMockState(
     position = {x: 0, y: 0, z: 0},
     lookAt = {x: 0, y: 0, z: 100},
     now = Date.now(),
-): SceneState {
+): ResolvedSceneState {
 
     return {
         sceneId: 1,
@@ -17,15 +17,7 @@ export function createMockState(
             progress: 0,
             frameCount: 60
         } as ScenePlaybackState,
-        projection: {
-            kind: "camera",
-            camera: {
-                position: position,
-                lookAt: lookAt,
-                yaw: 0,
-                pitch: 0,
-                direction: {x: 0, y: 0, z: 1},
-            } as SceneCameraState,
-        }
-    } as SceneState;
+        elements: new Map(),
+        projections: new Map(),
+    };
 }

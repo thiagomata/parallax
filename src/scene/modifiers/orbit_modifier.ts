@@ -1,4 +1,4 @@
-import type {CarModifier, FailableResult, SceneState, Vector3} from "../types.ts";
+import type {CarModifier, FailableResult, ResolutionContext, Vector3} from "../types.ts";
 import p5 from "p5";
 
 export class OrbitModifier implements CarModifier {
@@ -15,11 +15,11 @@ export class OrbitModifier implements CarModifier {
         this.verticalBaseline = verticalBaseline;
     }
 
-    getCarPosition(_initialCam: Vector3, currentState: SceneState): FailableResult<{
+    getCarPosition(_initialCam: Vector3, context: ResolutionContext): FailableResult<{
         name: string;
         position: Vector3
     }> {
-        const circularProgress = currentState.playback.progress * 2 * Math.PI;
+        const circularProgress = context.playback.progress * 2 * Math.PI;
 
         // Exactly the same math as the dummy
         const camX = Math.sin(circularProgress) * this.radius;

@@ -95,7 +95,7 @@ export interface ProjectionEffectBundle<
     /**
      * Specifically transforms a spatial projection rather than a visual element.
      */
-    apply(current: E, state: SceneState, settings: TConfig, resolutionPool: Record<string, E>): E;
+    apply(current: E, context: ResolutionContext, settings: TConfig, resolutionPool: Record<string, E>): E;
 }
 
 export type ProjectionEffectLib = Record<string, ProjectionEffectBundle<any, any, any>>;
@@ -275,8 +275,8 @@ export interface SceneSettings {
     startPaused: boolean;
 }
 
-type ScreeProjection = ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN};
-type EyeProjection   = ResolvedProjection & {type: typeof PROJECTION_TYPES.EYE};
+// type ScreeProjection = ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN};
+// type EyeProjection   = ResolvedProjection & {type: typeof PROJECTION_TYPES.EYE};
 
 export interface SceneState {
     sceneId: number;
@@ -285,6 +285,31 @@ export interface SceneState {
     debugStateLog?: SceneStateDebugLog;
     elements?: Map<string, ResolvedElement>;
     projections?: Map<string, ResolvedProjection>;
+}
+
+export abstract class BaseSceneState {
+    abstract readonly sceneId: number;
+    abstract readonly settings: SceneSettings;
+    abstract readonly playback: ScenePlaybackState;
+}
+
+export interface BlueprintSceneState extends BaseSceneState {
+    debugStateLog?: SceneStateDebugLog;
+    elements?: Map<string, BlueprintElement>;
+    projections?: Map<string, BlueprintProjection>;
+}
+
+export interface DynamicSceneState extends BaseSceneState {
+    debugStateLog?: SceneStateDebugLog;
+    elements?: Map<string, DynamicElementUnion>;
+    projections: Map<string, DynamicProjection>;
+    previousResolved: ResolvedSceneState | null;
+}
+
+export interface ResolvedSceneState extends BaseSceneState {
+    debugStateLog?: SceneStateDebugLog;
+    elements: Map<string, ResolvedElement>;
+    projections: Map<string, ResolvedProjection>;
 }
 
 export const DEFAULT_CAMERA_FAR = 5000;
@@ -334,18 +359,32 @@ export interface Modifier {
 
 }
 
+export interface ResolutionContext {
+    previousResolved: ResolvedSceneState | null;
+    playback: ScenePlaybackState;
+    settings: SceneSettings;
+    projectionPool: Record<string, ResolvedProjection>;
+    elementPool: Record<string, ResolvedElement>;
+}
+
+export interface ModifierContext {
+    previousResolved: ResolvedSceneState | null;
+    playback: ScenePlaybackState;
+    settings: SceneSettings;
+}
+
 export interface CarModifier extends Modifier {
     readonly priority: number;
-    getCarPosition(initialCam: Vector3, currentState: SceneState): FailableResult<CarResult>;
+    getCarPosition(initialCam: Vector3, context: ResolutionContext): FailableResult<CarResult>;
 }
 
 export interface NudgeModifier extends Modifier {
-    getNudge(currentCarPos: Vector3, currentState: SceneState): FailableResult<Partial<Vector3>>;
+    getNudge(currentCarPos: Vector3, context: ResolutionContext): FailableResult<Partial<Vector3>>;
 }
 
 export interface StickModifier extends Modifier {
     readonly priority: number;
-    getStick(finalPos: Vector3, currentState: SceneState): FailableResult<StickResult>;
+    getStick(finalPos: Vector3, context: ResolutionContext): FailableResult<StickResult>;
 }
 
 /**
@@ -471,7 +510,7 @@ export type DynamicProperty<T, TResolved = unknown> =
     | {
     kind: typeof SPEC_KINDS.COMPUTED;
     compute: (
-        state: SceneState,
+        context: ResolutionContext,
         resolutionPool: Record<string, TResolved>
     ) => T | DynamicProperty<T, TResolved> | DynamicTree<T, TResolved>
 }
@@ -483,7 +522,7 @@ export type DynamicTree<T, TResolved = unknown> = {
 
 export type FlexibleSpec<T> =
     T
-    | ((state: SceneState) => T | DynamicProperty<T> | DynamicTree<T>)
+    | ((context: ResolutionContext) => T | DynamicProperty<T> | DynamicTree<T>)
     | (T extends object ? BlueprintTree<T> : never);
 export type BlueprintTree<T> = { [K in keyof T]?: FlexibleSpec<T[K]>; };
 
@@ -666,6 +705,18 @@ export interface ResolvedText extends ResolvedBaseVisual {
 export type BlueprintText = MapToBlueprint<ResolvedText>;
 export type DynamicText = DynamicElement<ResolvedText>;
 
+export type DynamicElementUnion = 
+    DynamicBox           |
+    DynamicPanel         |
+    DynamicSphere        |
+    DynamicCone          |
+    DynamicPyramid       |
+    DynamicElliptical    |
+    DynamicCylinder      |
+    DynamicTorus         |
+    DynamicFloor         |
+    DynamicText          ;
+
 export type BlueprintElement =
     BlueprintBox        |
     BlueprintPanel      |
@@ -785,7 +836,7 @@ export interface EffectBundle<
     readonly type: TID;
     readonly targets: ReadonlyArray<E['type']>;
     readonly defaults: TConfig;
-    apply(current: E, state: SceneState, settings: TConfig, resolutionPool: Record<string, E>): E;
+    apply(current: E, context: ResolutionContext, settings: TConfig, resolutionPool: Record<string, E>): E;
 }
 
 export type EffectLib = Record<string, EffectBundle<any, any, any>>;
