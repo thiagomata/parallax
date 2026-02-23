@@ -211,6 +211,7 @@ export class Stage<
         const finalState: SceneState = {
             ...stateBeforeEffect,
             elements: new Map(finalElements.map(p => [p.id, p.bundle.resolved])),
+            projections: new Map(Object.entries(resolutionPool)),
         };
 
         finalElements.map(
