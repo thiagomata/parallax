@@ -5,9 +5,11 @@ import {
 } from '../types';
 import {createMockState} from "../mock/mock_scene_state.mock.ts";
 import {ProjectionResolver} from "./projection_resolver.ts";
+import {ProjectionAssetRegistry} from "../registry/projection_asset_registry.ts";
 
 describe('ProjectionResolver', () => {
     const resolver = new ProjectionResolver({});
+    const registry = new ProjectionAssetRegistry(resolver);
     const mockState = createMockState(
         {x: 0, y: 0, z: 0},
         {x: 0, y: 0, z: 100},
@@ -21,7 +23,7 @@ describe('ProjectionResolver', () => {
                 position: { x: 10, y: 0, z: 0 }
             };
 
-            const dynamic = resolver.prepare(blueprint);
+            const dynamic = resolver.prepare(blueprint, registry);
 
             expect(dynamic.id).toBe('test-cam');
             // Check if it was compiled into a Static DynamicProperty
@@ -43,7 +45,7 @@ describe('ProjectionResolver', () => {
                 stickModifiers: []
             };
 
-            const dynamic = resolver.prepare(blueprint);
+            const dynamic = resolver.prepare(blueprint, registry);
             const resolved = resolver.resolve(dynamic, mockState);
 
             expect(resolved.distance).toBe(100);
@@ -84,13 +86,13 @@ describe('ProjectionResolver', () => {
                 }
             } as BlueprintProjection;
 
-            const dynamic = resolver.prepare(blueprint);
+            const dynamic = resolver.prepare(blueprint, registry);
             const resolved = resolver.resolve(dynamic, mockState);
 
             // 50 (Car) + 5 (Nudge) = 55
             expect(resolved.position.x).toBe(55);
-            // lookAt should also shift by 55
-            expect(resolved.lookAt.x).toBe(55);
+            // lookAt is preserved (not shifted by modifiers)
+            expect(resolved.lookAt.x).toBe(0);
         });
 
         it('should modify rotation and distance via Stick modifiers', () => {
@@ -111,18 +113,18 @@ describe('ProjectionResolver', () => {
                 })
             } as StickModifier;
 
-            const blueprint = {
-                id: 'stick-test',
-                type: 'PLAYER' as ProjectionType,
-                position: { x: 0, y: 0, z: 0 },
-                lookAt: { x: 0, y: 0, z: 100 }, // Initial distance 100
-                rotation: { pitch: 0, yaw: 0, roll: 0 },
-                modifiers: {
-                    stickModifiers: [stickMod]
-                }
-            };
+        const blueprint = {
+            id: 'stick-test',
+            type: 'PLAYER' as ProjectionType,
+            position: { x: 0, y: 0, z: 0 },
+            lookAt: { x: 150, y: 0, z: 0 }, // Direction {x:1, z:0}, distance 150
+            rotation: { pitch: 0, yaw: 0, roll: 0 },
+            modifiers: {
+                stickModifiers: [stickMod]
+            }
+        };
 
-            const dynamic = resolver.prepare(blueprint);
+            const dynamic = resolver.prepare(blueprint, registry);
             const resolved = resolver.resolve(dynamic, mockState);
 
             // New yaw is 90 degrees, so direction should be { x: 1, y: 0, z: 0 }
