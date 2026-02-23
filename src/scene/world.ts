@@ -138,24 +138,22 @@ export class World<
     }
 
     public step(gp: GraphicProcessor<TBundle>): void {
-        const previousResolved = this.stage.getCurrentState();
-        
-        const clockState = this.sceneClock.calculateScene(
-            gp.millis(), gp.deltaTime(), gp.frameCount(), previousResolved
-        );
+        // Tick the clock forward
+        this.sceneClock.tick(gp.millis(), gp.deltaTime(), gp.frameCount());
 
-        const finalState = this.stage.render(gp, clockState);
+        // Render with just frame params (clock playback + previous resolved state)
+        const previousResolved = this.stage.getCurrentState();
+        const finalState = this.stage.render(gp, {
+            playback: this.sceneClock.getPlayback(),
+            previousResolved,
+            sceneId: this.sceneClock.sceneId,
+        });
+
         const eye = finalState.projections?.get('eye');
         const screen = finalState.projections?.get('screen');
 
         if (eye && screen) {
-            debugger;
-            // Now passing the whole projection object
             gp.setCamera(eye);
-
-            // Off-axis math using the ScreenConfig and Eye/Screen relationship
-            // const matrix = calculateOffAxisMatrix(eye, screen, finalState.settings.window);
-            // gp.setProjectionMatrix(matrix);
         } else {
             throw new Error("no screen or eye to render");
         }

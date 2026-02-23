@@ -153,26 +153,26 @@ describe("ScreenModifier projections", () => {
 describe("ScreenConfig validation", () => {
     it("throws error when width is zero or negative", () => {
         expect(() => ScreenConfig.create({ width: 0 }))
-            .toThrow("Physical dimensions must be positive.");
+            .toThrow("Portal width/height must be positive.");
         
         expect(() => ScreenConfig.create({ width: -10 }))
-            .toThrow("Physical dimensions must be positive.");
+            .toThrow("Portal width/height must be positive.");
     });
 
     it("throws error when height is zero or negative", () => {
         expect(() => ScreenConfig.create({ height: 0 }))
-            .toThrow("Physical dimensions must be positive.");
+            .toThrow("Portal width/height must be positive.");
         
         expect(() => ScreenConfig.create({ height: -5 }))
-            .toThrow("Physical dimensions must be positive.");
+            .toThrow("Portal width/height must be positive.");
     });
 
     it("throws error when both width and height are zero or negative", () => {
         expect(() => ScreenConfig.create({ width: 0, height: 0 }))
-            .toThrow("Physical dimensions must be positive.");
+            .toThrow("Portal width/height must be positive.");
         
         expect(() => ScreenConfig.create({ width: -10, height: -5 }))
-            .toThrow("Physical dimensions must be positive.");
+            .toThrow("Portal width/height must be positive.");
     });
 
     it("throws error when near clipping plane is zero or negative", () => {
@@ -193,16 +193,16 @@ describe("ScreenConfig validation", () => {
 
     it("throws error when epsilon is zero or negative", () => {
         expect(() => ScreenConfig.create({ epsilon: 0 }))
-            .toThrow("Epsilon must be positive.");
+            .toThrow("Invalid epsilon value.");
         
         expect(() => ScreenConfig.create({ epsilon: -0.001 }))
-            .toThrow("Epsilon must be positive.");
+            .toThrow("Invalid epsilon value.");
     });
 
     it("throws error with first validation failure when multiple parameters are invalid", () => {
         // Width validation comes before clipping planes in the code
         expect(() => ScreenConfig.create({ width: -10, near: -1 }))
-            .toThrow("Physical dimensions must be positive.");
+            .toThrow("Portal width/height must be positive.");
     });
 
     it("succeeds with valid parameters", () => {

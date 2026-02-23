@@ -24,7 +24,7 @@ describe('Tutorial 6: Hybrid Property Resolution', () => {
         mockP5.draw();
 
         const state = world.getCurrenState();
-        expect(state.playback.progress).toBe(0.25);
+        expect(state?.playback.progress).toBe(0.25);
 
         // Verify THE HERO SPHERE (The Hybrid Test)
         const sphereElement = world.getElement('hero-sphere');

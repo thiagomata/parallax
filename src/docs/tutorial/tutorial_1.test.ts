@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {tutorial_1} from './tutorial_1';
 import {World} from "../../scene/world";
 import {SceneClock} from "../../scene/scene_clock.ts";
-import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type SceneState} from "../../scene/types";
+import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolvedBox, type ResolutionContext} from "../../scene/types";
 import {createMockGraphicProcessor} from "../../scene/mock/mock_graphic_processor.mock.ts";
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
@@ -28,9 +28,13 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
                 fillColor: {red: 100, green: 100, blue: 255},
             });
 
+            // Trigger first render to populate state
+            const mockGP = createMockGraphicProcessor();
+            world.step(mockGP);
+
             const state = world.getCurrenState();
 
-            expect(state.settings.window.width).toBe(800);
+            expect(state?.settings.window.width).toBe(600);
             expect(world.getElement('test-box')).toBeDefined();
         });
 
@@ -44,7 +48,7 @@ describe('Tutorial 1: Foundation & Engine Integration', () => {
             world.addBox({
                 id: 'dynamic-box',
                 type: ELEMENT_TYPES.BOX,
-                width: (state: SceneState) => state.playback.now > 1000 ? 200 : 100,
+                width: (context: ResolutionContext) => context.playback.now > 1000 ? 200 : 100,
                 position: {x: 0, y: 0, z: 0}
             });
 

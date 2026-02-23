@@ -48,6 +48,7 @@ export function createMockP5() {
         textFont: vi.fn(),
         textSize: vi.fn(),
         textColor: vi.fn(),
+        textAlign: vi.fn(),
         text: vi.fn(),
         tint: vi.fn(),
         cone: vi.fn(),

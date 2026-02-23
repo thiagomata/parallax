@@ -80,6 +80,7 @@ export class ElementResolver<
 
     /**
      * Phase: The Frame Loop (Structural Resolution)
+     * @param context - ResolutionContext containing playback, settings, and pools
      */
     resolve<T extends ResolvedElement>(
         element: BundleDynamicElement<T, TGraphicBundle>,

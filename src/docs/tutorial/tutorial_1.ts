@@ -3,7 +3,7 @@ import {World} from "../../scene/world.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState} from "../../scene/types.ts";
+import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolutionContext} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
 
@@ -43,9 +43,9 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             width: 100,
             
             // Dynamic Rotation: Continuous rotation
-            rotate: (state: SceneState) => ({
+            rotate: (context: ResolutionContext) => ({
                 x: -0.25 * Math.PI,
-                y: 0.25 * Math.PI + Math.PI * 2 * state.playback.progress,
+                y: 0.25 * Math.PI + Math.PI * 2 * context.playback.progress,
                 z: 0
             }),
             

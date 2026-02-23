@@ -1,21 +1,23 @@
 import {
     type AssetLoader,
+    type BlueprintProjection,
+    type BundleDynamicElement,
+    type BundleResolvedElement, DEFAULT_EYE, DEFAULT_SCREEN,
+    type DynamicProjection,
+    type DynamicSceneState,
     type EffectLib,
     type GraphicProcessor,
     type GraphicsBundle,
     type MapToBlueprint,
-    type BundleDynamicElement,
-    type ResolvedElement,
-    type BundleResolvedElement,
-    type ProjectionEffectLib,
-    type BlueprintProjection,
-    type ResolvedProjection,
-    type DynamicProjection,
-    type DynamicSceneState,
-    type ResolvedSceneState,
-    type ResolutionContext,
     PROJECTION_TYPES,
-    projectionIsType, type ScenePlaybackState, type SceneSettings
+    type ProjectionEffectLib,
+    projectionIsType,
+    type ResolutionContext,
+    type ResolvedElement,
+    type ResolvedProjection,
+    type ResolvedSceneState,
+    type ScenePlaybackState,
+    type SceneSettings
 } from "./types.ts";
 import {ElementResolver} from "./resolver/element_resolver.ts";
 import {ProjectionResolver} from "./projection/projection_resolver.ts";
@@ -34,6 +36,7 @@ export class Stage<
     private readonly settings: SceneSettings;
 
     private lastFrameState: ResolvedSceneState | null = null;
+    private cachedDynamicState: DynamicSceneState | null = null;
 
     constructor(
         settings: SceneSettings,
@@ -48,62 +51,55 @@ export class Stage<
 
         this.elementRegistry = new ElementAssetRegistry<TGraphicBundle, TElementEffectLib>(loader, this.elementResolver);
         this.projectionRegistry = new ProjectionAssetRegistry<TProjectionEffectLib>(this.projectionResolver);
-        this.projectionRegistry.register({
-            id: 'screen',
-            type: PROJECTION_TYPES.SCREEN,
-            position: {x: 0, y: 0, z: 0},
-            rotation: {pitch: 0, yaw: 0, roll: 0},
-            lookAt: {x: 0, y: 0, z: -1},
-            direction: {x: 0, y: 0, z: -1},
-            effects: [],
-        });
-        this.projectionRegistry.register({
-            id: 'eye',
-            // targetId: 'screen',
-            type: PROJECTION_TYPES.EYE,
-            position: {x: 0, y: 0, z: 100},
-            rotation: {pitch: 0, yaw: 0, roll: 0},
-            lookAt: {x: 0, y: 0, z: 0},
-            direction: {x: 0, y: 0, z: -1},
-            effects: [],
-        });
+        this.projectionRegistry.register(DEFAULT_SCREEN);
+        this.projectionRegistry.register(DEFAULT_EYE);
     }
 
     /**
-     * Bootstraps the engine with the base environment.
-     * Note: Environmental blueprints (Screen/Eye) are now seeds for the Stage to hydrate.
-     * Returns DynamicSceneState with DynamicProjection from registries.
+     * Lazy builder - builds DynamicSceneState once and caches it.
+     * Invalidated when elements/projections are added/removed.
      */
-    public initialState(): DynamicSceneState {
+    private getOrBuildDynamicState(): DynamicSceneState {
+        if (this.cachedDynamicState) {
+            return this.cachedDynamicState;
+        }
 
-        const defaultProjections = new Map<string, DynamicProjection>();
-        defaultProjections.set("screen", this.projectionRegistry.get('screen')!);
-        defaultProjections.set("eye", this.projectionRegistry.get('eye')!);
+        const dynamicProjections = new Map<string, DynamicProjection>();
+        for (const projection of this.projectionRegistry.all()) {
+            dynamicProjections.set(projection.id, projection);
+        }
 
-        return {
+        const dynamicElements = new Map<string, any>();
+        for (const element of this.elementRegistry.all()) {
+            dynamicElements.set(element.id, element);
+        }
+
+        this.cachedDynamicState = {
             sceneId: 0,
             settings: this.settings,
-            playback: {
-                now: 0,
-                delta: 0,
-                frameCount: 0,
-                progress: 0,
-            } as ScenePlaybackState,
-            elements: new Map(),
-            projections: defaultProjections,
+            playback: { now: 0, delta: 0, frameCount: 0, progress: 0 },
+            elements: dynamicElements,
+            projections: dynamicProjections,
             previousResolved: null,
-        };
+        } as DynamicSceneState;
+
+        return this.cachedDynamicState;
     }
 
     public addElement<T extends ResolvedElement>(blueprint: MapToBlueprint<T>): void {
         if (this.elementRegistry.get(blueprint.id) !== undefined) {
+            return; // Idempotent: ignore duplicate element add
+        }
+        if (this.projectionRegistry.get(blueprint.id) !== undefined) {
             throw new Error(`ID collision: Cannot add element '${blueprint.id}' - a projection with the same ID already exists.`);
         }
         this.elementRegistry.register<T>(blueprint);
+        this.cachedDynamicState = null; // invalidate cache
     }
 
     public removeElement(id: string): void {
         this.elementRegistry.remove(id);
+        this.cachedDynamicState = null; // invalidate cache
     }
 
     public getElement(id: string): BundleDynamicElement<any, TGraphicBundle> | undefined {
@@ -137,6 +133,7 @@ export class Stage<
         }
 
         this.projectionRegistry.register(blueprint);
+        this.cachedDynamicState = null; // invalidate cache
     }
 
     public replaceProjection(blueprint: BlueprintProjection): void {
@@ -146,37 +143,68 @@ export class Stage<
         this.addProjection(blueprint);
     }
 
+    /**
+     * Render a frame.
+     * @param graphicProcessor - The graphics processor
+     * @param frameParams - Frame-specific params (playback from clock, previousResolved from last frame)
+     */
     public render(
         graphicProcessor: GraphicProcessor<TGraphicBundle>, 
-        state: DynamicSceneState
+        frameParams: { 
+            playback: ScenePlaybackState; 
+            previousResolved: ResolvedSceneState | null;
+            sceneId?: number;
+        }
     ): ResolvedSceneState {
 
+        // Get cached dynamic state and merge with frame params
+        const cached = this.getOrBuildDynamicState();
+        const state: DynamicSceneState = {
+            ...cached,
+            playback: frameParams.playback,
+            previousResolved: frameParams.previousResolved,
+            sceneId: frameParams.sceneId ?? 0,
+        };
+
         // ==========================================================
-        // STEP 1: Resolve ALL Projections
+        // STEP 1: Resolve ALL Projections (Local Space)
         // ==========================================================
-        const projectionPool: Record<string, ResolvedProjection> = {};
-        
+        const localProjectionPool: Record<string, ResolvedProjection> = {};
+
         for (const dynamicProjection of this.projectionRegistry.all()) {
-            const resolved = this.projectionResolver.resolve(dynamicProjection, state, projectionPool);
-            projectionPool[resolved.id] = resolved;
+            const resolved = this.projectionResolver.resolve(dynamicProjection, state, localProjectionPool);
+            localProjectionPool[resolved.id] = resolved;
         }
 
         // ==========================================================
-        // STEP 2: Apply Projection Modifiers
-        // (Already applied inside resolve() via ResolutionContext)
+        // STEP 2: Transform to Global Space (Apply Hierarchy)
+        // ==========================================================
+        const globalProjectionPool: Record<string, ResolvedProjection> = {};
+
+        for (const id in localProjectionPool) {
+            const local = localProjectionPool[id];
+            globalProjectionPool[id] = this.projectionResolver.applyHierarchyTransform(
+                local,
+                localProjectionPool,
+                state.previousResolved
+            );
+        }
+
+        // ==========================================================
+        // STEP 3: Apply Projection Effects
         // ==========================================================
 
         // ==========================================================
-        // STEP 3: Resolve Elements (can see resolved projections)
+        // STEP 4: Resolve Elements (can see resolved projections)
         // ==========================================================
-        const screenProjection = this.getScreenProjection(projectionPool);
+        const screenProjection = this.getScreenProjection(globalProjectionPool);
         
-        // Create context for element resolution - has access to projectionPool
+        // Create context for element resolution - uses GLOBAL projections
         const elementResolutionContext: ResolutionContext = {
             previousResolved: state.previousResolved,
             playback: state.playback,
             settings: state.settings,
-            projectionPool,
+            projectionPool: globalProjectionPool,
             elementPool: {},
         };
 
@@ -211,7 +239,7 @@ export class Stage<
             previousResolved: state.previousResolved,
             playback: state.playback,
             settings: state.settings,
-            projectionPool,
+            projectionPool: globalProjectionPool,
             elementPool: Object.fromEntries(resolvedMapElements),
         };
 
@@ -233,7 +261,7 @@ export class Stage<
             settings: state.settings,
             playback: state.playback,
             elements: finalMapElements,
-            projections: new Map(Object.entries(projectionPool)),
+            projections: new Map(Object.entries(globalProjectionPool)),
         };
 
         // Render elements
@@ -267,19 +295,19 @@ export class Stage<
         return this.lastFrameState;
     }
 
-    getInitialState(): DynamicSceneState {
-        return this.initialState();
-    }
-
-    setEye(blueprint: BlueprintProjection & { type: typeof PROJECTION_TYPES.EYE, id: 'eye' }) {
+    setEye(blueprintEye: Partial<BlueprintProjection> & { type: typeof PROJECTION_TYPES.EYE }) {
         this.replaceProjection(
-            blueprint
+            {
+                ...DEFAULT_EYE,
+                ...blueprintEye
+            }
         );
     }
 
-    setScreen(blueprint: BlueprintProjection & { type: typeof PROJECTION_TYPES.SCREEN, id: 'screen' }) {
-        this.replaceProjection(
-            blueprint
-        );
+    setScreen(blueprintScreen: Partial<BlueprintProjection> & { type: typeof PROJECTION_TYPES.SCREEN }) {
+        this.replaceProjection({
+            ...DEFAULT_SCREEN,
+            ...blueprintScreen
+        });
     }
 }

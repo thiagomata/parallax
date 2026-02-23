@@ -1,19 +1,23 @@
 import {
     DEFAULT_SETTINGS,
     type SceneSettings,
-    type DynamicSceneState,
-    type ResolvedSceneState,
+    type ScenePlaybackState,
 } from "./types";
 
 /**
- * The Architect of Time.
- * Responsible strictly for temporal calculations and state orchestration.
+ * The Clock.
+ * Simply tracks time. Can be paused.
+ * State reads from clock to get temporal values.
  */
 export class SceneClock {
     private readonly settings: SceneSettings;
     public paused: boolean = false;
     private startTime: number;
     private pausedAt: number | null = null;
+    private lastMillis: number = 0;
+    private lastDelta: number = 0;
+    private lastFrameCount: number = 0;
+    private _sceneId: number = 0;
 
     constructor(settings: SceneSettings) {
         this.settings = settings;
@@ -22,69 +26,68 @@ export class SceneClock {
     }
 
     /**
-     * Temporal Resolution: Updates the "Clock" for the current frame.
-     * Input: Previous frame's resolved state (for continuity), can be null for first frame
-     * Output: Dynamic state with updated playback and reference to previous resolved state
+     * Tick the clock forward.
+     * Called each frame with current time values from the graphics system.
      */
-    public calculateScene(
-        millis: number,
-        deltaTime: number,
-        frameCount: number,
-        previousState: ResolvedSceneState | null
-    ): DynamicSceneState {
-
-        // 1. Handle Pause Logic
+    public tick(millis: number, deltaTime: number, frameCount: number): void {
         if (this.paused) {
             if (!this.pausedAt) {
                 this.pausedAt = millis;
             }
-            // Return minimal state when paused - Stage will use its registries
-            return {
-                sceneId: previousState?.sceneId ?? 0,
-                settings: this.settings,
-                playback: previousState?.playback ?? {
-                    now: 0,
-                    delta: 0,
-                    frameCount: 0,
-                    progress: 0,
-                },
-                projections: new Map(),
-                previousResolved: previousState,
-            };
+            return;
         }
 
-        // Resume: Adjust startTime to account for the gap spent paused
         if (this.pausedAt !== null) {
             this.startTime += (millis - this.pausedAt);
             this.pausedAt = null;
         }
 
-        // 2. Calculate Scaled Time
-        const absoluteNow = millis - this.startTime;
-        const timeSpeed = this.settings.playback.timeSpeed;
+        this.lastMillis = millis;
+        this.lastDelta = deltaTime;
+        this.lastFrameCount = frameCount;
+        this._sceneId++;
+    }
 
-        const scaledNow = absoluteNow * timeSpeed;
-        const scaledDelta = deltaTime * timeSpeed;
+    /**
+     * Get current playback state based on clock time.
+     */
+    public getPlayback(): ScenePlaybackState {
+        if (this.paused && this.pausedAt !== null) {
+            const absoluteNow = this.pausedAt - this.startTime;
+            const timeSpeed = this.settings.playback.timeSpeed;
+            const scaledNow = absoluteNow * timeSpeed;
+            const duration = this.settings.playback.duration;
+            const progress = duration ? (scaledNow % duration) / duration : 0;
 
-        const duration = this.settings.playback.duration;
-        const progress = duration
-            ? (scaledNow % duration) / duration
-            : 0;
-
-        // 3. Return Temporal Draft
-        // We only modify temporal data. Elements/projections come from Stage registries.
-        return {
-            sceneId: (previousState?.sceneId ?? 0) + 1,
-            settings: this.settings,
-            playback: {
+            return {
                 now: scaledNow,
-                delta: scaledDelta,
-                frameCount: frameCount,
+                delta: 0,
+                frameCount: this.lastFrameCount,
                 progress: progress,
-            },
-            projections: new Map(),
-            previousResolved: previousState,
+            };
+        }
+
+        const absoluteNow = this.lastMillis - this.startTime;
+        const timeSpeed = this.settings.playback.timeSpeed;
+        const scaledNow = absoluteNow * timeSpeed;
+        const scaledDelta = this.lastDelta * timeSpeed;
+        const duration = this.settings.playback.duration;
+        const progress = duration ? (scaledNow % duration) / duration : 0;
+
+        return {
+            now: scaledNow,
+            delta: scaledDelta,
+            frameCount: this.lastFrameCount,
+            progress: progress,
         };
+    }
+
+    public get sceneId(): number {
+        return this._sceneId;
+    }
+
+    public get settingsRef(): SceneSettings {
+        return this.settings;
     }
 
     /* --- Lifecycle Methods --- */

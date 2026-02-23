@@ -6,6 +6,7 @@ import {
     type ProjectionEffectResolutionGroup,
     type ProjectionType,
     type ResolvedProjection,
+    type ResolvedSceneState,
     type ResolutionContext,
     type DynamicSceneState,
 } from "../types.ts";
@@ -21,7 +22,7 @@ export class ProjectionResolver<
      * We protect IDs and the Modifier lists from being wrapped as dynamic.
      */
     protected readonly staticKeys = [
-        "id", "type", "effects", "modifiers"
+        "id", "type", "targetId", "effects", "modifiers"
     ];
 
     constructor(effectLib: TProjectionEffectLib) {
@@ -120,37 +121,8 @@ export class ProjectionResolver<
             elementPool: {},
         };
 
-        // 1. Resolve Dynamic Properties via parent (incorporates projectionPool context)
+        // 1. Resolve Dynamic Properties (local space)
         const resolved = this.loopResolve(dynamic, resolutionContext);
-
-        // 2. THE HIERARCHY ANCHOR (World Space Origin Shift)
-        let currentPosition = { ...resolved.position };
-        let currentRotation = { ...resolved.rotation };
-
-        if (dynamic.targetId) {
-            // Find our parent in the current frame pool or the previous resolved state
-            let target: ResolvedProjection | null = null;
-            if (dynamic.targetId in projectionPool) {
-                target = projectionPool[dynamic.targetId];
-            }
-            if (target == null && state.previousResolved?.projections) {
-                const prevProjections = state.previousResolved.projections;
-                if (prevProjections.has(dynamic.targetId)) {
-                    target = prevProjections.get(dynamic.targetId) ?? null;
-                }
-            }
-            if (target) {
-                // Shift Position relative to parent
-                currentPosition.x += target.position.x;
-                currentPosition.y += target.position.y;
-                currentPosition.z += target.position.z;
-
-                // Shift Rotation (YXZ inheritance)
-                currentRotation.yaw += target.rotation.yaw;
-                currentRotation.pitch += target.rotation.pitch;
-                currentRotation.roll += target.rotation.roll;
-            }
-        }
 
         const modifierContext: ResolutionContext = {
             previousResolved: state.previousResolved,
@@ -159,6 +131,10 @@ export class ProjectionResolver<
             projectionPool,
             elementPool: {},
         };
+
+        // 2. Apply Modifiers in Local Space
+        let currentPosition = { ...resolved.position };
+        let currentRotation = { ...resolved.rotation };
 
     // 3. Car Modifiers
         for (const carModifier of dynamic.modifiers?.carModifiers ?? []) {
@@ -203,30 +179,31 @@ export class ProjectionResolver<
     // LOOKAT IS AUTHORITATIVE FROM HERE
     // ==========================================================
 
-    const dx = resolved.lookAt.x - currentPosition.x;
-    const dy = resolved.lookAt.y - currentPosition.y;
-    const dz = resolved.lookAt.z - currentPosition.z;
+        const dx = resolved.lookAt.x - currentPosition.x;
+        const dy = resolved.lookAt.y - currentPosition.y;
+        const dz = resolved.lookAt.z - currentPosition.z;
 
-    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0;
+        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0;
 
-    const inv = distance !== 0 ? 1 / distance : 0;
+        const inv = distance !== 0 ? 1 / distance : 0;
 
-    const direction = {
-        x: dx * inv,
-        y: dy * inv,
-        z: dz * inv
-    };
+        const direction = {
+            x: dx * inv,
+            y: dy * inv,
+            z: dz * inv
+        };
 
-    // Derive yaw/pitch from direction (−Z forward convention)
-    const yaw = Math.atan2(direction.x, -direction.z);
-    const pitch = Math.asin(-direction.y);
+        // Derive yaw/pitch from direction (−Z forward convention)
+        const yaw = Math.atan2(direction.x, -direction.z);
+        const pitch = Math.asin(-direction.y);
 
-    const finalRotation = {
-        ...currentRotation,
-        yaw,
-        pitch
-    };
+        const finalRotation = {
+            ...currentRotation,
+            yaw,
+            pitch
+        };
 
+        // Return LOCAL space resolved projection (hierarchy transform not applied)
         return {
             ...resolved,
             effects: dynamic.effects ?? [],
@@ -235,6 +212,46 @@ export class ProjectionResolver<
             distance,
             direction,
             lookAt: resolved.lookAt // preserved — never rebuilt
+        };
+    }
+
+    /**
+     * Pass 2: Apply hierarchy transform to convert local space to global space
+     * This runs AFTER all projections are resolved in local space
+     */
+    applyHierarchyTransform(
+        resolved: ResolvedProjection,
+        projectionPool: Record<string, ResolvedProjection>,
+        previousResolved: ResolvedSceneState | null
+    ): ResolvedProjection {
+        if (!resolved.targetId) {
+            return resolved; // No parent, already in global space
+        }
+
+        // Find parent in current frame pool or previous frame
+        let target: ResolvedProjection | undefined = projectionPool[resolved.targetId];
+        
+        if (!target && previousResolved?.projections) {
+            target = previousResolved.projections.get(resolved.targetId);
+        }
+
+        if (!target) {
+            return resolved; // Parent not found, keep local space
+        }
+
+        // Apply parent transform
+        return {
+            ...resolved,
+            position: {
+                x: resolved.position.x + target.position.x,
+                y: resolved.position.y + target.position.y,
+                z: resolved.position.z + target.position.z,
+            },
+            rotation: {
+                yaw: resolved.rotation.yaw + target.rotation.yaw,
+                pitch: resolved.rotation.pitch + target.rotation.pitch,
+                roll: resolved.rotation.roll + target.rotation.roll,
+            },
         };
     }
 

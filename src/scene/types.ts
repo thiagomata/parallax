@@ -73,6 +73,7 @@ export interface DynamicProjection extends BaseProjection {
     }
 }
 
+
 export const DEFAULT_PROJECTION_ELEMENT = {
     position: { x: 0, y: 0, z: 0 },
     rotation: { pitch: 0, yaw: 0, roll: 0 },
@@ -156,6 +157,27 @@ export const PROJECTION_TYPES = {
     EYE: 'EYE'
 } as const;
 export type ProjectionType = typeof PROJECTION_TYPES[keyof typeof PROJECTION_TYPES];
+
+export const DEFAULT_EYE: BlueprintProjection = {
+    type: PROJECTION_TYPES.EYE,
+    id: 'eye',
+    targetId: 'screen',
+    position: {x: 0, y: 0, z: 100},
+    rotation: {pitch: 0, yaw: 0, roll: 0},
+    lookAt: {x: 0, y: 0, z: 0},
+    direction: {x: 0, y: 0, z: -1},
+    effects: [],
+};
+
+export const DEFAULT_SCREEN: BlueprintProjection = {
+    id: 'screen',
+    type: PROJECTION_TYPES.SCREEN,
+    position: {x: 0, y: 0, z: 1000},
+    rotation: {pitch: 0, yaw: 0, roll: 0},
+    lookAt: {x: 0, y: 0, z: 100},
+    direction: {x: 0, y: 0, z: 1},
+    effects: [],
+};
 
 /**
  * A container for operations that can fail.
@@ -244,15 +266,6 @@ export const DEFAULT_ROTATION_LIMITS: StickRotationLimits = {
     roll: { min: -Math.PI/6, max: Math.PI/6 },      // ±30 degrees
 };
 
-export type ScreenConfigInput = {
-    width: number;
-    height: number;
-    z: number;
-    near: number;
-    far: number;
-    epsilon: number;
-};
-
 export interface PlaybackSettings {
     readonly duration?: number;
     readonly isLoop: boolean;
@@ -278,14 +291,17 @@ export interface SceneSettings {
 // type ScreeProjection = ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN};
 // type EyeProjection   = ResolvedProjection & {type: typeof PROJECTION_TYPES.EYE};
 
-export interface SceneState {
-    sceneId: number;
-    settings: SceneSettings;
-    playback: ScenePlaybackState;
-    debugStateLog?: SceneStateDebugLog;
-    elements?: Map<string, ResolvedElement>;
-    projections?: Map<string, ResolvedProjection>;
-}
+// export interface SceneState {
+//     sceneId: number;
+//     settings: SceneSettings;
+//     playback: ScenePlaybackState;
+//     debugStateLog?: SceneStateDebugLog;
+//     elements?: Map<string, ResolvedElement>;
+//     projections?: Map<string, ResolvedProjection>;
+//     previousResolved: ResolvedSceneState | null;
+//     projectionPool: Record<string, ResolvedProjection>;
+//     elementPool: Record<string, ResolvedElement>;
+// }
 
 export abstract class BaseSceneState {
     abstract readonly sceneId: number;
@@ -460,16 +476,16 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
     setProjectionMatrix(projectionMatrix: ProjectionMatrix): void;
 
     /* --- Act 2: The Drawing Pipeline --- */
-    drawBox(props: ResolvedBox, assets: ElementAssets<TBundle>, state: SceneState): void;
-    drawPanel(props: ResolvedPanel, assets: ElementAssets<TBundle>, state: SceneState): void;
-    drawSphere(resolved: ResolvedSphere, assets: ElementAssets<TBundle>, state: SceneState): void;
-    drawCone(resolved: ResolvedCone, assets: ElementAssets<TBundle>, state: SceneState): void;
-    drawPyramid(resolved: ResolvedPyramid, assets: ElementAssets<TBundle>, state: SceneState): void;
-    drawElliptical(resolved: ResolvedElliptical, assets: ElementAssets<TBundle>, state: SceneState): void;
-    drawCylinder(resolved: ResolvedCylinder, assets: ElementAssets<TBundle>, state: SceneState): void;
-    drawTorus(resolved: ResolvedTorus, assets: ElementAssets<TBundle>, state: SceneState): void;
-    drawFloor(resolved: ResolvedFloor, assets: ElementAssets<TBundle>, state: SceneState): void;
-    drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: SceneState): void;
+    drawBox(props: ResolvedBox, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawPanel(props: ResolvedPanel, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawSphere(resolved: ResolvedSphere, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawCone(resolved: ResolvedCone, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawPyramid(resolved: ResolvedPyramid, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawElliptical(resolved: ResolvedElliptical, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawCylinder(resolved: ResolvedCylinder, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawTorus(resolved: ResolvedTorus, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawFloor(resolved: ResolvedFloor, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
 
     /* --- Act 3: Spatial & Temporal Context --- */
     dist(v1: Vector3, v2: Vector3): number;

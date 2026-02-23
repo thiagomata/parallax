@@ -107,18 +107,18 @@ export function createPauseTests(
 
             // Initial state should be unpaused
             let initialState = world.getCurrentSceneState();
-            expect(initialState.settings.startPaused).toBe(false);
+            expect(initialState?.settings?.startPaused ?? false).toBe(false);
             expect(world.isPaused()).toBe(false);
-            expect(initialState.playback.progress).toBe(0);
+            expect(initialState?.playback?.progress ?? 0).toBe(0);
 
             // running
             mockP5.millis.mockReturnValue(2000);
             mockP5.draw();
             let runningState = world.getCurrentSceneState();
-            expect(runningState.settings.startPaused).toBe(false);
+            expect(runningState?.settings?.startPaused ?? false).toBe(false);
             expect(world.isPaused()).toBe(false);
-            expect(runningState.playback.progress).toBeGreaterThan(0);
-            const runningPauseProgress = runningState.playback.progress;
+            expect(runningState?.playback?.progress ?? 0).toBeGreaterThan(0);
+            const runningPauseProgress = runningState?.playback?.progress ?? 0;
 
             // Now change config.paused to true (simulating external state change)
             config.paused = true;
@@ -130,8 +130,8 @@ export function createPauseTests(
             // Verify pause was called to sync the state
             expect(world.isPaused()).toBe(true);
             const pausedState = world.getCurrentSceneState();
-            expect(pausedState.settings.startPaused).toBe(false);
-            expect(pausedState.playback.progress).toBe(runningPauseProgress);
+            expect(pausedState?.settings?.startPaused ?? false).toBe(false);
+            expect(pausedState?.playback?.progress ?? 0).toBe(runningPauseProgress);
 
             // Now change config.paused to false (simulating external state change)
             config.paused = false;

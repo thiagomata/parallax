@@ -4,7 +4,7 @@ import {
     ELEMENT_TYPES,
     DEFAULT_SETTINGS,
     WindowConfig,
-    type SceneState,
+    type ResolutionContext,
     type Vector3
 } from "../../scene/types.ts";
 import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
@@ -48,8 +48,8 @@ export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any,
         // 2. The Projection Rig
         // Modifiers are now properties of the Eye projection itself.
         world.stage.setEye({
-            id: 'main-eye',
-            type: PROJECTION_TYPES.EYE,
+            id: 'eye',
+            type: PROJECTION_TYPES.EYE as typeof PROJECTION_TYPES.EYE,
             position: { x: 0, y: 0, z: 1000 },
             lookAt: { x: 0, y: 0, z: 0 },
             modifiers: {
@@ -72,16 +72,16 @@ export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any,
         world.addCylinder({
             id: 'mid-cylinder',
             type: ELEMENT_TYPES.CYLINDER,
-            radius: (state: SceneState) => 50 + 50 * Math.cos(2 * Math.PI * state.playback.progress),
+            radius: (ctx: ResolutionContext) => 50 + 50 * Math.cos(2 * Math.PI * ctx.playback.progress),
             height: 100,
-            rotate: (state: SceneState) => ({
+            rotate: (ctx: ResolutionContext) => ({
                 x: 0,
                 y: 0,
-                z: state.playback.progress * 2 * Math.PI
+                z: ctx.playback.progress * 2 * Math.PI
             }),
-            position: (state: SceneState): Vector3 => ({
+            position: (ctx: ResolutionContext): Vector3 => ({
                 x: 0,
-                y: (Math.cos(2 * Math.PI * state.playback.progress) * 100) - 100,
+                y: (Math.cos(2 * Math.PI * ctx.playback.progress) * 100) - 100,
                 z: 0
             }),
             fillColor: { red: 255, green: 0, blue: 0, alpha: 0.5 },

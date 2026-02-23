@@ -3,7 +3,7 @@ import {World} from "../../scene/world.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "../../scene/types.ts";
+import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolutionContext, type Vector3} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
 export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
@@ -36,16 +36,16 @@ export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             width: 50,
 
             // Orbital Position Logic: x = cos(t), y = sin(t)
-            position: (state: SceneState): Vector3 => ({
-                x: Math.cos(state.playback.progress * Math.PI * 2) * 50,
-                y: Math.sin(state.playback.progress * Math.PI * 2) * 50,
+            position: (context: ResolutionContext): Vector3 => ({
+                x: Math.cos(context.playback.progress * Math.PI * 2) * 50,
+                y: Math.sin(context.playback.progress * Math.PI * 2) * 50,
                 z: -100
             }),
 
             // Rotation can also follow the orbit path
-            rotate: (state: SceneState): Vector3 => ({
-                x: state.playback.progress * Math.PI,
-                y: state.playback.progress * Math.PI * 2,
+            rotate: (context: ResolutionContext): Vector3 => ({
+                x: context.playback.progress * Math.PI,
+                y: context.playback.progress * Math.PI * 2,
                 z: 0,
             }),
 

@@ -1,6 +1,6 @@
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {SceneClock} from "../../scene/scene_clock.ts";
-import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState} from "../../scene/types.ts";
+import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolutionContext} from "../../scene/types.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {World} from "../../scene/world.ts";
 import p5 from "p5";
@@ -40,8 +40,8 @@ export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         world.addSphere({
             type: ELEMENT_TYPES.SPHERE,
             id: 'hero-sphere',
-            position: (s: SceneState) => ({
-                x: Math.sin(s.playback.progress * Math.PI * 2) * 100,
+            position: (context: ResolutionContext) => ({
+                x: Math.sin(context.playback.progress * Math.PI * 2) * 100,
                 y: 0,
                 z: -200
             }),
@@ -49,7 +49,7 @@ export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             fillColor: {
                 red: 255,
                 green: 150,
-                blue: (s: SceneState) => 127 + 127 * Math.sin(s.playback.progress * Math.PI * 2)
+                blue: (context: ResolutionContext) => 127 + 127 * Math.sin(context.playback.progress * Math.PI * 2)
             }
         });
     };
