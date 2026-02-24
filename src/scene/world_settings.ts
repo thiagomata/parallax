@@ -4,7 +4,8 @@ import {
     type EffectLib,
     type GraphicsBundle,
     type ProjectionEffectLib,
-    type SceneSettings
+    type SceneSettings,
+    type DataProviderLib
 } from "./types.ts";
 import {Stage} from "./stage.ts";
 import {SceneClock} from "./scene_clock.ts";
@@ -19,35 +20,40 @@ export class WorldSettings<
     TBundle extends GraphicsBundle,
     TElementEffectLib extends EffectLib,
     TProjectionEffectLib extends ProjectionEffectLib,
+    TDataProviderLib extends DataProviderLib = {},
 > {
     readonly clock: SceneClock;
     readonly loader: AssetLoader<TBundle>;
     readonly settings: SceneSettings;
-    readonly stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib>;
+    readonly stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib, TDataProviderLib>;
 
     static fromLibs<
         TBundle extends GraphicsBundle,
         TElementEffectLib extends EffectLib,
         TProjectionEffectLib extends ProjectionEffectLib,
+        TDataProviderLib extends DataProviderLib = {},
     >(
         data: {
             clock?: SceneClock,
             loader: AssetLoader<TBundle>,
             elementEffectLib?: TElementEffectLib,
             projectionEffectLib?: TProjectionEffectLib;
+            dataProviderLib?: TDataProviderLib;
             settings?: Partial<SceneSettings>,
         }
     ) {
         const loader = data.loader;
         const elementEffectLib = data.elementEffectLib ?? DEFAULT_WORLD_SETTINGS_LIBS.elementEffectLib as TElementEffectLib;
         const projectionEffectLib = data.projectionEffectLib ?? DEFAULT_WORLD_SETTINGS_LIBS.projectionEffectLib as TProjectionEffectLib;
+        const dataProviderLib = data.dataProviderLib ?? {} as TDataProviderLib;
         const settings = merge(DEFAULT_SCENE_SETTINGS, data.settings ?? {});
         const clock = data.clock ?? new SceneClock(settings);
-        const stage = new Stage<TBundle, TElementEffectLib, TProjectionEffectLib>(
+        const stage = new Stage<TBundle, TElementEffectLib, TProjectionEffectLib, TDataProviderLib>(
             settings,
             loader,
             elementEffectLib,
             projectionEffectLib,
+            dataProviderLib,
         );
         return new WorldSettings(
             loader,
@@ -61,11 +67,12 @@ export class WorldSettings<
         TBundle extends GraphicsBundle,
         TElementEffectLib extends EffectLib,
         TProjectionEffectLib extends ProjectionEffectLib,
+        TDataProviderLib extends DataProviderLib = {},
     >(
         data: {
             clock?: SceneClock,
             loader: AssetLoader<TBundle>,
-            stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib>,
+            stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib, TDataProviderLib>,
             settings?: Partial<SceneSettings>,
         }
     ) {
@@ -84,7 +91,7 @@ export class WorldSettings<
         loader: AssetLoader<TBundle>,
         settings: SceneSettings,
         clock: SceneClock,
-        stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib>
+        stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib, TDataProviderLib>
     ) {
         this.loader = loader;
         this.settings = settings;

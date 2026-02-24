@@ -138,17 +138,15 @@ export const DEFAULT_PROJECTION_ELEMENT = {
 export interface ProjectionEffectBundle<
     TID extends string = string,
     TConfig extends BaseModifierSettings = BaseModifierSettings,
+    TDataProviderLib extends DataProviderLib = DataProviderLib,
     E extends ResolvedProjection = ResolvedProjection,
 > {
     readonly type: TID;
     readonly defaults: TConfig;
-    /**
-     * Specifically transforms a spatial projection rather than a visual element.
-     */
-    apply(current: E, context: ResolutionContext, settings: TConfig, resolutionPool: Record<string, E>): E;
+    apply(current: E, context: ResolutionContext<TDataProviderLib>, settings: TConfig, resolutionPool: Record<string, E>): E;
 }
 
-export type ProjectionEffectLib = Record<string, ProjectionEffectBundle<any, any, any>>;
+export type ProjectionEffectLib<TDataProviderLib extends DataProviderLib = DataProviderLib> = Record<string, ProjectionEffectBundle<any, any, TDataProviderLib, any>>;
 
 export interface ProjectionEffectBlueprint<K extends string = string, TConfig = any> {
     readonly type: K;
@@ -433,23 +431,25 @@ export interface Modifier {
 
 }
 
-export interface ResolutionContext {
+export interface ResolutionContext<TDataProviderLib extends DataProviderLib = DataProviderLib> {
     previousResolved: ResolvedSceneState | null;
     playback: ScenePlaybackState;
     settings: SceneSettings;
     projectionPool: Record<string, ResolvedProjection>;
     elementPool: Record<string, ResolvedElement>;
-    dataProviders: Record<string, unknown>;
+    dataProviders: {
+        [K in keyof TDataProviderLib]: ReturnType<TDataProviderLib[K]['getData']>;
+    };
 }
 
-export function createResolution(state: ResolvedSceneState):  ResolutionContext {
+export function createResolution<TDataProviderLib extends DataProviderLib = DataProviderLib>(state: ResolvedSceneState):  ResolutionContext<TDataProviderLib> {
     return {
         elementPool: {},
         projectionPool: {},
         playback: state.playback,
         previousResolved: state,
         settings: state.settings,
-        dataProviders: {}
+        dataProviders: {} as any
     }
 }
 
@@ -459,18 +459,18 @@ export interface ModifierContext {
     settings: SceneSettings;
 }
 
-export interface CarModifier extends Modifier {
+export interface CarModifier<TDataProviderLib extends DataProviderLib = DataProviderLib> extends Modifier {
     readonly priority: number;
-    getCarPosition(initialCam: Vector3, context: ResolutionContext): FailableResult<CarResult>;
+    getCarPosition(initialCam: Vector3, context: ResolutionContext<TDataProviderLib>): FailableResult<CarResult>;
 }
 
-export interface NudgeModifier extends Modifier {
-    getNudge(currentCarPos: Vector3, context: ResolutionContext): FailableResult<Partial<Vector3>>;
+export interface NudgeModifier<TDataProviderLib extends DataProviderLib = DataProviderLib> extends Modifier {
+    getNudge(currentCarPos: Vector3, context: ResolutionContext<TDataProviderLib>): FailableResult<Partial<Vector3>>;
 }
 
-export interface StickModifier extends Modifier {
+export interface StickModifier<TDataProviderLib extends DataProviderLib = DataProviderLib> extends Modifier {
     readonly priority: number;
-    getStick(finalPos: Vector3, context: ResolutionContext): FailableResult<StickResult>;
+    getStick(finalPos: Vector3, context: ResolutionContext<TDataProviderLib>): FailableResult<StickResult>;
 }
 
 /**
@@ -590,30 +590,30 @@ export const ALL_ELEMENT_TYPES = Object.values(ELEMENT_TYPES);
 
 export const SPEC_KINDS = {STATIC: 'static', COMPUTED: 'computed', BRANCH: 'branch'} as const;
 
-export type DynamicProperty<T, TResolved = unknown> =
+export type DynamicProperty<T, TResolved = unknown, TDataProviderLib extends DataProviderLib = DataProviderLib> =
     | { kind: typeof SPEC_KINDS.STATIC; value: T }
     | {
     kind: typeof SPEC_KINDS.COMPUTED;
     compute: (
-        context: ResolutionContext,
+        context: ResolutionContext<TDataProviderLib>,
         resolutionPool: Record<string, TResolved>
-    ) => T | DynamicProperty<T, TResolved> | DynamicTree<T, TResolved>
+    ) => T | DynamicProperty<T, TResolved, TDataProviderLib> | DynamicTree<T, TResolved, TDataProviderLib>
 }
-    | { kind: typeof SPEC_KINDS.BRANCH; value: DynamicTree<T, TResolved> };
+    | { kind: typeof SPEC_KINDS.BRANCH; value: DynamicTree<T, TResolved, TDataProviderLib> };
 
-export type DynamicTree<T, TResolved = unknown> = {
-    [K in keyof T]: T[K] | DynamicProperty<T[K], TResolved> | DynamicTree<T[K], TResolved>;
+export type DynamicTree<T, TResolved = unknown, TDataProviderLib extends DataProviderLib = DataProviderLib> = {
+    [K in keyof T]: T[K] | DynamicProperty<T[K], TResolved, TDataProviderLib> | DynamicTree<T[K], TResolved, TDataProviderLib>;
 };
 
-export type FlexibleSpec<T> =
+export type FlexibleSpec<T, TDataProviderLib extends DataProviderLib = DataProviderLib> =
     T
-    | ((context: ResolutionContext) => T | DynamicProperty<T> | DynamicTree<T>)
-    | (T extends object ? BlueprintTree<T> : never);
-export type BlueprintTree<T> = { [K in keyof T]?: FlexibleSpec<T[K]>; };
+    | ((context: ResolutionContext<TDataProviderLib>) => T | DynamicProperty<T, any, TDataProviderLib> | DynamicTree<T, any, TDataProviderLib>)
+    | (T extends object ? BlueprintTree<T, TDataProviderLib> : never);
+export type BlueprintTree<T, TDataProviderLib extends DataProviderLib = DataProviderLib> = { [K in keyof T]?: FlexibleSpec<T[K], TDataProviderLib>; };
 
 export const STATIC_ELEMENT_KEYS = ['type', 'texture', 'font', 'id'] as const;
 type StaticKeys = typeof STATIC_ELEMENT_KEYS[number];
-export type MapToBlueprint<T> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K]>; } & {
+export type MapToBlueprint<T, TDataProviderLib extends DataProviderLib = DataProviderLib> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K], TDataProviderLib>; } & {
     effects?: EffectBlueprint[];
 };
 // export type MapToDynamic<T> = { [K in keyof T]: K extends StaticKeys ? T[K] : DynamicProperty<T[K]>; } & {
@@ -924,15 +924,16 @@ export interface BaseModifierSettings {
 export interface EffectBundle<
     TID extends string = string,
     TConfig extends BaseModifierSettings = BaseModifierSettings,
+    TDataProviderLib extends DataProviderLib = DataProviderLib,
     E extends ResolvedBaseVisual = ResolvedBaseVisual,
 > {
     readonly type: TID;
     readonly targets: ReadonlyArray<E['type']>;
     readonly defaults: TConfig;
-    apply(current: E, context: ResolutionContext, settings: TConfig, resolutionPool: Record<string, E>): E;
+    apply(current: E, context: ResolutionContext<TDataProviderLib>, settings: TConfig, resolutionPool: Record<string, E>): E;
 }
 
-export type EffectLib = Record<string, EffectBundle<any, any, any>>;
+export type EffectLib<TDataProviderLib extends DataProviderLib = DataProviderLib> = Record<string, EffectBundle<any, any, TDataProviderLib, any>>;
 
 export interface EffectBlueprint<K extends string = string, TConfig = any> {
     readonly type: K;
@@ -941,9 +942,10 @@ export interface EffectBlueprint<K extends string = string, TConfig = any> {
 
 export interface EffectResolutionGroup<
     TID extends string = string,
-    TConfig extends BaseModifierSettings = any
+    TConfig extends BaseModifierSettings = any,
+    TDataProviderLib extends DataProviderLib = DataProviderLib
 > {
     readonly type: TID;
-    readonly bundle: EffectBundle<TID, TConfig, any>;
-    readonly settings?: TConfig; // Hydrated/Merged settings
+    readonly bundle: EffectBundle<TID, TConfig, TDataProviderLib, any>;
+    readonly settings?: TConfig;
 }

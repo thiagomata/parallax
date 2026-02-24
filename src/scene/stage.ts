@@ -3,12 +3,13 @@ import {
     type BlueprintProjection,
     type BundleDynamicElement,
     type BundleResolvedElement, DEFAULT_EYE_LOOK_AT, DEFAULT_SCREEN_ROTATION,
+    type DataProviderBundle,
+    type DataProviderLib,
     type DynamicProjection,
     type DynamicSceneState,
     type EffectLib,
     type GraphicProcessor,
     type GraphicsBundle,
-    type MapToBlueprint,
     PROJECTION_TYPES,
     type ProjectionEffectLib,
     projectionIsType,
@@ -29,12 +30,15 @@ export class Stage<
     TGraphicBundle extends GraphicsBundle,
     TElementEffectLib extends EffectLib,
     TProjectionEffectLib extends ProjectionEffectLib,
+    TDataProviderLib extends DataProviderLib = {},
 > {
     private readonly elementRegistry: ElementAssetRegistry<TGraphicBundle, {}>;
     private readonly projectionRegistry: ProjectionAssetRegistry<TProjectionEffectLib>;
     private readonly elementResolver: ElementResolver<TGraphicBundle, TElementEffectLib>;
     private readonly projectionResolver: ProjectionResolver<TProjectionEffectLib>;
     private readonly settings: SceneSettings;
+    private readonly dataProviderLib: TDataProviderLib;
+    private dataProviders: Map<keyof TDataProviderLib, DataProviderBundle<any, any>> = new Map();
 
     private lastFrameState: ResolvedSceneState | null = null;
     private cachedDynamicState: DynamicSceneState | null = null;
@@ -44,8 +48,10 @@ export class Stage<
         loader: AssetLoader<TGraphicBundle>,
         elementEffectLib: TElementEffectLib = {} as TElementEffectLib,
         projectionEffectLib: TProjectionEffectLib = {} as TProjectionEffectLib,
+        dataProviderLib: TDataProviderLib = {} as TDataProviderLib,
     ) {
         this.settings = settings;
+        this.dataProviderLib = dataProviderLib;
 
         this.elementResolver = new ElementResolver<TGraphicBundle, TElementEffectLib>(elementEffectLib);
         this.projectionResolver = new ProjectionResolver<TProjectionEffectLib>(projectionEffectLib);
@@ -54,6 +60,13 @@ export class Stage<
         this.projectionRegistry = new ProjectionAssetRegistry<TProjectionEffectLib>(this.projectionResolver);
         this.projectionRegistry.register(DEFAULT_SCREEN_ROTATION);
         this.projectionRegistry.register(DEFAULT_EYE_LOOK_AT);
+    }
+
+    public addDataProvider<TID extends keyof TDataProviderLib & string>(
+        id: TID,
+        provider: TDataProviderLib[TID]
+    ): void {
+        this.dataProviders.set(id, provider as DataProviderBundle<any, any>);
     }
 
     public getSettings(): SceneSettings {
@@ -95,14 +108,14 @@ export class Stage<
         return this.cachedDynamicState;
     }
 
-    public addElement<T extends ResolvedElement>(blueprint: MapToBlueprint<T>): void {
+    public addElement(blueprint: { id: string } & Record<string, unknown>): void {
         if (this.elementRegistry.get(blueprint.id) !== undefined) {
             return; // Idempotent: ignore duplicate element add
         }
         if (this.projectionRegistry.get(blueprint.id) !== undefined) {
             throw new Error(`ID collision: Cannot add element '${blueprint.id}' - a projection with the same ID already exists.`);
         }
-        this.elementRegistry.register<T>(blueprint);
+        this.elementRegistry.register(blueprint as any);
         this.cachedDynamicState = null; // invalidate cache
     }
 
@@ -222,18 +235,35 @@ export class Stage<
         // ==========================================================
 
         // ==========================================================
+        // STEP 3.5: Tick Data Providers
+        // ==========================================================
+        for (const provider of this.dataProviders.values()) {
+            provider.tick(state.sceneId);
+        }
+
+        const dataProvidersMap: {
+            [K in keyof TDataProviderLib]: ReturnType<TDataProviderLib[K]['getData']>;
+        } = {} as any;
+        for (const key in this.dataProviderLib) {
+            const provider = this.dataProviderLib[key];
+            if (provider && typeof provider === 'object' && 'getData' in provider) {
+                (dataProvidersMap as Record<string, unknown>)[key] = (provider as DataProviderBundle<any, any>).getData();
+            }
+        }
+
+        // ==========================================================
         // STEP 4: Resolve Elements (can see resolved projections)
         // ==========================================================
         const screenProjection = this.getScreenProjection(globalProjectionPool);
         
         // Create context for element resolution - uses GLOBAL projections
-        const elementResolutionContext: ResolutionContext = {
+        const elementResolutionContext: ResolutionContext<TDataProviderLib> = {
             previousResolved: state.previousResolved,
             playback: state.playback,
             settings: state.settings,
             projectionPool: globalProjectionPool,
             elementPool: {},
-            dataProviders: {},
+            dataProviders: dataProvidersMap,
         };
 
         const renderQueue = Array.from(this.elementRegistry.all())
@@ -263,13 +293,13 @@ export class Stage<
         );
 
         // Create context for effects - has both pools
-        const effectContext: ResolutionContext = {
+        const effectContext: ResolutionContext<TDataProviderLib> = {
             previousResolved: state.previousResolved,
             playback: state.playback,
             settings: state.settings,
             projectionPool: globalProjectionPool,
             elementPool: Object.fromEntries(resolvedMapElements),
-            dataProviders: {},
+            dataProviders: dataProvidersMap,
         };
 
         // ==========================================================

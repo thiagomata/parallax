@@ -13,6 +13,7 @@ import {
     type BlueprintTorus,
     type BundleDynamicElement, DEFAULT_EYE_LOOK_AT, DEFAULT_EYE_ROTATION,
     DEFAULT_SCREEN_LOOK_AT, DEFAULT_SCREEN_ROTATION,
+    type DataProviderLib,
     type EffectLib,
     type ElementId,
     type GraphicProcessor,
@@ -38,13 +39,14 @@ export class World<
     TBundle extends GraphicsBundle,
     TElementEffectLib extends EffectLib,
     TProjectionEffectLib extends ProjectionEffectLib,
+    TDataProviderLib extends DataProviderLib = {},
 > {
-    public readonly stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib>;
+    public readonly stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib, TDataProviderLib>;
     private sceneClock: SceneClock;
     private projectionMatrixCalculator: ProjectionMatrixCalculator | null = null;
 
     constructor(
-        worldSettings: WorldSettings<TBundle, TElementEffectLib, TProjectionEffectLib>
+        worldSettings: WorldSettings<TBundle, TElementEffectLib, TProjectionEffectLib, TDataProviderLib>
     ) {
         this.sceneClock = worldSettings.clock
         this.stage = worldSettings.stage;
@@ -192,6 +194,13 @@ export class World<
         blueprint: BlueprintPanel & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
+    }
+
+    public addDataProvider<TID extends keyof TDataProviderLib & string>(
+        id: TID,
+        provider: TDataProviderLib[TID]
+    ): void {
+        this.stage.addDataProvider(id, provider);
     }
 
     public getElement(id: string): BundleDynamicElement<any, TBundle> | undefined {

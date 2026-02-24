@@ -1,6 +1,6 @@
 import {
     type ResolvedBaseVisual, type ResolutionContext, type EffectBundle, type BaseModifierSettings,
-    ALL_ELEMENT_TYPES
+    type DataProviderLib, ALL_ELEMENT_TYPES
 } from "../types.ts";
 
 // Config that accepts a transform function
@@ -12,6 +12,7 @@ export interface TransformEffectConfig extends BaseModifierSettings {
 export const TransformEffect: EffectBundle<
     'transform',
     TransformEffectConfig,
+    DataProviderLib,
     ResolvedBaseVisual
 > = {
     type: 'transform',

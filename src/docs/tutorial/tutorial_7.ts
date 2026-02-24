@@ -3,8 +3,9 @@ import { World } from "../../scene/world.ts";
 import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
 import { SceneClock } from "../../scene/scene_clock.ts";
 import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts";
+import { HeadTrackingDataProvider } from "../../scene/providers/head_tracking_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, PROJECTION_TYPES} from "../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
 
@@ -13,7 +14,7 @@ import {WorldSettings} from "../../scene/world_settings.ts";
  * Demonstrating 1:1 head-to-camera mapping using MediaPipe.
  * Simplified version with simple colored boxes for easy debugging.
  */
-export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
+export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any, { headTracker: HeadTrackingDataProvider }> {
     let gp: P5GraphicProcessor;
 
     // Create the clock
@@ -26,35 +27,41 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     // Camera Logic: Use injected or create default
     const headTracker = config.cameraModifier ?? new HeadTrackingModifier(p);
 
+    // Data Provider for face elements
+    const faceDataProvider = new HeadTrackingDataProvider(p, config.width, config.height, 200);
+
     // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
-    const world = new World<P5Bundler, any, any>(
-        WorldSettings.fromLibs({clock, loader})
+    const dataProviderLib: { headTracker: HeadTrackingDataProvider } = { headTracker: faceDataProvider };
+    const world = new World<P5Bundler, any, any, { headTracker: HeadTrackingDataProvider }>(
+        WorldSettings.fromLibs({clock, loader, dataProviderLib})
     );
-    
+
+    faceDataProvider.init().catch(console.error);
+
     // Wide FOV to see more of the scene
     world.enableDefaultPerspective(config.width, config.height, Math.PI / 2);
 
-    // Apply head tracking to screen position (moves the "window" we're looking through)
-    world.setScreen({
-        id: 'screen',
-        type: PROJECTION_TYPES.SCREEN,
-        lookMode: LOOK_MODES.LOOK_AT,
-        modifiers: {
-            carModifiers: [headTracker]
-        }
-    });
-
-    // Apply head tracking to eye (adds parallax/rotation)
-    world.setEye({
-        id: 'eye',
-        type: PROJECTION_TYPES.EYE,
-        lookMode: LOOK_MODES.ROTATION,
-        modifiers: {
-            nudgeModifiers: [headTracker],
-            stickModifiers: [headTracker]
-        }
-    });
+    // // Apply head tracking to screen position (moves the "window" we're looking through)
+    // world.setScreen({
+    //     id: 'screen',
+    //     type: PROJECTION_TYPES.SCREEN,
+    //     lookMode: LOOK_MODES.LOOK_AT,
+    //     modifiers: {
+    //         carModifiers: [headTracker]
+    //     }
+    // });
+    //
+    // // Apply head tracking to eye (adds parallax/rotation)
+    // world.setEye({
+    //     id: 'eye',
+    //     type: PROJECTION_TYPES.EYE,
+    //     lookMode: LOOK_MODES.ROTATION,
+    //     modifiers: {
+    //         nudgeModifiers: [headTracker],
+    //         stickModifiers: [headTracker]
+    //     }
+    // });
 
     headTracker.init().catch(console.error);
 
@@ -65,7 +72,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         // Boxes at different Z depths for parallax effect
         // Closer = more floating out effect
         // z positive = in front of camera, z negative = behind
-        
+
         // Closest (z = 50) - should appear to float out
         world.addBox({
             type: ELEMENT_TYPES.BOX,
@@ -74,7 +81,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             width: 30,
             fillColor: { red: 255, green: 0, blue: 0 },    // Red
         });
-        
+
         world.addBox({
             type: ELEMENT_TYPES.BOX,
             id: 'close-center',
@@ -82,7 +89,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             width: 30,
             fillColor: { red: 0, green: 255, blue: 0 },  // Green
         });
-        
+
         world.addBox({
             type: ELEMENT_TYPES.BOX,
             id: 'close-left',
@@ -99,7 +106,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             width: 30,
             fillColor: { red: 255, green: 255, blue: 0 }, // Yellow
         });
-        
+
         world.addBox({
             type: ELEMENT_TYPES.BOX,
             id: 'mid-center',
@@ -107,7 +114,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             width: 30,
             fillColor: { red: 255, green: 0, blue: 255 }, // Magenta
         });
-        
+
         world.addBox({
             type: ELEMENT_TYPES.BOX,
             id: 'mid-left',
@@ -124,7 +131,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             width: 30,
             fillColor: { red: 255, green: 128, blue: 0 }, // Orange
         });
-        
+
         world.addBox({
             type: ELEMENT_TYPES.BOX,
             id: 'far-center',
@@ -132,13 +139,72 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             width: 30,
             fillColor: { red: 128, green: 0, blue: 255 }, // Purple
         });
-        
+
         world.addBox({
             type: ELEMENT_TYPES.BOX,
             id: 'far-left',
             position: { x: -100, y: 0, z: -300 },
             width: 30,
             fillColor: { red: 255, green: 255, blue: 255 }, // White
+        });
+
+        // Face tracking elements - spheres for eyes and nose
+        // These elements use dynamic functions to get face data from the provider
+        world.addSphere({
+            type: ELEMENT_TYPES.SPHERE,
+            id: 'nose',
+            radius: 8,
+            position: (ctx) => {
+                const face = ctx.dataProviders['headTracker'] as ReturnType<HeadTrackingDataProvider['getData']>;
+                if (!face) return { x: 0, y: 0, z: -200 };
+                return { x: face.nose.x, y: face.nose.y, z: face.nose.z - 200 };
+            },
+            fillColor: (ctx) => {
+                const face = ctx.dataProviders['headTracker'] as ReturnType<HeadTrackingDataProvider['getData']>;
+                return face ? { red: 0, green: 255, blue: 0 } : { red: 100, green: 100, blue: 100 };
+            },
+        });
+
+        world.addSphere({
+            type: ELEMENT_TYPES.SPHERE,
+            id: 'leftEye',
+            radius: 10,
+            position: (ctx) => {
+                const face = (ctx.dataProviders as any)['headTracker'] as { leftEye: { x: number; y: number; z: number } } | null;
+                if (!face) return { x: -30, y: 0, z: -200 };
+                return { x: face.leftEye.x, y: face.leftEye.y, z: face.leftEye.z - 200 };
+            },
+            fillColor: { red: 255, green: 0, blue: 0 },
+        });
+
+        world.addSphere({
+            type: ELEMENT_TYPES.SPHERE,
+            id: 'rightEye',
+            radius: 10,
+            position: (ctx) => {
+                const face = (ctx.dataProviders as any)['headTracker'] as { rightEye: { x: number; y: number; z: number } } | null;
+                if (!face) return { x: 30, y: 0, z: -200 };
+                return { x: face.rightEye.x, y: face.rightEye.y, z: face.rightEye.z - 200 };
+            },
+            fillColor: { red: 0, green: 0, blue: 255 },
+        });
+
+        // Full face box
+        world.addBox({
+            type: ELEMENT_TYPES.BOX,
+            id: 'faceBox',
+            width: 100,
+            depth: 50,
+            height: 120,
+            position: (ctx) => {
+                const face = (ctx.dataProviders as any)['headTracker'] as { midpoint: { x: number; y: number; z: number } } | null;
+                if (!face) return { x: 0, y: 0, z: -250 };
+                return { x: face.midpoint.x, y: face.midpoint.y, z: face.midpoint.z - 250 };
+            },
+            fillColor: (ctx) => {
+                const face = (ctx.dataProviders as any)['headTracker'];
+                return face ? { red: 255, green: 200, blue: 150, alpha: 150 } : { red: 100, green: 100, blue: 100, alpha: 50 };
+            },
         });
     };
 
