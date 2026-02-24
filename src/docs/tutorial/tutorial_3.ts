@@ -3,15 +3,20 @@ import {World} from "../../scene/world.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type ResolutionContext, type Vector3} from "../../scene/types.ts";
+import {
+    DEFAULT_SCENE_SETTINGS,
+    ELEMENT_TYPES,
+} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
+import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
+import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
 
 export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let graphicProcessor: P5GraphicProcessor;
 
     // Scene Orchestration (5s circular loop)
-    const clock = config.manager ?? new SceneClock({
+    const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
         playback: {
@@ -37,23 +42,24 @@ export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             type: ELEMENT_TYPES.BOX,
             id: 'orbit-box',
             width: 50,
-
-            // Orbital Position Logic: x = cos(t), y = sin(t)
-            position: (context: ResolutionContext): Vector3 => ({
-                x: Math.cos(context.playback.progress * Math.PI * 2) * 50,
-                y: Math.sin(context.playback.progress * Math.PI * 2) * 50,
-                z: -100
-            }),
-
-            // Rotation can also follow the orbit path
-            rotate: (context: ResolutionContext): Vector3 => ({
-                x: context.playback.progress * Math.PI,
-                y: context.playback.progress * Math.PI * 2,
-                z: 0,
-            }),
+            position: {x:0,y:0,z:0},
+            // // Orbital Position Logic: x = cos(t), y = sin(t)
+            // position: (context: ResolutionContext): Vector3 => ({
+            //     x: Math.cos(context.playback.progress * Math.PI * 2) * 50,
+            //     y: Math.sin(context.playback.progress * Math.PI * 2) * 50,
+            //     z: -100
+            // }),
+            //
+            // // Rotation can also follow the orbit path
+            // rotate: (context: ResolutionContext): Vector3 => ({
+            //     x: context.playback.progress * Math.PI,
+            //     y: context.playback.progress * Math.PI * 2,
+            //     z: 0,
+            // }),
 
             fillColor: {red: 0, green: 255, blue: 150, alpha: 1.0},
-            strokeColor: {red: 0, green: 0, blue: 255}
+            strokeColor: {red: 0, green: 0, blue: 255},
+            strokeWidth: 5,
         });
     };
 
@@ -64,6 +70,19 @@ export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         p.background(20);
         world.step(graphicProcessor);
     };
+
+    world.setScreen(
+        {
+            modifiers: {
+                carModifiers: [
+                    new OrbitModifier(p, 100, -400),
+                ],
+                stickModifiers: [
+                    new CenterFocusModifier()
+                ]
+            }
+        }
+    )
 
     return world;
 }

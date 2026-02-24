@@ -6,12 +6,13 @@ import {SceneClock} from "../../scene/scene_clock.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
+import {TransformEffect, type TransformEffectConfig} from "../../scene/effects/transform_effect.ts";
 
 export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let graphicProcessor: P5GraphicProcessor;
 
     // Scene Orchestration with a custom 5s loop
-    const clock = config.manager ?? new SceneClock({
+    const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
         playback: {
@@ -24,7 +25,9 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     // Asset Pipeline & World
     const loader = config.loader ?? new P5AssetLoader(p);
     const world = new World<P5Bundler, any, any>(
-        WorldSettings.fromLibs({clock, loader})
+        WorldSettings.fromLibs({clock, loader, elementEffectLib: {
+                [TransformEffect.type]: TransformEffect
+        }})
     );
 
     p.setup = () => {
@@ -59,19 +62,34 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
                 },
                 alpha: 1.0
             },
-            strokeWidth: 1,
-            strokeColor: (ctx) => {
-                const previousMe = ctx.previousResolved?.elements.get('pulsing-box');
-                if (!previousMe || !previousMe.fillColor) return {red: 0, green: 0, blue: 0, alpha: 1.0};
-                return {
-                    red:   255 - previousMe.fillColor.red,
-                    green: 255 - previousMe.fillColor.green,
-                    blue:  255 - previousMe.fillColor.blue,
-                    alpha: 1.0
-                }
-            },
+            strokeWidth: 5,
+            // strokeColor: (ctx) => {
+            //     const previousMe = ctx.previousResolved?.elements.get('pulsing-box');
+            //     if (!previousMe || !previousMe.fillColor) return {red: 0, green: 0, blue: 0, alpha: 1.0};
+            //     return {
+            //         red:   255 - previousMe.fillColor.red,
+            //         green: 255 - previousMe.fillColor.green,
+            //         blue:  255 - previousMe.fillColor.blue,
+            //         alpha: 1.0
+            //     }
+            // },
             effects: [
-
+                {
+                    type: TransformEffect.type,
+                    settings: {
+                        transform: (element, _) => {
+                            return {
+                                ...element,
+                                strokeColor: {
+                                    red:   255 - (element.fillColor?.red   ?? 0),
+                                    green: 255 - (element.fillColor?.green ?? 0),
+                                    blue:  255 - (element.fillColor?.blue  ?? 0),
+                                    alpha: 1.0
+                                }
+                            }
+                        }
+                    }  as TransformEffectConfig
+                }
             ]
         });
     };

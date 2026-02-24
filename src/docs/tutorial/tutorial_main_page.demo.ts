@@ -36,7 +36,7 @@ export interface SketchConfig {
     width: number;
     height: number;
     backgroundColor?: string;
-    manager?: SceneClock,
+    clock?: SceneClock,
     cameraModifier?: HeadTrackingModifier,
     loader?: P5AssetLoader,
     paused: boolean,

@@ -13,7 +13,7 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     let world: World<P5Bundler, any, any>;
 
     // Scene Orchestration (5s rotating loop)
-    const clock = config.manager ?? new SceneClock({
+    const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
         playback: {

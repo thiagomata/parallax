@@ -18,7 +18,7 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     let graphicProcessor: P5GraphicProcessor;
 
     // Scene Orchestration
-    const clock = config.manager ?? new SceneClock({
+    const clock = config.clock ?? new SceneClock({
             ...DEFAULT_SCENE_SETTINGS,
             startPaused: config.paused
         });

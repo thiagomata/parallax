@@ -9,7 +9,7 @@ import {WorldSettings} from "../../scene/world_settings.ts";
 
 export function tutorial_6(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let graphicProcessor: P5GraphicProcessor;
-    const clock = config.manager ?? new SceneClock({
+    const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
         playback: {...DEFAULT_SCENE_SETTINGS.playback, duration: 5000, isLoop: true}

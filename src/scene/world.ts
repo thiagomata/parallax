@@ -11,7 +11,7 @@ import {
     type BlueprintSphere,
     type BlueprintText,
     type BlueprintTorus,
-    type BundleDynamicElement,
+    type BundleDynamicElement, DEFAULT_EYE, DEFAULT_SCREEN,
     type EffectLib,
     type ElementId,
     type GraphicProcessor,
@@ -49,15 +49,32 @@ export class World<
     /**
      * Replaces or sets the Eye projection (The User's position).
      */
-    public setEye(blueprint: BlueprintProjection & { type: typeof PROJECTION_TYPES.EYE, id: 'eye' }): void {
-        this.stage.setEye(blueprint);
+    public setEye(
+        blueprintEye?: Omit<Partial<BlueprintProjection>, 'type' | 'id'>
+        & Partial<{ id: "eye", type: typeof PROJECTION_TYPES.EYE; }>
+
+    ): void {
+        this.stage.setEye({
+            ...DEFAULT_EYE,
+            ...blueprintEye,
+            type: PROJECTION_TYPES.EYE,
+            id: 'eye',
+        });
     }
 
     /**
      * Replaces or sets the Screen projection (The Window's spatial pose).
      */
-    public setScreen(blueprint: BlueprintProjection & { type: typeof PROJECTION_TYPES.SCREEN, id: 'screen' }): void {
-        this.stage.setScreen(blueprint);
+    public setScreen(
+        blueprintScreen?: Omit<Partial<BlueprintProjection>, 'type' | 'id'>
+            & Partial<{ id: "screen", type: typeof PROJECTION_TYPES.SCREEN; }>
+    ): void {
+        this.stage.setScreen({
+            ...DEFAULT_SCREEN,
+            ...blueprintScreen,
+            type: PROJECTION_TYPES.SCREEN,
+            id: 'screen',
+        });
     }
 
     public addBox<TID extends string>(

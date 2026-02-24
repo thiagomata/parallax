@@ -15,7 +15,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     let gp: P5GraphicProcessor;
 
     // Create the manager
-    const activeManager = config.manager ?? new SceneClock({
+    const activeManager = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
         debug: false
