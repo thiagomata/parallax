@@ -2,10 +2,8 @@ import p5 from 'p5';
 import {World} from '../world';
 import {P5GraphicProcessor} from './p5_graphic_processor';
 import {P5AssetLoader, type P5Bundler} from './p5_asset_loader';
-import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolutionContext, type Vector3} from "../types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type ResolutionContext, type Vector3} from "../types.ts";
 import {SceneClock} from "../scene_clock.ts";
-import {OrbitModifier} from "../modifiers/orbit_modifier.ts";
-import {CenterFocusModifier} from "../modifiers/center_focus_modifier.ts";
 
 new p5((p: p5) => {
     let world: World<P5Bundler, any, any>;
@@ -16,18 +14,18 @@ new p5((p: p5) => {
 
         // Scene Orchestration
         const manager = new SceneClock({
-            ...DEFAULT_SETTINGS,
+            ...DEFAULT_SCENE_SETTINGS,
             playback: {
-                ...DEFAULT_SETTINGS.playback,
+                ...DEFAULT_SCENE_SETTINGS.playback,
                 duration: 10000,
                 isLoop: true
             },
         });
 
-        manager.setDebug(true);
+        // manager.setDebug(true);
         // Using modifiers as per your design
-        manager.addCarModifier(new OrbitModifier(p, 1000));
-        manager.addStickModifier(new CenterFocusModifier());
+        // manager.addCarModifier(new OrbitModifier(p, 1000));
+        // manager.addStickModifier(new CenterFocusModifier());
 
         // Bridge & Loader
         const loader = new P5AssetLoader(p);

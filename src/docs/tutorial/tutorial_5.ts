@@ -1,20 +1,21 @@
 import p5 from 'p5';
-import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolutionContext} from "../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type ResolutionContext} from "../../scene/types.ts";
 import {World} from "../../scene/world.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
+import {WorldSettings} from "../../scene/world_settings.ts";
 
 export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let graphicProcessor: P5GraphicProcessor;
 
     // Scene Orchestration
-    const manager = config.manager ?? new SceneClock({
-        ...DEFAULT_SETTINGS,
+    const clock = config.manager ?? new SceneClock({
+        ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
         playback: {
-            ...DEFAULT_SETTINGS.playback,
+            ...DEFAULT_SCENE_SETTINGS.playback,
             duration: 5000,
             isLoop: true
         }
@@ -22,7 +23,9 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
-    const world = new World<P5Bundler, any, any>(manager, loader);
+    const world = new World<P5Bundler, any, any>(
+        WorldSettings.fromLibs({clock, loader})
+    );
 
     p.setup = async () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
@@ -70,8 +73,8 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     };
 
     p.draw = () => {
-        if (config.paused && !manager.isPaused()) manager.pause();
-        if (!config.paused && manager.isPaused()) manager.resume();
+        if (config.paused && !clock.isPaused()) clock.pause();
+        if (!config.paused && clock.isPaused()) clock.resume();
 
         p.background(15);
         world.step(graphicProcessor);

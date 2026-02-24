@@ -4,7 +4,7 @@ import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {
     type AssetLoader,
-    DEFAULT_SETTINGS,
+    DEFAULT_SCENE_SETTINGS,
     ELEMENT_TYPES,
     PROJECTION_TYPES,
     WindowConfig
@@ -41,7 +41,7 @@ Object.assign(window, {
     WindowConfig,      // Added: The new single source for window math
     ELEMENT_TYPES,
     PROJECTION_TYPES,  // Added: Needed for world.stage.setEye type matching
-    DEFAULT_SETTINGS,
+    DEFAULT_SETTINGS: DEFAULT_SCENE_SETTINGS,
     p5,
     OrbitModifier,
     CenterFocusModifier

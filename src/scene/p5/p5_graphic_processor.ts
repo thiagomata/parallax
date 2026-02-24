@@ -16,7 +16,7 @@ import {
     type ResolvedSphere,
     type ResolvedText,
     type ResolvedTorus,
-    type SceneState,
+    type ResolvedSceneState,
     type Vector3
 } from "../types.ts";
 import type {P5Bundler} from "./p5_asset_loader.ts";
@@ -55,7 +55,7 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
 
     // --- Act 2: The Drawing Pipeline ---
 
-    public drawBox(props: ResolvedBox, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+    public drawBox(props: ResolvedBox, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.p.push();
         this.applyContext(props, assets, state);
         this.p.box(
@@ -66,21 +66,21 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.pop();
     }
 
-    public drawPanel(props: ResolvedPanel, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+    public drawPanel(props: ResolvedPanel, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.p.push();
         this.applyContext(props, assets, state);
         this.p.plane(props.width, props.height);
         this.p.pop();
     }
 
-    public drawSphere(props: ResolvedSphere, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+    public drawSphere(props: ResolvedSphere, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.p.push();
         this.applyContext(props, assets, state);
         this.p.sphere(props.radius);
         this.p.pop();
     }
 
-    public drawFloor(props: ResolvedFloor, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+    public drawFloor(props: ResolvedFloor, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.p.push();
         this.applyContext(props, assets, state);
         this.p.rotateX(this.p.HALF_PI);
@@ -88,44 +88,45 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.pop();
     }
 
-    public drawTorus(props: ResolvedTorus, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+    public drawTorus(props: ResolvedTorus, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.p.push();
         this.applyContext(props, assets, state);
         this.p.torus(props.radius, props.tubeRadius);
         this.p.pop();
     }
 
-    public drawCylinder(props: ResolvedCylinder, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+    public drawCylinder(props: ResolvedCylinder, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.p.push();
         this.applyContext(props, assets, state);
         this.p.cylinder(props.radius, props.height);
         this.p.pop();
     }
 
-    public drawCone(props: ResolvedCone, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+    public drawCone(props: ResolvedCone, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.p.push();
         this.applyContext(props, assets, state);
+        this.p.rotateX(this.p.PI);
         this.p.cone(props.radius, props.height);
         this.p.pop();
     }
 
-    public drawElliptical(props: ResolvedElliptical, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+    public drawElliptical(props: ResolvedElliptical, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.p.push();
         this.applyContext(props, assets, state);
         this.p.ellipsoid(props.rx, props.ry, props.rz);
         this.p.pop();
     }
 
-    public drawPyramid(props: ResolvedPyramid, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+    public drawPyramid(props: ResolvedPyramid, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.p.push();
         this.applyContext(props, assets, state);
         const s = props.baseSize / 2;
         this.p.beginShape(this.p.TRIANGLES);
         // 4 triangular sides
-        this.p.vertex(-s, 0, -s); this.p.vertex( s, 0, -s); this.p.vertex(0, props.height, 0);
-        this.p.vertex( s, 0, -s); this.p.vertex( s, 0,  s); this.p.vertex(0, props.height, 0);
-        this.p.vertex( s, 0,  s); this.p.vertex(-s, 0,  s); this.p.vertex(0, props.height, 0);
-        this.p.vertex(-s, 0,  s); this.p.vertex(-s, 0, -s); this.p.vertex(0, props.height, 0);
+        this.p.vertex(-s, 0, -s); this.p.vertex( s, 0, -s); this.p.vertex(0, -props.height, 0);
+        this.p.vertex( s, 0, -s); this.p.vertex( s, 0,  s); this.p.vertex(0, -props.height, 0);
+        this.p.vertex( s, 0,  s); this.p.vertex(-s, 0,  s); this.p.vertex(0, -props.height, 0);
+        this.p.vertex(-s, 0,  s); this.p.vertex(-s, 0, -s); this.p.vertex(0, -props.height, 0);
         // base
         this.p.vertex(-s, 0, -s); this.p.vertex( s, 0, -s); this.p.vertex( s, 0,  s);
         this.p.vertex( s, 0,  s); this.p.vertex(-s, 0,  s); this.p.vertex(-s, 0, -s);
@@ -133,7 +134,7 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.pop();
     }
 
-    public drawText(props: ResolvedText, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+    public drawText(props: ResolvedText, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         if (assets.font?.status !== ASSET_STATUS.READY || !assets.font.value) return;
         this.p.push();
         this.applyContext(props, assets, state);
@@ -166,13 +167,13 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
 
     // --- Act 4: Orchestration Helpers ---
 
-    private applyContext(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+    private applyContext(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.translate(props.position);
         this.rotate(props.rotate);
         this.applyVisuals(props, assets, state);
     }
 
-    private applyVisuals(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: SceneState): void {
+    private applyVisuals(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         const combinedAlpha = (props.alpha ?? 1) * state.settings.alpha;
 
         if (assets.texture?.status === ASSET_STATUS.READY && assets.texture.value) {

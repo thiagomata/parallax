@@ -1,7 +1,7 @@
-import type {AssetLoader, GraphicsBundle, SceneState, Vector3} from "../types.ts";
+import type {AssetLoader, GraphicsBundle, ResolvedSceneState, Vector3} from "../types.ts";
 import {vi} from "vitest";
 
-export const createMockGraphicProcessor = <TBundle extends GraphicsBundle>(_mockState: SceneState | null = null) => {
+export const createMockGraphicProcessor = <TBundle extends GraphicsBundle>(_mockState: ResolvedSceneState | null = null) => {
 
     return {
         text: vi.fn(),

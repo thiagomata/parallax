@@ -1,6 +1,6 @@
 import {expect, it} from 'vitest';
 import {FallbackNudge} from './fallback_nudge';
-import {type NudgeModifier, type Vector3} from './types';
+import {createResolution, type NudgeModifier, type Vector3} from './types';
 import {createMockState} from "./mock/mock_scene_state.mock.ts";
 
 const mockNudge = (val: Partial<Vector3>, shouldError = false): NudgeModifier => ({
@@ -21,7 +21,7 @@ it('should fallback to secondary nudge only when primary fails', () => {
     expect(chain.name).toBe("try_MockNudge_{\"x\":100}_else_MockNudge_{\"x\":20}");
 
     // Test 1: Primary active
-    const actual = chain.getNudge({x: 0, y: 0, z: 0}, mockState);
+    const actual = chain.getNudge({x: 0, y: 0, z: 0}, createResolution(mockState));
     expect(actual.success).toBe(true);
     if (actual.success) {
         expect(actual.value?.x).toBe(100);
@@ -29,7 +29,7 @@ it('should fallback to secondary nudge only when primary fails', () => {
 
     // Test 2: Primary error
     primary.getNudge = () => ({success: false, error: 'Fail'});
-    const primaryErrorResponse = chain.getNudge({x: 0, y: 0, z: 0}, mockState);
+    const primaryErrorResponse = chain.getNudge({x: 0, y: 0, z: 0}, createResolution(mockState));
     expect(primaryErrorResponse.success).toBe(true);
     if (primaryErrorResponse.success) {
         expect(primaryErrorResponse.value?.x).toBe(20);
@@ -55,7 +55,7 @@ it('should return error if both modifiers fail or inactive', () => {
     const chain = new FallbackNudge(primary, secondary);
     const mockState = createMockState();
 
-    const res = chain.getNudge({x: 0, y: 0, z: 0}, mockState);
+    const res = chain.getNudge({x: 0, y: 0, z: 0}, createResolution(mockState));
     expect(res.success).toBe(false);
     if (!res.success) {
         expect(res.error).toBe("Both modifiers in chain failed or inactive");

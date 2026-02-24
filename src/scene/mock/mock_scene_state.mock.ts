@@ -1,15 +1,15 @@
-import {DEFAULT_SETTINGS, type ScenePlaybackState, type ResolvedSceneState} from "../types.ts";
+import {DEFAULT_SCENE_SETTINGS, type ScenePlaybackState, type ResolvedSceneState} from "../types.ts";
 
 export function createMockState(
-    position = {x: 0, y: 0, z: 0},
-    lookAt = {x: 0, y: 0, z: 100},
+    _position = {x: 0, y: 0, z: 0},
+    _lookAt = {x: 0, y: 0, z: 100},
     now = Date.now(),
 ): ResolvedSceneState {
 
     return {
         sceneId: 1,
         settings: {
-            ...DEFAULT_SETTINGS,
+            ...DEFAULT_SCENE_SETTINGS,
         },
         playback: {
             now: now,

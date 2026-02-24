@@ -5,8 +5,9 @@ import {SceneClock} from "../../scene/scene_clock.ts";
 import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
+import {WorldSettings} from "../../scene/world_settings.ts";
 
 Object.assign(window, {
     OrbitModifier,
@@ -17,19 +18,21 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     let graphicProcessor: P5GraphicProcessor;
 
     // Scene Orchestration
-    const activeManager = config.manager ?? new SceneClock({
-            ...DEFAULT_SETTINGS,
+    const clock = config.manager ?? new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
             startPaused: config.paused
         });
 
     // Camera Logic: Adding Modifiers to the SceneManager
     // Note: These affect the SceneState.camera property during calculation
-    activeManager.addCarModifier(new OrbitModifier(p, 800));
-    activeManager.addStickModifier(new CenterFocusModifier());
+    // clock.addCarModifier(new OrbitModifier(p, 800));
+    // clock.addStickModifier(new CenterFocusModifier());
 
     // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
-    const world = new World<P5Bundler, any, any>(activeManager, loader);
+    const world = new World<P5Bundler, any, any>(
+        WorldSettings.fromLibs({clock, loader})
+    );
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
@@ -53,8 +56,8 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     };
 
     p.draw = () => {
-        if (config.paused && !activeManager.isPaused()) activeManager.pause();
-        if (!config.paused && activeManager.isPaused()) activeManager.resume();
+        if (config.paused && !clock.isPaused()) clock.pause();
+        if (!config.paused && clock.isPaused()) clock.resume();
 
         p.background(20);
         world.step(graphicProcessor);

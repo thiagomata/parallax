@@ -4,7 +4,7 @@ import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
 import { SceneClock } from "../../scene/scene_clock.ts";
 import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts"; // Our new class
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
-import { DEFAULT_SETTINGS, ELEMENT_TYPES } from "../../scene/types.ts";
+import { DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES } from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 
 /**
@@ -16,7 +16,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     // Create the manager
     const activeManager = config.manager ?? new SceneClock({
-        ...DEFAULT_SETTINGS,
+        ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
         debug: false
     });
@@ -24,9 +24,9 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     // Camera Logic: Use injected or create default
     const headTracker = config.cameraModifier ?? new HeadTrackingModifier(p);
 
-    activeManager.addCarModifier(headTracker);
-    activeManager.addNudgeModifier(headTracker);
-    activeManager.addStickModifier(headTracker);
+    // activeManager.addCarModifier(headTracker);
+    // activeManager.addNudgeModifier(headTracker);
+    // activeManager.addStickModifier(headTracker);
 
     // Asset Pipeline & World
     const loader = new P5AssetLoader(p);

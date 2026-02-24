@@ -291,18 +291,6 @@ export interface SceneSettings {
 // type ScreeProjection = ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN};
 // type EyeProjection   = ResolvedProjection & {type: typeof PROJECTION_TYPES.EYE};
 
-// export interface SceneState {
-//     sceneId: number;
-//     settings: SceneSettings;
-//     playback: ScenePlaybackState;
-//     debugStateLog?: SceneStateDebugLog;
-//     elements?: Map<string, ResolvedElement>;
-//     projections?: Map<string, ResolvedProjection>;
-//     previousResolved: ResolvedSceneState | null;
-//     projectionPool: Record<string, ResolvedProjection>;
-//     elementPool: Record<string, ResolvedElement>;
-// }
-
 export abstract class BaseSceneState {
     abstract readonly sceneId: number;
     abstract readonly settings: SceneSettings;
@@ -330,7 +318,7 @@ export interface ResolvedSceneState extends BaseSceneState {
 
 export const DEFAULT_CAMERA_FAR = 5000;
 
-export const DEFAULT_SETTINGS: SceneSettings = {
+export const DEFAULT_SCENE_SETTINGS: SceneSettings = {
     window: WindowConfig.create(DEFAULT_WINDOW_CONFIG),
     playback: {
         duration: 5000,
@@ -381,6 +369,16 @@ export interface ResolutionContext {
     settings: SceneSettings;
     projectionPool: Record<string, ResolvedProjection>;
     elementPool: Record<string, ResolvedElement>;
+}
+
+export function createResolution(state: ResolvedSceneState):  ResolutionContext {
+    return {
+        elementPool: {},
+        projectionPool: {},
+        playback: state.playback,
+        previousResolved: state,
+        settings: state.settings
+    }
 }
 
 export interface ModifierContext {
@@ -465,8 +463,7 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
     /* --- Act 1: The Perspective Rig --- */
 
     /**
-     * Positions the hardware camera using the resolved Eye projection.
-     * The processor uses eye.position and eye.lookAt to mount the view.
+     * Positions the hardware camera.
      */
     setCamera(eye: ResolvedProjection): void;
 

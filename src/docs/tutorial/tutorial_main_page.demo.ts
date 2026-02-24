@@ -4,7 +4,7 @@ import {ElementResolver} from "../../scene/resolver/element_resolver.ts"; // New
 import {HeadTrackingModifier} from "../../scene/modifiers/head_tracking_modifier.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
-import {ASSET_STATUS, DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
+import {ASSET_STATUS, DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
 
 // libs
 import p5 from 'p5';
@@ -31,10 +31,6 @@ import {tutorial_6} from "./tutorial_6.ts";
 import step6Source from './tutorial_6.ts?raw';
 import {tutorial_7} from "./tutorial_7.ts";
 import step7Source from './tutorial_7.ts?raw';
-import {tutorial_8} from "./tutorial_8.ts";
-import step8Source from './tutorial_8.ts?raw';
-import {tutorial_9} from "./tutorial_9.ts";
-import step9Source from './tutorial_9.ts?raw';
 
 export interface SketchConfig {
     width: number;
@@ -71,7 +67,7 @@ Object.assign(window, {
     CenterFocusModifier,
     LookAtEffect,
     ELEMENT_TYPES,
-    DEFAULT_SETTINGS,
+    DEFAULT_SETTINGS: DEFAULT_SCENE_SETTINGS,
     ASSET_STATUS,
     DEFAULT_SKETCH_CONFIG,
     resolver: new ElementResolver({}),
@@ -237,5 +233,5 @@ renderStep('tutorial-4', '4. Camera (Modifiers)', tutorial_4, step4Source);
 renderStep('tutorial-5', '5. Textures & Fonts (Hydration)', tutorial_5, step5Source);
 renderStep('tutorial-6', '6. Integrated Scene (Hybrid Props)', tutorial_6, step6Source);
 renderStep('tutorial-7', '7. Head Tracking', tutorial_7, step7Source);
-renderStep('tutorial-8', '8. Billboard', tutorial_8, step8Source);
-renderStep('tutorial-9', '9. Follow Object', tutorial_9, step9Source);
+// renderStep('tutorial-8', '8. Billboard', tutorial_8, step8Source);
+// renderStep('tutorial-9', '9. Follow Object', tutorial_9, step9Source);

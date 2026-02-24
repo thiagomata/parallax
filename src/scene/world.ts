@@ -1,28 +1,27 @@
-import type {SceneClock} from "./scene_clock.ts";
+import {SceneClock} from "./scene_clock.ts";
 import {
-    type AssetLoader,
     type BlueprintBox,
     type BlueprintCone,
     type BlueprintCylinder,
     type BlueprintElliptical,
     type BlueprintFloor,
     type BlueprintPanel,
+    type BlueprintProjection,
     type BlueprintPyramid,
     type BlueprintSphere,
     type BlueprintText,
     type BlueprintTorus,
+    type BundleDynamicElement,
     type EffectLib,
+    type ElementId,
     type GraphicProcessor,
     type GraphicsBundle,
-    type BundleDynamicElement,
-    type ElementId,
+    PROJECTION_TYPES,
     type ProjectionEffectLib,
-    type SceneSettings,
     type ResolvedSceneState,
-    DEFAULT_SETTINGS, type BlueprintProjection, PROJECTION_TYPES,
 } from "./types.ts";
 import {Stage} from "./stage.ts";
-import {merge} from "./utils/merge.ts";
+import type {WorldSettings} from "./world_settings.ts";
 
 export class World<
     TBundle extends GraphicsBundle,
@@ -31,20 +30,12 @@ export class World<
 > {
     public readonly stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib>;
     private sceneClock: SceneClock;
-    private readonly settings: SceneSettings;
 
     constructor(
-        clock: SceneClock,
-        loader: AssetLoader<TBundle>,
-        settings: Partial<SceneSettings> = {},
-        stage?: Stage<TBundle, TElementEffectLib, TProjectionEffectLib>,
+        worldSettings: WorldSettings<TBundle, TElementEffectLib, TProjectionEffectLib>
     ) {
-        this.settings = merge(DEFAULT_SETTINGS, settings);
-        this.sceneClock = clock;
-        this.stage = stage ?? new Stage<TBundle, TElementEffectLib, TProjectionEffectLib>(
-            this.settings,
-            loader
-        );
+        this.sceneClock = worldSettings.clock
+        this.stage = worldSettings.stage;
     }
 
     public getCurrenState(): ResolvedSceneState | null {
@@ -58,14 +49,14 @@ export class World<
     /**
      * Replaces or sets the Eye projection (The User's position).
      */
-    public setEye(blueprint: BlueprintProjection & {type: typeof PROJECTION_TYPES.EYE, id: 'eye'}): void {
+    public setEye(blueprint: BlueprintProjection & { type: typeof PROJECTION_TYPES.EYE, id: 'eye' }): void {
         this.stage.setEye(blueprint);
     }
 
     /**
      * Replaces or sets the Screen projection (The Window's spatial pose).
      */
-    public setScreen(blueprint: BlueprintProjection & {type: typeof PROJECTION_TYPES.SCREEN, id: 'screen'}): void {
+    public setScreen(blueprint: BlueprintProjection & { type: typeof PROJECTION_TYPES.SCREEN, id: 'screen' }): void {
         this.stage.setScreen(blueprint);
     }
 

@@ -1,6 +1,6 @@
 import {describe, expect, it, vi} from "vitest";
 import {ChainedStick} from "./chained_stick";
-import {type StickModifier} from "./types";
+import {createResolution, type StickModifier} from "./types";
 import {createMockState} from "./mock/mock_scene_state.mock.ts";
 
 describe("ChainedStick Decorator", () => {
@@ -31,7 +31,7 @@ describe("ChainedStick Decorator", () => {
         const secondary = mockStick("secondary", 2);
         const chain = new ChainedStick(50, [primary, secondary]);
 
-        const res = chain.getStick({x: 0, y: 0, z: 0}, mockState);
+        const res = chain.getStick({x: 0, y: 0, z: 0}, createResolution(mockState));
 
         // Should be 1, because primary succeeded
         expect(res.success).toBe(true);
@@ -51,7 +51,7 @@ describe("ChainedStick Decorator", () => {
         const secondary = mockStick("secondary", 2);
         const chain = new ChainedStick(50, [primary, secondary]);
 
-        const res = chain.getStick({x: 0, y: 0, z: 0}, mockState);
+        const res = chain.getStick({x: 0, y: 0, z: 0}, createResolution(mockState));
 
         // Should be 2, because primary had an error
         expect(res.success).toBe(true);
@@ -67,7 +67,7 @@ describe("ChainedStick Decorator", () => {
         const secondary = mockStick("secondary", 2);
         const chain = new ChainedStick(50, [primary, secondary]);
 
-        const res = chain.getStick({x: 0, y: 0, z: 0}, mockState);
+        const res = chain.getStick({x: 0, y: 0, z: 0}, createResolution(mockState));
 
         expect(res.success).toBe(true);
         if (res.success) {
@@ -92,7 +92,7 @@ describe("ChainedStick Decorator", () => {
         };
 
         const chain = new ChainedStick(50, [primary, secondary]);
-        const res = chain.getStick({x: 0, y: 0, z: 0}, mockState);
+        const res = chain.getStick({x: 0, y: 0, z: 0}, createResolution(mockState));
 
         expect(res.success).toBe(false);
         if (!res.success) {
@@ -107,7 +107,7 @@ describe("ChainedStick Decorator", () => {
         const internal = mockStick("internal", 1, internalPriority);
 
         const chain = new ChainedStick(wrapperPriority, [internal]);
-        const res = chain.getStick({x: 0, y: 0, z: 0}, mockState);
+        const res = chain.getStick({x: 0, y: 0, z: 0}, createResolution(mockState));
 
         expect(res.success).toBe(true);
         if (res.success) {

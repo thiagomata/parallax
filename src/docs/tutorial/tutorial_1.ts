@@ -3,8 +3,9 @@ import {World} from "../../scene/world.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SETTINGS, ELEMENT_TYPES, type ResolutionContext} from "../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type ResolutionContext} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
+import {WorldSettings} from "../../scene/world_settings.ts";
 
 
 export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
@@ -12,11 +13,11 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     let world: World<P5Bundler, any, any>;
 
     // Scene Orchestration (5s rotating loop)
-    const activeManager = config.manager ?? new SceneClock({
-        ...DEFAULT_SETTINGS,
+    const clock = config.manager ?? new SceneClock({
+        ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
         playback: {
-            ...DEFAULT_SETTINGS.playback,
+            ...DEFAULT_SCENE_SETTINGS.playback,
             duration: 5000,
             isLoop: true
         }
@@ -27,7 +28,9 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     const loader = new P5AssetLoader(p);
 
     // World Initialization
-    world = new World<P5Bundler, any, any>(activeManager, loader);
+    world = new World<P5Bundler, any, any>(
+        WorldSettings.fromLibs({clock, loader})
+    );
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
@@ -52,12 +55,13 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             position: {x: 0, y: 0, z: 0},
             fillColor: {red: 100, green: 100, blue: 255},
             strokeColor: {red: 255, green: 255, blue: 255},
+            strokeWidth: 1,
         });
     };
 
     p.draw = () => {
-        if (config.paused && !activeManager.isPaused()) activeManager.pause();
-        if (!config.paused && activeManager.isPaused()) activeManager.resume();
+        if (config.paused && !clock.isPaused()) clock.pause();
+        if (!config.paused && clock.isPaused()) clock.resume();
 
         p.background(20);
         world.step(graphicProcessor);
