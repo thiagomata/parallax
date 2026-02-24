@@ -439,6 +439,7 @@ export interface ResolutionContext {
     settings: SceneSettings;
     projectionPool: Record<string, ResolvedProjection>;
     elementPool: Record<string, ResolvedElement>;
+    dataProviders: Record<string, unknown>;
 }
 
 export function createResolution(state: ResolvedSceneState):  ResolutionContext {
@@ -447,7 +448,8 @@ export function createResolution(state: ResolvedSceneState):  ResolutionContext 
         projectionPool: {},
         playback: state.playback,
         previousResolved: state,
-        settings: state.settings
+        settings: state.settings,
+        dataProviders: {}
     }
 }
 
@@ -888,6 +890,14 @@ export interface FaceProvider {
     getStatus(): TrackingStatus;
     init(): Promise<void>;
 }
+
+export interface DataProviderBundle<TID extends string, TData> {
+    readonly type: TID;
+    tick(sceneId: number): void;
+    getData(): TData | null;
+}
+
+export type DataProviderLib = Record<string, DataProviderBundle<any, any>>;
 
 export interface ObserverConfig {
     travelRange: number;   // X, Y limits

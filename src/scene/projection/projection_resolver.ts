@@ -121,6 +121,7 @@ export class ProjectionResolver<
             settings: state.settings,
             projectionPool,
             elementPool: {},
+            dataProviders: {},
         };
 
         // 1. Resolve Dynamic Properties (local space)
@@ -132,6 +133,7 @@ export class ProjectionResolver<
             settings: state.settings,
             projectionPool,
             elementPool: {},
+            dataProviders: {},
         };
 
         // 2. Apply Modifiers in Local Space
@@ -356,6 +358,7 @@ export class ProjectionResolver<
             settings: state.settings,
             projectionPool,
             elementPool: {},
+            dataProviders: {},
         };
         return this.applyEffects(resolved, resolved.effects, resolutionContext);
     }

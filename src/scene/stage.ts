@@ -233,6 +233,7 @@ export class Stage<
             settings: state.settings,
             projectionPool: globalProjectionPool,
             elementPool: {},
+            dataProviders: {},
         };
 
         const renderQueue = Array.from(this.elementRegistry.all())
@@ -268,6 +269,7 @@ export class Stage<
             settings: state.settings,
             projectionPool: globalProjectionPool,
             elementPool: Object.fromEntries(resolvedMapElements),
+            dataProviders: {},
         };
 
         // ==========================================================
