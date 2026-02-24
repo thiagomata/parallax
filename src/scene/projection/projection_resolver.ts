@@ -9,6 +9,7 @@ import {
     type ResolvedSceneState,
     type ResolutionContext,
     type DynamicSceneState,
+    type Vector3,
 } from "../types.ts";
 import {BaseResolver} from "../resolver/base_resolver.ts";
 import {ProjectionAssetRegistry} from "../registry/projection_asset_registry.ts";
@@ -166,33 +167,115 @@ export class ProjectionResolver<
         };
 
     // 5. Stick Modifiers (rotation adjustments allowed, but lookAt remains authority)
+        let stickRotation = { pitch: 0, yaw: 0, roll: 0 };
         for (const stickModifier of dynamic.modifiers?.stickModifiers ?? []) {
             const res = stickModifier.getStick(currentPosition, modifierContext);
             if (res.success) {
-                currentRotation.pitch += res.value.pitch;
-                currentRotation.yaw   += res.value.yaw;
-                currentRotation.roll  += res.value.roll;
+                stickRotation = {
+                    pitch: res.value.pitch,
+                    yaw: res.value.yaw,
+                    roll: res.value.roll,
+                };
                 break;
             }
         }
 
     // ==========================================================
-    // LOOKAT IS AUTHORITATIVE FROM HERE
+    // HANDLE LOOK MODE
     // ==========================================================
-
-        const dx = resolved.lookAt.x - currentPosition.x;
-        const dy = resolved.lookAt.y - currentPosition.y;
-        const dz = resolved.lookAt.z - currentPosition.z;
-
-        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0;
-
-        const inv = distance !== 0 ? 1 / distance : 0;
-
-        const direction = {
-            x: dx * inv,
-            y: dy * inv,
-            z: dz * inv
-        };
+    
+        const lookMode = dynamic.lookMode ?? 'lookAt';
+        let distance: number;
+        let direction: Vector3;
+        let finalLookAt: Vector3;
+        
+        if (lookMode === 'rotation') {
+            // rotation mode: compute lookAt from position + rotation + distance
+            // Get distance from stick modifier or use default
+            const stickDistance = dynamic.modifiers?.stickModifiers?.[0]?.getStick(currentPosition, modifierContext);
+            distance = stickDistance?.success ? stickDistance.value.distance : 1000;
+            
+            // Compute direction from rotation angles
+            const cosY = Math.cos(currentRotation.yaw);
+            const sinY = Math.sin(currentRotation.yaw);
+            const cosP = Math.cos(currentRotation.pitch);
+            const sinP = Math.sin(currentRotation.pitch);
+            
+            // Default direction: -Z forward
+            let dirX = 0;
+            let dirY = 0;
+            let dirZ = -1;
+            
+            // Apply yaw (Y rotation)
+            const x1 = dirX * cosY - dirZ * sinY;
+            const z1 = dirX * sinY + dirZ * cosY;
+            
+            // Apply pitch (X rotation)
+            const y2 = dirY * cosP - z1 * sinP;
+            const z2 = dirY * sinP + z1 * cosP;
+            
+            direction = { x: x1, y: y2, z: z2 };
+            
+            // Normalize
+            const len = Math.sqrt(direction.x ** 2 + direction.y ** 2 + direction.z ** 2);
+            if (len > 0) {
+                direction = { x: direction.x / len, y: direction.y / len, z: direction.z / len };
+            }
+            
+            // Calculate lookAt from position + direction * distance
+            finalLookAt = {
+                x: currentPosition.x + direction.x * distance,
+                y: currentPosition.y + direction.y * distance,
+                z: currentPosition.z + direction.z * distance,
+            };
+            
+            // Apply stick rotation to direction (for head tracking)
+            if (stickRotation.yaw !== 0 || stickRotation.pitch !== 0 || stickRotation.roll !== 0) {
+                const cosYS = Math.cos(stickRotation.yaw);
+                const sinYS = Math.sin(stickRotation.yaw);
+                const cosPS = Math.cos(stickRotation.pitch);
+                const sinPS = Math.sin(stickRotation.pitch);
+                
+                const x1s = direction.x * cosYS - direction.z * sinYS;
+                const z1s = direction.x * sinYS + direction.z * cosYS;
+                const y2s = direction.y * cosPS - z1s * sinPS;
+                const z2s = direction.y * sinPS + z1s * cosPS;
+                
+                direction = { x: x1s, y: y2s, z: z2s };
+                
+                const lenS = Math.sqrt(direction.x ** 2 + direction.y ** 2 + direction.z ** 2);
+                if (lenS > 0) {
+                    direction = { x: direction.x / lenS, y: direction.y / lenS, z: direction.z / lenS };
+                }
+                
+                // Recalculate lookAt with rotated direction
+                finalLookAt = {
+                    x: currentPosition.x + direction.x * distance,
+                    y: currentPosition.y + direction.y * distance,
+                    z: currentPosition.z + direction.z * distance,
+                };
+            }
+        } else {
+            // lookAt mode (default): compute direction from lookAt position
+            const dx = resolved.lookAt.x - currentPosition.x;
+            const dy = resolved.lookAt.y - currentPosition.y;
+            const dz = resolved.lookAt.z - currentPosition.z;
+            
+            distance = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0;
+            
+            const inv = distance !== 0 ? 1 / distance : 0;
+            
+            direction = {
+                x: dx * inv,
+                y: dy * inv,
+                z: dz * inv
+            };
+            
+            finalLookAt = resolved.lookAt;
+            
+            // In lookAt mode, stick modifiers are ignored for direction
+            // (but roll could still be applied separately if needed)
+        }
 
         // Derive yaw/pitch from direction (−Z forward convention)
         const yaw = Math.atan2(direction.x, -direction.z);
@@ -212,7 +295,7 @@ export class ProjectionResolver<
             rotation: finalRotation,
             distance,
             direction,
-            lookAt: resolved.lookAt // preserved — never rebuilt
+            lookAt: finalLookAt
         };
     }
 

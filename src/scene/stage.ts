@@ -327,7 +327,7 @@ export class Stage<
             {
                 ...DEFAULT_EYE,
                 ...blueprintEye
-            }
+            } as BlueprintProjection
         );
     }
 
@@ -335,6 +335,6 @@ export class Stage<
         this.replaceProjection({
             ...DEFAULT_SCREEN,
             ...blueprintScreen
-        });
+        } as BlueprintProjection);
     }
 }

@@ -17,6 +17,13 @@ export interface Rotation3 {
 }
 
 /**
+ * Look mode determines how the projection's view direction is calculated.
+ * - 'lookAt': Direction is computed from lookAt position (default)
+ * - 'rotation': Direction is computed from rotation angles + distance
+ */
+export type LookMode = 'lookAt' | 'rotation';
+
+/**
  * Modifiers are static refs in the blueprint
  */
 export interface BaseProjection {
@@ -43,19 +50,53 @@ export interface ResolvedProjection extends BaseProjection {
 
 /**
  * Projection Blueprint - Allows flexible specs for base pose properties.
+ * Uses discriminated union based on lookMode to enforce correct modifier usage.
  */
-export interface BlueprintProjection extends BaseProjection {
+
+// Base interface with common properties
+interface BaseBlueprintProjection extends BaseProjection {
     readonly position: FlexibleSpec<Vector3>;
-    readonly rotation: FlexibleSpec<Rotation3>;
-    readonly lookAt: FlexibleSpec<Vector3>;
     readonly direction: FlexibleSpec<Vector3>;
-    readonly effects?: ProjectionEffectBlueprint[]
+    readonly effects?: ProjectionEffectBlueprint[];
+}
+
+// lookAt mode: requires lookAt, forbids stick modifiers
+interface BlueprintProjectionLookAt extends BaseBlueprintProjection {
+    readonly lookMode: 'lookAt';
+    readonly lookAt: FlexibleSpec<Vector3>;
+    // rotation is allowed but ignored in lookAt mode
+    readonly modifiers?: {
+        readonly carModifiers?: readonly CarModifier[];
+        readonly nudgeModifiers?: readonly NudgeModifier[];
+        readonly stickModifiers?: never;  // forbidden - won't work with lookAt
+    }
+}
+
+// rotation mode: requires rotation, forbids lookAt, allows stick modifiers
+interface BlueprintProjectionRotation extends BaseBlueprintProjection {
+    readonly lookMode: 'rotation';
+    readonly rotation: FlexibleSpec<Rotation3>;
+    readonly lookAt?: never;  // forbidden
+    readonly distance?: number;
     readonly modifiers?: {
         readonly carModifiers?: readonly CarModifier[];
         readonly nudgeModifiers?: readonly NudgeModifier[];
         readonly stickModifiers?: readonly StickModifier[];
     }
 }
+
+// Backward compatible default (implicit lookAt mode - no lookMode specified)
+type BlueprintProjectionDefault = BaseBlueprintProjection & {
+    readonly lookAt: FlexibleSpec<Vector3>;
+    readonly rotation?: FlexibleSpec<Rotation3>;
+    readonly modifiers?: {
+        readonly carModifiers?: readonly CarModifier[];
+        readonly nudgeModifiers?: readonly NudgeModifier[];
+        readonly stickModifiers?: readonly StickModifier[];  // allowed but ignored in default mode
+    }
+};
+
+export type BlueprintProjection = BlueprintProjectionLookAt | BlueprintProjectionRotation | BlueprintProjectionDefault;
 
 /**
  * Projection Dynamic - The compiled version ready for the frame loop.
@@ -65,7 +106,9 @@ export interface DynamicProjection extends BaseProjection {
     readonly rotation: DynamicProperty<Rotation3>;
     readonly lookAt: DynamicProperty<Vector3>;
     readonly direction: DynamicProperty<Vector3>;
+    readonly distance: DynamicProperty<number>;
     readonly effects: ProjectionEffectResolutionGroup[];
+    readonly lookMode?: LookMode;
     readonly modifiers?: {
         readonly carModifiers?: readonly CarModifier[];
         readonly nudgeModifiers?: readonly NudgeModifier[];
@@ -79,6 +122,8 @@ export const DEFAULT_PROJECTION_ELEMENT = {
     rotation: { pitch: 0, yaw: 0, roll: 0 },
     direction: { x: 0, y: 0, z: 0 },
     lookAt: { x: 0, y: 0, z: 0 },
+    distance: 0,
+    lookMode: 'lookAt' as LookMode,
     modifiers: {
         carModifiers: [],
         nudgeModifiers: [],
@@ -166,6 +211,7 @@ export const DEFAULT_EYE: BlueprintProjection = {
     rotation: {pitch: 0, yaw: 0, roll: 0},
     lookAt: {x: 0, y: 0, z: 0},
     direction: {x: 0, y: 0, z: -1},
+    lookMode: 'lookAt',
     effects: [],
 };
 
@@ -176,6 +222,7 @@ export const DEFAULT_SCREEN: BlueprintProjection = {
     rotation: {pitch: 0, yaw: 0, roll: 0},
     lookAt: {x: 0, y: 0, z: 100},
     direction: {x: 0, y: 0, z: 1},
+    lookMode: 'lookAt',
     effects: [],
 };
 
