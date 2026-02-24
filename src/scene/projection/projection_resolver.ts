@@ -137,7 +137,7 @@ export class ProjectionResolver<
         let currentPosition = { ...resolved.position };
         let currentRotation = { ...resolved.rotation };
 
-    // 3. Car Modifiers
+        // 3. Car Modifiers
         for (const carModifier of dynamic.modifiers?.carModifiers ?? []) {
             const res = carModifier.getCarPosition(currentPosition, modifierContext);
             if (res.success) {

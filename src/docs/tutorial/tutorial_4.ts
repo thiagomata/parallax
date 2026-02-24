@@ -23,16 +23,24 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             startPaused: config.paused
         });
 
-    // Camera Logic: Adding Modifiers to the clock
-    // Note: These affect the SceneState.camera property during calculation
-    // clock.addCarModifier(new OrbitModifier(p, 800));
-    // clock.addStickModifier(new CenterFocusModifier());
-
     // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
     const world = new World<P5Bundler, any, any>(
         WorldSettings.fromLibs({clock, loader})
     );
+
+    world.setScreen(
+        {
+            modifiers: {
+                carModifiers: [
+                    new OrbitModifier(p, 800, -400),
+                ],
+                stickModifiers: [
+                    new CenterFocusModifier()
+                ]
+            }
+        }
+    )
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
@@ -41,17 +49,19 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         // REGISTRATION
         // Creating a "Gallery" of boxes to visualize the camera orbit
         for (let i = 0; i < 5; i++) {
-            world.addBox({
-                type: ELEMENT_TYPES.BOX,
-                id: `box-${i}`,
-                width: 40,
-                position: {x: (i - 2) * 100, y: 0, z: 0},
-                fillColor: {
-                    red: i * 50,
-                    green: 255 - (i * 50),
-                    blue: 200
-                }
-            });
+            for (let j = 0; j < 5; j++) {
+                world.addBox({
+                    type: ELEMENT_TYPES.BOX,
+                    id: `box-${i}-${j}`,
+                    width: 40,
+                    position: {x: (i - 2) * 100, y: 0, z: 200 - j * 100},
+                    fillColor: {
+                        red: i * 50,
+                        green: 255 - (i * 50),
+                        blue: 200
+                    }
+                });
+            }
         }
     };
 
