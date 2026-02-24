@@ -133,6 +133,37 @@ export function projectionMatrixFromFrustumSymmetric(
 }
 
 /**
+ * Creates a perspective projection matrix similar to p5's default perspective().
+ * This is easier to use than calculateOffAxisMatrix when you just want standard perspective.
+ * @param fov - Field of view in radians (default p5 is PI/3 = 60 degrees)
+ * @param aspect - Aspect ratio (width / height)
+ * @param near - Near clipping plane (p5 default is 0.1)
+ * @param far - Far clipping plane (p5 default is 5000)
+ */
+export function createPerspectiveMatrix(
+    fov: number = Math.PI / 3,
+    aspect: number,
+    near: number = 0.1,
+    far: number = 5000
+): ProjectionMatrix {
+    const top = near * Math.tan(fov / 2);
+    const right = top * aspect;
+    const bottom = -top;
+    const left = -right;
+
+    const matrix = projectionMatrixFromFrustum(left, right, bottom, top, near, far);
+    
+    // Flip Y axis to match p5's default coordinate system
+    // This fixes textures being upside down with custom projection
+    return {
+        xScale: matrix.xScale,
+        yScale: { ...matrix.yScale, y: -matrix.yScale.y },
+        projection: { ...matrix.projection, y: -matrix.projection.y },
+        translation: matrix.translation,
+    };
+}
+
+/**
  * Create an identity projection matrix (useful for testing).
  */
 export function createIdentityProjectionMatrix(): ProjectionMatrix {

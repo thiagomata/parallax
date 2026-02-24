@@ -29,6 +29,7 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
                 [TransformEffect.type]: TransformEffect
         }})
     );
+    world.enableDefaultPerspective(config.width, config.height);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);

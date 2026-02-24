@@ -26,6 +26,7 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     const world = new World<P5Bundler, any, any>(
         WorldSettings.fromLibs({clock, loader})
     );
+    world.enableDefaultPerspective(config.width, config.height);
 
     p.setup = async () => {
         p.createCanvas(config.width, config.height, p.WEBGL);

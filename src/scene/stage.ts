@@ -17,7 +17,8 @@ import {
     type ResolvedProjection,
     type ResolvedSceneState,
     type ScenePlaybackState,
-    type SceneSettings
+    type SceneSettings,
+    WindowConfig
 } from "./types.ts";
 import {ElementResolver} from "./resolver/element_resolver.ts";
 import {ProjectionResolver} from "./projection/projection_resolver.ts";
@@ -53,6 +54,14 @@ export class Stage<
         this.projectionRegistry = new ProjectionAssetRegistry<TProjectionEffectLib>(this.projectionResolver);
         this.projectionRegistry.register(DEFAULT_SCREEN);
         this.projectionRegistry.register(DEFAULT_EYE);
+    }
+
+    public getSettings(): SceneSettings {
+        return this.settings;
+    }
+
+    public updateWindowConfig(config: WindowConfig): void {
+        this.settings.window = config;
     }
 
     /**

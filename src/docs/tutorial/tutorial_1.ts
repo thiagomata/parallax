@@ -32,6 +32,11 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         WorldSettings.fromLibs({clock, loader})
     );
 
+    // Enable default off-axis perspective projection
+    // This uses calculateOffAxisMatrix which was previously unused
+    // Call this to verify the custom projection pipeline works
+    world.enableDefaultPerspective(config.width, config.height);
+
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
 

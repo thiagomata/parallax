@@ -59,6 +59,7 @@ export type P5Sketch = (p: p5, config: SketchConfig) => void;
 Object.assign(window, {
     p5,
     World,
+    WorldSettings,
     SceneClock: SceneClock,
     CameraModifier: HeadTrackingModifier,
     P5AssetLoader,
@@ -70,6 +71,7 @@ Object.assign(window, {
     DEFAULT_SETTINGS: DEFAULT_SCENE_SETTINGS,
     ASSET_STATUS,
     DEFAULT_SKETCH_CONFIG,
+    DEFAULT_SCENE_SETTINGS,
     resolver: new ElementResolver({}),
 });
 
@@ -78,6 +80,7 @@ import {tutorialStepTemplate} from "./tutorial.template.ts";
 import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
 import {LookAtEffect} from "../../scene/effects/look_at_effect.ts";
+import {WorldSettings} from "../../scene/world_settings.ts";
 
 function toggleFS(id: string) {
     const element = document.getElementById(id);

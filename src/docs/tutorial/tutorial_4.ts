@@ -40,7 +40,8 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
                 ]
             }
         }
-    )
+    );
+    world.enableDefaultPerspective(config.width, config.height);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);

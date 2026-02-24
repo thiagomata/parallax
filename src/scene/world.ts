@@ -18,10 +18,20 @@ import {
     type GraphicsBundle,
     PROJECTION_TYPES,
     type ProjectionEffectLib,
+    type ProjectionMatrix,
+    type ResolvedProjection,
     type ResolvedSceneState,
+    WindowConfig,
 } from "./types.ts";
 import {Stage} from "./stage.ts";
 import type {WorldSettings} from "./world_settings.ts";
+import {createPerspectiveMatrix} from "./modifiers/projection_matrix_utils.ts";
+
+type ProjectionMatrixCalculator = (
+    eye: ResolvedProjection,
+    screen: ResolvedProjection,
+    window: WindowConfig
+) => ProjectionMatrix;
 
 export class World<
     TBundle extends GraphicsBundle,
@@ -30,6 +40,7 @@ export class World<
 > {
     public readonly stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib>;
     private sceneClock: SceneClock;
+    private projectionMatrixCalculator: ProjectionMatrixCalculator | null = null;
 
     constructor(
         worldSettings: WorldSettings<TBundle, TElementEffectLib, TProjectionEffectLib>
@@ -145,6 +156,48 @@ export class World<
         this.stage.removeElement(id);
     }
 
+    /**
+     * Get the current WindowConfig (for creating projections, etc.)
+     */
+    public getWindowConfig(): WindowConfig {
+        return this.stage.getSettings().window;
+    }
+
+    /**
+     * Set a custom projection matrix calculator.
+     * When set, this function will be called each frame to compute the projection matrix.
+     * @param calculator - Function that takes (eye, screen, window) and returns a ProjectionMatrix
+     */
+    public setProjectionMatrixCalculator(calculator: ProjectionMatrixCalculator | null): void {
+        this.projectionMatrixCalculator = calculator;
+    }
+
+    /**
+     * Enable default perspective projection using p5-style perspective matrix.
+     * Uses createPerspectiveMatrix which matches p5's default perspective() behavior.
+     * This is simpler than off-axis and produces standard perspective projection.
+     * @param width - Canvas width (optional, uses WindowConfig from settings if not provided)
+     * @param height - Canvas height (optional, uses WindowConfig from settings if not provided)
+     */
+    public enableDefaultPerspective(width?: number, height?: number): void {
+        if (width !== undefined && height !== undefined) {
+            this.stage.updateWindowConfig(WindowConfig.create({ width, height }));
+        }
+        
+        // Use createPerspectiveMatrix which matches p5's default perspective()
+        // FOV = PI/3 (60 degrees), matching p5's default
+        // Near = 0.1, Far = 5000, matching p5's WEBGL defaults
+        this.projectionMatrixCalculator = (_eye, _screen, window) => {
+            const aspect = window.width / window.height;
+            return createPerspectiveMatrix(
+                Math.PI / 5,  // FOV
+                aspect,
+                0.1,     // near
+                5000      // far
+            );
+        };
+    }
+
     public step(gp: GraphicProcessor<TBundle>): void {
         // Tick the clock forward
         this.sceneClock.tick(gp.millis(), gp.deltaTime(), gp.frameCount());
@@ -162,6 +215,13 @@ export class World<
 
         if (eye && screen) {
             gp.setCamera(eye);
+
+            // Apply custom projection matrix if calculator is set
+            if (this.projectionMatrixCalculator) {
+                const windowConfig = this.getWindowConfig();
+                const projectionMatrix = this.projectionMatrixCalculator(eye, screen, windowConfig);
+                gp.setProjectionMatrix(projectionMatrix);
+            }
         } else {
             throw new Error("no screen or eye to render");
         }
