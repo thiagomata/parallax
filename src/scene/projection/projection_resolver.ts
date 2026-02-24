@@ -9,7 +9,7 @@ import {
     type ResolvedSceneState,
     type ResolutionContext,
     type DynamicSceneState,
-    type Vector3,
+    type Vector3, LOOK_MODES,
 } from "../types.ts";
 import {BaseResolver} from "../resolver/base_resolver.ts";
 import {ProjectionAssetRegistry} from "../registry/projection_asset_registry.ts";
@@ -44,7 +44,7 @@ export class ProjectionResolver<
 
         // Use parent engine to wrap standard properties (position, rotation, etc.)
         const dynamic = this.toDynamic<Partial<BlueprintProjection>, DynamicProjection>(
-            {...DEFAULT_PROJECTION_ELEMENT, ...blueprint}
+            { ...DEFAULT_PROJECTION_ELEMENT, ...blueprint} as Partial<BlueprintProjection>
         );
 
         // Enhance with defaults and sorted modifiers
@@ -184,12 +184,12 @@ export class ProjectionResolver<
     // HANDLE LOOK MODE
     // ==========================================================
     
-        const lookMode = dynamic.lookMode ?? 'lookAt';
+        const lookMode = dynamic.lookMode ?? LOOK_MODES.LOOK_AT;
         let distance: number;
         let direction: Vector3;
         let finalLookAt: Vector3;
         
-        if (lookMode === 'rotation') {
+        if (lookMode === LOOK_MODES.ROTATION) {
             // rotation mode: compute lookAt from position + rotation + distance
             // Get distance from stick modifier or use default
             const stickDistance = dynamic.modifiers?.stickModifiers?.[0]?.getStick(currentPosition, modifierContext);

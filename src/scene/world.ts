@@ -4,18 +4,19 @@ import {
     type BlueprintCone,
     type BlueprintCylinder,
     type BlueprintElliptical,
-    type BlueprintFloor,
+    type BlueprintFloor, blueprintIsType, blueprintLookModeIs,
     type BlueprintPanel,
-    type BlueprintProjection,
+    type BlueprintProjection, type BlueprintProjectionLookAt, type BlueprintProjectionRotation,
     type BlueprintPyramid,
     type BlueprintSphere,
     type BlueprintText,
     type BlueprintTorus,
-    type BundleDynamicElement, DEFAULT_EYE, DEFAULT_SCREEN,
+    type BundleDynamicElement, DEFAULT_EYE_LOOK_AT, DEFAULT_EYE_ROTATION,
+    DEFAULT_SCREEN_LOOK_AT, DEFAULT_SCREEN_ROTATION,
     type EffectLib,
     type ElementId,
     type GraphicProcessor,
-    type GraphicsBundle,
+    type GraphicsBundle, LOOK_MODES, type LookMode,
     PROJECTION_TYPES,
     type ProjectionEffectLib,
     type ProjectionMatrix,
@@ -57,35 +58,80 @@ export class World<
         return this.sceneClock.isPaused();
     }
 
-    /**
-     * Replaces or sets the Eye projection (The User's position).
-     */
-    public setEye(
-        blueprintEye?: Omit<Partial<BlueprintProjection>, 'type' | 'id'>
-        & Partial<{ id: "eye", type: typeof PROJECTION_TYPES.EYE; }>
-
-    ): void {
-        this.stage.setEye({
-            ...DEFAULT_EYE,
-            ...blueprintEye,
-            type: PROJECTION_TYPES.EYE,
+    public setEye<T extends Partial<BlueprintProjection>>(
+        blueprintEye: T & {
             id: 'eye',
-        });
+            type: typeof PROJECTION_TYPES.EYE,
+            lookMode: LookMode,
+        }
+    ): void {
+        if (blueprintLookModeIs(blueprintEye, LOOK_MODES.ROTATION)) {
+            const rotateEye: BlueprintProjectionRotation = {
+                ...DEFAULT_EYE_ROTATION,
+                ...blueprintEye,
+                id: 'eye',
+                type: PROJECTION_TYPES.EYE,
+                lookMode: LOOK_MODES.ROTATION,
+            };
+            if (!blueprintIsType(rotateEye, PROJECTION_TYPES.EYE)) {
+                // impossible, only to make TS happy
+                throw new Error("invalid type");
+            }
+            return this.stage.setEye(rotateEye);
+        }
+        if (blueprintLookModeIs(blueprintEye, LOOK_MODES.LOOK_AT)) {
+            const lookAtEye: BlueprintProjectionLookAt = {
+                ...DEFAULT_EYE_LOOK_AT,
+                ...blueprintEye,
+                id: 'eye',
+                type: PROJECTION_TYPES.EYE,
+                lookMode: LOOK_MODES.LOOK_AT,
+            };
+            if (!blueprintIsType(lookAtEye, PROJECTION_TYPES.EYE)) {
+                // impossible, only to make TS happy
+                throw new Error("invalid type");
+            }
+            return this.stage.setEye(lookAtEye);
+        }
+        throw new Error("invalid mode");
     }
 
-    /**
-     * Replaces or sets the Screen projection (The Window's spatial pose).
-     */
-    public setScreen(
-        blueprintScreen?: Omit<Partial<BlueprintProjection>, 'type' | 'id'>
-            & Partial<{ id: "screen", type: typeof PROJECTION_TYPES.SCREEN; }>
-    ): void {
-        this.stage.setScreen({
-            ...DEFAULT_SCREEN,
-            ...blueprintScreen,
-            type: PROJECTION_TYPES.SCREEN,
+    public setScreen<T extends Partial<BlueprintProjection>>(
+        blueprintScreen: T & {
             id: 'screen',
-        });
+            type: typeof PROJECTION_TYPES.SCREEN,
+            lookMode: LookMode,
+        }
+    ): void {
+        if (blueprintLookModeIs(blueprintScreen, LOOK_MODES.ROTATION)) {
+            const rotateScreen: BlueprintProjectionRotation = {
+                ...DEFAULT_SCREEN_ROTATION,
+                ...blueprintScreen,
+                id: 'screen',
+                type: PROJECTION_TYPES.SCREEN,
+                lookMode: LOOK_MODES.ROTATION,
+            };
+            if (!blueprintIsType(rotateScreen, PROJECTION_TYPES.SCREEN)) {
+                // impossible, only to make TS happy
+                throw new Error("invalid type");
+            }
+            return this.stage.setScreen(rotateScreen);
+        }
+        if (blueprintLookModeIs(blueprintScreen, LOOK_MODES.LOOK_AT)) {
+            const lookAtScreen: BlueprintProjectionLookAt = {
+                ...DEFAULT_SCREEN_LOOK_AT,
+                ...blueprintScreen,
+                id: 'screen',
+                type: PROJECTION_TYPES.SCREEN,
+                lookMode: LOOK_MODES.LOOK_AT,
+            };
+            if (!blueprintIsType(lookAtScreen, PROJECTION_TYPES.SCREEN)) {
+                // impossible, only to make TS happy
+                throw new Error("invalid type");
+            }
+            return this.stage.setScreen(lookAtScreen);
+        }
+        throw new Error("invalid mode");
     }
 
     public addBox<TID extends string>(

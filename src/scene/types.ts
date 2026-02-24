@@ -21,7 +21,11 @@ export interface Rotation3 {
  * - 'lookAt': Direction is computed from lookAt position (default)
  * - 'rotation': Direction is computed from rotation angles + distance
  */
-export type LookMode = 'lookAt' | 'rotation';
+export const LOOK_MODES = {
+    LOOK_AT: 'LOOK_AT',
+    ROTATION: 'ROTATION',
+} as const;
+export type LookMode = typeof LOOK_MODES[keyof typeof LOOK_MODES];
 
 /**
  * Modifiers are static refs in the blueprint
@@ -61,20 +65,19 @@ interface BaseBlueprintProjection extends BaseProjection {
 }
 
 // lookAt mode: requires lookAt, forbids stick modifiers
-interface BlueprintProjectionLookAt extends BaseBlueprintProjection {
-    readonly lookMode: 'lookAt';
-    readonly lookAt: FlexibleSpec<Vector3>;
-    // rotation is allowed but ignored in lookAt mode
+export interface BlueprintProjectionLookAt extends BaseBlueprintProjection {
+    readonly lookMode: typeof LOOK_MODES.LOOK_AT;
+    readonly lookAt?: FlexibleSpec<Vector3>;
     readonly modifiers?: {
         readonly carModifiers?: readonly CarModifier[];
         readonly nudgeModifiers?: readonly NudgeModifier[];
-        readonly stickModifiers?: never;  // forbidden - won't work with lookAt
+        readonly stickModifiers?: undefined;
     }
 }
 
 // rotation mode: requires rotation, forbids lookAt, allows stick modifiers
-interface BlueprintProjectionRotation extends BaseBlueprintProjection {
-    readonly lookMode: 'rotation';
+export interface BlueprintProjectionRotation extends BaseBlueprintProjection {
+    readonly lookMode: typeof LOOK_MODES.ROTATION;
     readonly rotation: FlexibleSpec<Rotation3>;
     readonly lookAt?: never;  // forbidden
     readonly distance?: number;
@@ -85,18 +88,19 @@ interface BlueprintProjectionRotation extends BaseBlueprintProjection {
     }
 }
 
-// Backward compatible default (implicit lookAt mode - no lookMode specified)
-type BlueprintProjectionDefault = BaseBlueprintProjection & {
-    readonly lookAt: FlexibleSpec<Vector3>;
-    readonly rotation?: FlexibleSpec<Rotation3>;
-    readonly modifiers?: {
-        readonly carModifiers?: readonly CarModifier[];
-        readonly nudgeModifiers?: readonly NudgeModifier[];
-        readonly stickModifiers?: readonly StickModifier[];  // allowed but ignored in default mode
-    }
-};
-
-export type BlueprintProjection = BlueprintProjectionLookAt | BlueprintProjectionRotation | BlueprintProjectionDefault;
+export type BlueprintProjection = BlueprintProjectionLookAt | BlueprintProjectionRotation;
+export function blueprintIsType<T extends ProjectionType>(
+    blueprintProjection: Partial<BlueprintProjection>,
+    type: T
+): blueprintProjection is Partial<BlueprintProjection> & { type: T } {
+    return blueprintProjection.type === type;
+}
+export function blueprintLookModeIs<T extends LookMode>(
+    blueprintProjection: Partial<BlueprintProjection>,
+    lookMode: T
+): blueprintProjection is Partial<BlueprintProjection> & { lookMode: T } {
+    return blueprintProjection.lookMode === lookMode;
+}
 
 /**
  * Projection Dynamic - The compiled version ready for the frame loop.
@@ -123,7 +127,7 @@ export const DEFAULT_PROJECTION_ELEMENT = {
     direction: { x: 0, y: 0, z: 0 },
     lookAt: { x: 0, y: 0, z: 0 },
     distance: 0,
-    lookMode: 'lookAt' as LookMode,
+    lookMode: LOOK_MODES.LOOK_AT,
     modifiers: {
         carModifiers: [],
         nudgeModifiers: [],
@@ -203,26 +207,45 @@ export const PROJECTION_TYPES = {
 } as const;
 export type ProjectionType = typeof PROJECTION_TYPES[keyof typeof PROJECTION_TYPES];
 
-export const DEFAULT_EYE: BlueprintProjection = {
+export const DEFAULT_EYE_LOOK_AT: BlueprintProjectionLookAt = {
     type: PROJECTION_TYPES.EYE,
+    lookMode: LOOK_MODES.LOOK_AT,
+    id: 'eye',
+    targetId: 'screen',
+    position: {x: 0, y: 0, z: 100},
+    lookAt: {x: 0, y: 0, z: 0},
+    direction: {x: 0, y: 0, z: -1},
+    effects: [],
+};
+
+export const DEFAULT_EYE_ROTATION: BlueprintProjectionRotation = {
+    type: PROJECTION_TYPES.EYE,
+    lookMode: LOOK_MODES.ROTATION,
     id: 'eye',
     targetId: 'screen',
     position: {x: 0, y: 0, z: 100},
     rotation: {pitch: 0, yaw: 0, roll: 0},
-    lookAt: {x: 0, y: 0, z: 0},
     direction: {x: 0, y: 0, z: -1},
-    lookMode: 'lookAt',
     effects: [],
 };
 
-export const DEFAULT_SCREEN: BlueprintProjection = {
+export const DEFAULT_SCREEN_LOOK_AT: BlueprintProjectionLookAt = {
     id: 'screen',
     type: PROJECTION_TYPES.SCREEN,
+    lookMode: LOOK_MODES.LOOK_AT,
+    position: {x: 0, y: 0, z: 1000},
+    lookAt: {x: 0, y: 0, z: 0},
+    direction: {x: 0, y: 0, z: 1},
+    effects: [],
+};
+
+export const DEFAULT_SCREEN_ROTATION: BlueprintProjectionRotation = {
+    id: 'screen',
+    type: PROJECTION_TYPES.SCREEN,
+    lookMode: LOOK_MODES.ROTATION,
     position: {x: 0, y: 0, z: 1000},
     rotation: {pitch: 0, yaw: 0, roll: 0},
-    lookAt: {x: 0, y: 0, z: 100},
     direction: {x: 0, y: 0, z: 1},
-    lookMode: 'lookAt',
     effects: [],
 };
 

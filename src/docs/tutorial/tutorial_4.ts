@@ -5,7 +5,7 @@ import {SceneClock} from "../../scene/scene_clock.ts";
 import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, PROJECTION_TYPES} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
 
@@ -31,6 +31,9 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     world.setScreen(
         {
+            id: 'screen',
+            type: PROJECTION_TYPES.SCREEN,
+            lookMode: LOOK_MODES.ROTATION,
             modifiers: {
                 carModifiers: [
                     new OrbitModifier(p, 800, -400),

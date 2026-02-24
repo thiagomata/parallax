@@ -4,7 +4,7 @@ import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
 import { SceneClock } from "../../scene/scene_clock.ts";
 import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
-import { DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES } from "../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, PROJECTION_TYPES} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
 
@@ -37,6 +37,9 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     // Apply head tracking to screen position (moves the "window" we're looking through)
     world.setScreen({
+        id: 'screen',
+        type: PROJECTION_TYPES.SCREEN,
+        lookMode: LOOK_MODES.LOOK_AT,
         modifiers: {
             carModifiers: [headTracker]
         }
@@ -44,6 +47,9 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     // Apply head tracking to eye (adds parallax/rotation)
     world.setEye({
+        id: 'eye',
+        type: PROJECTION_TYPES.EYE,
+        lookMode: LOOK_MODES.ROTATION,
         modifiers: {
             nudgeModifiers: [headTracker],
             stickModifiers: [headTracker]

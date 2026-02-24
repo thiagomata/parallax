@@ -2,7 +2,7 @@ import {
     type AssetLoader,
     type BlueprintProjection,
     type BundleDynamicElement,
-    type BundleResolvedElement, DEFAULT_EYE, DEFAULT_SCREEN,
+    type BundleResolvedElement, DEFAULT_EYE_LOOK_AT, DEFAULT_SCREEN_ROTATION,
     type DynamicProjection,
     type DynamicSceneState,
     type EffectLib,
@@ -52,8 +52,8 @@ export class Stage<
 
         this.elementRegistry = new ElementAssetRegistry<TGraphicBundle, TElementEffectLib>(loader, this.elementResolver);
         this.projectionRegistry = new ProjectionAssetRegistry<TProjectionEffectLib>(this.projectionResolver);
-        this.projectionRegistry.register(DEFAULT_SCREEN);
-        this.projectionRegistry.register(DEFAULT_EYE);
+        this.projectionRegistry.register(DEFAULT_SCREEN_ROTATION);
+        this.projectionRegistry.register(DEFAULT_EYE_LOOK_AT);
     }
 
     public getSettings(): SceneSettings {
@@ -322,18 +322,15 @@ export class Stage<
         return this.lastFrameState;
     }
 
-    setEye(blueprintEye: Partial<BlueprintProjection> & { type: typeof PROJECTION_TYPES.EYE }) {
+    setEye(blueprintEye: BlueprintProjection & { type: typeof PROJECTION_TYPES.EYE }) {
         this.replaceProjection(
-            {
-                ...DEFAULT_EYE,
-                ...blueprintEye
-            } as BlueprintProjection
+            blueprintEye
         );
     }
 
     setScreen(blueprintScreen: Partial<BlueprintProjection> & { type: typeof PROJECTION_TYPES.SCREEN }) {
         this.replaceProjection({
-            ...DEFAULT_SCREEN,
+            ...DEFAULT_SCREEN_ROTATION,
             ...blueprintScreen
         } as BlueprintProjection);
     }
