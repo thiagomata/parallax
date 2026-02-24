@@ -178,19 +178,20 @@ export class World<
      * This is simpler than off-axis and produces standard perspective projection.
      * @param width - Canvas width (optional, uses WindowConfig from settings if not provided)
      * @param height - Canvas height (optional, uses WindowConfig from settings if not provided)
+     * @param fov - Field of view in radians (default: PI/3 = 60 degrees)
      */
-    public enableDefaultPerspective(width?: number, height?: number): void {
+    public enableDefaultPerspective(width?: number, height?: number, fov: number = Math.PI / 3): void {
         if (width !== undefined && height !== undefined) {
             this.stage.updateWindowConfig(WindowConfig.create({ width, height }));
         }
         
         // Use createPerspectiveMatrix which matches p5's default perspective()
-        // FOV = PI/3 (60 degrees), matching p5's default
+        // FOV defaults to 60 degrees (PI/3), matching p5's default
         // Near = 0.1, Far = 5000, matching p5's WEBGL defaults
         this.projectionMatrixCalculator = (_eye, _screen, window) => {
             const aspect = window.width / window.height;
             return createPerspectiveMatrix(
-                Math.PI / 5,  // FOV
+                fov,
                 aspect,
                 0.1,     // near
                 5000      // far

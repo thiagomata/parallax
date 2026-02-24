@@ -158,7 +158,11 @@ export class HeadTrackingModifier implements CarModifier, NudgeModifier, StickMo
         const face = this.smoothedFeatures;
 
         this.cache = {
-            carPos: face.midpoint,
+            carPos: {
+                x: face.midpoint.x * this.config.travelRange,
+                y: face.midpoint.y * this.config.travelRange,
+                z: 0
+            },
             nudgePos: {
                 x: face.nudge.x * (this.config.travelRange * 2),
                 y: face.nudge.y * (this.config.travelRange * 2),

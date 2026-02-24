@@ -176,6 +176,24 @@ export class Stage<
         };
 
         // ==========================================================
+        // STEP 0: Tick all projection modifiers
+        // ==========================================================
+        for (const dynamicProjection of this.projectionRegistry.all()) {
+            const modifiers = dynamicProjection.modifiers;
+            if (modifiers) {
+                for (const carMod of modifiers.carModifiers ?? []) {
+                    carMod.tick(state.sceneId);
+                }
+                for (const nudgeMod of modifiers.nudgeModifiers ?? []) {
+                    nudgeMod.tick(state.sceneId);
+                }
+                for (const stickMod of modifiers.stickModifiers ?? []) {
+                    stickMod.tick(state.sceneId);
+                }
+            }
+        }
+
+        // ==========================================================
         // STEP 1: Resolve ALL Projections (Local Space)
         // ==========================================================
         const localProjectionPool: Record<string, ResolvedProjection> = {};

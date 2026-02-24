@@ -183,7 +183,9 @@ describe('CameraModifier', () => {
 
             expect(car.success && stick.success).toBe(true);
             if (car.success && stick.success) {
-                expect(car.value.position).toEqual(features.midpoint);
+                // carPos should now be scaled by travelRange (100)
+                expect(car.value.position.x).toBe(features.midpoint.x * config.travelRange);
+                expect(car.value.position.y).toBe(features.midpoint.y * config.travelRange);
                 expect(stick.value.yaw).toBeCloseTo(features.stick.yaw * config.damping);
                 expect(stick.value.distance).toBe(config.lookDistance);
                 expect(stick.value.priority).toBe(modifier.priority);

@@ -66,6 +66,7 @@ Object.assign(window, {
     P5GraphicProcessor,
     OrbitModifier,
     CenterFocusModifier,
+    HeadTrackingModifier,
     LookAtEffect,
     ELEMENT_TYPES,
     DEFAULT_SETTINGS: DEFAULT_SCENE_SETTINGS,
@@ -229,12 +230,12 @@ export function renderStep(
 }
 
 // Initialize the updated Curriculum
-renderStep('tutorial-1', '1. The Foundation (Registration)', tutorial_1, step1Source);
-renderStep('tutorial-2', '2. Animation (Temporal Phase)', tutorial_2, step2Source);
-renderStep('tutorial-3', '3. Movement (Spatial Orbit)', tutorial_3, step3Source);
-renderStep('tutorial-4', '4. Camera (Modifiers)', tutorial_4, step4Source);
-renderStep('tutorial-5', '5. Textures & Fonts (Hydration)', tutorial_5, step5Source);
-renderStep('tutorial-6', '6. Integrated Scene (Hybrid Props)', tutorial_6, step6Source);
+// renderStep('tutorial-1', '1. The Foundation (Registration)', tutorial_1, step1Source);
+// renderStep('tutorial-2', '2. Animation (Temporal Phase)', tutorial_2, step2Source);
+// renderStep('tutorial-3', '3. Movement (Spatial Orbit)', tutorial_3, step3Source);
+// renderStep('tutorial-4', '4. Camera (Modifiers)', tutorial_4, step4Source);
+// renderStep('tutorial-5', '5. Textures & Fonts (Hydration)', tutorial_5, step5Source);
+// renderStep('tutorial-6', '6. Integrated Scene (Hybrid Props)', tutorial_6, step6Source);
 renderStep('tutorial-7', '7. Head Tracking', tutorial_7, step7Source);
 // renderStep('tutorial-8', '8. Billboard', tutorial_8, step8Source);
 // renderStep('tutorial-9', '9. Follow Object', tutorial_9, step9Source);
