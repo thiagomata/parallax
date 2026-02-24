@@ -4,6 +4,7 @@ import {P5GraphicProcessor} from './p5_graphic_processor';
 import {P5AssetLoader, type P5Bundler} from './p5_asset_loader';
 import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type ResolutionContext, type Vector3} from "../types.ts";
 import {SceneClock} from "../scene_clock.ts";
+import {WorldSettings} from "../world_settings.ts";
 
 new p5((p: p5) => {
     let world: World<P5Bundler, any, any>;
@@ -13,7 +14,7 @@ new p5((p: p5) => {
         p.createCanvas(window.innerWidth, window.innerHeight, p.WEBGL);
 
         // Scene Orchestration
-        const manager = new SceneClock({
+        const clock = new SceneClock({
             ...DEFAULT_SCENE_SETTINGS,
             playback: {
                 ...DEFAULT_SCENE_SETTINGS.playback,
@@ -22,10 +23,10 @@ new p5((p: p5) => {
             },
         });
 
-        // manager.setDebug(true);
+        // clock.setDebug(true);
         // Using modifiers as per your design
-        // manager.addCarModifier(new OrbitModifier(p, 1000));
-        // manager.addStickModifier(new CenterFocusModifier());
+        // clock.addCarModifier(new OrbitModifier(p, 1000));
+        // clock.addStickModifier(new CenterFocusModifier());
 
         // Bridge & Loader
         const loader = new P5AssetLoader(p);
@@ -33,7 +34,9 @@ new p5((p: p5) => {
 
         // World & Stage initialization
         // Note: World creates its own internal Stage if one isn't passed
-        world = new World(manager, loader);
+        world = new World(
+            WorldSettings.fromLibs({clock, loader})
+        );
 
         // REGISTRATION (Adding Blueprints)
         // We use world.add (which delegates to stage.add)

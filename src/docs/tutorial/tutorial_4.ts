@@ -23,7 +23,7 @@ export function tutorial_4(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             startPaused: config.paused
         });
 
-    // Camera Logic: Adding Modifiers to the SceneManager
+    // Camera Logic: Adding Modifiers to the clock
     // Note: These affect the SceneState.camera property during calculation
     // clock.addCarModifier(new OrbitModifier(p, 800));
     // clock.addStickModifier(new CenterFocusModifier());

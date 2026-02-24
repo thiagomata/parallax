@@ -12,6 +12,7 @@ import {
 } from "../types.ts";
 import {BaseResolver} from "../resolver/base_resolver.ts";
 import {ProjectionAssetRegistry} from "../registry/projection_asset_registry.ts";
+import {rotateVector} from "../utils/projection_utils.ts";
 
 export class ProjectionResolver<
     TProjectionEffectLib extends ProjectionEffectLib,
@@ -239,13 +240,15 @@ export class ProjectionResolver<
             return resolved; // Parent not found, keep local space
         }
 
-        // Apply parent transform
+        // Apply parent transform: rotate child's local position by parent's rotation, then add parent's position
+        const rotatedPosition = rotateVector(resolved.position, target.rotation);
+
         return {
             ...resolved,
             position: {
-                x: resolved.position.x + target.position.x,
-                y: resolved.position.y + target.position.y,
-                z: resolved.position.z + target.position.z,
+                x: rotatedPosition.x + target.position.x,
+                y: rotatedPosition.y + target.position.y,
+                z: rotatedPosition.z + target.position.z,
             },
             rotation: {
                 yaw: resolved.rotation.yaw + target.rotation.yaw,

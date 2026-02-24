@@ -74,7 +74,7 @@ export function createPauseTests(
             // change from paused to resume
             config.paused = false;
 
-            // update the manager to resume
+            // update the clock to resume
             mockP5.draw();
             mockP5.millis.mockReturnValue(1000);
             // calculate the new state
@@ -88,7 +88,7 @@ export function createPauseTests(
             world
         });
 
-        it('should trigger activeManager.pause() and resume() when config changes', () => {
+        it('should trigger clock.pause() and resume() when config changes', () => {
             const mockP5 = createMockP5();
 
             // Mock timing to control progress calculation

@@ -59,7 +59,7 @@ export type P5Sketch = (p: p5, config: SketchConfig) => void;
 Object.assign(window, {
     p5,
     World,
-    SceneManager: SceneClock,
+    SceneClock: SceneClock,
     CameraModifier: HeadTrackingModifier,
     P5AssetLoader,
     P5GraphicProcessor,

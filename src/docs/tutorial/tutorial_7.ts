@@ -6,6 +6,7 @@ import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifi
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
 import { DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES } from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
+import {WorldSettings} from "../../scene/world_settings.ts";
 
 /**
  * TUTORIAL 7: THE OBSERVER
@@ -14,8 +15,8 @@ import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.dem
 export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let gp: P5GraphicProcessor;
 
-    // Create the manager
-    const activeManager = config.clock ?? new SceneClock({
+    // Create the clock
+    const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
         debug: false
@@ -24,13 +25,15 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     // Camera Logic: Use injected or create default
     const headTracker = config.cameraModifier ?? new HeadTrackingModifier(p);
 
-    // activeManager.addCarModifier(headTracker);
-    // activeManager.addNudgeModifier(headTracker);
-    // activeManager.addStickModifier(headTracker);
+    // clock.addCarModifier(headTracker);
+    // clock.addNudgeModifier(headTracker);
+    // clock.addStickModifier(headTracker);
 
     // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
-    const world = new World<P5Bundler, any, any>(activeManager, loader);
+    const world = new World<P5Bundler, any, any>(
+        WorldSettings.fromLibs({clock, loader})
+    );
 
     headTracker.init().catch(console.error);
 
@@ -82,14 +85,12 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     };
 
     p.draw = () => {
-        if (config.paused && !activeManager.isPaused()) activeManager.pause();
-        if (!config.paused && activeManager.isPaused()) activeManager.resume();
+        if (config.paused && !clock.isPaused()) clock.pause();
+        if (!config.paused && clock.isPaused()) clock.resume();
 
         p.background(10);
 
         /* frame loop */
-        // World.step calls Manager.update, which triggers our headTracker.tick()
-        // and then resolves the camera state based on our face position.
         world.step(gp);
     };
 

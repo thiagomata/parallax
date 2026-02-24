@@ -35,7 +35,7 @@ import {tutorialStepTemplate} from "../tutorial/tutorial.template.ts";
  */
 Object.assign(window, {
     World,
-    SceneManager: SceneClock, // Keeping alias for compatibility or renaming to SceneClock
+    SceneClock: SceneClock, // Keeping alias for compatibility or renaming to SceneClock
     P5AssetLoader,
     P5GraphicProcessor,
     WindowConfig,      // Added: The new single source for window math
@@ -50,7 +50,7 @@ export interface SketchConfig {
     width: number;
     height: number;
     backgroundColor?: string;
-    manager?: SceneClock,
+    SceneClock?: SceneClock,
     loader?: AssetLoader<P5Bundler>,
     paused: boolean,
 }

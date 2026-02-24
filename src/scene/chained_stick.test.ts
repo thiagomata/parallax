@@ -7,7 +7,7 @@ describe("ChainedStick Decorator", () => {
     const mockStick = (id: string, val: number, priority: number = 10): StickModifier => ({
         name: `${id}`,
         active: true,
-        priority: priority, // The internal priority doesn't matter to the Manager, only the wrapper's priority
+        priority: priority,
         tick: () => {},
         getStick: () => ({
             value: {
