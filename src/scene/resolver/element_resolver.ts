@@ -1,6 +1,7 @@
 import {
     ASSET_STATUS,
     type AssetLoader,
+    type DataProviderLib,
     type DynamicElement,
     type DynamicProperty,
     type EffectBlueprint,
@@ -162,9 +163,9 @@ export class ElementResolver<
     }
 
 
-    resolveProperty<V>(
-        prop: DynamicProperty<V>,
-        context: ResolutionContext
+    resolveProperty<V, TDataProviderLib extends DataProviderLib = DataProviderLib>(
+        prop: DynamicProperty<V, any, TDataProviderLib>,
+        context: ResolutionContext<TDataProviderLib>
     ): V {
         return this.loopResolve(prop, context) as V;
     }

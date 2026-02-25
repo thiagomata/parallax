@@ -74,79 +74,79 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         // z positive = in front of camera, z negative = behind
 
         // Closest (z = 50) - should appear to float out
-        world.addBox({
-            type: ELEMENT_TYPES.BOX,
-            id: 'close-right',
-            position: { x: 100, y: 0, z: 50 },
-            width: 30,
-            fillColor: { red: 255, green: 0, blue: 0 },    // Red
-        });
-
-        world.addBox({
-            type: ELEMENT_TYPES.BOX,
-            id: 'close-center',
-            position: { x: 0, y: 0, z: 50 },
-            width: 30,
-            fillColor: { red: 0, green: 255, blue: 0 },  // Green
-        });
-
-        world.addBox({
-            type: ELEMENT_TYPES.BOX,
-            id: 'close-left',
-            position: { x: -100, y: 0, z: 50 },
-            width: 30,
-            fillColor: { red: 0, green: 0, blue: 255 },  // Blue
-        });
-
-        // Middle (z = -100)
-        world.addBox({
-            type: ELEMENT_TYPES.BOX,
-            id: 'mid-right',
-            position: { x: 100, y: 0, z: -100 },
-            width: 30,
-            fillColor: { red: 255, green: 255, blue: 0 }, // Yellow
-        });
-
-        world.addBox({
-            type: ELEMENT_TYPES.BOX,
-            id: 'mid-center',
-            position: { x: 0, y: 0, z: -100 },
-            width: 30,
-            fillColor: { red: 255, green: 0, blue: 255 }, // Magenta
-        });
-
-        world.addBox({
-            type: ELEMENT_TYPES.BOX,
-            id: 'mid-left',
-            position: { x: -100, y: 0, z: -100 },
-            width: 30,
-            fillColor: { red: 0, green: 255, blue: 255 }, // Cyan
-        });
-
-        // Far (z = -300)
-        world.addBox({
-            type: ELEMENT_TYPES.BOX,
-            id: 'far-right',
-            position: { x: 100, y: 0, z: -300 },
-            width: 30,
-            fillColor: { red: 255, green: 128, blue: 0 }, // Orange
-        });
-
-        world.addBox({
-            type: ELEMENT_TYPES.BOX,
-            id: 'far-center',
-            position: { x: 0, y: 0, z: -300 },
-            width: 30,
-            fillColor: { red: 128, green: 0, blue: 255 }, // Purple
-        });
-
-        world.addBox({
-            type: ELEMENT_TYPES.BOX,
-            id: 'far-left',
-            position: { x: -100, y: 0, z: -300 },
-            width: 30,
-            fillColor: { red: 255, green: 255, blue: 255 }, // White
-        });
+        // world.addBox({
+        //     type: ELEMENT_TYPES.BOX,
+        //     id: 'close-right',
+        //     position: { x: 100, y: 0, z: 50 },
+        //     width: 30,
+        //     fillColor: { red: 255, green: 0, blue: 0 },    // Red
+        // });
+        //
+        // world.addBox({
+        //     type: ELEMENT_TYPES.BOX,
+        //     id: 'close-center',
+        //     position: { x: 0, y: 0, z: 50 },
+        //     width: 30,
+        //     fillColor: { red: 0, green: 255, blue: 0 },  // Green
+        // });
+        //
+        // world.addBox({
+        //     type: ELEMENT_TYPES.BOX,
+        //     id: 'close-left',
+        //     position: { x: -100, y: 0, z: 50 },
+        //     width: 30,
+        //     fillColor: { red: 0, green: 0, blue: 255 },  // Blue
+        // });
+        //
+        // // Middle (z = -100)
+        // world.addBox({
+        //     type: ELEMENT_TYPES.BOX,
+        //     id: 'mid-right',
+        //     position: { x: 100, y: 0, z: -100 },
+        //     width: 30,
+        //     fillColor: { red: 255, green: 255, blue: 0 }, // Yellow
+        // });
+        //
+        // world.addBox({
+        //     type: ELEMENT_TYPES.BOX,
+        //     id: 'mid-center',
+        //     position: { x: 0, y: 0, z: -100 },
+        //     width: 30,
+        //     fillColor: { red: 255, green: 0, blue: 255 }, // Magenta
+        // });
+        //
+        // world.addBox({
+        //     type: ELEMENT_TYPES.BOX,
+        //     id: 'mid-left',
+        //     position: { x: -100, y: 0, z: -100 },
+        //     width: 30,
+        //     fillColor: { red: 0, green: 255, blue: 255 }, // Cyan
+        // });
+        //
+        // // Far (z = -300)
+        // world.addBox({
+        //     type: ELEMENT_TYPES.BOX,
+        //     id: 'far-right',
+        //     position: { x: 100, y: 0, z: -300 },
+        //     width: 30,
+        //     fillColor: { red: 255, green: 128, blue: 0 }, // Orange
+        // });
+        //
+        // world.addBox({
+        //     type: ELEMENT_TYPES.BOX,
+        //     id: 'far-center',
+        //     position: { x: 0, y: 0, z: -300 },
+        //     width: 30,
+        //     fillColor: { red: 128, green: 0, blue: 255 }, // Purple
+        // });
+        //
+        // world.addBox({
+        //     type: ELEMENT_TYPES.BOX,
+        //     id: 'far-left',
+        //     position: { x: -100, y: 0, z: -300 },
+        //     width: 30,
+        //     fillColor: { red: 255, green: 255, blue: 255 }, // White
+        // });
 
         // Face tracking elements - spheres for eyes and nose
         // These elements use dynamic functions to get face data from the provider
@@ -155,12 +155,12 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             id: 'nose',
             radius: 8,
             position: (ctx) => {
-                const face = ctx.dataProviders['headTracker'] as ReturnType<HeadTrackingDataProvider['getData']>;
+                const face = ctx.dataProviders['headTracker'];
                 if (!face) return { x: 0, y: 0, z: -200 };
                 return { x: face.nose.x, y: face.nose.y, z: face.nose.z - 200 };
             },
             fillColor: (ctx) => {
-                const face = ctx.dataProviders['headTracker'] as ReturnType<HeadTrackingDataProvider['getData']>;
+                const face = ctx.dataProviders['headTracker'];
                 return face ? { red: 0, green: 255, blue: 0 } : { red: 100, green: 100, blue: 100 };
             },
         });
@@ -170,7 +170,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             id: 'leftEye',
             radius: 10,
             position: (ctx) => {
-                const face = (ctx.dataProviders as any)['headTracker'] as { leftEye: { x: number; y: number; z: number } } | null;
+                const face = ctx.dataProviders['headTracker'];
                 if (!face) return { x: -30, y: 0, z: -200 };
                 return { x: face.leftEye.x, y: face.leftEye.y, z: face.leftEye.z - 200 };
             },
@@ -182,7 +182,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             id: 'rightEye',
             radius: 10,
             position: (ctx) => {
-                const face = (ctx.dataProviders as any)['headTracker'] as { rightEye: { x: number; y: number; z: number } } | null;
+                const face = ctx.dataProviders['headTracker'];
                 if (!face) return { x: 30, y: 0, z: -200 };
                 return { x: face.rightEye.x, y: face.rightEye.y, z: face.rightEye.z - 200 };
             },
@@ -197,12 +197,12 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             depth: 50,
             height: 120,
             position: (ctx) => {
-                const face = (ctx.dataProviders as any)['headTracker'] as { midpoint: { x: number; y: number; z: number } } | null;
+                const face = ctx.dataProviders['headTracker'];
                 if (!face) return { x: 0, y: 0, z: -250 };
                 return { x: face.midpoint.x, y: face.midpoint.y, z: face.midpoint.z - 250 };
             },
             fillColor: (ctx) => {
-                const face = (ctx.dataProviders as any)['headTracker'];
+                const face = ctx.dataProviders['headTracker'];
                 return face ? { red: 255, green: 200, blue: 150, alpha: 150 } : { red: 100, green: 100, blue: 100, alpha: 50 };
             },
         });

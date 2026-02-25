@@ -137,70 +137,63 @@ export class World<
     }
 
     public addBox<TID extends string>(
-        blueprint: BlueprintBox & { id: ElementId<TID> }
+        blueprint: BlueprintBox<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
     public addSphere<TID extends string>(
-        blueprint: BlueprintSphere & { id: ElementId<TID> }
+        blueprint: BlueprintSphere<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
     public addCone<TID extends string>(
-        blueprint: BlueprintCone & { id: ElementId<TID> }
+        blueprint: BlueprintCone<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
     public addPyramid<TID extends string>(
-        blueprint: BlueprintPyramid & { id: ElementId<TID> }
+        blueprint: BlueprintPyramid<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
     public addElliptical<TID extends string>(
-        blueprint: BlueprintElliptical & { id: ElementId<TID> }
+        blueprint: BlueprintElliptical<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
     public addCylinder<TID extends string>(
-        blueprint: BlueprintCylinder & { id: ElementId<TID> }
+        blueprint: BlueprintCylinder<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
     public addTorus<TID extends string>(
-        blueprint: BlueprintTorus & { id: ElementId<TID> }
+        blueprint: BlueprintTorus<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
     public addText<TID extends string>(
-        blueprint: BlueprintText & { id: ElementId<TID> }
+        blueprint: BlueprintText<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
     public addFloor<TID extends string>(
-        blueprint: BlueprintFloor & { id: ElementId<TID> }
+        blueprint: BlueprintFloor<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
     public addPanel<TID extends string>(
-        blueprint: BlueprintPanel & { id: ElementId<TID> }
+        blueprint: BlueprintPanel<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
-    }
-
-    public addDataProvider<TID extends keyof TDataProviderLib & string>(
-        id: TID,
-        provider: TDataProviderLib[TID]
-    ): void {
-        this.stage.addDataProvider(id, provider);
     }
 
     public getElement(id: string): BundleDynamicElement<any, TBundle> | undefined {

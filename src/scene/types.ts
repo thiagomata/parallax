@@ -365,15 +365,15 @@ export abstract class BaseSceneState {
     abstract readonly playback: ScenePlaybackState;
 }
 
-export interface BlueprintSceneState extends BaseSceneState {
+export interface BlueprintSceneState<TDataProviderLib extends DataProviderLib> extends BaseSceneState {
     debugStateLog?: SceneStateDebugLog;
-    elements?: Map<string, BlueprintElement>;
+    elements?: Map<string, BlueprintElement<TDataProviderLib>>;
     projections?: Map<string, BlueprintProjection>;
 }
 
-export interface DynamicSceneState extends BaseSceneState {
+export interface DynamicSceneState<TDataProviderLib extends DataProviderLib = DataProviderLib> extends BaseSceneState {
     debugStateLog?: SceneStateDebugLog;
-    elements?: Map<string, DynamicElementUnion>;
+    elements?: Map<string, DynamicElementUnion<TDataProviderLib>>;
     projections: Map<string, DynamicProjection>;
     previousResolved: ResolvedSceneState | null;
 }
@@ -622,7 +622,7 @@ export type MapToBlueprint<T, TDataProviderLib extends DataProviderLib = DataPro
 /**
  * MapToDynamic strictly transforms a blueprint into a dynamic tree
  */
-export type MapToDynamic<T> = {
+export type MapToDynamic<T, TDataProviderLib extends DataProviderLib = DataProviderLib> = {
     [K in keyof T]:                     // Iterate over every key K in the provided type T
     K extends StaticKeys                // Check if the current key is one of our protected StaticKeys
         ? T[K] extends { kind: any }    // If it is a StaticKey, check if its value T[K] contains a "kind" property
@@ -630,7 +630,7 @@ export type MapToDynamic<T> = {
             : T[K]                      // If it is a StaticKey and is a "clean" value, return the raw type T[K]
         : T[K] extends { kind: any }    // If the key is NOT a StaticKey, check if its value already has a "kind"
             ? never                     // If a dynamic key already has a "kind", resolve to never to prevent double-wrapping
-            : DynamicProperty<T[K]>;    // If the dynamic key is a "clean" value, wrap it in a DynamicProperty container
+            : DynamicProperty<T[K], TDataProviderLib>;    // If the dynamic key is a "clean" value, wrap it in a DynamicProperty container
 } & {
     effects?: EffectResolutionGroup[];  // Attach an optional group for visual effect resolution post-hydration
 };
@@ -667,7 +667,7 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     readonly effects?: EffectBlueprint[];
 }
 
-export type DynamicElement<T extends ResolvedElement> = MapToDynamic<T>;
+export type DynamicElement<T extends ResolvedElement, TDataProviderLib extends DataProviderLib = DataProviderLib> = MapToDynamic<T, TDataProviderLib>;
 
 // BOX
 
@@ -678,8 +678,8 @@ export interface ResolvedBox extends ResolvedBaseVisual {
     readonly depth?: number;
 }
 
-export type BlueprintBox = MapToBlueprint<ResolvedBox>;
-export type DynamicBox = DynamicElement<ResolvedBox>;
+export type BlueprintBox<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedBox, TDataProviderLib>;
+export type DynamicBox<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedBox, TDataProviderLib>;
 
 // PANEL
 
@@ -689,8 +689,8 @@ export interface ResolvedPanel extends ResolvedBaseVisual {
     readonly height: number;
 }
 
-export type BlueprintPanel = MapToBlueprint<ResolvedPanel>;
-export type DynamicPanel = DynamicElement<ResolvedPanel>;
+export type BlueprintPanel<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedPanel, TDataProviderLib>;
+export type DynamicPanel<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedPanel, TDataProviderLib>;
 
 //  SPHERE
 
@@ -700,8 +700,8 @@ export interface ResolvedSphere extends ResolvedBaseVisual {
     readonly detail?: number;
 }
 
-export type BlueprintSphere = MapToBlueprint<ResolvedSphere>;
-export type DynamicSphere = DynamicElement<ResolvedSphere>;
+export type BlueprintSphere<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedSphere, TDataProviderLib>;
+export type DynamicSphere<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedSphere, TDataProviderLib>;
 
 // CONE
 
@@ -713,8 +713,8 @@ export interface ResolvedCone extends ResolvedBaseVisual {
     readonly height: number;
 }
 
-export type BlueprintCone = MapToBlueprint<ResolvedCone>;
-export type DynamicCone = DynamicElement<ResolvedCone>;
+export type BlueprintCone<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedCone, TDataProviderLib>;
+export type DynamicCone<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedCone, TDataProviderLib>;
 
 // PYRAMID
 
@@ -724,8 +724,8 @@ export interface ResolvedPyramid extends ResolvedBaseVisual {
     readonly height: number;
 }
 
-export type BlueprintPyramid = MapToBlueprint<ResolvedPyramid>;
-export type DynamicPyramid = DynamicElement<ResolvedPyramid>;
+export type BlueprintPyramid<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedPyramid, TDataProviderLib>;
+export type DynamicPyramid<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedPyramid, TDataProviderLib>;
 
 // CYLINDER
 
@@ -737,8 +737,8 @@ export interface ResolvedCylinder extends ResolvedBaseVisual {
     readonly height: number;
 }
 
-export type BlueprintCylinder = MapToBlueprint<ResolvedCylinder>;
-export type DynamicCylinder = DynamicElement<ResolvedCylinder>;
+export type BlueprintCylinder<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedCylinder, TDataProviderLib>;
+export type DynamicCylinder<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedCylinder, TDataProviderLib>;
 
 // TORUS
 
@@ -750,8 +750,8 @@ export interface ResolvedTorus extends ResolvedBaseVisual {
     readonly tubeRadius: number;
 }
 
-export type BlueprintTorus = MapToBlueprint<ResolvedTorus>;
-export type DynamicTorus = DynamicElement<ResolvedTorus>;
+export type BlueprintTorus<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedTorus, TDataProviderLib>;
+export type DynamicTorus<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedTorus, TDataProviderLib>;
 
 // ELLIPTICAL
 
@@ -765,8 +765,8 @@ export interface ResolvedElliptical extends ResolvedBaseVisual {
     readonly rz: number;
 }
 
-export type BlueprintElliptical = MapToBlueprint<ResolvedElliptical>;
-export type DynamicElliptical = DynamicElement<ResolvedElliptical>;
+export type BlueprintElliptical<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedElliptical, TDataProviderLib>;
+export type DynamicElliptical<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedElliptical, TDataProviderLib>;
 
 // FLOOR
 
@@ -776,8 +776,8 @@ export interface ResolvedFloor extends ResolvedBaseVisual {
     readonly depth: number;
 }
 
-export type BlueprintFloor = MapToBlueprint<ResolvedFloor>;
-export type DynamicFloor = DynamicElement<ResolvedFloor>;
+export type BlueprintFloor<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedFloor, TDataProviderLib>;
+export type DynamicFloor<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedFloor, TDataProviderLib>;
 
 // TEXT
 
@@ -787,32 +787,32 @@ export interface ResolvedText extends ResolvedBaseVisual {
     readonly size: number;
 }
 
-export type BlueprintText = MapToBlueprint<ResolvedText>;
-export type DynamicText = DynamicElement<ResolvedText>;
+export type BlueprintText<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedText, TDataProviderLib>;
+export type DynamicText<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedText, TDataProviderLib>;
 
-export type DynamicElementUnion = 
-    DynamicBox           |
-    DynamicPanel         |
-    DynamicSphere        |
-    DynamicCone          |
-    DynamicPyramid       |
-    DynamicElliptical    |
-    DynamicCylinder      |
-    DynamicTorus         |
-    DynamicFloor         |
-    DynamicText          ;
+export type DynamicElementUnion<TDataProviderLib extends DataProviderLib> =
+    DynamicBox<TDataProviderLib>           |
+    DynamicPanel<TDataProviderLib>         |
+    DynamicSphere<TDataProviderLib>        |
+    DynamicCone<TDataProviderLib>          |
+    DynamicPyramid<TDataProviderLib>       |
+    DynamicElliptical<TDataProviderLib>    |
+    DynamicCylinder<TDataProviderLib>      |
+    DynamicTorus<TDataProviderLib>         |
+    DynamicFloor<TDataProviderLib>         |
+    DynamicText<TDataProviderLib>          ;
 
-export type BlueprintElement =
-    BlueprintBox        |
-    BlueprintPanel      |
-    BlueprintSphere     |
-    BlueprintCone       |
-    BlueprintPyramid    |
-    BlueprintElliptical |
-    BlueprintCylinder   |
-    BlueprintTorus      |
-    BlueprintFloor      |
-    BlueprintText       ;
+export type BlueprintElement<TDataProviderLib extends DataProviderLib> =
+    BlueprintBox<TDataProviderLib>        |
+    BlueprintPanel<TDataProviderLib>      |
+    BlueprintSphere<TDataProviderLib>     |
+    BlueprintCone<TDataProviderLib>       |
+    BlueprintPyramid<TDataProviderLib>    |
+    BlueprintElliptical<TDataProviderLib> |
+    BlueprintCylinder<TDataProviderLib>   |
+    BlueprintTorus<TDataProviderLib>      |
+    BlueprintFloor<TDataProviderLib>      |
+    BlueprintText<TDataProviderLib>       ;
 
 
 export type ResolvedElement =
@@ -837,10 +837,11 @@ export type ResolvedElement =
  */
 export interface BundleDynamicElement<
     T extends ResolvedElement = ResolvedElement,
-    TBundle extends GraphicsBundle = GraphicsBundle
+    TBundle extends GraphicsBundle = GraphicsBundle,
+    TDataProviderLib extends DataProviderLib = DataProviderLib,
 > {
     readonly id: string;
-    readonly dynamic: DynamicElement<T>;
+    readonly dynamic: DynamicElement<T, TDataProviderLib>;
     readonly effects: ReadonlyArray<EffectResolutionGroup>;
     assets: ElementAssets<TBundle>;
 }
