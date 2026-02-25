@@ -176,14 +176,20 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     private applyVisuals(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         const combinedAlpha = (props.alpha ?? 1) * state.settings.alpha;
 
-        if (assets.texture?.status === ASSET_STATUS.READY && assets.texture.value) {
+        const videoReady = assets.video?.elt && 
+            (assets.video.elt as HTMLVideoElement).readyState >= 1;
+
+        if (videoReady) {
+            this.p.texture(assets.video);
+            this.p.tint(255, this.to8Bit(combinedAlpha));
+        } else if (assets.texture?.status === ASSET_STATUS.READY && assets.texture.value) {
             this.p.texture(assets.texture.value.internalRef);
             this.p.tint(255, this.to8Bit(combinedAlpha));
         } else {
             this.p.noTint();
             if (props.fillColor) {
                 const f = props.fillColor;
-                this.fill(f,combinedAlpha);
+                this.fill(f, combinedAlpha);
             } else {
                 this.p.noFill();
             }

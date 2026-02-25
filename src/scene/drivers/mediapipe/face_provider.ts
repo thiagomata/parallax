@@ -37,15 +37,21 @@ export class MediaPipeFaceProvider implements FaceProvider {
                 numFaces: 1
             });
 
-            // p5 creates the capture but we keep it hidden
+            // p5 creates the capture
             this.capture = this.p.createCapture(this.p.VIDEO);
             this.capture.size(640, 480);
             this.capture.hide();
+            this.capture.elt.onloadedmetadata = () => {
+                this.capture.play();
+            };
+            this.capture.elt.onerror = () => {
+                this.status = 'ERROR';
+            };
 
             this.status = 'READY';
         } catch (e) {
             this.status = 'ERROR';
-            throw e;
+            console.warn('Camera not available, face tracking disabled:', e);
         }
     }
 
@@ -74,5 +80,10 @@ export class MediaPipeFaceProvider implements FaceProvider {
 
     getStatus(): TrackingStatus {
         return this.status;
+    }
+
+    getVideo(): any {
+        if (this.status !== 'READY' || !this.capture) return null;
+        return this.capture;
     }
 }

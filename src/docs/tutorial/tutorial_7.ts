@@ -28,7 +28,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     const headTracker = config.cameraModifier ?? new HeadTrackingModifier(p);
 
     // Data Provider for face elements
-    const faceDataProvider = new HeadTrackingDataProvider(p, config.width, config.height, 200);
+    const faceDataProvider = new HeadTrackingDataProvider(p, 150);
 
     // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
@@ -36,8 +36,6 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     const world = new World<P5Bundler, any, any, { headTracker: HeadTrackingDataProvider }>(
         WorldSettings.fromLibs({clock, loader, dataProviderLib})
     );
-
-    faceDataProvider.init().catch(console.error);
 
     // Wide FOV to see more of the scene
     world.enableDefaultPerspective(config.width, config.height, Math.PI / 2);
@@ -65,8 +63,11 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     headTracker.init().catch(console.error);
 
-    p.setup = () => {
+    p.setup = async () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
+        
+        await faceDataProvider.init();
+        
         gp = new P5GraphicProcessor(p, loader);
 
         // Boxes at different Z depths for parallax effect
@@ -149,15 +150,15 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         // });
 
         // Face tracking elements - spheres for eyes and nose
-        // These elements use dynamic functions to get face data from the provider
+        // Position them closer to camera (-50) so they pop out from the box
         world.addSphere({
             type: ELEMENT_TYPES.SPHERE,
             id: 'nose',
-            radius: 8,
+            radius: 30,
             position: (ctx) => {
                 const face = ctx.dataProviders['headTracker'];
-                if (!face) return { x: 0, y: 0, z: -200 };
-                return { x: face.nose.x, y: face.nose.y, z: face.nose.z - 200 };
+                if (!face) return { x: 0, y: 0, z: -50 };
+                return { x: face.nose.x, y: face.nose.y, z: face.nose.z - 50 };
             },
             fillColor: (ctx) => {
                 const face = ctx.dataProviders['headTracker'];
@@ -168,11 +169,11 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         world.addSphere({
             type: ELEMENT_TYPES.SPHERE,
             id: 'leftEye',
-            radius: 10,
+            radius: 40,
             position: (ctx) => {
                 const face = ctx.dataProviders['headTracker'];
-                if (!face) return { x: -30, y: 0, z: -200 };
-                return { x: face.leftEye.x, y: face.leftEye.y, z: face.leftEye.z - 200 };
+                if (!face) return { x: -30, y: 0, z: -50 };
+                return { x: face.leftEye.x, y: face.leftEye.y, z: face.leftEye.z - 50 };
             },
             fillColor: { red: 255, green: 0, blue: 0 },
         });
@@ -180,11 +181,11 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         world.addSphere({
             type: ELEMENT_TYPES.SPHERE,
             id: 'rightEye',
-            radius: 10,
+            radius: 40,
             position: (ctx) => {
                 const face = ctx.dataProviders['headTracker'];
-                if (!face) return { x: 30, y: 0, z: -200 };
-                return { x: face.rightEye.x, y: face.rightEye.y, z: face.rightEye.z - 200 };
+                if (!face) return { x: 30, y: 0, z: -50 };
+                return { x: face.rightEye.x, y: face.rightEye.y, z: face.rightEye.z - 50 };
             },
             fillColor: { red: 0, green: 0, blue: 255 },
         });
@@ -193,18 +194,38 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         world.addBox({
             type: ELEMENT_TYPES.BOX,
             id: 'faceBox',
-            width: 100,
-            depth: 50,
-            height: 120,
+            width: 150,
+            height: 180,
+            depth: 100,
             position: (ctx) => {
                 const face = ctx.dataProviders['headTracker'];
-                if (!face) return { x: 0, y: 0, z: -250 };
-                return { x: face.midpoint.x, y: face.midpoint.y, z: face.midpoint.z - 250 };
+                if (!face) return { x: 0, y: 0, z: 0 };
+                return { x: face.midpoint.x, y: face.midpoint.y, z: face.midpoint.z };
             },
-            fillColor: (ctx) => {
+            rotate: (ctx) => {
                 const face = ctx.dataProviders['headTracker'];
-                return face ? { red: 255, green: 200, blue: 150, alpha: 150 } : { red: 100, green: 100, blue: 100, alpha: 50 };
+                if (!face) return { x: 0, y: 0, z: 0 };
+                return {
+                    y: face.stick.yaw,
+                    x: face.stick.pitch,
+                    z: face.stick.roll
+                };
             },
+
+            strokeColor: { red: 255, green: 255, blue: 255 },
+            strokeWidth: 2,
+        });
+
+        // Video panel - use exact video dimensions
+        const videoEl = faceDataProvider.getVideo();
+        world.addPanel({
+            type: ELEMENT_TYPES.PANEL,
+            id: 'videoPanel',
+            width: 640,
+            height: 480,
+            position: { x: 0, y: 0, z: -200 },
+            video: videoEl,
+            fillColor: videoEl ? undefined : { red: 50, green: 50, blue: 50 },
         });
     };
 
@@ -216,6 +237,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
         /* frame loop */
         world.step(gp);
+
     };
 
     return world;

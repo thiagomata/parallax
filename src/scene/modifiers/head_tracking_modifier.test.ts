@@ -39,6 +39,7 @@ describe('CameraModifier', () => {
             init: vi.fn().mockResolvedValue(undefined),
             getFace: vi.fn(),
             getStatus: vi.fn().mockReturnValue('READY'),
+            getVideo: vi.fn(),
         } as Mocked<FaceProvider>;
         modifier = new HeadTrackingModifier(mockP5 as unknown as p5, mockProvider, config);
     });

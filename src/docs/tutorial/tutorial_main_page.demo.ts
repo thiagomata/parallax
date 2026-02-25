@@ -126,6 +126,10 @@ export function renderStep(
     const codeSide   = stepMain.querySelector('.code-side') as HTMLElement;
     const canvasSide = stepMain.querySelector('.canvas-side') as HTMLElement;
 
+    // Temporarily hide code side for testing
+    codeSide.style.display = 'none';
+    canvasSide.style.width = '100%';
+
     const editorBox    = codeSide.querySelector('.editor-box') as HTMLElement;
     const consolePanel = codeSide.querySelector('.console-panel') as HTMLElement;
 

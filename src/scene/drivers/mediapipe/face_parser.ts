@@ -6,7 +6,7 @@ export class FaceParser {
      * @see https://storage.googleapis.com/mediapipe-assets/documentation/visualization/face_ad_mobile_full_2019_04_08.pdf
      */
     private static readonly INDEX = {
-        NOSE: 1,
+        NOSE: 1, // maybe 6
         EYE_L: 468,
         EYE_R: 473,
         FACE_L: 234,

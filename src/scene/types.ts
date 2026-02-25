@@ -516,6 +516,7 @@ export type FontAsset<TFont = unknown> =
 export interface ElementAssets<TBundle extends GraphicsBundle> {
     texture?: TextureAsset<TBundle['texture']>;
     font?: FontAsset<TBundle['font']>;
+    video?: any;
 }
 
 export interface AssetLoader<TBundle extends GraphicsBundle> {
@@ -663,6 +664,7 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     readonly strokeWidth?: number;
     readonly rotate?: Vector3;
     readonly texture?: TextureRef;
+    readonly video?: unknown;
     readonly font?: FontRef;
     readonly effects?: EffectBlueprint[];
 }
@@ -889,6 +891,7 @@ export interface FaceGeometry {
 export interface FaceProvider {
     getFace(): FaceGeometry | null
     getStatus(): TrackingStatus;
+    getVideo(): any;
     init(): Promise<void>;
 }
 

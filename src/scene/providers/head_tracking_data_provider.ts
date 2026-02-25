@@ -43,6 +43,10 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         this.provider.getStatus();
     }
 
+    getVideo(): any {
+        return this.provider.getVideo();
+    }
+
     getData(): FaceWorldData | null {
         const face = this.provider.getFace();
         if (!face) return this.lastFace;
