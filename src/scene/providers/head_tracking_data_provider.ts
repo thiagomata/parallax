@@ -86,7 +86,7 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     private toWorld(point: Vector3): Vector3 {
         return {
             x: (point.x - 0.5) * this.width,
-            y: (0.5 - point.y) * this.height,
+            y: (point.y - 0.5) * this.height,
             z: point.z * this.depth
         };
     }
