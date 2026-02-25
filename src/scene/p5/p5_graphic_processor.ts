@@ -69,6 +69,12 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     public drawPanel(props: ResolvedPanel, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.p.push();
         this.applyContext(props, assets, state);
+        
+        // Mirror video texture horizontally
+        if (assets.video) {
+            this.p.scale(-1, 1);
+        }
+        
         this.p.plane(props.width, props.height);
         this.p.pop();
     }

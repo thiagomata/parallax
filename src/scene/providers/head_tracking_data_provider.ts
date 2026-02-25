@@ -25,9 +25,10 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         p: p5,
         width: number = 400,
         height: number = 400,
-        depth: number = 200
+        depth: number = 200,
+        mirror: boolean = false
     ) {
-        this.provider = new MediaPipeFaceProvider(p);
+        this.provider = new MediaPipeFaceProvider(p, "/parallax/wasm", "/parallax/models/face_landmarker.task", mirror);
         this.width = width;
         this.height = height;
         this.depth = depth;

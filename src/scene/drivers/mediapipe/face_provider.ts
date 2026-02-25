@@ -10,15 +10,18 @@ export class MediaPipeFaceProvider implements FaceProvider {
     private readonly p: p5;
     private readonly wasmPath: string;
     private readonly modelPath: string;
+    private readonly mirror: boolean;
 
     constructor(
         p: p5,
         wasmPath: string = "/parallax/wasm",
-        modelPath: string = "/parallax/models/face_landmarker.task"
+        modelPath: string = "/parallax/models/face_landmarker.task",
+        mirror: boolean = false
     ) {
         this.p = p;
         this.wasmPath = wasmPath;
         this.modelPath = modelPath;
+        this.mirror = mirror;
     }
 
     /**
@@ -72,7 +75,7 @@ export class MediaPipeFaceProvider implements FaceProvider {
 
         if (result.faceLandmarks && result.faceLandmarks.length > 0) {
             // We immediately use our FaceParser to turn indices into semantics
-            return FaceParser.parse(result.faceLandmarks[0]);
+            return FaceParser.parse(result.faceLandmarks[0], this.mirror);
         }
 
         return null;

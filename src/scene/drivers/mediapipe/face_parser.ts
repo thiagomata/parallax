@@ -18,14 +18,16 @@ export class FaceParser {
     /**
      * Transforms a raw MediaPipe landmark array into a semantic FaceGeometry object.
      * We normalize the coordinates here if necessary.
+     * @param raw - Array of MediaPipe landmark points
+     * @param mirror - If true, flip x-coordinates horizontally (for mirrored video)
      */
-    static parse(raw: any[]): FaceGeometry {
+    static parse(raw: any[], mirror: boolean = false): FaceGeometry {
         if (!raw || raw.length < 478) {
             throw new Error("Invalid landmark data: expected at least 478 points.");
         }
 
         const mapPoint = (idx: number): Vector3 => ({
-            x: raw[idx].x, // Normalized 0-1 from MediaPipe
+            x: mirror ? 1 - raw[idx].x : raw[idx].x, // Normalized 0-1 from MediaPipe
             y: raw[idx].y,
             z: raw[idx].z
         });

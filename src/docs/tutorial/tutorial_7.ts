@@ -5,7 +5,7 @@ import { SceneClock } from "../../scene/scene_clock.ts";
 import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts";
 import { HeadTrackingDataProvider } from "../../scene/providers/head_tracking_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, PROJECTION_TYPES} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
 
@@ -28,7 +28,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     const headTracker = config.cameraModifier ?? new HeadTrackingModifier(p);
 
     // Data Provider for face elements
-    const faceDataProvider = new HeadTrackingDataProvider(p, 150);
+    const faceDataProvider = new HeadTrackingDataProvider(p, 150, 150, 150, true);
 
     // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
@@ -39,6 +39,15 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     // Wide FOV to see more of the scene
     world.enableDefaultPerspective(config.width, config.height, Math.PI / 2);
+
+    // Set eye very close to fill screen with 90 degree FOV
+    world.setEye({
+        id: 'eye',
+        type: PROJECTION_TYPES.EYE,
+        lookMode: LOOK_MODES.LOOK_AT,
+        position: { x: 0, y: 0, z: 100 },
+        lookAt: { x: 0, y: 0, z: 0 },
+    });
 
     // // Apply head tracking to screen position (moves the "window" we're looking through)
     // world.setScreen({
@@ -223,7 +232,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             id: 'videoPanel',
             width: 640,
             height: 480,
-            position: { x: 0, y: 0, z: -200 },
+            position: { x: 0, y: 0, z: 0 },
             video: videoEl,
             fillColor: videoEl ? undefined : { red: 50, green: 50, blue: 50 },
         });
