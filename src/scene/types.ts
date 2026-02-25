@@ -241,7 +241,7 @@ export const DEFAULT_SCREEN_ROTATION: BlueprintProjectionRotation = {
     id: 'screen',
     type: PROJECTION_TYPES.SCREEN,
     lookMode: LOOK_MODES.ROTATION,
-    position: {x: 0, y: 0, z: 1000},
+    position: {x: 0, y: 0, z: 100},
     rotation: {pitch: 0, yaw: 0, roll: 0},
     direction: {x: 0, y: 0, z: 1},
     effects: [],
