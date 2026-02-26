@@ -689,12 +689,6 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     /** Rotation in radians (0 to 2π for full rotation). Uses x=pitch, y=yaw, z=roll. */
     readonly rotate?: Vector3;
 
-    /** World position - computed from hierarchy. For root elements, equals position. */
-    readonly worldPosition?: Vector3;
-
-    /** World rotation - computed from hierarchy. For root elements, equals rotate. */
-    readonly worldRotation?: Vector3;
-
     readonly texture?: TextureRef;
     readonly video?: unknown;
     readonly font?: FontRef;

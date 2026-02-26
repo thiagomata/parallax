@@ -16,12 +16,10 @@ import {
     type ResolvedElement,
     type ResolutionContext,
     type ResolvedSceneState,
-    type Rotation3,
     SPEC_KINDS,
     type BundleResolvedElement,
 } from "../types.ts";
 import {BaseResolver} from "./base_resolver.ts";
-import {rotateVector} from "../utils/projection_utils.ts";
 
 export class ElementResolver<
     TGraphicBundle extends GraphicsBundle,
@@ -98,86 +96,6 @@ export class ElementResolver<
             assets: element.assets,
             effects: element.effects ?? [],
             resolved: resolved,
-        };
-    }
-
-    /**
-     * Applies hierarchy transform.
-     * 
-     * Computes world position = parentWorldPos + rotate(childLocalPos by parentRotation)
-     * Computes world rotation = parentWorldRot + childLocalRot
-     * 
-     * Keeps local position/rotation for proper rendering (rotate then translate).
-     * Stores worldPosition/worldRotation for cases needing world coordinates.
-     */
-    applyHierarchyTransform(
-        resolved: ResolvedElement,
-        elementPool: Record<string, ResolvedElement>
-    ): ResolvedElement {
-        const targetId = (resolved as any).targetId;
-        if (!targetId) {
-            // No parent - world = local
-            return {
-                ...resolved,
-                worldPosition: resolved.position,
-                worldRotation: resolved.rotate,
-            };
-        }
-
-        const parent = elementPool[targetId];
-        if (!parent) {
-            // Parent not found - treat as root
-            return {
-                ...resolved,
-                worldPosition: resolved.position,
-                worldRotation: resolved.rotate,
-            };
-        }
-
-        // Get parent's world transform (recursive)
-        const parentWorld = this.applyHierarchyTransform(parent, elementPool);
-        
-        const parentPos = (parentWorld as any).worldPosition ?? parentWorld.position;
-        const parentRot: Rotation3 = { 
-            pitch: ((parentWorld as any).worldRotation?.x ?? parentWorld.rotate?.x) ?? 0, 
-            yaw: ((parentWorld as any).worldRotation?.y ?? parentWorld.rotate?.y) ?? 0, 
-            roll: ((parentWorld as any).worldRotation?.z ?? parentWorld.rotate?.z) ?? 0 
-        };
-
-        const childLocalPos = resolved.position;
-        const localRot: Rotation3 = { 
-            pitch: resolved.rotate?.x ?? 0, 
-            yaw: resolved.rotate?.y ?? 0, 
-            roll: resolved.rotate?.z ?? 0 
-        };
-
-        // Rotate child's local position by parent's rotation
-        const rotatedPos = rotateVector(childLocalPos, parentRot);
-        
-        // World position = parentPos + rotated child position
-        const worldPos = {
-            x: parentPos.x + rotatedPos.x,
-            y: parentPos.y + rotatedPos.y,
-            z: parentPos.z + rotatedPos.z,
-        };
-
-        // Combined rotations
-        const combinedRot: Rotation3 = {
-            pitch: parentRot.pitch + localRot.pitch,
-            yaw: parentRot.yaw + localRot.yaw,
-            roll: parentRot.roll + localRot.roll,
-        };
-
-        return {
-            ...resolved,
-            // Keep local position/rotation for proper rendering (rotate then translate)
-            // Add world position/rotation for world-space calculations
-            worldPosition: worldPos,
-            worldRotation: {
-                x: combinedRot.pitch,
-                y: combinedRot.yaw,
-                z: combinedRot.roll,
-            },
         };
     }
 

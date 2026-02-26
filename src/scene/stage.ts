@@ -293,18 +293,9 @@ export class Stage<
             elementPool[pair.id] = pair.bundle.resolved;
         }
 
-        // Apply hierarchy transform to each element (child positions relative to parent)
-        const hierarchyAppliedElements = resolvedElements.map(pair => ({
-            ...pair,
-            bundle: {
-                ...pair.bundle,
-                resolved: this.elementResolver.applyHierarchyTransform(pair.bundle.resolved, elementPool),
-            }
-        }));
-
         // Create intermediate state with resolved elements + projections
         const resolvedMapElements = new Map(
-            hierarchyAppliedElements.map(pair => [pair.id, pair.bundle.resolved])
+            resolvedElements.map(pair => [pair.id, pair.bundle.resolved])
         );
 
         // Create context for effects - has both pools
@@ -320,7 +311,7 @@ export class Stage<
         // ==========================================================
         // STEP 5: Apply Effects to Elements
         // ==========================================================
-        const finalElements = hierarchyAppliedElements.map(pair => ({
+        const finalElements = resolvedElements.map(pair => ({
             id: pair.id,
             bundle: this.elementResolver.effect(pair.bundle, effectContext),
         }));
