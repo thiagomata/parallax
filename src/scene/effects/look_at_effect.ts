@@ -4,7 +4,7 @@ import {
     type EffectBundle,
     type ResolvedBaseVisual,
     type ResolutionContext,
-    type Vector3,
+    type Rotation3,
 } from "../types.ts";
 
 export interface LookAtEffectConfig extends BaseModifierSettings {
@@ -52,7 +52,7 @@ export const LookAtDefaultConfig: LookAtEffectConfig = {
 function lookAtElement(
     context: ResolutionContext,
     settings: LookAtEffectConfig,
-    rotate: Vector3,
+    rotate: Rotation3,
     current: ResolvedBaseVisual
 ) {
     const previousResolved = context.previousResolved;
@@ -75,9 +75,9 @@ function lookAtElement(
     const dy = targetElement.position.y - current.position.y;
     const dz = targetElement.position.z - current.position.z;
 
-    let rotateX = rotate.x;
-    let rotateY = rotate.y;
-    let rotateZ = rotate.z;
+    let rotateX = rotate.pitch;
+    let rotateY = rotate.yaw;
+    let rotateZ = rotate.roll;
 
     // Calculate Angles (Atan2 is your best friend here)
     if (settings.axis?.y) {
@@ -93,15 +93,15 @@ function lookAtElement(
 
     // Copy the target Z rotation
     if (settings.axis?.z && targetElement.rotate) {
-        rotateZ += targetElement.rotate.z;
+        rotateZ += targetElement.rotate.roll;
     }
 
     return {
         ...current,
         rotate: {
-            x: rotateX,
-            y: rotateY,
-            z: rotateZ,
+            pitch: rotateX,
+            yaw: rotateY,
+            roll: rotateZ,
         }
     }
 }
@@ -112,9 +112,9 @@ export const LookAtEffect: EffectBundle<'look_at', LookAtEffectConfig> = {
     defaults: LookAtDefaultConfig,
     apply(current: ResolvedBaseVisual, context: ResolutionContext, settings: LookAtEffectConfig): ResolvedBaseVisual {
         const rotate = {
-            x: current.rotate?.x ?? 0,
-            y: current.rotate?.y ?? 0,
-            z: current.rotate?.z ?? 0,
+            pitch: current.rotate?.pitch ?? 0,
+            yaw: current.rotate?.yaw ?? 0,
+            roll: current.rotate?.roll ?? 0,
         };
 
         if (settings.lookAt == 'CAMERA') {

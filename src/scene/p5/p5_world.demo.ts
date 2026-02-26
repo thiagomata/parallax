@@ -57,9 +57,9 @@ new p5((p: p5) => {
             id: 'mid',
             width: (ctx: ResolutionContext) => (Math.cos(2 * Math.PI * ctx.playback.progress) * 50) + 100,
             rotate: (ctx: ResolutionContext) => ({
-                x: 0,
-                y: 0,
-                z: ctx.playback.progress * 2 * Math.PI
+                pitch: 0,
+                yaw: 0,
+                roll: ctx.playback.progress * 2 * Math.PI
             }),
             position: (ctx: ResolutionContext): Vector3 => ({
                 x: 0,

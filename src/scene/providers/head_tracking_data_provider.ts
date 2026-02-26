@@ -3,10 +3,27 @@ import type { DataProviderBundle, FaceProvider, Vector3 } from "../types.ts";
 import { MediaPipeFaceProvider } from "../drivers/mediapipe/face_provider.ts";
 
 export interface FaceWorldData {
+    // World coordinates (transformed)
     nose: Vector3;
     leftEye: Vector3;
     rightEye: Vector3;
     midpoint: Vector3;
+    boundsLeft: Vector3;
+    boundsRight: Vector3;
+    boundsTop: Vector3;
+    boundsBottom: Vector3;
+
+    // Raw normalized coordinates (0-1)
+    noseRaw: Vector3;
+    leftEyeRaw: Vector3;
+    rightEyeRaw: Vector3;
+    midpointRaw: Vector3;
+    boundsLeftRaw: Vector3;
+    boundsRightRaw: Vector3;
+    boundsTopRaw: Vector3;
+    boundsBottomRaw: Vector3;
+
+    // Rotation (radians) - YXZ
     scale: number;
     stick: { yaw: number; pitch: number; roll: number };
 }
@@ -52,32 +69,58 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         const face = this.provider.getFace();
         if (!face) return this.lastFace;
 
-        const leftEye = this.toWorld(face.leftEye);
-        const rightEye = this.toWorld(face.rightEye);
-        const nose = this.toWorld(face.nose);
-        const midpoint = this.toWorld({
-            x: (face.leftEye.x + face.rightEye.x) / 2,
-            y: (face.leftEye.y + face.rightEye.y) / 2,
-            z: (face.leftEye.z + face.rightEye.z) / 2
-        });
+        const noseRaw = face.nose;
+        const leftEyeRaw = face.leftEye;
+        const rightEyeRaw = face.rightEye;
 
-        const dx = face.rightEye.x - face.leftEye.x;
-        const dy = face.rightEye.y - face.leftEye.y;
+        const boundsLeftRaw = face.bounds.left;
+        const boundsRightRaw = face.bounds.right;
+        const boundsTopRaw = face.bounds.top;
+        const boundsBottomRaw = face.bounds.bottom;
+
+        const midpointRaw = {
+            x: (leftEyeRaw.x + rightEyeRaw.x) / 2,
+            y: (leftEyeRaw.y + rightEyeRaw.y) / 2,
+            z: (leftEyeRaw.z + rightEyeRaw.z) / 2
+        };
+
+        const leftEye = this.toWorld(leftEyeRaw);
+        const rightEye = this.toWorld(rightEyeRaw);
+        const nose = this.toWorld(noseRaw);
+        const midpoint = this.toWorld(midpointRaw);
+
+        const boundsLeft = this.toWorld(boundsLeftRaw);
+        const boundsRight = this.toWorld(boundsRightRaw);
+        const boundsTop = this.toWorld(boundsTopRaw);
+        const boundsBottom = this.toWorld(boundsBottomRaw);
+
+        // --- Rotation estimation (simple geometric) ---
+        const boxMidX = (boundsLeftRaw.x + boundsRightRaw.x) / 2;
+        const boxMidY = (boundsTopRaw.y + boundsBottomRaw.y) / 2;
+
+        // Yaw: nose deviation from box center
+        const yaw = Math.asin(Math.max(-1, Math.min(1, (noseRaw.x - boxMidX) * 2)));
+
+        // Pitch: nose deviation from box center vertically
+        const pitch = Math.asin(Math.max(-1, Math.min(1, (noseRaw.y - boxMidY) * 2)));
+
+        // Roll: eye line slope
+        const dy = rightEyeRaw.y - leftEyeRaw.y;
+        const dx = rightEyeRaw.x - leftEyeRaw.x;
+        const roll = Math.atan2(dy, dx);
+
+        const scale = Math.hypot(
+            (boundsRightRaw.x - boundsLeftRaw.x) * this.width,
+            (boundsBottomRaw.y - boundsTopRaw.y) * this.height
+        );
 
         this.lastFace = {
-            nose,
-            leftEye,
-            rightEye,
-            midpoint,
-            scale: Math.hypot(
-                (face.bounds.right.x - face.bounds.left.x) * this.width,
-                (face.bounds.bottom.y - face.bounds.top.y) * this.height
-            ),
-            stick: {
-                yaw: (face.nose.x - ((face.leftEye.x + face.rightEye.x) / 2)) * 10,
-                pitch: face.nose.y - ((face.leftEye.y + face.rightEye.y) / 2),
-                roll: Math.atan2(dy, dx)
-            }
+            nose, leftEye, rightEye, midpoint,
+            boundsLeft, boundsRight, boundsTop, boundsBottom,
+            noseRaw, leftEyeRaw, rightEyeRaw, midpointRaw,
+            boundsLeftRaw, boundsRightRaw, boundsTopRaw, boundsBottomRaw,
+            scale,
+            stick: { yaw, pitch, roll }
         };
 
         return this.lastFace;

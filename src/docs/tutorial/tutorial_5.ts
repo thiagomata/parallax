@@ -43,9 +43,9 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             position: {x: 0, y: 0, z: -100},
             strokeWidth: 0,
             rotate: (context: ResolutionContext) => ({
-                x: 0,
-                y: Math.PI * 2 * context.playback.progress,
-                z: Math.PI * 2 * context.playback.progress,
+                pitch: 0,
+                yaw: Math.PI * 2 * context.playback.progress,
+                roll: Math.PI * 2 * context.playback.progress,
             }),
             texture: {
                 path: '/parallax/img/red.png',

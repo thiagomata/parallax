@@ -52,9 +52,9 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             
             // Dynamic Rotation: Continuous rotation
             rotate: (context: ResolutionContext) => ({
-                x: -0.25 * Math.PI,
-                y: 0.25 * Math.PI + Math.PI * 2 * context.playback.progress,
-                z: 0
+                pitch: -0.25 * Math.PI,
+                yaw: 0.25 * Math.PI + Math.PI * 2 * context.playback.progress,
+                roll: 0
             }),
             
             position: {x: 0, y: 0, z: 0},

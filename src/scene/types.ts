@@ -31,6 +31,17 @@ export const LOOK_MODES = {
 export type LookMode = typeof LOOK_MODES[keyof typeof LOOK_MODES];
 
 /**
+ * Element look mode - how element rotation is determined.
+ * - 'ANGLE': Rotation is applied from rotate vector (pitch/yaw/roll)
+ * - 'LOOK_AT': Element rotates to face a target point
+ */
+export const ELEMENT_LOOK_MODES = {
+    ANGLE: 'ANGLE',
+    LOOK_AT: 'LOOK_AT',
+} as const;
+export type ElementLookMode = typeof ELEMENT_LOOK_MODES[keyof typeof ELEMENT_LOOK_MODES];
+
+/**
  * Modifiers are static refs in the blueprint
  */
 export interface BaseProjection {
@@ -668,6 +679,19 @@ export type ReservedElementId =
 export type ElementId<T extends string> = T extends ReservedElementId ? never : T;
 
 /**
+ * Rotation order for elements - controls the order of applying yaw/pitch/roll
+ */
+export const ROTATION_ORDERS = {
+    XYZ: 'XYZ',
+    YXZ: 'YXZ',
+    ZXY: 'ZXY',
+    XZY: 'XZY',
+    YZX: 'YZX',
+    ZYX: 'ZYX',
+} as const;
+export type RotationOrder = typeof ROTATION_ORDERS[keyof typeof ROTATION_ORDERS];
+
+/**
  * ELEMENT DEFINITIONS
  */
 export interface ResolvedBaseVisual<TID extends string = string> {
@@ -686,8 +710,14 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     readonly strokeColor?: ColorRGBA;
     readonly strokeWidth?: number;
 
-    /** Rotation in radians (0 to 2π for full rotation). Uses x=pitch, y=yaw, z=roll. */
-    readonly rotate?: Vector3;
+    /** Rotation in radians (0 to 2π for full rotation). */
+    readonly rotate?: Rotation3;
+
+    /** Look mode - how rotation is determined (ANGLE or LOOK_AT) */
+    readonly lookMode?: ElementLookMode;
+
+    /** Target position to look at when lookMode is LOOK_AT */
+    readonly lookAt?: Vector3;
 
     readonly texture?: TextureRef;
     readonly video?: unknown;

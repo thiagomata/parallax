@@ -76,9 +76,9 @@ export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any,
             radius: 10,
             height: 100,
             rotate: (ctx: ResolutionContext) => ({
-                x: 0,
-                y: ctx.playback.progress * 2 * Math.PI,
-                z: ctx.playback.progress * 2 * Math.PI,
+                pitch: 0,
+                yaw: ctx.playback.progress * 2 * Math.PI,
+                roll: ctx.playback.progress * 2 * Math.PI,
             }),
             position: {
                 x: 0,

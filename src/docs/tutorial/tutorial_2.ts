@@ -49,9 +49,9 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
             // Dynamic Rotation: Full 360 degree spin per loop
             rotate: (context: ResolutionContext) => ({
-                x: 0,
-                y: Math.PI * 2 * context.playback.progress,
-                z: Math.PI * 2 * context.playback.progress,
+                pitch: 0,
+                yaw: Math.PI * 2 * context.playback.progress,
+                roll: Math.PI * 2 * context.playback.progress,
             }),
 
             // Dynamic Color: Shift blue channel based on progress

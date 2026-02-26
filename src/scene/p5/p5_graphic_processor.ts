@@ -19,8 +19,11 @@ import {
     type ResolvedTorus,
     type ResolvedSceneState,
     type Vector3,
-    ELEMENT_TYPES
+    type Rotation3,
+    ELEMENT_TYPES,
+    ELEMENT_LOOK_MODES,
 } from "../types.ts";
+import { lookAtRotation } from "../utils/projection_utils.ts";
 import type {P5Bundler} from "./p5_asset_loader.ts";
 import p5 from "p5";
 
@@ -254,8 +257,16 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         // Push transform, apply local rotation and translation, render self, render children, pop
         this.p.push();
         
-        // Apply local rotation
-        this.rotate(node.props.rotate);
+        // Handle lookMode - compute rotation from lookAt if needed
+        let rotation = node.props.rotate;
+        
+        if (node.props.lookMode === ELEMENT_LOOK_MODES.LOOK_AT && node.props.lookAt) {
+            const elementPos = node.props.position ?? { x: 0, y: 0, z: 0 };
+            rotation = lookAtRotation(elementPos, node.props.lookAt);
+        }
+        
+        // Apply local rotation (always YXZ order)
+        this.rotate(rotation);
         
         // Apply local translation
         this.translate(node.props.position);
@@ -307,14 +318,14 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     }
 
     /**
-     * Ensure rotate YXZ from the Rotation Vector
-     * @param rotate
-     * @private
+     * Apply rotation (YXZ order: yaw, pitch, roll)
      */
-    private rotate(rotate: Vector3 | undefined) {
+    private rotate(rotate: Rotation3 | undefined) {
         if (!rotate) return;
-        this.p.rotateY(rotate.y);
-        this.p.rotateX(rotate.x);
-        this.p.rotateZ(rotate.z);
+        
+        // YXZ order: yaw (Y), pitch (X), roll (Z)
+        this.p.rotateY(rotate.yaw);
+        this.p.rotateX(rotate.pitch);
+        this.p.rotateZ(rotate.roll);
     }
 }

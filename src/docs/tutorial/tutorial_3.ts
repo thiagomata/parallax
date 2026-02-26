@@ -5,7 +5,7 @@ import {SceneClock} from "../../scene/scene_clock.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {
     DEFAULT_SCENE_SETTINGS,
-    ELEMENT_TYPES, type ResolutionContext, type Vector3,
+    ELEMENT_TYPES, type ResolutionContext, type Vector3, type Rotation3,
 } from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
@@ -49,10 +49,10 @@ export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             }),
 
             // Rotation can also follow the orbit path
-            rotate: (context: ResolutionContext): Vector3 => ({
-                x: context.playback.progress * Math.PI,
-                y: context.playback.progress * Math.PI * 2,
-                z: 0,
+            rotate: (context: ResolutionContext): Rotation3 => ({
+                pitch: context.playback.progress * Math.PI,
+                yaw: context.playback.progress * Math.PI * 2,
+                roll: 0,
             }),
 
             fillColor: {red: 0, green: 255, blue: 150, alpha: 1.0},
