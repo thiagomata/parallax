@@ -209,15 +209,19 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             position: (ctx) => {
                 const face = ctx.dataProviders['headTracker'];
                 if (!face) return { x: 0, y: 0, z: 0 };
-                return { x: face.midpoint.x, y: face.midpoint.y, z: face.midpoint.z };
+                return { 
+                    x: face.midpoint.x * 3, 
+                    y: face.midpoint.y * 3, 
+                    z: face.midpoint.z 
+                };
             },
             rotate: (ctx) => {
                 const face = ctx.dataProviders['headTracker'];
                 if (!face) return { x: 0, y: 0, z: 0 };
                 return {
                     y: face.stick.yaw,
-                    x: face.stick.pitch,
-                    z: face.stick.roll
+                    x: face.stick.pitch * -7 - 2.8,
+                    z: -face.stick.roll,
                 };
             },
 

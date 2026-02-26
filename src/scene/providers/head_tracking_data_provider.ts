@@ -74,7 +74,7 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
                 (face.bounds.bottom.y - face.bounds.top.y) * this.height
             ),
             stick: {
-                yaw: face.nose.x - ((face.leftEye.x + face.rightEye.x) / 2),
+                yaw: (face.nose.x - ((face.leftEye.x + face.rightEye.x) / 2)) * 10,
                 pitch: face.nose.y - ((face.leftEye.y + face.rightEye.y) / 2),
                 roll: Math.atan2(dy, dx)
             }
