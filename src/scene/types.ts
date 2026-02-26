@@ -7,12 +7,15 @@ export interface Vector3 {
     readonly z: number;
 }
 
+/**
+ * Rotation angles in radians (0 to 2π for full rotation).
+ */
 export interface Rotation3 {
-    /* rotation around X axis */
+    /** Rotation around X axis in radians (pitch). 0 = level, π = upside down. */
     pitch: number;
-    /* rotation around Y axis */
+    /** Rotation around Y axis in radians (yaw). 0 = forward, π = behind. */
     yaw: number;
-    /* rotation around Z axis */
+    /** Rotation around Z axis in radians (roll). 0 = level, π = sideways. */
     roll: number;
 }
 
@@ -530,6 +533,16 @@ export interface AssetLoader<TBundle extends GraphicsBundle> {
  */
 export type ColorRGBA = { red: number; green: number; blue: number; alpha?: number; }
 
+/**
+ * Tree node for hierarchical element rendering.
+ * Contains element data and its children.
+ */
+export interface RenderTreeNode {
+    props: ResolvedBaseVisual;
+    assets: ElementAssets<any>;
+    children: RenderTreeNode[];
+}
+
 export interface GraphicProcessor<TBundle extends GraphicsBundle> {
     readonly loader: AssetLoader<TBundle>;
 
@@ -556,6 +569,9 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
     drawTorus(resolved: ResolvedTorus, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
     drawFloor(resolved: ResolvedFloor, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
     drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+
+    /* --- Tree Rendering --- */
+    drawTree(node: RenderTreeNode | null, state: ResolvedSceneState): void;
 
     /* --- Act 3: Spatial & Temporal Context --- */
     dist(v1: Vector3, v2: Vector3): number;
@@ -657,12 +673,28 @@ export type ElementId<T extends string> = T extends ReservedElementId ? never : 
 export interface ResolvedBaseVisual<TID extends string = string> {
     readonly id: ElementId<TID>;
     readonly type: typeof ELEMENT_TYPES[keyof typeof ELEMENT_TYPES];
+
+    /** Target element id for hierarchy. Child position/rotation becomes relative to parent element. */
+    readonly targetId?: string;
+
+    /** Local position - relative to parent (if targetId set) or world origin */
     readonly position: Vector3;
+
     readonly alpha?: number;
+
     readonly fillColor?: ColorRGBA;
     readonly strokeColor?: ColorRGBA;
     readonly strokeWidth?: number;
+
+    /** Rotation in radians (0 to 2π for full rotation). Uses x=pitch, y=yaw, z=roll. */
     readonly rotate?: Vector3;
+
+    /** World position - computed from hierarchy. For root elements, equals position. */
+    readonly worldPosition?: Vector3;
+
+    /** World rotation - computed from hierarchy. For root elements, equals rotate. */
+    readonly worldRotation?: Vector3;
+
     readonly texture?: TextureRef;
     readonly video?: unknown;
     readonly font?: FontRef;

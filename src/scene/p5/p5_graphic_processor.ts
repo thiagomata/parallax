@@ -4,6 +4,7 @@ import {
     type ElementAssets,
     type GraphicProcessor,
     type ProjectionMatrix,
+    type RenderTreeNode,
     type ResolvedBaseVisual,
     type ResolvedBox,
     type ResolvedCone,
@@ -17,7 +18,8 @@ import {
     type ResolvedText,
     type ResolvedTorus,
     type ResolvedSceneState,
-    type Vector3
+    type Vector3,
+    ELEMENT_TYPES
 } from "../types.ts";
 import type {P5Bundler} from "./p5_asset_loader.ts";
 import p5 from "p5";
@@ -174,8 +176,8 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     // --- Act 4: Orchestration Helpers ---
 
     private applyContext(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
-        this.translate(props.position);
-        this.rotate(props.rotate);
+            // this.translate(props.position);
+            // this.rotate(props.rotate);
         this.applyVisuals(props, assets, state);
     }
 
@@ -242,6 +244,66 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         const finalAlphaUnsigned8Bits = this.to8Bit(finalAlphaUnitInterval);
         this.p.strokeWeight(weight);
         this.p.stroke(color.red, color.green, color.blue, finalAlphaUnsigned8Bits);
+    }
+
+    // --- Tree Rendering ---
+
+    public drawTree(node: RenderTreeNode | null, state: ResolvedSceneState): void {
+        if (!node) return;
+
+        // Push transform, apply local rotation and translation, render self, render children, pop
+        this.p.push();
+        
+        // Apply local rotation
+        this.rotate(node.props.rotate);
+        
+        // Apply local translation
+        this.translate(node.props.position);
+        
+        // Render this element
+        this.renderElement(node.props, node.assets, state);
+        
+        // Render children
+        for (const child of node.children) {
+            this.drawTree(child, state);
+        }
+        
+        this.p.pop();
+    }
+
+    private renderElement(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
+        switch (props.type) {
+            case ELEMENT_TYPES.BOX:
+                this.drawBox(props as ResolvedBox, assets, state);
+                break;
+            case ELEMENT_TYPES.PANEL:
+                this.drawPanel(props as ResolvedPanel, assets, state);
+                break;
+            case ELEMENT_TYPES.SPHERE:
+                this.drawSphere(props as ResolvedSphere, assets, state);
+                break;
+            case ELEMENT_TYPES.CONE:
+                this.drawCone(props as ResolvedCone, assets, state);
+                break;
+            case ELEMENT_TYPES.PYRAMID:
+                this.drawPyramid(props as ResolvedPyramid, assets, state);
+                break;
+            case ELEMENT_TYPES.CYLINDER:
+                this.drawCylinder(props as ResolvedCylinder, assets, state);
+                break;
+            case ELEMENT_TYPES.TORUS:
+                this.drawTorus(props as ResolvedTorus, assets, state);
+                break;
+            case ELEMENT_TYPES.ELLIPTICAL:
+                this.drawElliptical(props as ResolvedElliptical, assets, state);
+                break;
+            case ELEMENT_TYPES.FLOOR:
+                this.drawFloor(props as ResolvedFloor, assets, state);
+                break;
+            case ELEMENT_TYPES.TEXT:
+                this.drawText(props as ResolvedText, assets, state);
+                break;
+        }
     }
 
     /**

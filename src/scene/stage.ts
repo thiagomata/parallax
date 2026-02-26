@@ -25,6 +25,7 @@ import {ElementResolver} from "./resolver/element_resolver.ts";
 import {ProjectionResolver} from "./projection/projection_resolver.ts";
 import {ProjectionAssetRegistry} from "./registry/projection_asset_registry.ts";
 import {ElementAssetRegistry} from "./registry/element_asset_registry.ts";
+import type { RenderTreeNode } from "./types.ts";
 
 export class Stage<
     TGraphicBundle extends GraphicsBundle,
@@ -283,13 +284,27 @@ export class Stage<
         }));
 
         // ==========================================================
-        // STEP 4: Apply Element Modifiers
-        // (Need to implement - for now, elements are resolved without modifiers)
+        // STEP 4: Apply Element Hierarchy Transform
         // ==========================================================
+        
+        // Create element pool for hierarchy lookups
+        const elementPool: Record<string, ResolvedElement> = {};
+        for (const pair of resolvedElements) {
+            elementPool[pair.id] = pair.bundle.resolved;
+        }
+
+        // Apply hierarchy transform to each element (child positions relative to parent)
+        const hierarchyAppliedElements = resolvedElements.map(pair => ({
+            ...pair,
+            bundle: {
+                ...pair.bundle,
+                resolved: this.elementResolver.applyHierarchyTransform(pair.bundle.resolved, elementPool),
+            }
+        }));
 
         // Create intermediate state with resolved elements + projections
         const resolvedMapElements = new Map(
-            resolvedElements.map(pair => [pair.id, pair.bundle.resolved])
+            hierarchyAppliedElements.map(pair => [pair.id, pair.bundle.resolved])
         );
 
         // Create context for effects - has both pools
@@ -305,7 +320,7 @@ export class Stage<
         // ==========================================================
         // STEP 5: Apply Effects to Elements
         // ==========================================================
-        const finalElements = resolvedElements.map(pair => ({
+        const finalElements = hierarchyAppliedElements.map(pair => ({
             id: pair.id,
             bundle: this.elementResolver.effect(pair.bundle, effectContext),
         }));
@@ -323,14 +338,64 @@ export class Stage<
             projections: new Map(Object.entries(globalProjectionPool)),
         };
 
-        // Render elements
-        finalElements.map(pair => {
-            this.elementResolver.render(pair.bundle, graphicProcessor, finalState);
-        });
+        // ==========================================================
+        // STEP 6: Build Element Tree and Render Hierarchically
+        // ==========================================================
+        
+        // Build tree structure for hierarchical rendering
+        const renderTree = this.buildRenderTree(finalElements);
+
+        // Render using tree (push/pop for each node, using LOCAL position/rotation)
+        graphicProcessor.drawTree(renderTree, finalState);
 
         this.lastFrameState = finalState;
 
         return finalState;
+    }
+
+    /**
+     * Builds a render tree from flat list based on targetId relationships.
+     */
+    private buildRenderTree(elements: Array<{ id: string; bundle: BundleResolvedElement<ResolvedElement, TGraphicBundle> }>): RenderTreeNode | null {
+        const nodeMap = new Map<string, RenderTreeNode>();
+
+        // First pass: create nodes for all elements
+        for (const pair of elements) {
+            nodeMap.set(pair.id, { 
+                props: pair.bundle.resolved,
+                assets: pair.bundle.assets,
+                children: [] 
+            });
+        }
+
+        // Second pass: link children to parents, collect roots
+        const roots: RenderTreeNode[] = [];
+        for (const [_id, node] of nodeMap) {
+            const targetId = (node.props as any).targetId;
+            if (targetId && nodeMap.has(targetId)) {
+                const parentNode = nodeMap.get(targetId);
+                if (parentNode) {
+                    parentNode.children.push(node);
+                }
+            } else {
+                // No parent or parent not found - it's a root
+                roots.push(node);
+            }
+        }
+
+        // If only one root, return it; otherwise wrap in a container
+        if (roots.length === 1) {
+            return roots[0];
+        } else if (roots.length > 1) {
+            // Multiple roots - create a virtual root
+            return {
+                props: { id: '__root__', type: 'box' as any, position: { x: 0, y: 0, z: 0 } },
+                assets: { texture: { status: 'READY', value: null }, video: null },
+                children: roots
+            };
+        }
+
+        return null;
     }
 
     private getScreenProjection(

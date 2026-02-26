@@ -21,7 +21,12 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
-        debug: false
+        debug: false,
+        playback: {
+            ...DEFAULT_SCENE_SETTINGS.playback,
+            duration: 10000,
+            isLoop: true
+        },
     });
 
     // Camera Logic: Use injected or create default
@@ -160,44 +165,44 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
         // Face tracking elements - spheres for eyes and nose
         // Position them closer to camera (-50) so they pop out from the box
-        world.addSphere({
-            type: ELEMENT_TYPES.SPHERE,
-            id: 'nose',
-            radius: 30,
-            position: (ctx) => {
-                const face = ctx.dataProviders['headTracker'];
-                if (!face) return { x: 0, y: 0, z: -50 };
-                return { x: face.nose.x, y: face.nose.y, z: face.nose.z - 50 };
-            },
-            fillColor: (ctx) => {
-                const face = ctx.dataProviders['headTracker'];
-                return face ? { red: 0, green: 255, blue: 0 } : { red: 100, green: 100, blue: 100 };
-            },
-        });
-
-        world.addSphere({
-            type: ELEMENT_TYPES.SPHERE,
-            id: 'leftEye',
-            radius: 40,
-            position: (ctx) => {
-                const face = ctx.dataProviders['headTracker'];
-                if (!face) return { x: -30, y: 0, z: -50 };
-                return { x: face.leftEye.x, y: face.leftEye.y, z: face.leftEye.z - 50 };
-            },
-            fillColor: { red: 255, green: 0, blue: 0 },
-        });
-
-        world.addSphere({
-            type: ELEMENT_TYPES.SPHERE,
-            id: 'rightEye',
-            radius: 40,
-            position: (ctx) => {
-                const face = ctx.dataProviders['headTracker'];
-                if (!face) return { x: 30, y: 0, z: -50 };
-                return { x: face.rightEye.x, y: face.rightEye.y, z: face.rightEye.z - 50 };
-            },
-            fillColor: { red: 0, green: 0, blue: 255 },
-        });
+        // world.addSphere({
+        //     type: ELEMENT_TYPES.SPHERE,
+        //     id: 'nose',
+        //     radius: 30,
+        //     position: (ctx) => {
+        //         const face = ctx.dataProviders['headTracker'];
+        //         if (!face) return { x: 0, y: 0, z: -50 };
+        //         return { x: face.nose.x, y: face.nose.y, z: face.nose.z - 50 };
+        //     },
+        //     fillColor: (ctx) => {
+        //         const face = ctx.dataProviders['headTracker'];
+        //         return face ? { red: 0, green: 255, blue: 0 } : { red: 100, green: 100, blue: 100 };
+        //     },
+        // });
+        //
+        // world.addSphere({
+        //     type: ELEMENT_TYPES.SPHERE,
+        //     id: 'leftEye',
+        //     radius: 40,
+        //     position: (ctx) => {
+        //         const face = ctx.dataProviders['headTracker'];
+        //         if (!face) return { x: -30, y: 0, z: -50 };
+        //         return { x: face.leftEye.x, y: face.leftEye.y, z: face.leftEye.z - 50 };
+        //     },
+        //     fillColor: { red: 255, green: 0, blue: 0 },
+        // });
+        //
+        // world.addSphere({
+        //     type: ELEMENT_TYPES.SPHERE,
+        //     id: 'rightEye',
+        //     radius: 40,
+        //     position: (ctx) => {
+        //         const face = ctx.dataProviders['headTracker'];
+        //         if (!face) return { x: 30, y: 0, z: -50 };
+        //         return { x: face.rightEye.x, y: face.rightEye.y, z: face.rightEye.z - 50 };
+        //     },
+        //     fillColor: { red: 0, green: 0, blue: 255 },
+        // });
 
         // Full face box
         world.addBox({
@@ -207,39 +212,68 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             height: 180,
             depth: 100,
             position: (ctx) => {
-                const face = ctx.dataProviders['headTracker'];
-                if (!face) return { x: 0, y: 0, z: 0 };
-                return { 
-                    x: face.midpoint.x * 3, 
-                    y: face.midpoint.y * 3, 
-                    z: face.midpoint.z 
-                };
-            },
-            rotate: (ctx) => {
-                const face = ctx.dataProviders['headTracker'];
-                if (!face) return { x: 0, y: 0, z: 0 };
                 return {
-                    y: face.stick.yaw,
-                    x: face.stick.pitch * -7 - 2.8,
-                    z: -face.stick.roll,
-                };
+                    x: ctx.playback.progress * 100,
+                    y: -ctx.playback.progress * 100,
+                    z: -ctx.playback.progress * 100,
+                }
             },
+            rotate: {
+                x: 0,
+                y: (ctx) => ctx.playback.progress * Math.PI * 2,
+                z: 0,
+            },
+            // position: (ctx) => {
+            //     const face = ctx.dataProviders['headTracker'];
+            //     if (!face) return { x: 0, y: 0, z: 0 };
+            //     return {
+            //         x: face.midpoint.x * 3,
+            //         y: face.midpoint.y * 3,
+            //         z: face.midpoint.z
+            //     };
+            // },
+            // rotate: (ctx) => {
+            //     const face = ctx.dataProviders['headTracker'];
+            //     if (!face) return { x: 0, y: 0, z: 0 };
+            //     return {
+            //         y: face.stick.yaw,
+            //         x: face.stick.pitch * -7 - 2.8,
+            //         z: -face.stick.roll,
+            //     };
+            // },
 
-            strokeColor: { red: 255, green: 255, blue: 255 },
+            fillColor: { red: 255, green: 255, blue: 255 },
             strokeWidth: 2,
+            strokeColor: {red:255, green: 0, blue: 0},
+        });
+
+        // Nose sphere - child of faceBox
+        world.addBox({
+            type: ELEMENT_TYPES.BOX,
+            id: 'nose',
+            targetId: 'faceBox',
+            width: 50,
+            position: { x: 0, y: 0, z: 50 },
+            // rotate: {
+            //     x: 0,
+            //     y: (ctx) => -ctx.playback.progress * Math.PI * 2,
+            //     z: 0,
+            // },
+            fillColor: { red: 255, green: 0, blue: 255 },
+            strokeWidth: 1,
         });
 
         // Video panel - use exact video dimensions
-        const videoEl = faceDataProvider.getVideo();
-        world.addPanel({
-            type: ELEMENT_TYPES.PANEL,
-            id: 'videoPanel',
-            width: 640,
-            height: 480,
-            position: { x: 0, y: 0, z: 0 },
-            video: videoEl,
-            fillColor: videoEl ? undefined : { red: 50, green: 50, blue: 50 },
-        });
+        // const videoEl = faceDataProvider.getVideo();
+        // world.addPanel({
+        //     type: ELEMENT_TYPES.PANEL,
+        //     id: 'videoPanel',
+        //     width: 640,
+        //     height: 480,
+        //     position: { x: 0, y: 0, z: 0 },
+        //     video: videoEl,
+        //     fillColor: videoEl ? undefined : { red: 50, green: 50, blue: 50 },
+        // });
     };
 
     p.draw = () => {
