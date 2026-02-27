@@ -69,40 +69,30 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         const face = this.provider.getFace();
         if (!face) return this.lastFace;
 
+        // Raw landmarks
         const noseRaw = face.nose;
         const leftEyeRaw = face.leftEye;
         const rightEyeRaw = face.rightEye;
-
         const boundsLeftRaw = face.bounds.left;
         const boundsRightRaw = face.bounds.right;
         const boundsTopRaw = face.bounds.top;
         const boundsBottomRaw = face.bounds.bottom;
 
-        const midpointRaw = {
+        // Midpoints
+        const midpointRaw: Vector3 = {
             x: (leftEyeRaw.x + rightEyeRaw.x) / 2,
             y: (leftEyeRaw.y + rightEyeRaw.y) / 2,
-            z: (leftEyeRaw.z + rightEyeRaw.z) / 2
+            z: (leftEyeRaw.z + rightEyeRaw.z) / 2,
         };
 
-        const leftEye = this.toWorld(leftEyeRaw);
-        const rightEye = this.toWorld(rightEyeRaw);
-        const nose = this.toWorld(noseRaw);
-        const midpoint = this.toWorld(midpointRaw);
-
-        const boundsLeft = this.toWorld(boundsLeftRaw);
-        const boundsRight = this.toWorld(boundsRightRaw);
-        const boundsTop = this.toWorld(boundsTopRaw);
-        const boundsBottom = this.toWorld(boundsBottomRaw);
-
-        // --- Rotation estimation (simple geometric) ---
         const boxMidX = (boundsLeftRaw.x + boundsRightRaw.x) / 2;
         const boxMidY = (boundsTopRaw.y + boundsBottomRaw.y) / 2;
 
-        // Yaw: nose deviation from box center
-        const yaw = Math.asin(Math.max(-1, Math.min(1, (noseRaw.x - boxMidX) * 2)));
+        // Yaw: nose offset from box center
+        const yaw = Math.asin(Math.max(-1, Math.min(1, noseRaw.x - boxMidX)));
 
-        // Pitch: nose deviation from box center vertically
-        const pitch = Math.asin(Math.max(-1, Math.min(1, (noseRaw.y - boxMidY) * 2)));
+        // Pitch: nose offset from box center
+        const pitch = Math.asin(Math.max(-1, Math.min(1, noseRaw.y - boxMidY)));
 
         // Roll: eye line slope
         const dy = rightEyeRaw.y - leftEyeRaw.y;
@@ -114,13 +104,35 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
             (boundsBottomRaw.y - boundsTopRaw.y) * this.height
         );
 
+        // Transform to world coordinates
+        const nose = this.toWorld(noseRaw);
+        const leftEye = this.toWorld(leftEyeRaw);
+        const rightEye = this.toWorld(rightEyeRaw);
+        const midpoint = this.toWorld(midpointRaw);
+        const boundsLeft = this.toWorld(boundsLeftRaw);
+        const boundsRight = this.toWorld(boundsRightRaw);
+        const boundsTop = this.toWorld(boundsTopRaw);
+        const boundsBottom = this.toWorld(boundsBottomRaw);
+
         this.lastFace = {
-            nose, leftEye, rightEye, midpoint,
-            boundsLeft, boundsRight, boundsTop, boundsBottom,
-            noseRaw, leftEyeRaw, rightEyeRaw, midpointRaw,
-            boundsLeftRaw, boundsRightRaw, boundsTopRaw, boundsBottomRaw,
+            nose,
+            leftEye,
+            rightEye,
+            midpoint,
+            boundsLeft,
+            boundsRight,
+            boundsTop,
+            boundsBottom,
+            noseRaw,
+            leftEyeRaw,
+            rightEyeRaw,
+            midpointRaw,
+            boundsLeftRaw,
+            boundsRightRaw,
+            boundsTopRaw,
+            boundsBottomRaw,
             scale,
-            stick: { yaw, pitch, roll }
+            stick: { yaw, pitch, roll },
         };
 
         return this.lastFace;
@@ -130,7 +142,7 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         return {
             x: (point.x - 0.5) * this.width,
             y: (point.y - 0.5) * this.height,
-            z: point.z * this.depth
+            z: point.z * this.depth,
         };
     }
 }
