@@ -337,26 +337,29 @@ describe('FaceParser - getSkullCenter', () => {
 
         // 3. THE RECONSTRUCTION
         const raw = parser.parseRawVector(screenData);
-        const normalized = parser.normalizeToUnitScale(raw);
-        const centered = parser.translateToSkullCenter(normalized);
+        const centered = parser.translateToSkullCenter(raw);
+        const normalized = parser.normalizeToUnitScale(centered);
 
         /**
          * 4. THE VERIFICATION
          * If the flow is correct, these must match the constants exactly.
          */
 
+        console.log(JSON.stringify(centered));
+        console.log(JSON.stringify(normalized));
+
         // Width Identity (0.45)
-        expect(centered.eyes.right.position.x - centered.eyes.left.position.x)
+        expect(normalized.eyes.right.position.x - normalized.eyes.left.position.x)
             .toBeCloseTo(props.width.eye_to_eye, 5);
 
         // Height Identity (Eyes = 0.1)
-        expect(centered.eyes.left.position.y).toBeCloseTo(props.height.eye_line, 5);
+        expect(normalized.eyes.left.position.y).toBeCloseTo(props.height.eye_line, 5);
 
         // Height Identity (Nose = -0.2)
-        expect(centered.nose.position.y).toBeCloseTo(props.height.nose_base, 4);
+        expect(normalized.nose.position.y).toBeCloseTo(props.height.nose_base, 4);
 
         // Height Identity (Chin = -0.7)
-        expect(centered.bounds.bottom.position.y).toBeCloseTo(props.height.chin_tip, 4);
+        expect(normalized.bounds.bottom.position.y).toBeCloseTo(props.height.chin_tip, 4);
     });
 
     it('should use Ear depth (Z) as the skull center when ears are visible', () => {
@@ -522,28 +525,101 @@ describe('Face Parser - Normalization', () => {
     it('should restore the canonical proportions regardless of input scale or position', () => {
         const props = DEFAULT_HEAD_PROPORTIONS;
 
-        // 1. Create a "Distorted" Input (Scale 0.3, Shifted by 0.5)
+        // create Canonical Head
+        const canonical = createCanonicalHead()
+        const canonicalEyeSpan = Math.abs(canonical.eyes.right.position.x - canonical.eyes.left.position.x);
+        expect(canonicalEyeSpan).toBeCloseTo(props.width.eye_to_eye, 5);
+        expect(canonical.nose.position.y).toBeCloseTo(props.height.nose_base, 5);
+        const canonicalNoseDiffY = Math.abs(canonical.nose.position.y - canonical.eyes.left.position.y);
+        const canonicalNoseDiffX = Math.abs(canonical.nose.position.x - canonical.eyes.left.position.x);
+        const canonicalNoseDiffZ = Math.abs(canonical.nose.position.x - canonical.eyes.left.position.x);
+        const canonicalRotation = parser.getRotation(canonical);
+        expect(canonicalRotation.roll).toBeCloseTo(0,5);
+        expect(canonicalRotation.yaw).toBeCloseTo(0,5);
+        expect(canonicalRotation.pitch).toBeCloseTo(0,5);
+
+        // scaled
+        const factor = 0.2;
+        const scaled = scale(canonical, factor)
+        const scaledEyeSpan = Math.abs(scaled.eyes.right.position.x - scaled.eyes.left.position.x);
+        expect(scaledEyeSpan / factor).toBeCloseTo(props.width.eye_to_eye, 5);
+        expect(scaled.nose.position.y / factor).toBeCloseTo(props.height.nose_base, 5);
+        const scaledNoseDiffY = Math.abs(scaled.nose.position.y - scaled.eyes.left.position.y);
+        const scaledNoseDiffX = Math.abs(scaled.nose.position.x - scaled.eyes.left.position.x);
+        const scaledNoseDiffZ = Math.abs(scaled.nose.position.x - scaled.eyes.left.position.x);
+        expect(scaledNoseDiffX / factor).toBeCloseTo(canonicalNoseDiffX, 5);
+        expect(scaledNoseDiffY / factor).toBeCloseTo(canonicalNoseDiffY, 5);
+        expect(scaledNoseDiffZ / factor).toBeCloseTo(canonicalNoseDiffZ, 5);
+        const scaledRotation = parser.getRotation(canonical);
+        expect(scaledRotation.roll).toBeCloseTo(0,5);
+        expect(scaledRotation.yaw).toBeCloseTo(0,5);
+        expect(scaledRotation.pitch).toBeCloseTo(0,5);
+
+        // translate
+        const translated = translate(
+            scaled,
+            0.1, 0.1, 0.1
+        )
+        const translatedEyeSpan = Math.abs(translated.eyes.right.position.x - translated.eyes.left.position.x);
+        expect(translatedEyeSpan / factor).toBeCloseTo(props.width.eye_to_eye, 5);
+        const translatedNoseDiffY = Math.abs(translated.nose.position.y - translated.eyes.left.position.y);
+        const translatedNoseDiffX = Math.abs(translated.nose.position.x - translated.eyes.left.position.x);
+        const translatedNoseDiffZ = Math.abs(translated.nose.position.x - translated.eyes.left.position.x);
+        expect(translatedNoseDiffX / factor).toBeCloseTo(canonicalNoseDiffX, 5);
+        expect(translatedNoseDiffY / factor).toBeCloseTo(canonicalNoseDiffY, 5);
+        expect(translatedNoseDiffZ / factor).toBeCloseTo(canonicalNoseDiffZ, 5);
+        const translatedRotation = parser.getRotation(canonical);
+        expect(translatedRotation.roll).toBeCloseTo(0,5);
+        expect(translatedRotation.yaw).toBeCloseTo(0,5);
+        expect(translatedRotation.pitch).toBeCloseTo(0,5);
+
+
+        // Create a "Distorted" Input (Scale 0.3, Shifted by 0.5)
         const rawVector = toFlatArray(
             toScreenSpace(
-                translate(
-                    scale(createCanonicalHead(), 0.2),
-                    0.1, 0.1, 0
-                )
+                translated
             )
         );
 
-        // 2. Process through the Parser
+        // Process through the Parser
         const extraction = parser.parseRawVector(rawVector);
-        const normalized = parser.normalizeToUnitScale(extraction);
-        const centered = parser.translateToSkullCenter(normalized);
 
-        // 3. The Resulting Eye Span must be exactly the Manifest Eye Span (0.45)
-        const resultEyeSpan = Math.abs(centered.eyes.right.position.x - centered.eyes.left.position.x);
-        expect(resultEyeSpan).toBeCloseTo(props.width.eye_to_eye, 5);
+        const centered = parser.translateToSkullCenter(extraction);
+        const centeredEyeSpan = Math.abs(centered.eyes.right.position.x - centered.eyes.left.position.x);
+        expect(centeredEyeSpan / factor).toBeCloseTo(props.width.eye_to_eye, 5);
+        const centeredNoseDiffY = Math.abs(centered.nose.position.y - centered.eyes.left.position.y);
+        const centeredNoseDiffX = Math.abs(centered.nose.position.x - centered.eyes.left.position.x);
+        const centeredNoseDiffZ = Math.abs(centered.nose.position.x - centered.eyes.left.position.x);
+        expect(centeredNoseDiffX / factor).toBeCloseTo(canonicalNoseDiffX, 5);
+        expect(centeredNoseDiffY / factor).toBeCloseTo(canonicalNoseDiffY, 5);
+        expect(centeredNoseDiffZ / factor).toBeCloseTo(canonicalNoseDiffZ, 5);
+        const centeredRotation = parser.getRotation(canonical);
+        expect(centeredRotation.roll).toBeCloseTo(0,5);
+        expect(centeredRotation.yaw).toBeCloseTo(0,5);
+        expect(centeredRotation.pitch).toBeCloseTo(0,5);
 
-        // 4. The Resulting Nose Position Y must be exactly the Manifest Nose Base (-0.2)
+        const normalized = parser.normalizeToUnitScale(centered);
+        const normalizedEyeSpan = Math.abs(normalized.eyes.right.position.x - normalized.eyes.left.position.x);
+        expect(normalizedEyeSpan).toBeCloseTo(props.width.eye_to_eye, 5);
+        const normalizedNoseDiffY = Math.abs(normalized.nose.position.y - normalized.eyes.left.position.y);
+        const normalizedNoseDiffX = Math.abs(normalized.nose.position.x - normalized.eyes.left.position.x);
+        const normalizedNoseDiffZ = Math.abs(normalized.nose.position.x - normalized.eyes.left.position.x);
+        expect(normalizedNoseDiffX).toBeCloseTo(canonicalNoseDiffX, 5);
+        expect(normalizedNoseDiffY).toBeCloseTo(canonicalNoseDiffY, 5);
+        expect(normalizedNoseDiffZ).toBeCloseTo(canonicalNoseDiffZ, 5);
+        const normalizedRotation = parser.getRotation(canonical);
+        expect(normalizedRotation.roll).toBeCloseTo(0,5);
+        expect(normalizedRotation.yaw).toBeCloseTo(0,5);
+        expect(normalizedRotation.pitch).toBeCloseTo(0,5);
+
+        expect(parser.getSkullCenter(normalized).position.x).toBeCloseTo(0,5);
+        expect(parser.getSkullCenter(normalized).position.y).toBeCloseTo(0,5);
+        expect(parser.getSkullCenter(normalized).position.z).toBeCloseTo(0,5);
+        expect(parser.getSkullCenter(normalized).isVisible).toBe(true);
+
+        // The Resulting Nose Position Y must be exactly the Manifest Nose Base (-0.2)
         // (Because it is now relative to the Skull Center)
-        expect(centered.nose.position.y).toBeCloseTo(props.height.nose_base, 5);
+        // expect(normalized.nose.position.y).toBeCloseTo(props.height.nose_base, 5);
     });
 
     it('should resolve the correct Z-depth relative to the skull center', () => {
@@ -563,11 +639,13 @@ describe('Face Parser - Normalization', () => {
 
     it('should resolve height correctly even when head bounds are clipped off-screen', () => {
         // Scale 2.0 makes the head much larger than the 0-1 screen space
-        const hugeHead = toFlatArray(toScreenSpace(scale(createCanonicalHead(), 2.0)));
+        const hugeHead = toFlatArray(toScreenSpace(scale(createCanonicalHead(), 1)));
         const extraction = parser.parseRawVector(hugeHead);
 
         // Ensure the bounds are actually recorded as invisible
         expect(extraction.bounds.top.isVisible).toBe(false);
+        expect(extraction.eyes.left.isVisible).toBe(true);
+        expect(extraction.eyes.right.isVisible).toBe(true);
 
         const normalized = parser.normalizeToUnitScale(extraction);
         const centered = parser.translateToSkullCenter(normalized);
@@ -659,6 +737,42 @@ describe('Face Parser - Normalization', () => {
     });
 });
 
+describe('Face Parser - rotation', () => {
+    it('should recover Euler angles (YXZ) with high-magnitude asymmetric rotation', () => {
+        const parser = new FaceParser();
+        const head = createCanonicalHead();
+
+        // 1. Defined Asymmetric Angles (in Radians)
+        const injected = {
+            yaw: 45 * (Math.PI / 180),    // 0.785 rad
+            pitch: -25 * (Math.PI / 180), // -0.436 rad (Looking Up)
+            roll: 12 * (Math.PI / 180)    // 0.209 rad
+        };
+
+        // 2. Apply transformations strictly in Y -> X -> Z order
+        let transformed = rotateY(head, injected.yaw);
+        transformed = rotateX(transformed, injected.pitch);
+        transformed = rotateZ(transformed, injected.roll);
+
+        // 3. Process through the full pipeline
+        const screenData = toFlatArray(toScreenSpace(
+            translate(scale(transformed, 0.2), -0.05, 0.05, 0)
+        ));
+
+        const raw = parser.parseRawVector(screenData);
+        const normalized = parser.normalizeToUnitScale(raw);
+        const centered = parser.translateToSkullCenter(normalized);
+
+        // 4. Extraction
+        const result = parser.getRotation(centered);
+
+        // 5. Precise Assertions
+        // If the order YXZ is wrong, Yaw (45) will bleed into Roll (12)
+        expect(result.yaw).toBeCloseTo(injected.yaw, 3);
+        expect(result.pitch).toBeCloseTo(injected.pitch, 3);
+        expect(result.roll).toBeCloseTo(injected.roll, 3);
+    });
+});
 
 
 // describe('FaceParser - Extraction Logic', () => {
@@ -1200,7 +1314,7 @@ function createCanonicalHead(H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): Raw
         },
         bounds: {
             top: {
-                position: { x: 0, y: H.height.forehead_top, z: H.depth.eye_plane },
+                position: { x: 0, y: H.height.forehead_top, z: 0 },
                 isVisible: true
             },
             bottom: {

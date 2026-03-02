@@ -8,6 +8,12 @@ export function subtract(a: Vector3, b: Vector3): Vector3 {
     return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
 }
 
+export function add(a: any, b: any) { return { x: a.x + b.x, y: a.y + b.y, z: (a.z || 0) + (b.z || 0) }; }
+
+
+export function multiply(a: any, scalar: number) { return { x: a.x * scalar, y: a.y * scalar, z: (a.z || 0) * scalar }; }
+
+
 export function length(v: Vector3): number {
     return Math.hypot(v.x, v.y, v.z);
 }
