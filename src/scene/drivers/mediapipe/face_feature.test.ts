@@ -34,8 +34,8 @@ describe('FaceFeatures Logic Validation', () => {
         it.each(faces)('should derive midpoint dynamically from the eyeline', (face: FaceGeometry) => {
             const features = new FaceFeatures(face);
 
-            const expectedMidX = (face.leftEye.x + face.rightEye.x) / 2;
-            const expectedMidY = (face.leftEye.y + face.rightEye.y) / 2;
+            const expectedMidX = (face.eyes.left.x + face.eyes.right.x) / 2;
+            const expectedMidY = (face.eyes.left.y + face.eyes.right.y) / 2;
 
             expect(features.midpoint.x).toBeCloseTo(expectedMidX);
             expect(features.midpoint.y).toBeCloseTo(expectedMidY);

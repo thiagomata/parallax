@@ -183,9 +183,26 @@ export class HeadTrackingModifier implements CarModifier, NudgeModifier, StickMo
 
         // We create a new smoothed FaceGeometry by lerping the raw landmarks
         const lerpedData: FaceGeometry = {
+            world: {
+                center: this.lerpVec(current.face.world.center, target.face.world.center, s),
+                unitScale: current.face.world.unitScale + (target.face.world.unitScale - current.face.world.unitScale) * s,
+                rotation: {
+                    yaw: current.face.world.rotation.yaw + (target.face.world.rotation.yaw - current.face.world.rotation.yaw) * s,
+                    pitch: current.face.world.rotation.pitch + (target.face.world.rotation.pitch - current.face.world.rotation.pitch) * s,
+                    roll: current.face.world.rotation.roll + (target.face.world.rotation.roll - current.face.world.rotation.roll) * s,
+                }
+            },
             nose: this.lerpVec(current.face.nose, target.face.nose, s),
-            leftEye: this.lerpVec(current.face.leftEye, target.face.leftEye, s),
-            rightEye: this.lerpVec(current.face.rightEye, target.face.rightEye, s),
+            eyes: {
+                left: this.lerpVec(current.face.eyes.left, target.face.eyes.left, s),
+                right: this.lerpVec(current.face.eyes.right, target.face.eyes.right, s),
+                midpoint: this.lerpVec(current.face.eyes.midpoint, target.face.eyes.midpoint, s)
+            },
+            rig: {
+                center: this.lerpVec(current.face.rig.center, target.face.rig.center, s),
+                leftEar: this.lerpVec(current.face.rig.leftEar, target.face.rig.leftEar, s),
+                rightEar: this.lerpVec(current.face.rig.rightEar, target.face.rig.rightEar, s)
+            },
             bounds: {
                 left: this.lerpVec(current.face.bounds.left, target.face.bounds.left, s),
                 right: this.lerpVec(current.face.bounds.right, target.face.bounds.right, s),
@@ -211,9 +228,22 @@ export class HeadTrackingModifier implements CarModifier, NudgeModifier, StickMo
     private createNeutralGeometry(): FaceGeometry {
         const center: Vector3 = { x: 0.5, y: 0.5, z: 0 };
         return {
+            world: {
+                center: center,
+                unitScale: 1.0,
+                rotation: { yaw: 0, pitch: 0, roll: 0 }
+            },
             nose: center,
-            leftEye: { x: 0.45, y: 0.45, z: 0 },
-            rightEye: { x: 0.55, y: 0.45, z: 0 },
+            eyes: {
+                left: { x: 0.45, y: 0.45, z: 0 },
+                right: { x: 0.55, y: 0.45, z: 0 },
+                midpoint: { x: 0.5, y: 0.45, z: 0 }
+            },
+            rig: {
+                center: center,
+                leftEar: { x: 0.4, y: 0.5, z: 0 },
+                rightEar: { x: 0.6, y: 0.5, z: 0 }
+            },
             bounds: {
                 left: { x: 0.4, y: 0.5, z: 0 },
                 right: { x: 0.6, y: 0.5, z: 0 },

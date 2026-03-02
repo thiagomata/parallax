@@ -1,5 +1,4 @@
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
-import { FaceParser } from "./face_parser";
 import type {FaceGeometry, FaceProvider, TrackingStatus} from "../../types";
 import p5 from "p5";
 

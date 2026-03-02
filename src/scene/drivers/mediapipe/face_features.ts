@@ -22,9 +22,9 @@ export class FaceFeatures {
 
     private calculateMidpoint(): Vector3 {
         return {
-            x: (this.face.leftEye.x + this.face.rightEye.x) / 2,
-            y: (this.face.leftEye.y + this.face.rightEye.y) / 2,
-            z: (this.face.leftEye.z + this.face.rightEye.z) / 2
+            x: (this.face.eyes.left.x + this.face.eyes.right.x) / 2,
+            y: (this.face.eyes.left.y + this.face.eyes.right.y) / 2,
+            z: (this.face.eyes.left.z + this.face.eyes.right.z) / 2
         };
     }
 
@@ -50,8 +50,8 @@ export class FaceFeatures {
 
         // Roll: Angle of the line connecting the eyes
         // Using atan2(deltaY, deltaX) gives us the exact banking angle
-        const dx = this.face.rightEye.x - this.face.leftEye.x;
-        const dy = this.face.rightEye.y - this.face.leftEye.y;
+        const dx = this.face.eyes.right.x - this.face.eyes.left.x;
+        const dy = this.face.eyes.right.y - this.face.eyes.left.y;
         const roll = Math.atan2(dy, dx);
 
         return {

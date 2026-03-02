@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { FaceParser } from './face_parser';
+import { FaceParser } from './face_parser.old';
 import { createMockP5 } from '../../mock/mock_p5.mock';
 import {MediaPipeFaceProvider} from "./face_provider.ts";
 

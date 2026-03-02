@@ -253,7 +253,7 @@ function rotateZYX(v: Vector3, r: Rotation3): Vector3 {
 export function extractYXZFromBasis(right: Vector3, up: Vector3, forward: Vector3): Rotation3 {
     // Build rotation matrix (columns = right, up, forward)
     const m00 = right.x, m01 = up.x, m02 = forward.x;
-    const m10 = right.y, m11 = up.y, m12 = forward.y;
+    const m11 = up.y;
     const m20 = right.z, m21 = up.z, m22 = forward.z;
 
     // YXZ extraction formulas (intrinsic rotation)

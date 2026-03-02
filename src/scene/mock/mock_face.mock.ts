@@ -10,9 +10,22 @@ export class MockFaceFactory {
      */
     createCenterFace(): FaceGeometry{
         return {
+            world: {
+                center: { x: 0.5, y: 0.5, z: 0 },
+                unitScale: 1.0,
+                rotation: { yaw: 0, pitch: 0, roll: 0 }
+            },
             nose: { x: 0.5, y: 0.5, z: 0 },
-            leftEye: { x: 0.45, y: 0.45, z: 0 },
-            rightEye: { x: 0.55, y: 0.45, z: 0 },
+            eyes: {
+                left: { x: 0.45, y: 0.45, z: 0 },
+                right: { x: 0.55, y: 0.45, z: 0 },
+                midpoint: { x: 0.5, y: 0.45, z: 0 }
+            },
+            rig: {
+                center: { x: 0.5, y: 0.5, z: 0 },
+                leftEar: { x: 0.4, y: 0.5, z: 0 },
+                rightEar: { x: 0.6, y: 0.5, z: 0 }
+            },
             bounds: {
                 left: { x: 0.4, y: 0.5, z: 0 },
                 right: { x: 0.6, y: 0.5, z: 0 },
@@ -24,9 +37,18 @@ export class MockFaceFactory {
 
     private move(face: FaceGeometry,  fn: (a: Vector3) => Vector3): FaceGeometry {
         return {
+            ...face,
             nose: fn(face.nose),
-            leftEye: fn(face.leftEye),
-            rightEye: fn(face.rightEye),
+            eyes: {
+                left: fn(face.eyes.left),
+                right: fn(face.eyes.right),
+                midpoint: fn(face.eyes.midpoint)
+            },
+            rig: {
+                center: fn(face.rig.center),
+                leftEar: fn(face.rig.leftEar),
+                rightEar: fn(face.rig.rightEar)
+            },
             bounds: {
                 left: fn(face.bounds.left),
                 right: fn(face.bounds.right),
