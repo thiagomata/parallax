@@ -1,10 +1,9 @@
 import type {Rotation3, Vector3} from "../../types.ts";
-import {experimental_getRunnerTask} from "vitest/node";
-import {add, dot, multiply, subtract} from "../../utils/projection_utils.ts";
+import {add, multiply, subtract} from "../../utils/projection_utils.ts";
 
 function normalize(v: Vector3): Vector3 {
     const len = Math.hypot(v.x, v.y, v.z);
-    return { x: v.x / len, y: v.y / len, z: v.z / len };
+    return {x: v.x / len, y: v.y / len, z: v.z / len};
 }
 
 function cross(a: Vector3, b: Vector3): Vector3 {
@@ -15,11 +14,42 @@ function cross(a: Vector3, b: Vector3): Vector3 {
     };
 }
 
-const wrap2Pi = (a: number) => {
-    while (a <= -Math.PI -0.005) a += 2 * Math.PI;
-    while (a >=  Math.PI +0.005) a -= 2 * Math.PI;
+export const wrap2Pi = (a: number) => {
+    while (a <= -Math.PI - 0.005) a += 2 * Math.PI;
+    while (a >= Math.PI + 0.005) a -= 2 * Math.PI;
     return a;
 };
+
+export const wrapPi = (a: number) => {
+    while (a <= -Math.PI) a += Math.PI;
+    while (a >= Math.PI) a -= Math.PI;
+    return a;
+};
+
+const CANONICAL_PITCHES = [
+    { angle: -Math.PI / 4, distance: 0.19 },
+    { angle: 0,            distance: 0.15 },
+    { angle:  Math.PI / 5, distance: 0.12 },
+    { angle:  Math.PI / 4, distance: 0.11 },
+];
+
+function computePitchFromDistance(measured: number): number {
+    if (CANONICAL_PITCHES.length < 2) return 0;
+
+    // Sort by distance (closest first)
+    const sorted = CANONICAL_PITCHES
+        .slice()
+        .sort((a, b) => Math.abs(a.distance - measured) - Math.abs(b.distance - measured));
+
+    const p1 = sorted[0];
+    const p2 = sorted[1];
+
+    if (p1.distance === p2.distance) return p1.angle;
+
+    const t = (measured - p1.distance) / (p2.distance - p1.distance);
+    return p1.angle + t * (p2.angle - p1.angle);
+}
+
 
 export const INDEX = {
     NOSE: 1,
@@ -42,30 +72,33 @@ interface RawLandmark {
     isVisible: boolean;
 }
 
-export interface RawExtraction {
-    nose: RawLandmark;
-    eyes: {
-        left: RawLandmark;
-        right: RawLandmark;
+export interface ParsedFace {
+    readonly nose: RawLandmark;
+    readonly eyes: {
+        readonly left: RawLandmark;
+        readonly right: RawLandmark;
     };
-    brows: {
-        left: RawLandmark;
-        right: RawLandmark;
+    readonly brows: {
+        readonly left: RawLandmark;
+        readonly right: RawLandmark;
     }
-    mouth: {
-        left: RawLandmark;
-        right: RawLandmark;
+    readonly mouth: {
+        readonly left: RawLandmark;
+        readonly right: RawLandmark;
     };
-    rig: {
-        leftEar: RawLandmark;
-        rightEar: RawLandmark;
-        leftTemple: RawLandmark;
-        rightTemple: RawLandmark;
+    readonly rig: {
+        readonly leftEar: RawLandmark;
+        readonly rightEar: RawLandmark;
+        readonly leftTemple: RawLandmark;
+        readonly rightTemple: RawLandmark;
     };
-    bounds: {
-        top: RawLandmark;
-        bottom: RawLandmark;
+    readonly bounds: {
+        readonly middleTop: RawLandmark;
+        readonly middleBottom: RawLandmark;
     };
+    readonly skullCenter: RawLandmark;
+    readonly normalized: boolean;
+    readonly centered: boolean;
 }
 
 export interface HeadProportions {
@@ -142,7 +175,7 @@ export class FaceParser {
         };
     }
 
-    public parseRawVector(rawDataVector: Partial<Vector3>[]): RawExtraction {
+    public parseRawVector(rawDataVector: Partial<Vector3>[]): ParsedFace {
         const createLandmark = (index: number): RawLandmark => {
             const landmark = rawDataVector[index];
             if (!landmark) {
@@ -178,7 +211,9 @@ export class FaceParser {
             };
         };
 
-        return {
+        const extracted: Omit<ParsedFace, "skullCenter"> = {
+            normalized: false,
+            centered: false,
             mouth: {
                 left: createLandmark(INDEX.MOUTH_LEFT),
                 right: createLandmark(INDEX.MOUTH_RIGHT),
@@ -199,13 +234,22 @@ export class FaceParser {
                 rightTemple: createLandmark(INDEX.TEMPLE_RIGHT),
             },
             bounds: {
-                top: createLandmark(INDEX.TOP),
-                bottom: createLandmark(INDEX.BOTTOM),
+                middleTop: createLandmark(INDEX.TOP),
+                middleBottom: createLandmark(INDEX.BOTTOM),
             }
         };
+
+        return {
+            ...extracted,
+            skullCenter: this.getSkullCenter(extracted),
+        }
     }
 
-    public translateToSkullCenter(extraction: RawExtraction): RawExtraction {
+    public translateToSkullCenter(extraction: ParsedFace): ParsedFace {
+        // if (extraction.centered) {
+        //     return extraction;
+        // }
+
         const center = this.getSkullCenter(extraction);
 
         let offset;
@@ -221,16 +265,23 @@ export class FaceParser {
         }
 
         // 3. The Mapping (Deterministic)
-        const translate = (lm: RawLandmark): RawLandmark => ({
-            ...lm,
-            position: {
-                x: lm.position.x - offset.x,
-                y: lm.position.y - offset.y,
-                z: lm.position.z - offset.z
+        const translate = (lm: RawLandmark): RawLandmark => {
+            if (!lm) {
+                return lm;
             }
-        });
+            return {
+                ...lm,
+                position: {
+                    x: lm.position.x - offset.x,
+                    y: lm.position.y - offset.y,
+                    z: lm.position.z - offset.z
+                }
+            }
+        };
 
         return {
+            normalized: false,
+            centered: true,
             nose: translate(extraction.nose),
             eyes: {
                 left: translate(extraction.eyes.left),
@@ -251,20 +302,21 @@ export class FaceParser {
                 rightTemple: translate(extraction.rig.rightTemple),
             },
             bounds: {
-                top: translate(extraction.bounds.top),
-                bottom: translate(extraction.bounds.bottom),
-            }
+                middleTop: translate(extraction.bounds.middleTop),
+                middleBottom: translate(extraction.bounds.middleBottom),
+            },
+            skullCenter: translate(extraction.skullCenter),
         };
     }
 
-    public getSkullCenter(extraction: RawExtraction): RawLandmark {
+    public getSkullCenter(face: Omit<ParsedFace, "skullCenter">): RawLandmark {
         const props = this.config.headProportions;
         const midpoints: Vector3[] = [];
 
         const pairs = [
-            {left: extraction.rig.leftEar, right: extraction.rig.rightEar},
-            {left: extraction.rig.leftTemple, right: extraction.rig.rightTemple},
-            {left: extraction.eyes.left, right: extraction.eyes.right}
+            {left: face.rig.leftEar, right: face.rig.rightEar},
+            {left: face.rig.leftTemple, right: face.rig.rightTemple},
+            {left: face.eyes.left, right: face.eyes.right}
         ];
 
         for (const pair of pairs) {
@@ -278,12 +330,12 @@ export class FaceParser {
         }
 
         // Resolve Face Height first to validate visibility
-        const faceHeightExtraction = this.getFaceHeight(extraction);
+        const faceHeightExtraction = this.getFaceHeight(face);
 
         // If no stable midpoints or no height can be resolved, we can't find a valid skull center
         if (midpoints.length === 0 || !faceHeightExtraction.isVisible) {
             return {
-                position: { x: 0.5, y: 0.5, z: 0.5 },
+                position: {x: 0.5, y: 0.5, z: 0.5},
                 isVisible: false,
             };
         }
@@ -295,111 +347,29 @@ export class FaceParser {
 
         // 2. Resolve Y (Vertical Pivot) using nose_base
         // const eyeY = (extraction.eyes.left.position.y + extraction.eyes.right.position.y) / 2;
-        const centerY = this.getSkullYCenter(extraction);
+        const centerY = this.getSkullYCenter(face);
 
         // 3. Resolve Z (Depth Pivot)
-        let centerZ = 0;
-        if (extraction.rig.leftEar.isVisible && extraction.rig.rightEar.isVisible) {
-            centerZ = (extraction.rig.leftEar.position.z + extraction.rig.rightEar.position.z) / 2;
+        let centerZ: number;
+        if (face.rig.leftEar.isVisible && face.rig.rightEar.isVisible) {
+            centerZ = (face.rig.leftEar.position.z + face.rig.rightEar.position.z) / 2;
         } else {
             // eye_to_eye width (0.45) vs full width (1.0)
-            const eyeSpan = Math.abs(extraction.eyes.left.position.x - extraction.eyes.right.position.x);
+            const eyeSpan = Math.abs(face.eyes.left.position.x - face.eyes.right.position.x);
             const fullFaceWidth = eyeSpan / props.width.eye_to_eye;
 
-            const eyeZ = (extraction.eyes.left.position.z + extraction.eyes.right.position.z) / 2;
+            const eyeZ = (face.eyes.left.position.z + face.eyes.right.position.z) / 2;
             const zOffset = Math.abs(props.depth.skull_center - props.depth.eye_plane) * fullFaceWidth;
             centerZ = eyeZ + zOffset;
         }
 
         return {
-            position: { x: centerX, y: centerY, z: centerZ },
+            position: {x: centerX, y: centerY, z: centerZ},
             isVisible: true,
         };
     }
 
-    private getSkullYCenter(extraction: RawExtraction): number {
-        const props = this.config.headProportions;
-
-        if (extraction.bounds.top.isVisible && extraction.bounds.bottom.isVisible) {
-            const top = extraction.bounds.top.position.y;
-            const bottom = extraction.bounds.bottom.position.y;
-            return (top + bottom) / 2;
-        }
-
-        if (extraction.eyes.right.isVisible && extraction.eyes.left.isVisible && extraction.nose.isVisible) {
-            const eyeMidY = (extraction.eyes.left.position.y + extraction.eyes.right.position.y) / 2;
-            const currentEyeToNose = extraction.nose.position.y - eyeMidY;
-            const canonicalEyeToNose = props.height.nose_base - props.height.eye_line;
-            const scaleRatio = currentEyeToNose / canonicalEyeToNose;
-            return eyeMidY - props.height.eye_line * scaleRatio;
-        }
-
-        return (extraction.eyes.right.position.y + extraction.eyes.left.position.y) / 2;
-    }
-
-    // private getSkullYCenter(eyeY: number, faceHeight: number) {
-    //     const props = this.config.headProportions;
-    //     const totalHeight = Math.abs(props.height.forehead_top - props.height.chin_tip);
-    //
-    //     const eyeToOriginDelta = props.height.eye_line;
-    //     const ratio = faceHeight / totalHeight;
-    //     const scaledDelta = eyeToOriginDelta * ratio;
-    //
-    //     let x = {
-    //         eyeY,          // Is this 0.4?
-    //         faceHeight,    // Is this 0.6?
-    //         totalHeight,   // Is this 1.3?
-    //         ratio,         // Is this 0.46?
-    //         scaledDelta,   // Is this 0.046?
-    //         result: eyeY + scaledDelta
-    //     }
-    //     console.log(x);
-    //
-    //     return eyeY - scaledDelta;
-    // }
-
-    private getFaceHeight(extraction: RawExtraction): { value: number, isVisible: boolean } {
-        const props = this.config.headProportions;
-
-    // 1. Determine the "Anatomical Constant" for a Full Head
-    // forehead_top (0.6) - chin_tip (-0.7) = 1.3 units
-    const totalManifestHeight = Math.abs(props.height.forehead_top - props.height.chin_tip);
-
-        // Strategy A: Direct Measurement (Bounds)
-        if (extraction.bounds.top.isVisible && extraction.bounds.bottom.isVisible) {
-            const dx = extraction.bounds.bottom.position.x - extraction.bounds.top.position.x;
-            const dy = extraction.bounds.bottom.position.y - extraction.bounds.top.position.y;
-
-            return {
-                value: Math.sqrt(dx * dx + dy * dy), // Hypotenuse ignores Roll
-                isVisible: true,
-            };
-        }
-
-        // Strategy B: Anatomical Reconstruction (Euclidean)
-        if (extraction.eyes.left.isVisible && extraction.eyes.right.isVisible && extraction.nose.isVisible) {
-            const eyeX = (extraction.eyes.left.position.x + extraction.eyes.right.position.x) / 2;
-            const eyeY = (extraction.eyes.left.position.y + extraction.eyes.right.position.y) / 2;
-            const nose = extraction.nose.position;
-
-            // The true distance between the mid-eye point and the nose tip
-            const currentInternalDist = Math.hypot(nose.x - eyeX, nose.y - eyeY);
-            const manifestInternalDist = Math.abs(props.height.eye_line - props.height.nose_base);
-
-            return {
-                value: (currentInternalDist / manifestInternalDist) * totalManifestHeight,
-                isVisible: true,
-            };
-        }
-
-        // Last resort: Return a safe default (e.g., 0.5 of frame) or 0
-        return {
-            value: 0.5,
-            isVisible: false,
-        };
-    }
-
-    public normalizeToUnitScale(extraction: RawExtraction): RawExtraction {
+    public normalizeToUnitScale(extraction: ParsedFace): ParsedFace {
         const props = this.config.headProportions;
 
         // Determine measured head width
@@ -423,16 +393,23 @@ export class FaceParser {
         // Compute the **scaling factor to reach canonical width**
         const factor = props.width.ear_to_ear / measuredWidth;
 
-        const scale = (lm: RawLandmark): RawLandmark => ({
-            ...lm,
-            position: {
-                x: lm.position.x * factor,
-                y: lm.position.y * factor,
-                z: lm.position.z * factor
+        const scale = (lm: RawLandmark): RawLandmark => {
+            if (!lm ) {
+                return lm;
             }
-        });
+            return {
+                ...lm,
+                position: {
+                    x: lm.position.x * factor,
+                    y: lm.position.y * factor,
+                    z: lm.position.z * factor
+                }
+            }
+        };
 
         return {
+            normalized: true,
+            centered: extraction.centered,
             nose: scale(extraction.nose),
             eyes: {
                 left: scale(extraction.eyes.left),
@@ -453,16 +430,17 @@ export class FaceParser {
                 rightTemple: scale(extraction.rig.rightTemple),
             },
             bounds: {
-                top: scale(extraction.bounds.top),
-                bottom: scale(extraction.bounds.bottom),
-            }
+                middleTop: scale(extraction.bounds.middleTop),
+                middleBottom: scale(extraction.bounds.middleBottom),
+            },
+            skullCenter: scale(extraction.skullCenter),
         };
     }
 
     /**
      * Recover YXZ Euler angles (in radians) from the current centered 3D face
      */
-    approximateRotation(centered: RawExtraction): Rotation3 {
+    approximateRotation(centered: ParsedFace): Rotation3 {
         // Build a rotation matrix from landmarks
         // We'll use the eyes-nose plane as a simple head basis
         const leftEye = centered.eyes.left.position;
@@ -493,7 +471,7 @@ export class FaceParser {
         let yaw: number, roll: number;
         if (Math.abs(R[1][0]) < 0.99999) {
             yaw = Math.atan2(-R[2][0], R[0][0]);
-            roll = Math.atan2(-R[1][2], R[1][1]);
+            roll = Math.atan2(R[1][2], R[1][1]);
         } else {
             // Gimbal lock
             yaw = Math.atan2(R[0][2], R[2][2]);
@@ -501,74 +479,220 @@ export class FaceParser {
         }
 
         return {
-            pitch: wrap2Pi(pitch),
-            yaw: wrap2Pi(yaw),
-            roll: wrap2Pi(roll)
+            pitch: wrapPi(pitch),
+            yaw: wrapPi(yaw),
+            roll: wrapPi(roll)
         };
     }
 
-    public fullAxisRotation(centered: RawExtraction): Rotation3 {
-        const { rig, bounds } = centered;
+    // public fullAxisRotation(centered: ParsedFace): Rotation3 {
+    //     const {rig, bounds} = centered;
+    //
+    //     // 1. Construct full 3D corners of the head box
+    //     const topLeft = {x: rig.leftEar.position.x, y: bounds.middleTop.position.y, z: rig.leftEar.position.z};
+    //     const topRight = {x: rig.rightEar.position.x, y: bounds.middleTop.position.y, z: rig.rightEar.position.z};
+    //     const bottomLeft = {x: rig.leftEar.position.x, y: bounds.middleBottom.position.y, z: rig.leftEar.position.z};
+    //     const bottomRight = {x: rig.rightEar.position.x, y: bounds.middleBottom.position.y, z: rig.rightEar.position.z};
+    //
+    //     // 2. Compute basis vectors
+    //     const right = normalize({
+    //         x: topRight.x - topLeft.x,
+    //         y: topRight.y - topLeft.y,
+    //         z: topRight.z - topLeft.z
+    //     });
+    //
+    //     const up = normalize({
+    //         x: topLeft.x - bottomLeft.x,
+    //         y: topLeft.y - bottomLeft.y,
+    //         z: topLeft.z - bottomLeft.z
+    //     });
+    //
+    //     const forward = normalize(cross(up, right));
+    //     const trueUp = cross(right, forward); // Gram-Schmidt re-orthogonalize
+    //
+    //     // 3. Construct rotation matrix (columns = basis vectors)
+    //     const m00 = right.x, m01 = trueUp.x, m02 = forward.x;
+    //     const m10 = right.y, m11 = trueUp.y, m12 = forward.y;
+    //     const m20 = right.z, m21 = trueUp.z, m22 = forward.z;
+    //
+    //     // // 4. Extract YXZ Euler angles
+    //     // const pitch = Math.asin(-m12);               // rotation around X
+    //     // const yaw   = Math.atan2(m02, m22);          // rotation around Y
+    //     // const roll  = Math.atan2(m10, m11);          // rotation around Z
+    //
+    //     // YXZ extraction from transposed matrix
+    //     const pitch = wrap2Pi(Math.asin(-m12));
+    //     const yaw = wrap2Pi(Math.atan2(m02, m22));
+    //     const roll = wrap2Pi(Math.atan2(m10, m11) - Math.PI);
+    //
+    //     const x = dot(right, up);
+    //     console.log(x);
+    //     return {
+    //         pitch,
+    //         yaw,
+    //         roll,
+    //     };
+    // }
 
-        // 1. Right axis (local X)
-        const right = normalize({
-            x: rig.rightEar.position.x - rig.leftEar.position.x,
-            y: rig.rightEar.position.y - rig.leftEar.position.y,
-            z: rig.rightEar.position.z - rig.leftEar.position.z
-        });
-
-        // 2. Up axis (local Y)
-        const upRaw = {
-            x: bounds.top.position.x - bounds.bottom.position.x,
-            y: bounds.top.position.y - bounds.bottom.position.y,
-            z: bounds.top.position.z - bounds.bottom.position.z
-        };
-
-        const up = normalize(upRaw);
-
-        // 3. Forward axis (local Z)
-        const forward = normalize(cross(up, right));
-
-        // 4. Re-orthogonalize up (Gram-Schmidt)
-        const trueUp = cross(right, forward);
-
-        // 5. Rotation matrix (columns = basis vectors)
-        const m02 = forward.x;
-        const m10 = right.y;
-        const m11 = trueUp.y;
-        const m12 = forward.y;
-        const m22 = forward.z;
-
-        // Transpose on the fly
-        const r01 = m10;
-        const r11 = m11;
-        const r20 = m02;
-        const r21 = m12;
-        const r22 = m22;
-
-        // YXZ extraction from transposed matrix
-        const pitch = wrap2Pi(Math.asin(-r21));
-        const yaw   = wrap2Pi(Math.atan2(r20, r22));
-        const roll  = wrap2Pi(Math.atan2(r01, r11) - Math.PI);
-
-        const x = dot(right, up);
-        console.log(x);
-        return {
-            pitch,
-            yaw,
-            roll,
-        };
-    }
-
-    getRotation(extraction: RawExtraction) {
-        if (extraction.rig.leftEar.isVisible && extraction.rig.rightEar.isVisible && extraction.bounds.top.isVisible && extraction.bounds.bottom.isVisible) {
-            // most robust method
-            return this.fullAxisRotation(extraction);
-        }
+    getRotation(extraction: ParsedFace) {
+        // if (extraction.rig.leftEar.isVisible && extraction.rig.rightEar.isVisible && extraction.bounds.middleTop.isVisible && extraction.bounds.middleBottom.isVisible) {
+        //     // most robust method
+        //     return this.fullAxisRotation(extraction);
+        // }
 
         if (extraction.eyes.left.isVisible && extraction.eyes.right.isVisible && extraction.nose.isVisible) {
             return this.approximateRotation(extraction); // fallback strategy
         }
-        return { yaw: 0, pitch: 0, roll: 0 }; // not enough data
+        return {yaw: 0, pitch: 0, roll: 0}; // not enough data
+    }
+
+    /**
+     * Compute roll angle (in radians) from a centered RawExtraction
+     */
+    computeRoll(extraction: ParsedFace): number {
+
+        const head = this.normalizeToUnitScale(
+            this.translateToSkullCenter(extraction)
+        );
+
+        const minLength = 0.1; // normalized head
+
+        const lines: {
+            a: { x: number; y: number },
+            b: { x: number; y: number },
+            axis: number
+        }[] = [];
+
+        // Ear line
+        if (head.rig.leftEar.isVisible && head.rig.rightEar.isVisible) {
+            lines.push({
+                a: {x: head.rig.leftEar.position.x, y: head.rig.leftEar.position.y},
+                b: {x: head.rig.rightEar.position.x, y: head.rig.rightEar.position.y},
+                axis: 0,
+            });
+        }
+
+        // Bounds center line
+        if (head.bounds.middleTop?.isVisible && head.bounds.middleBottom?.isVisible) {
+            lines.push({
+                a: {x: head.bounds.middleTop.position.x, y: head.bounds.middleTop.position.y},
+                b: {x: head.bounds.middleBottom.position.x, y: head.bounds.middleBottom.position.y},
+                axis: Math.PI / 2,
+            });
+        }
+
+        // Compute angles relative to horizontal
+        const angles = lines
+            .filter(({a, b}) => Math.hypot(b.x - a.x, b.y - a.y) >= minLength)
+            .map(({a, b, axis}) => //Math.atan2(-(b.y - a.y), b.x - a.x))
+            {
+                const dx = b.x - a.x;
+                const dy = b.y - a.y; // flip Y if needed
+                const angle = Math.atan2(dy, dx);
+                return angle - axis;
+            })
+            .map(wrapPi)
+
+        if (angles.length === 0) return 0; // no valid lines
+
+        // Average → roll
+        return angles.reduce((acc, v) => acc + v, 0) / angles.length;
+    }
+
+    computeYaw(head: ParsedFace) {
+        return this.getRotation(head).yaw;
+    }
+
+    /**
+     * Compute pitch (radians) from a centered, normalized RawExtraction
+     * Uses canonical distances between eye center and nose
+     */
+    computePitch(extraction: ParsedFace): number {
+        // 1. Normalize and center
+        const head = this.normalizeToUnitScale(
+            this.translateToSkullCenter(extraction)
+        );
+
+    if (!head.eyes.left.isVisible ||
+        !head.eyes.right.isVisible ||
+        !head.nose.isVisible) {
+        return 0;
+    }
+
+    // Eye center (2D only)
+    const eyeCenterX = (head.eyes.left.position.x + head.eyes.right.position.x) / 2;
+    const eyeCenterY = (head.eyes.left.position.y + head.eyes.right.position.y) / 2;
+
+    // 2D distance in projection plane
+    const dx = head.nose.position.x - eyeCenterX;
+    const dy = head.nose.position.y - eyeCenterY;
+
+    const measuredDist = Math.hypot(dx, dy);
+
+    return computePitchFromDistance(measuredDist);
+}
+
+    private getSkullYCenter(extraction: Omit<ParsedFace, "skullCenter">): number {
+        const props = this.config.headProportions;
+
+        if (extraction.bounds.middleTop.isVisible && extraction.bounds.middleBottom.isVisible) {
+            const top = extraction.bounds.middleTop.position.y;
+            const bottom = extraction.bounds.middleBottom.position.y;
+            return (top + bottom) / 2;
+        }
+
+        if (extraction.eyes.right.isVisible && extraction.eyes.left.isVisible && extraction.nose.isVisible) {
+            const eyeMidY = (extraction.eyes.left.position.y + extraction.eyes.right.position.y) / 2;
+            const currentEyeToNose = extraction.nose.position.y - eyeMidY;
+            const canonicalEyeToNose = props.height.nose_base - props.height.eye_line;
+            const scaleRatio = currentEyeToNose / canonicalEyeToNose;
+            return eyeMidY - props.height.eye_line * scaleRatio;
+        }
+
+        return (extraction.eyes.right.position.y + extraction.eyes.left.position.y) / 2;
+    }
+
+    // computePitch(head: RawExtraction) {
+    //     return this.getRotation(head).pitch;
+
+    private getFaceHeight(extraction:  Omit<ParsedFace, "skullCenter">): { value: number, isVisible: boolean } {
+        const props = this.config.headProportions;
+
+        // 1. Determine the "Anatomical Constant" for a Full Head
+        // forehead_top (0.6) - chin_tip (-0.7) = 1.3 units
+        const totalManifestHeight = Math.abs(props.height.forehead_top - props.height.chin_tip);
+
+        // Strategy A: Direct Measurement (Bounds)
+        if (extraction.bounds.middleTop.isVisible && extraction.bounds.middleBottom.isVisible) {
+            const dx = extraction.bounds.middleBottom.position.x - extraction.bounds.middleTop.position.x;
+            const dy = extraction.bounds.middleBottom.position.y - extraction.bounds.middleTop.position.y;
+
+            return {
+                value: Math.sqrt(dx * dx + dy * dy), // Hypotenuse ignores Roll
+                isVisible: true,
+            };
+        }
+
+        // Strategy B: Anatomical Reconstruction (Euclidean)
+        if (extraction.eyes.left.isVisible && extraction.eyes.right.isVisible && extraction.nose.isVisible) {
+            const eyeX = (extraction.eyes.left.position.x + extraction.eyes.right.position.x) / 2;
+            const eyeY = (extraction.eyes.left.position.y + extraction.eyes.right.position.y) / 2;
+            const nose = extraction.nose.position;
+
+            // The true distance between the mid-eye point and the nose tip
+            const currentInternalDist = Math.hypot(nose.x - eyeX, nose.y - eyeY);
+            const manifestInternalDist = Math.abs(props.height.eye_line - props.height.nose_base);
+
+            return {
+                value: (currentInternalDist / manifestInternalDist) * totalManifestHeight,
+                isVisible: true,
+            };
+        }
+
+        // Last resort: Return a safe default (e.g., 0.5 of frame) or 0
+        return {
+            value: 0.5,
+            isVisible: false,
+        };
     }
 }

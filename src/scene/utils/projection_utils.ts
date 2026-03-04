@@ -10,6 +10,19 @@ export function subtract(a: Vector3, b: Vector3): Vector3 {
 
 export function add(a: any, b: any) { return { x: a.x + b.x, y: a.y + b.y, z: (a.z || 0) + (b.z || 0) }; }
 
+// Average an array of vectors
+export function averageVectors(vectors: Vector3[]): Vector3 {
+    if (vectors.length === 0) throw new Error("Cannot average empty vector array");
+    const sum = vectors.reduce(
+        (acc, v) => ({
+            x: acc.x + v.x,
+            y: acc.y + v.y,
+            z: acc.z + v.z
+        }),
+        { x: 0, y: 0, z: 0 }
+    );
+    return { x: sum.x / vectors.length, y: sum.y / vectors.length, z: sum.z / vectors.length };
+}
 
 export function multiply(a: any, scalar: number) { return { x: a.x * scalar, y: a.y * scalar, z: (a.z || 0) * scalar }; }
 
