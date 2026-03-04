@@ -26,47 +26,6 @@ export const wrapPi = (a: number) => {
     return a;
 };
 
-function computeCanonicalPitches(props: HeadProportions, maxPitch: number = Math.PI / 6, slices: number = 10): { angle: number, distance: number }[] {
-    const eyeLine = props.height.eye_line;
-    const noseBase = props.height.nose_base;
-    const eyePlane = props.depth.eye_plane;
-    const noseTip = props.depth.nose_tip;
-
-    const pitches: { angle: number, distance: number }[] = [];
-    for (let i = 0; i <= 2 * slices; i++) {
-        const angle = -maxPitch + i * (2 * maxPitch) / (2 * slices);
-        const distance = (noseBase - eyeLine) * Math.cos(angle) - (noseTip - eyePlane) * Math.sin(angle);
-        pitches.push({ angle, distance });
-    }
-    return pitches;
-}
-
-function computePitchFromDistance(measured: number, canonicalPitches: { angle: number, distance: number }[]): number {
-    if (canonicalPitches.length < 2) return 0;
-
-    // Sort by distance (ascending) 
-    const sorted = canonicalPitches
-        .slice()
-        .sort((a, b) => a.distance - b.distance);
-
-    // Handle edge cases
-    if (measured <= sorted[0].distance) return sorted[0].angle;
-    if (measured >= sorted[sorted.length - 1].distance) return sorted[sorted.length - 1].angle;
-
-    // Find the two points that bracket the measured value
-    for (let i = 0; i < sorted.length - 1; i++) {
-        if (sorted[i].distance <= measured && measured <= sorted[i + 1].distance) {
-            const p1 = sorted[i];
-            const p2 = sorted[i + 1];
-            const t = (measured - p1.distance) / (p2.distance - p1.distance);
-            return p1.angle + t * (p2.angle - p1.angle);
-        }
-    }
-
-    return 0;
-}
-
-
 export const INDEX = {
     NOSE: 1,
     EYE_LEFT: 33,
@@ -631,14 +590,28 @@ export class FaceParser {
             return 0;
         }
 
+        const props = this.config.headProportions;
+        
         // Eye center Y only (for pitch detection)
         const eyeCenterY = (head.eyes.left.position.y + head.eyes.right.position.y) / 2;
 
-        // 2D distance in projection plane
+        // Measured distance (dy) in projection plane
         const dy = head.nose.position.y - eyeCenterY;
 
-        const canonicalPitches = computeCanonicalPitches(this.config.headProportions);
-        return computePitchFromDistance(dy, canonicalPitches);
+        // Direct trigonometric calculation
+        // dy = A * cos(pitch) + B * sin(pitch) where:
+        // A = noseBase - eyeLine (height difference)
+        // B = eyePlane - noseTip (depth difference)
+        const eyeToNoseHeight = props.height.nose_base - props.height.eye_line;
+        const eyeToNoseDepth = props.depth.eye_plane - props.depth.nose_tip;
+
+        const R = Math.sqrt(eyeToNoseHeight ** 2 + eyeToNoseDepth ** 2);
+        const alpha = Math.atan2(eyeToNoseHeight, eyeToNoseDepth);
+
+        // Clamp ratio to [-1, 1] for asin
+        const ratio = Math.max(-1, Math.min(1, dy / R));
+        
+        return Math.asin(ratio) - alpha;
     }
 
     private getSkullYCenter(extraction: Omit<ParsedFace, "skullCenter">): number {
