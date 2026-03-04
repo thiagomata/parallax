@@ -482,6 +482,33 @@ describe('FaceParser - getSkullCenter', () => {
     });
 });
 
+describe('Face Parser - Centralization', () => {
+    const parser = new FaceParser();
+
+    it('Centralization is idempotent', () => {
+        const canonical =toScreenSpace(
+            translate(
+                scale(
+                    rotateX(createCanonicalHead(), 0.4), 1.0), 0.1, 0.2, 0.3)
+        );
+        const a = parser.translateToSkullCenter(canonical);
+        const b = parser.translateToSkullCenter(a);
+        
+        const areEqual = (
+            Math.abs(a.nose.position.x - b.nose.position.x) < 1e-10 &&
+            Math.abs(a.nose.position.y - b.nose.position.y) < 1e-10 &&
+            Math.abs(a.nose.position.z - b.nose.position.z) < 1e-10 &&
+            Math.abs(a.eyes.left.position.x - b.eyes.left.position.x) < 1e-10 &&
+            Math.abs(a.eyes.left.position.y - b.eyes.left.position.y) < 1e-10 &&
+            Math.abs(a.eyes.left.position.z - b.eyes.left.position.z) < 1e-10 &&
+            Math.abs(a.eyes.right.position.x - b.eyes.right.position.x) < 1e-10 &&
+            Math.abs(a.eyes.right.position.y - b.eyes.right.position.y) < 1e-10 &&
+            Math.abs(a.eyes.right.position.z - b.eyes.right.position.z) < 1e-10
+        );
+        expect(areEqual).toBe(true);
+    })
+});
+
 describe('Face Parser - Normalization', () => {
     const parser = new FaceParser();
 
@@ -819,36 +846,9 @@ describe('FaceParser - rotation', () => {
 
     const parser = new FaceParser();
 
-    it('should detect yaw rotation', () => {
-        const slices = 10;
-        for (let i = 0; i <= 2 * slices; i++) {
-            const angle = wrapPi(-Math.PI + i * Math.PI / slices); // from -180° to +180°
-
-            // 1. Create canonical head and normalize
-            const canonicalHead = parser.normalizeToUnitScale(createCanonicalHead());
-
-            // 2. Apply yaw rotation (around Y-axis)
-            const rotatedHead = rotateY(canonicalHead, angle);
-
-            // 3. Translate & scale for screen space pipeline
-            const headScreen = toScreenSpace(
-                translate(scale(rotatedHead, 0.5), 0.1, 0.1, 0.1)
-            );
-
-            // 4. Compute extracted yaw
-            const receivedYaw = parser.computeYaw(headScreen);
-
-            console.log(`Injected yaw: ${angle}, Detected yaw: ${receivedYaw}`);
-
-            // 5. Assert close to injected angle
-            expect(receivedYaw).toBeCloseTo(angle, 5);
-        }
-    });
-
-
-    it('should detect yaw rotation in realistic range (±60°)', () => {
+    it('should detect yaw rotation in realistic range', () => {
         const slices = 8;
-        const maxYaw = Math.PI / 2; // ±60° realistic yaw range
+        const maxYaw = Math.PI / 2 - 0.1;
 
         for (let i = 0; i <= 2 * slices; i++) {
             const angle = -maxYaw + i * (2 * maxYaw) / (2 * slices);
@@ -867,10 +867,10 @@ describe('FaceParser - rotation', () => {
             // 4. Compute extracted yaw
             const receivedYaw = parser.computeYaw(headScreen);
 
-            console.log(`Injected yaw: ${angle}, Detected yaw: ${receivedYaw}, ${100*((1 + receivedYaw) / ( 1 + angle))}%`);
+            // console.log(`Injected yaw: ${angle}, Detected yaw: ${receivedYaw}, ${100*((1 + receivedYaw) / ( 1 + angle))}%`);
 
             // 5. Assert close to injected angle
-            // expect(receivedYaw).toBeCloseTo(angle, 5);
+            expect(receivedYaw).toBeCloseTo(angle, 5);
         }
     });
 

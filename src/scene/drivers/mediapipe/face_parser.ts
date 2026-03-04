@@ -220,10 +220,10 @@ export class FaceParser {
         }
     }
 
-    public translateToSkullCenter(extraction: ParsedFace): ParsedFace {
-        // if (extraction.centered) {
-        //     return extraction;
-        // }
+    public translateToSkullCenter(extraction: ParsedFace, useCache = true): ParsedFace {
+        if (extraction.centered && !useCache) {
+            return extraction;
+        }
 
         const center = this.getSkullCenter(extraction);
 
@@ -599,7 +599,10 @@ export class FaceParser {
 
         const props = this.config.headProportions;
 
-        const currentEyeWidth = Math.abs(head.eyes.left.position.x - head.eyes.right.position.x);
+        const currentEyeWidth = Math.hypot(
+            head.eyes.left.position.x - head.eyes.right.position.x,
+            head.eyes.left.position.y - head.eyes.right.position.y
+        );
         const eyeCenterX = (head.eyes.left.position.x + head.eyes.right.position.x) / 2;
         const noseXRel = head.nose.position.x - eyeCenterX;
 
@@ -617,45 +620,6 @@ export class FaceParser {
 
         // 2. Snap to zero for clean neutral pose
         return Math.abs(rawYaw) < 1e-10 ? 0 : rawYaw;
-    }
-
-    computeYawA(extraction: ParsedFace): number {
-        // 1. Only center, don't normalize (to preserve rotation effects)
-        const head =
-            this.normalizeToUnitScale(
-                this.translateToSkullCenter(extraction)
-            );
-
-        if (!head.eyes.left.isVisible || 
-            !head.eyes.right.isVisible || 
-            !head.nose.isVisible) {
-            return 0;
-        }
-
-        const props = this.config.headProportions;
-
-        // 2. Eye center in XY
-        const eyeCenterX = (head.eyes.left.position.x + head.eyes.right.position.x) / 2;
-
-        const expectedDistance = this.config.headProportions.width.eye_to_eye
-
-        const eyeRation = ( eyeCenterX ) / ( expectedDistance ) ;
-        console.log(
-            'eyeCenterX',eyeCenterX,
-            'eyeRation',eyeRation
-        );
-
-        // 3. Nose X offset from eye center
-        const noseXRel = head.nose.position.x - eyeCenterX;
-
-        // 4. Use canonical proportions to convert to angle
-        const depthDenominator = props.depth.eye_plane - props.depth.nose_tip;
-        
-        const ratio = Math.max(-1, Math.min(1, noseXRel / depthDenominator));
-
-        
-        // Flip sign to match expected convention
-        return -Math.asin(ratio) * 2 / 3;
     }
 
     computePitch(extraction: ParsedFace): number {
@@ -697,16 +661,42 @@ export class FaceParser {
     private getSkullYCenter(extraction: Omit<ParsedFace, "skullCenter">): number {
         const props = this.config.headProportions;
 
-        if (extraction.bounds.middleTop.isVisible && extraction.bounds.middleBottom.isVisible) {
-            const top = extraction.bounds.middleTop.position.y;
-            const bottom = extraction.bounds.middleBottom.position.y;
-            return (top + bottom) / 2;
+        if (extraction.bounds.middleTop.isVisible && 
+            extraction.bounds.middleBottom.isVisible &&
+            extraction.eyes.left.isVisible && 
+            extraction.eyes.right.isVisible) {
+            
+            const eyeMidY = (extraction.eyes.left.position.y + extraction.eyes.right.position.y) / 2;
+            
+            const topToEyeDist = Math.hypot(
+                extraction.bounds.middleTop.position.x - extraction.eyes.left.position.x,
+                extraction.bounds.middleTop.position.y - eyeMidY
+            );
+            const bottomToEyeDist = Math.hypot(
+                extraction.bounds.middleBottom.position.x - extraction.eyes.left.position.x,
+                extraction.bounds.middleBottom.position.y - eyeMidY
+            );
+            
+            const canonicalTopToEye = props.height.eye_line - props.height.forehead_top;
+            const canonicalBottomToEye = props.height.chin_tip - props.height.eye_line;
+            
+            const scaleRatio = (topToEyeDist / canonicalTopToEye + 
+                               bottomToEyeDist / canonicalBottomToEye) / 2;
+            
+            return eyeMidY - props.height.eye_line * scaleRatio;
         }
 
         if (extraction.eyes.right.isVisible && extraction.eyes.left.isVisible && extraction.nose.isVisible) {
             const eyeMidY = (extraction.eyes.left.position.y + extraction.eyes.right.position.y) / 2;
-            const currentEyeToNose = extraction.nose.position.y - eyeMidY;
-            const canonicalEyeToNose = props.height.nose_base - props.height.eye_line;
+            
+            const currentEyeToNose = Math.hypot(
+                extraction.nose.position.x - extraction.eyes.left.position.x,
+                extraction.nose.position.y - eyeMidY
+            );
+            const canonicalEyeToNose = Math.hypot(
+                props.width.eye_to_eye / 2,
+                props.height.nose_base - props.height.eye_line
+            );
             const scaleRatio = currentEyeToNose / canonicalEyeToNose;
             return eyeMidY - props.height.eye_line * scaleRatio;
         }
