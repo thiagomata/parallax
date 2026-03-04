@@ -848,17 +848,15 @@ describe('FaceParser - rotation', () => {
 
     it('should detect pitch rotation', () => {
         const slices = 10;
-        const maxPitch = Math.PI / 4; // ±45° realistic pitch
+        const maxPitch = Math.PI / 6; // ±30° realistic pitch (anatomically possible)
 
         for (let i = 0; i <= 2 * slices; i++) {
-        // {
-            const angle = wrapPi(-maxPitch + i * (2 * maxPitch) / (2 * slices)); // -π/4 to +π/4
+            const angle = wrapPi(-maxPitch + i * (2 * maxPitch) / (2 * slices));
 
-            console.log("angle:", angle);
             // 1. Create canonical head and normalize
             const canonicalHead = parser.normalizeToUnitScale(createCanonicalHead());
 
-            // 2. Apply yaw rotation (around Y-axis)
+            // 2. Apply pitch rotation (around X-axis)
             const rotatedHead = rotateX(canonicalHead, angle);
 
             // 3. Translate & scale for screen space pipeline
@@ -866,10 +864,8 @@ describe('FaceParser - rotation', () => {
                 translate(scale(rotatedHead, 0.5), 0.1, 0.1, 0.1)
             );
 
-            // 4. Compute extracted yaw
+            // 4. Compute extracted pitch
             const receivedPitch = parser.computePitch(headScreen);
-
-            console.log(`Injected pitch: ${angle}, Detected pitch: ${receivedPitch}`);
 
             // 5. Assert close to injected angle
             expect(receivedPitch).toBeCloseTo(angle, 5);

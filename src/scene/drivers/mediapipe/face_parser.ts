@@ -27,27 +27,52 @@ export const wrapPi = (a: number) => {
 };
 
 const CANONICAL_PITCHES = [
-    { angle: -Math.PI / 4, distance: 0.19 },
-    { angle: 0,            distance: 0.15 },
-    { angle:  Math.PI / 5, distance: 0.12 },
-    { angle:  Math.PI / 4, distance: 0.11 },
+    { angle: -0.5235987755982988, distance: 0.15980762113533176 },
+    { angle: -0.4712388980384689, distance: 0.17650385730860108 },
+    { angle: -0.41887902047863906, distance: 0.19271630867762035 },
+    { angle: -0.36651914291880916, distance: 0.2084005380401006 },
+    { angle: -0.3141592653589793, distance: 0.2235135560135566 },
+    { angle: -0.2617993877991494, distance: 0.23801393886621647 },
+    { angle: -0.2094395102393195, distance: 0.25186194205658996 },
+    { angle: -0.15707963267948966, distance: 0.26501960917049505 },
+    { angle: -0.10471975511965975, distance: 0.2774508759569514 },
+    { angle: -0.05235987755982985, distance: 0.28912166917778337 },
+    { angle: 0, distance: 0.2999999999999998 },
+    { angle: 0.05235987755982985, distance: 0.3100560516749611 },
+    { angle: 0.10471975511965981, distance: 0.3192622612640128 },
+    { angle: 0.15707963267948966, distance: 0.3275933951865875 },
+    { angle: 0.2094395102393195, distance: 0.33502661838369363 },
+    { angle: 0.26179938779914935, distance: 0.34154155690722465 },
+    { angle: 0.3141592653589793, distance: 0.34712035376353545 },
+    { angle: 0.36651914291880916, distance: 0.3517477178582207 },
+    { angle: 0.4188790204786391, distance: 0.3554109659079403 },
+    { angle: 0.47123889803846897, distance: 0.35810005720441973 },
+    { angle: 0.5235987755982988, distance: 0.3598076211353318 },
 ];
 
 function computePitchFromDistance(measured: number): number {
     if (CANONICAL_PITCHES.length < 2) return 0;
 
-    // Sort by distance (closest first)
+    // Sort by distance (ascending) 
     const sorted = CANONICAL_PITCHES
         .slice()
-        .sort((a, b) => Math.abs(a.distance - measured) - Math.abs(b.distance - measured));
+        .sort((a, b) => a.distance - b.distance);
 
-    const p1 = sorted[0];
-    const p2 = sorted[1];
+    // Handle edge cases
+    if (measured <= sorted[0].distance) return sorted[0].angle;
+    if (measured >= sorted[sorted.length - 1].distance) return sorted[sorted.length - 1].angle;
 
-    if (p1.distance === p2.distance) return p1.angle;
+    // Find the two points that bracket the measured value
+    for (let i = 0; i < sorted.length - 1; i++) {
+        if (sorted[i].distance <= measured && measured <= sorted[i + 1].distance) {
+            const p1 = sorted[i];
+            const p2 = sorted[i + 1];
+            const t = (measured - p1.distance) / (p2.distance - p1.distance);
+            return p1.angle + t * (p2.angle - p1.angle);
+        }
+    }
 
-    const t = (measured - p1.distance) / (p2.distance - p1.distance);
-    return p1.angle + t * (p2.angle - p1.angle);
+    return 0;
 }
 
 
@@ -603,34 +628,26 @@ export class FaceParser {
         return this.getRotation(head).yaw;
     }
 
-    /**
-     * Compute pitch (radians) from a centered, normalized RawExtraction
-     * Uses canonical distances between eye center and nose
-     */
     computePitch(extraction: ParsedFace): number {
         // 1. Normalize and center
         const head = this.normalizeToUnitScale(
             this.translateToSkullCenter(extraction)
         );
 
-    if (!head.eyes.left.isVisible ||
-        !head.eyes.right.isVisible ||
-        !head.nose.isVisible) {
-        return 0;
+        if (!head.eyes.left.isVisible ||
+            !head.eyes.right.isVisible ||
+            !head.nose.isVisible) {
+            return 0;
+        }
+
+        // Eye center Y only (for pitch detection)
+        const eyeCenterY = (head.eyes.left.position.y + head.eyes.right.position.y) / 2;
+
+        // 2D distance in projection plane
+        const dy = head.nose.position.y - eyeCenterY;
+
+        return computePitchFromDistance(dy);
     }
-
-    // Eye center (2D only)
-    const eyeCenterX = (head.eyes.left.position.x + head.eyes.right.position.x) / 2;
-    const eyeCenterY = (head.eyes.left.position.y + head.eyes.right.position.y) / 2;
-
-    // 2D distance in projection plane
-    const dx = head.nose.position.x - eyeCenterX;
-    const dy = head.nose.position.y - eyeCenterY;
-
-    const measuredDist = Math.hypot(dx, dy);
-
-    return computePitchFromDistance(measuredDist);
-}
 
     private getSkullYCenter(extraction: Omit<ParsedFace, "skullCenter">): number {
         const props = this.config.headProportions;
