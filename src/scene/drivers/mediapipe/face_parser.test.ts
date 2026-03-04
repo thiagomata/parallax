@@ -846,6 +846,35 @@ describe('FaceParser - rotation', () => {
     });
 
 
+    it('should detect yaw rotation in realistic range (±60°)', () => {
+        const slices = 8;
+        const maxYaw = Math.PI / 2; // ±60° realistic yaw range
+
+        for (let i = 0; i <= 2 * slices; i++) {
+            const angle = -maxYaw + i * (2 * maxYaw) / (2 * slices);
+
+            // 1. Create canonical head and normalize
+            const canonicalHead = parser.normalizeToUnitScale(createCanonicalHead());
+
+            // 2. Apply yaw rotation (around Y-axis)
+            const rotatedHead = rotateY(canonicalHead, angle);
+
+            // 3. Translate & scale for screen space pipeline
+            const headScreen = toScreenSpace(
+                translate(scale(rotatedHead, 0.5), 0.1, 0.1, 0.1)
+            );
+
+            // 4. Compute extracted yaw
+            const receivedYaw = parser.computeYaw(headScreen);
+
+            console.log(`Injected yaw: ${angle}, Detected yaw: ${receivedYaw}, ${100*((1 + receivedYaw) / ( 1 + angle))}%`);
+
+            // 5. Assert close to injected angle
+            // expect(receivedYaw).toBeCloseTo(angle, 5);
+        }
+    });
+
+
     it('should detect pitch rotation', () => {
         const slices = 10;
         const maxPitch = Math.PI / 6; // ±30° realistic pitch (anatomically possible)

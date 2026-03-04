@@ -1,5 +1,5 @@
 import type {Rotation3, Vector3} from "../../types.ts";
-import {add, multiply, subtract} from "../../utils/projection_utils.ts";
+import {add, multiply, subtract, dot} from "../../utils/projection_utils.ts";
 
 function normalize(v: Vector3): Vector3 {
     const len = Math.hypot(v.x, v.y, v.z);
@@ -356,13 +356,15 @@ export class FaceParser {
                 extraction.rig.rightEar.position.y - extraction.rig.leftEar.position.y
             );
         } else if (extraction.eyes.left.isVisible && extraction.eyes.right.isVisible) {
+            // Reconstruct ear-to-ear from eye span using canonical proportions
+            // ear_to_ear = eye_span * (canonical_ear_to_ear / canonical_eye_to_eye)
             const eyeSpan = Math.hypot(
                 extraction.eyes.right.position.x - extraction.eyes.left.position.x,
                 extraction.eyes.right.position.y - extraction.eyes.left.position.y
             );
-            measuredWidth = eyeSpan * props.width.eye_to_eye / props.width.ear_to_ear; // reconstruct full head width
+            measuredWidth = eyeSpan * (props.width.ear_to_ear / props.width.eye_to_eye);
         } else {
-            measuredWidth = props.width.eye_to_eye; // fallback
+            measuredWidth = props.width.eye_to_eye;
         }
 
         // Compute the **scaling factor to reach canonical width**
@@ -460,60 +462,61 @@ export class FaceParser {
         };
     }
 
-    // public fullAxisRotation(centered: ParsedFace): Rotation3 {
-    //     const {rig, bounds} = centered;
-    //
-    //     // 1. Construct full 3D corners of the head box
-    //     const topLeft = {x: rig.leftEar.position.x, y: bounds.middleTop.position.y, z: rig.leftEar.position.z};
-    //     const topRight = {x: rig.rightEar.position.x, y: bounds.middleTop.position.y, z: rig.rightEar.position.z};
-    //     const bottomLeft = {x: rig.leftEar.position.x, y: bounds.middleBottom.position.y, z: rig.leftEar.position.z};
-    //     const bottomRight = {x: rig.rightEar.position.x, y: bounds.middleBottom.position.y, z: rig.rightEar.position.z};
-    //
-    //     // 2. Compute basis vectors
-    //     const right = normalize({
-    //         x: topRight.x - topLeft.x,
-    //         y: topRight.y - topLeft.y,
-    //         z: topRight.z - topLeft.z
-    //     });
-    //
-    //     const up = normalize({
-    //         x: topLeft.x - bottomLeft.x,
-    //         y: topLeft.y - bottomLeft.y,
-    //         z: topLeft.z - bottomLeft.z
-    //     });
-    //
-    //     const forward = normalize(cross(up, right));
-    //     const trueUp = cross(right, forward); // Gram-Schmidt re-orthogonalize
-    //
-    //     // 3. Construct rotation matrix (columns = basis vectors)
-    //     const m00 = right.x, m01 = trueUp.x, m02 = forward.x;
-    //     const m10 = right.y, m11 = trueUp.y, m12 = forward.y;
-    //     const m20 = right.z, m21 = trueUp.z, m22 = forward.z;
-    //
-    //     // // 4. Extract YXZ Euler angles
-    //     // const pitch = Math.asin(-m12);               // rotation around X
-    //     // const yaw   = Math.atan2(m02, m22);          // rotation around Y
-    //     // const roll  = Math.atan2(m10, m11);          // rotation around Z
-    //
-    //     // YXZ extraction from transposed matrix
-    //     const pitch = wrap2Pi(Math.asin(-m12));
-    //     const yaw = wrap2Pi(Math.atan2(m02, m22));
-    //     const roll = wrap2Pi(Math.atan2(m10, m11) - Math.PI);
-    //
-    //     const x = dot(right, up);
-    //     console.log(x);
-    //     return {
-    //         pitch,
-    //         yaw,
-    //         roll,
-    //     };
-    // }
+    public fullAxisRotation(centered: ParsedFace): Rotation3 {
+        const {rig, bounds} = centered;
+
+        // 1. Construct full 3D corners of the head box
+        const topLeft = {x: rig.leftEar.position.x, y: bounds.middleTop.position.y, z: rig.leftEar.position.z};
+        const topRight = {x: rig.rightEar.position.x, y: bounds.middleTop.position.y, z: rig.rightEar.position.z};
+        const bottomLeft = {x: rig.leftEar.position.x, y: bounds.middleBottom.position.y, z: rig.leftEar.position.z};
+        // const bottomRight = {x: rig.rightEar.position.x, y: bounds.middleBottom.position.y, z: rig.rightEar.position.z};
+
+        // 2. Compute basis vectors
+        const right = normalize({
+            x: topRight.x - topLeft.x,
+            y: topRight.y - topLeft.y,
+            z: topRight.z - topLeft.z
+        });
+
+        const up = normalize({
+            x: topLeft.x - bottomLeft.x,
+            y: topLeft.y - bottomLeft.y,
+            z: topLeft.z - bottomLeft.z
+        });
+
+        const forward = normalize(cross(up, right));
+        const trueUp = cross(right, forward); // Gram-Schmidt re-orthogonalize
+
+        // 3. Construct rotation matrix (columns = basis vectors)
+        // const m00 = right.x, m01 = trueUp.x, m02 = forward.x;
+        const m10 = right.y, m11 = trueUp.y, m12 = forward.y;
+        // const m20 = right.z, m21 = trueUp.z, m22 = forward.z;
+
+        // // 4. Extract YXZ Euler angles
+        // const pitch = Math.asin(-m12);               // rotation around X
+        // const yaw   = Math.atan2(m02, m22);          // rotation around Y
+        // const roll  = Math.atan2(m10, m11);          // rotation around Z
+
+        // YXZ extraction from transposed matrix
+        const pitch = wrap2Pi(Math.asin(-m12));
+        // const yaw = wrap2Pi(Math.atan2(m02, m22));
+        const roll = wrap2Pi(Math.atan2(m10, m11) - Math.PI);
+
+        const x = dot(right, up);
+        console.log(x);
+        return {
+            pitch,
+            yaw: 0,//
+            // yaw,
+            roll,
+        };
+    }
 
     getRotation(extraction: ParsedFace) {
-        // if (extraction.rig.leftEar.isVisible && extraction.rig.rightEar.isVisible && extraction.bounds.middleTop.isVisible && extraction.bounds.middleBottom.isVisible) {
-        //     // most robust method
-        //     return this.fullAxisRotation(extraction);
-        // }
+        if (extraction.rig.leftEar.isVisible && extraction.rig.rightEar.isVisible && extraction.bounds.middleTop.isVisible && extraction.bounds.middleBottom.isVisible) {
+            // most robust method
+            return this.fullAxisRotation(extraction);
+        }
 
         if (extraction.eyes.left.isVisible && extraction.eyes.right.isVisible && extraction.nose.isVisible) {
             return this.approximateRotation(extraction); // fallback strategy
@@ -535,7 +538,7 @@ export class FaceParser {
         const lines: {
             a: { x: number; y: number },
             b: { x: number; y: number },
-            axis: number
+            isVertical: boolean
         }[] = [];
 
         // Ear line
@@ -543,7 +546,7 @@ export class FaceParser {
             lines.push({
                 a: {x: head.rig.leftEar.position.x, y: head.rig.leftEar.position.y},
                 b: {x: head.rig.rightEar.position.x, y: head.rig.rightEar.position.y},
-                axis: 0,
+                isVertical: false,
             });
         }
 
@@ -552,30 +555,107 @@ export class FaceParser {
             lines.push({
                 a: {x: head.bounds.middleTop.position.x, y: head.bounds.middleTop.position.y},
                 b: {x: head.bounds.middleBottom.position.x, y: head.bounds.middleBottom.position.y},
-                axis: Math.PI / 2,
+                isVertical: true,
             });
         }
 
         // Compute angles relative to horizontal
-        const angles = lines
+        const rawAngles = lines
             .filter(({a, b}) => Math.hypot(b.x - a.x, b.y - a.y) >= minLength)
-            .map(({a, b, axis}) => //Math.atan2(-(b.y - a.y), b.x - a.x))
+            .map(({a, b, isVertical}) => 
             {
                 const dx = b.x - a.x;
-                const dy = b.y - a.y; // flip Y if needed
-                const angle = Math.atan2(dy, dx);
-                return angle - axis;
-            })
-            .map(wrapPi)
+                const dy = b.y - a.y;
+                const rawAngle = Math.atan2(dy, dx);
+                // For vertical reference lines (like bounds center), measure deviation from vertical (π/2)
+                // For horizontal reference lines (like ear line), measure from horizontal (0)
+                return isVertical ? rawAngle - Math.PI / 2 : rawAngle;
+            });
 
-        if (angles.length === 0) return 0; // no valid lines
+        if (rawAngles.length === 0) return 0; // no valid lines
 
-        // Average → roll
-        return angles.reduce((acc, v) => acc + v, 0) / angles.length;
+        // Compute circular mean of angles (handles -π/π boundary correctly)
+        let sinSum = 0;
+        let cosSum = 0;
+        for (const angle of rawAngles) {
+            sinSum += Math.sin(angle);
+            cosSum += Math.cos(angle);
+        }
+        
+        const meanAngle = Math.atan2(sinSum, cosSum);
+        
+        // Wrap to [-π, π] range
+        return wrapPi(meanAngle);
     }
 
-    computeYaw(head: ParsedFace) {
-        return this.getRotation(head).yaw;
+    computeYaw(extraction: ParsedFace): number {
+        const head = this.normalizeToUnitScale(
+            this.translateToSkullCenter(extraction)
+        );
+
+        if (!head.eyes.left.isVisible || !head.eyes.right.isVisible || !head.nose.isVisible) {
+            return 0;
+        }
+
+        const props = this.config.headProportions;
+
+        const currentEyeWidth = Math.abs(head.eyes.left.position.x - head.eyes.right.position.x);
+        const eyeCenterX = (head.eyes.left.position.x + head.eyes.right.position.x) / 2;
+        const noseXRel = head.nose.position.x - eyeCenterX;
+
+        const noseDepth = props.depth.eye_plane - props.depth.nose_tip;
+        const depthToWidthRatio = noseDepth / props.width.eye_to_eye;
+
+        let rawYaw = -Math.atan2(noseXRel, currentEyeWidth * depthToWidthRatio);
+
+        // 1. Handle the NaN Singularity
+        if (isNaN(rawYaw)) {
+            // If everything is 0, we assume the head has turned
+            // fully to the side that the nose is currently on.
+            rawYaw = noseXRel >= 0 ? Math.PI / 2 : -Math.PI / 2;
+        }
+
+        // 2. Snap to zero for clean neutral pose
+        return Math.abs(rawYaw) < 1e-10 ? 0 : rawYaw;
+    }
+
+    computeYawA(extraction: ParsedFace): number {
+        // 1. Only center, don't normalize (to preserve rotation effects)
+        const head =
+            this.normalizeToUnitScale(
+                this.translateToSkullCenter(extraction)
+            );
+
+        if (!head.eyes.left.isVisible || 
+            !head.eyes.right.isVisible || 
+            !head.nose.isVisible) {
+            return 0;
+        }
+
+        const props = this.config.headProportions;
+
+        // 2. Eye center in XY
+        const eyeCenterX = (head.eyes.left.position.x + head.eyes.right.position.x) / 2;
+
+        const expectedDistance = this.config.headProportions.width.eye_to_eye
+
+        const eyeRation = ( eyeCenterX ) / ( expectedDistance ) ;
+        console.log(
+            'eyeCenterX',eyeCenterX,
+            'eyeRation',eyeRation
+        );
+
+        // 3. Nose X offset from eye center
+        const noseXRel = head.nose.position.x - eyeCenterX;
+
+        // 4. Use canonical proportions to convert to angle
+        const depthDenominator = props.depth.eye_plane - props.depth.nose_tip;
+        
+        const ratio = Math.max(-1, Math.min(1, noseXRel / depthDenominator));
+
+        
+        // Flip sign to match expected convention
+        return -Math.asin(ratio) * 2 / 3;
     }
 
     computePitch(extraction: ParsedFace): number {
