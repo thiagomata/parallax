@@ -1,5 +1,5 @@
 import type {Rotation3, Vector3} from "../../types.ts";
-import {add, multiply, subtract, dot, wrapPi, normalize, cross, wrap2Pi} from "../../utils/projection_utils.ts";
+import {add, multiply, subtract, wrapPi, normalize, cross, wrap2Pi} from "../../utils/projection_utils.ts";
 import {DEFAULT_HEAD_PROPORTIONS, type FaceData, type HeadProportions} from "./face.ts";
 
 export const INDEX = {
@@ -433,41 +433,30 @@ export class FaceParser {
         const forward = normalize(cross(up, right));
         const trueUp = cross(right, forward); // Gram-Schmidt re-orthogonalize
 
-        // 3. Construct rotation matrix (columns = basis vectors)
-        // const m00 = right.x, m01 = trueUp.x, m02 = forward.x;
-        const m10 = right.y, m11 = trueUp.y, m12 = forward.y;
-        // const m20 = right.z, m21 = trueUp.z, m22 = forward.z;
+        // 3. Extract YXZ Euler angles from rotation matrix
+        const m02 = forward.x, m10 = right.y, m11 = trueUp.y, m12 = forward.y, m22 = forward.z;
 
-        // // 4. Extract YXZ Euler angles
-        // const pitch = Math.asin(-m12);               // rotation around X
-        // const yaw   = Math.atan2(m02, m22);          // rotation around Y
-        // const roll  = Math.atan2(m10, m11);          // rotation around Z
-
-        // YXZ extraction from transposed matrix
         const pitch = wrap2Pi(Math.asin(-m12));
-        // const yaw = wrap2Pi(Math.atan2(m02, m22));
+        const yaw = wrap2Pi(Math.atan2(m02, m22));
         const roll = wrap2Pi(Math.atan2(m10, m11) - Math.PI);
 
-        const x = dot(right, up);
-        console.log(x);
         return {
             pitch,
-            yaw: 0,//
-            // yaw,
+            yaw,
             roll,
         };
     }
 
     getRotation(extraction: FaceData) {
-        if (extraction.rig.leftEar.isVisible && extraction.rig.rightEar.isVisible && extraction.bounds.middleTop.isVisible && extraction.bounds.middleBottom.isVisible) {
+        // if (extraction.rig.leftEar.isVisible && extraction.rig.rightEar.isVisible && extraction.bounds.middleTop.isVisible && extraction.bounds.middleBottom.isVisible) {
             // most robust method
             return this.fullAxisRotation(extraction);
-        }
+        // }
 
-        if (extraction.eyes.left.isVisible && extraction.eyes.right.isVisible && extraction.nose.isVisible) {
-            return this.approximateRotation(extraction); // fallback strategy
-        }
-        return {yaw: 0, pitch: 0, roll: 0}; // not enough data
+        // if (extraction.eyes.left.isVisible && extraction.eyes.right.isVisible && extraction.nose.isVisible) {
+        //     return this.approximateRotation(extraction); // fallback strategy
+        // }
+        // return {yaw: 0, pitch: 0, roll: 0}; // not enough data
     }
 
     /**
