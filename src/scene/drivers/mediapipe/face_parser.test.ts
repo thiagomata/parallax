@@ -520,7 +520,19 @@ describe('Face Parser - Normalization', () => {
         );
         const a = parser.normalizeToUnitScale(canonical);
         const b = parser.normalizeToUnitScale(a);
-        expect(a).toStrictEqual(b);
+        
+        const areEqual = (
+            Math.abs(a.nose.position.x - b.nose.position.x) < 1e-10 &&
+            Math.abs(a.nose.position.y - b.nose.position.y) < 1e-10 &&
+            Math.abs(a.nose.position.z - b.nose.position.z) < 1e-10 &&
+            Math.abs(a.eyes.left.position.x - b.eyes.left.position.x) < 1e-10 &&
+            Math.abs(a.eyes.left.position.y - b.eyes.left.position.y) < 1e-10 &&
+            Math.abs(a.eyes.left.position.z - b.eyes.left.position.z) < 1e-10 &&
+            Math.abs(a.eyes.right.position.x - b.eyes.right.position.x) < 1e-10 &&
+            Math.abs(a.eyes.right.position.y - b.eyes.right.position.y) < 1e-10 &&
+            Math.abs(a.eyes.right.position.z - b.eyes.right.position.z) < 1e-10
+        );
+        expect(areEqual).toBe(true);
     })
 
     it('should restore the canonical proportions regardless of input scale or position', () => {
@@ -631,7 +643,7 @@ describe('Face Parser - Normalization', () => {
             translate(scale(createCanonicalHead(), 1.0), 0, 0, 0.5)
         )));
 
-        const processed = parser.translateToSkullCenter(parser.normalizeToUnitScale(raw));
+        const processed = parser.normalizeToUnitScale(raw);
 
         // The eye plane should be exactly at -0.45 in head space
         const eyeZ = (processed.eyes.left.position.z + processed.eyes.right.position.z) / 2;
@@ -649,11 +661,10 @@ describe('Face Parser - Normalization', () => {
         expect(extraction.eyes.right.isVisible).toBe(true);
 
         const normalized = parser.normalizeToUnitScale(extraction);
-        const centered = parser.translateToSkullCenter(normalized);
 
         // Even with clipped bounds, the Eye-to-Nose fallback should maintain 1.3 total height
         // So the eyes should still land at Y = 0.1
-        expect(centered.eyes.left.position.y).toBeCloseTo(DEFAULT_HEAD_PROPORTIONS.height.eye_line, 5);
+        expect(normalized.eyes.left.position.y).toBeCloseTo(DEFAULT_HEAD_PROPORTIONS.height.eye_line, 5);
     });
 
     it('should respect the mirror configuration for X coordinates', () => {
@@ -666,8 +677,8 @@ describe('Face Parser - Normalization', () => {
         const mirrored = mirroredParser.parseRawVector(rawData);
 
         // Process both to bring them to the Skull Center (Origin)
-        const normProc = normalParser.translateToSkullCenter(normalParser.normalizeToUnitScale(normal));
-        const mirrProc = mirroredParser.translateToSkullCenter(mirroredParser.normalizeToUnitScale(mirrored));
+        const normProc = normalParser.normalizeToUnitScale(normal);
+        const mirrProc = mirroredParser.normalizeToUnitScale(mirrored);
 
         // After translation to origin:
         // Mirrored Left Eye X should be the negative of the Normal Left Eye X

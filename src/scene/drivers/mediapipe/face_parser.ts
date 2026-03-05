@@ -347,7 +347,7 @@ export class FaceParser {
     public normalizeToUnitScale(extraction: ParsedFace): ParsedFace {
         const props = this.config.headProportions;
 
-        // Determine measured head width
+        // Determine measured width
         let measuredWidth: number;
 
         if (extraction.rig.leftEar.isVisible && extraction.rig.rightEar.isVisible) {
@@ -356,8 +356,6 @@ export class FaceParser {
                 extraction.rig.rightEar.position.y - extraction.rig.leftEar.position.y
             );
         } else if (extraction.eyes.left.isVisible && extraction.eyes.right.isVisible) {
-            // Reconstruct ear-to-ear from eye span using canonical proportions
-            // ear_to_ear = eye_span * (canonical_ear_to_ear / canonical_eye_to_eye)
             const eyeSpan = Math.hypot(
                 extraction.eyes.right.position.x - extraction.eyes.left.position.x,
                 extraction.eyes.right.position.y - extraction.eyes.left.position.y
@@ -367,11 +365,12 @@ export class FaceParser {
             measuredWidth = props.width.eye_to_eye;
         }
 
-        // Compute the **scaling factor to reach canonical width**
+        // Compute the scaling factor to reach canonical width
         const factor = props.width.ear_to_ear / measuredWidth;
 
+        // Scale all positions (including skullCenter)
         const scale = (lm: RawLandmark): RawLandmark => {
-            if (!lm ) {
+            if (!lm) {
                 return lm;
             }
             return {
@@ -384,9 +383,9 @@ export class FaceParser {
             }
         };
 
-        return {
-            normalized: true,
-            centered: extraction.centered,
+        const scaled: Omit<ParsedFace, "skullCenter"> = {
+            normalized: false,
+            centered: false,
             nose: scale(extraction.nose),
             eyes: {
                 left: scale(extraction.eyes.left),
@@ -410,7 +409,59 @@ export class FaceParser {
                 middleTop: scale(extraction.bounds.middleTop),
                 middleBottom: scale(extraction.bounds.middleBottom),
             },
-            skullCenter: scale(extraction.skullCenter),
+        };
+
+        // Calculate skull center from scaled face and translate all positions to origin
+        const center = this.getSkullCenter(scaled);
+
+        let offset: Vector3;
+        if (!center.isVisible) {
+            offset = { x: 0.5, y: 0.5, z: 0.5 };
+        } else {
+            offset = center.position;
+        }
+
+        const translate = (lm: RawLandmark): RawLandmark => {
+            if (!lm) {
+                return lm;
+            }
+            return {
+                ...lm,
+                position: {
+                    x: lm.position.x - offset.x,
+                    y: lm.position.y - offset.y,
+                    z: lm.position.z - offset.z
+                }
+            }
+        };
+
+        return {
+            normalized: true,
+            centered: true,
+            nose: translate(scaled.nose),
+            eyes: {
+                left: translate(scaled.eyes.left),
+                right: translate(scaled.eyes.right),
+            },
+            brows: {
+                left: translate(scaled.brows.left),
+                right: translate(scaled.brows.right),
+            },
+            mouth: {
+                left: translate(scaled.mouth.left),
+                right: translate(scaled.mouth.right),
+            },
+            rig: {
+                leftEar: translate(scaled.rig.leftEar),
+                rightEar: translate(scaled.rig.rightEar),
+                leftTemple: translate(scaled.rig.leftTemple),
+                rightTemple: translate(scaled.rig.rightTemple),
+            },
+            bounds: {
+                middleTop: translate(scaled.bounds.middleTop),
+                middleBottom: translate(scaled.bounds.middleBottom),
+            },
+            skullCenter: { position: { x: 0, y: 0, z: 0 }, isVisible: true },
         };
     }
 
@@ -529,9 +580,7 @@ export class FaceParser {
      */
     computeRoll(extraction: ParsedFace): number {
 
-        const head = this.normalizeToUnitScale(
-            this.translateToSkullCenter(extraction)
-        );
+        const head = this.normalizeToUnitScale(extraction);
 
         const minLength = 0.1; // normalized head
 
@@ -589,9 +638,7 @@ export class FaceParser {
     }
 
     computeYaw(extraction: ParsedFace): number {
-        const head = this.normalizeToUnitScale(
-            this.translateToSkullCenter(extraction)
-        );
+        const head = this.normalizeToUnitScale(extraction);
 
         if (!head.eyes.left.isVisible || !head.eyes.right.isVisible || !head.nose.isVisible) {
             return 0;
@@ -623,10 +670,7 @@ export class FaceParser {
     }
 
     computePitch(extraction: ParsedFace): number {
-        // 1. Normalize and center
-        const head = this.normalizeToUnitScale(
-            this.translateToSkullCenter(extraction)
-        );
+        const head = this.normalizeToUnitScale(extraction);
 
         if (!head.eyes.left.isVisible ||
             !head.eyes.right.isVisible ||
