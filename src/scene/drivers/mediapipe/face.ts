@@ -93,7 +93,7 @@ export class Face {
     private centered: boolean;
     private rotation?: Rotation3;
 
-    public constructor(data: FaceData, proportions: HeadProportions) {
+    public constructor(data: FaceData, proportions: HeadProportions = DEFAULT_HEAD_PROPORTIONS) {
         this.data = data;
         this.proportions = proportions;
         this.skullCenter = this.getSkullCenter();
@@ -319,11 +319,13 @@ export class Face {
                 this.data.rig.rightEar.position.x - this.data.rig.leftEar.position.x,
                 this.data.rig.rightEar.position.y - this.data.rig.leftEar.position.y
             );
+            // measuredWidth = this.data.rig.rightEar.position.x - this.data.rig.leftEar.position.x;
         } else if (this.data.eyes.left.isVisible && this.data.eyes.right.isVisible) {
             const eyeSpan = Math.hypot(
                 this.data.eyes.right.position.x - this.data.eyes.left.position.x,
                 this.data.eyes.right.position.y - this.data.eyes.left.position.y
             );
+            // const eyeSpan =  this.data.eyes.right.position.x - this.data.eyes.left.position.x;
             measuredWidth = eyeSpan * (props.width.ear_to_ear / props.width.eye_to_eye);
         } else {
             measuredWidth = props.width.eye_to_eye;
@@ -368,7 +370,7 @@ export class Face {
     /**
      * Compute roll angle (in radians) from a centered RawExtraction
      */
-    private computeRoll(): number {
+    computeRoll(): number {
 
         const head = this.normalized ? this : this.normalize();
         const minLength = 0.1; // normalized head

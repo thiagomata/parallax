@@ -71,7 +71,7 @@ const createCanonicalHead = (H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): Fac
 describe('Face - constructor', () => {
     it('should create a Face instance with provided data and proportions', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
 
         expect(face.data).toBe(head);
         expect(face.proportions).toBe(DEFAULT_HEAD_PROPORTIONS);
@@ -81,7 +81,7 @@ describe('Face - constructor', () => {
 describe('Face - translate', () => {
     it('should translate all landmarks by the given offset (subtraction)', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const translated = face.translate({ x: 0.1, y: 0.2, z: 0.3 });
 
@@ -92,7 +92,7 @@ describe('Face - translate', () => {
 
     it('should not modify the original face', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         face.translate({ x: 0.1, y: 0.2, z: 0.3 });
 
@@ -103,18 +103,20 @@ describe('Face - translate', () => {
 describe('Face - center', () => {
     it('should center the face at origin based on skull center', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
-        
-        const centered = face.center();
+        const face = new Face(head);
+        const translated = face.translate({ x: 0.1, y: 0.2, z: 0.3 });
+        expect(translated.data.nose.position.x).not.toBeCloseTo(0, 1);
 
-        expect(centered.data.nose.position.x).toBeCloseTo(0, 1);
+        const centered = translated.center();
+
+        expect(centered.data.nose.position.x).toBeCloseTo(0, 5);
     });
 });
 
 describe('Face - getSkullCenter', () => {
     it('should compute the skull center from visible landmarks', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const center = face.getSkullCenter();
 
@@ -126,7 +128,7 @@ describe('Face - getSkullCenter', () => {
 describe('Face - scale', () => {
     it('should scale all landmarks by the given factor', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const scaled = face.scale(2);
 
@@ -138,22 +140,42 @@ describe('Face - scale', () => {
 describe('Face - normalize', () => {
     it('should normalize the face to canonical proportions', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
-        
-        const normalized = face.normalize();
+        const face = new Face(head);
+        const eyeDist = Math.hypot(
+            face.data.eyes.left.position.x - face.data.eyes.right.position.x,
+            face.data.eyes.left.position.y - face.data.eyes.right.position.y,
+            face.data.eyes.left.position.z - face.data.eyes.right.position.z,
+        )
+        const earDist = Math.hypot(
+            face.data.rig.leftEar.position.x - face.data.rig.rightEar.position.x,
+            face.data.rig.leftEar.position.y - face.data.rig.rightEar.position.y,
+            face.data.rig.leftEar.position.z - face.data.rig.rightEar.position.z,
+        )
+        expect(eyeDist).toBeCloseTo(DEFAULT_HEAD_PROPORTIONS.width.eye_to_eye);
+        expect(earDist).toBeCloseTo(DEFAULT_HEAD_PROPORTIONS.width.ear_to_ear);
 
-        const leftEarX = normalized.data.rig.leftEar.position.x;
-        const rightEarX = normalized.data.rig.rightEar.position.x;
-        
-        expect(Math.abs(leftEarX - (-0.5))).toBeLessThan(0.01);
-        expect(Math.abs(rightEarX - 0.5)).toBeLessThan(0.01);
+        const normalized = face.scale(1.5).translate({x: 0.5, y: 0.6, z: 0.7}).normalize();
+
+        const normalizedEyeDist = Math.hypot(
+            normalized.data.eyes.left.position.x - normalized.data.eyes.right.position.x,
+            normalized.data.eyes.left.position.y - normalized.data.eyes.right.position.y,
+            normalized.data.eyes.left.position.z - normalized.data.eyes.right.position.z,
+        )
+        const normalizedEarDist = Math.hypot(
+            normalized.data.rig.leftEar.position.x - normalized.data.rig.rightEar.position.x,
+            normalized.data.rig.leftEar.position.y - normalized.data.rig.rightEar.position.y,
+            normalized.data.rig.leftEar.position.z - normalized.data.rig.rightEar.position.z,
+        )
+
+        expect(normalizedEyeDist).toBeCloseTo(DEFAULT_HEAD_PROPORTIONS.width.eye_to_eye);
+        expect(normalizedEarDist).toBeCloseTo(DEFAULT_HEAD_PROPORTIONS.width.ear_to_ear);
     });
 });
 
 describe('Face - getSkullCenter', () => {
     it('should compute the skull center from visible landmarks', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const center = face.getSkullCenter();
 
@@ -177,52 +199,64 @@ describe('Face - getSkullCenter', () => {
     });
 });
 
-describe('Face - computeYaw', () => {
+describe('Face - yaw', () => {
     it('should return 0 for a canonical (non-rotated) head', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
-        const yaw = face.computeYaw();
+        const yaw = face.yaw;
 
         expect(yaw).toBeCloseTo(0, 5);
     });
 
     it('should detect yaw rotation (head turning left/right)', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
-        const rotated = face.rotateY(Math.PI / 6); // 30 degrees
-        
-        const yaw = rotated.computeYaw();
+        const face = new Face(head);
 
-        expect(yaw).not.toBeCloseTo(0, 2);
+        const slices = 8;
+        const maxYaw = Math.PI / 2 - 0.1;
+
+        for (let i = 0; i <= 2 * slices; i++) {
+            const angle = -maxYaw + i * (2 * maxYaw) / (2 * slices);
+            const rotated = face.rotateY(angle);
+            const yaw = rotated.yaw;
+            expect(yaw).toBeCloseTo(angle, 5);
+        }
     });
 });
 
-describe('Face - computePitch', () => {
+describe('Face - pitch', () => {
     it('should return 0 for a canonical (non-rotated) head', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
-        const pitch = face.computePitch();
+        const pitch = face.pitch
 
         expect(pitch).toBeCloseTo(0, 5);
     });
 
-    it('should detect pitch rotation (head looking up/down)', () => {
+    it('should detect pitch rotation (head turning up/down)', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
-        const rotated = face.rotateX(Math.PI / 6); // 30 degrees
-        
-        const pitch = rotated.computePitch();
+        const face = new Face(head);
 
-        expect(pitch).not.toBeCloseTo(0, 2);
+        const slices = 20;
+        const maxPitch = Math.PI / 4 - 0.2;
+
+        for (let i = 0; i <= 2 * slices; i++) {
+            const angle = -maxPitch + i * (2 * maxPitch) / (2 * slices);
+            const rotated = face.rotateX(angle);
+            const pitch = rotated.pitch;
+            const match = 100 * (1 + pitch)/(1 + angle);
+            console.log("pitch input =",angle,", output =",pitch, match,"%");
+            expect(match).toBeCloseTo(100, 5);
+        }
     });
 });
 
-describe('Face - computeRoll', () => {
+describe('Face - roll', () => {
     it('should return 0 for a canonical (non-rotated) head', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const roll = face.roll;
 
@@ -232,18 +266,31 @@ describe('Face - computeRoll', () => {
     it('should detect roll rotation (head tilting)', () => {
         const head = createCanonicalHead();
         const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
-        const rotated = face.rotateZ(Math.PI / 6); // 30 degrees
-        
-        const roll = rotated.roll;
 
-        expect(roll).not.toBeCloseTo(0, 2);
+        const slices = 10;
+        const maxRoll = Math.PI / 4 - 0.2;
+
+        let totalError = 0
+
+        for (let i = 0; i <= 2 * slices; i++) {
+            const angle = -maxRoll + i * (2 * maxRoll) / (2 * slices);
+            const rotated = face.rotateZ(angle);
+            const roll = rotated.roll;
+            const match = 100 * (1 + roll)/(1 + angle);
+            console.log("roll input =",angle,", output =",roll, ".", match,"%");
+            totalError += Math.abs(match - 100);
+            // expect(match).toBeCloseTo(100, 5);
+        }
+        const errorAvg = totalError / (2 * slices);
+        console.log("error avg = ", errorAvg);
+        expect(errorAvg).toBeLessThan(20);
     });
 });
 
 describe('Face - rotateX', () => {
     it('should rotate around X axis', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const rotated = face.rotateX(Math.PI / 4);
         
@@ -253,7 +300,7 @@ describe('Face - rotateX', () => {
 
     it('should rotate forward and back around X axis', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         const angle = Math.PI / 6;
         
         const rotated = face.rotateX(angle).rotateX(-angle);
@@ -267,7 +314,7 @@ describe('Face - rotateX', () => {
 describe('Face - rotateY', () => {
     it('should rotate around Y axis', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const rotated = face.rotateY(Math.PI / 4);
         
@@ -277,7 +324,7 @@ describe('Face - rotateY', () => {
 
     it('should rotate forward and back around Y axis', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         const angle = Math.PI / 6;
         
         const rotated = face.rotateY(angle).rotateY(-angle);
@@ -291,7 +338,7 @@ describe('Face - rotateY', () => {
 describe('Face - rotateZ', () => {
     it('should rotate around Z axis', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const rotated = face.rotateZ(Math.PI / 4);
         
@@ -301,7 +348,7 @@ describe('Face - rotateZ', () => {
 
     it('should rotate forward and back around Z axis', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         const angle = Math.PI / 6;
         
         const rotated = face.rotateZ(angle).rotateZ(-angle);
@@ -315,7 +362,7 @@ describe('Face - rotateZ', () => {
 describe('Face - combined rotations', () => {
     it('should rotate in YXZ order and return close to original when reversed', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         const yaw = Math.PI / 8;
         const pitch = Math.PI / 8;
         const roll = Math.PI / 8;
@@ -337,7 +384,7 @@ describe('Face - combined rotations', () => {
 
     it('should chain multiple rotations and preserve all landmarks', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const rotated = face
             .rotateY(Math.PI / 6)
@@ -356,7 +403,7 @@ describe('Face - combined rotations', () => {
 describe('Face - getRotation (yaw, pitch, roll properties)', () => {
     it('should return all rotation angles for a canonical head', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const rotation = face.getRotation();
 
@@ -367,7 +414,7 @@ describe('Face - getRotation (yaw, pitch, roll properties)', () => {
 
     it('should use getter properties for yaw, pitch, roll', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         expect(face.yaw).toBeCloseTo(0, 5);
         expect(face.pitch).toBeCloseTo(0, 5);
@@ -378,7 +425,7 @@ describe('Face - getRotation (yaw, pitch, roll properties)', () => {
 describe('Face - rotation with combined rotations', () => {
     it('should recover rotation with small YXZ rotations', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const yaw = Math.PI / 12;    // 15 degrees
         const pitch = Math.PI / 12; // 15 degrees
@@ -398,7 +445,7 @@ describe('Face - rotation with combined rotations', () => {
 describe('Face - chain operations', () => {
     it('should support method chaining (translate -> scale -> center)', () => {
         const head = createCanonicalHead();
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const result = face
             .translate({ x: 0.1, y: 0.1, z: 0 })
@@ -425,7 +472,7 @@ describe('Face - rotation comparison with known rotations', () => {
                     if (yaw === 0 && pitch === 0 && roll === 0) continue;
 
                     const head = createCanonicalHead();
-                    const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+                    const face = new Face(head);
                     
                     const transformed = face
                         .rotateY(yaw)
@@ -459,7 +506,7 @@ describe('Face - edge cases', () => {
         head.rig.leftEar.isVisible = false;
         head.rig.rightEar.isVisible = false;
         
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const center = face.getSkullCenter();
         
@@ -470,7 +517,7 @@ describe('Face - edge cases', () => {
         const head = createCanonicalHead();
         head.nose.isVisible = false;
         
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const yaw = face.computeYaw();
         expect(yaw).toBe(0);
@@ -481,7 +528,7 @@ describe('Face - edge cases', () => {
         head.eyes.left.isVisible = false;
         head.eyes.right.isVisible = false;
         
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const face = new Face(head);
         
         const pitch = face.computePitch();
         expect(pitch).toBe(0);
