@@ -346,11 +346,16 @@ export class Face {
         if (this.rotation) {
             return this.rotation;
         }
-        const normalized = this.normalize();
+        let face = this.normalize();
+        const roll = face.computeRoll();
+        face = face.rotateZ(-roll);
+        const yaw = face.computeYaw();
+        face = face.rotateY(-yaw);
+        const pitch = face.computePitch();
         this.rotation = {
-            roll: normalized.computeRoll(),
-            yaw: normalized.computeYaw(),
-            pitch: normalized.computePitch(),
+            roll,
+            pitch,
+            yaw
         }
         return this.rotation;
     }
