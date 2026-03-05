@@ -1,12 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
-    DEFAULT_HEAD_PROPORTIONS,
     FaceParser,
-    type HeadProportions,
     INDEX,
-    type ParsedFace,
-    wrapPi
 } from "./face_parser";
+import {DEFAULT_HEAD_PROPORTIONS, type FaceData, type HeadProportions} from "./face.ts";
+import {wrapPi} from "../../utils/projection_utils.ts";
 
 const createRawVector = (overrides: Record<number, { x: number, y: number, z?: number }> = {}): Array<{ x?: number, y?: number, z?: number }> => {
     const vector = new Array(500).fill(undefined);
@@ -289,11 +287,9 @@ describe('FaceParser - getSkullCenter', () => {
     const parser = new FaceParser();
 
     // Helper to create a RawExtraction object
-    const createExtraction = (overrides: Partial<ParsedFace> = {}): ParsedFace => {
+    const createExtraction = (overrides: Partial<FaceData> = {}): FaceData => {
         const defaultLandmark = { position: { x: 0.5, y: 0.5, z: 0 }, isVisible: true };
         return {
-            normalized: false,
-            centered: false,
             nose: defaultLandmark,
             eyes: { left: defaultLandmark, right: defaultLandmark },
             brows: { left: defaultLandmark, right: defaultLandmark },
@@ -308,7 +304,7 @@ describe('FaceParser - getSkullCenter', () => {
                 middleTop: { position: { x: 0.5, y: 0.2, z: 0 }, isVisible: true },
                 middleBottom: { position: { x: 0.5, y: 0.8, z: 0 }, isVisible: true }
             },
-            skullCenter: { position: { x: 0, y: 0, z: 0 }, isVisible: true },
+            // skullCenter: { position: { x: 0, y: 0, z: 0 }, isVisible: true },
             ...overrides
         };
     };
@@ -878,7 +874,7 @@ describe('FaceParser - rotation', () => {
             // 4. Compute extracted yaw
             const receivedYaw = parser.computeYaw(headScreen);
 
-            // console.log(`Injected yaw: ${angle}, Detected yaw: ${receivedYaw}, ${100*((1 + receivedYaw) / ( 1 + angle))}%`);
+            console.log(`Injected yaw: ${angle}, Detected yaw: ${receivedYaw}, ${100*((1 + receivedYaw) / ( 1 + angle))}%`);
 
             // 5. Assert close to injected angle
             expect(receivedYaw).toBeCloseTo(angle, 5);
@@ -1436,10 +1432,10 @@ describe('FaceParser - rotation', () => {
  * Normalized based in the ear_to_ear
  * @param H
  */
-function createCanonicalHead(H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): ParsedFace {
+function createCanonicalHead(H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): FaceData {
     return {
-        normalized: false,
-        centered: false,
+        // normalized: false,
+        // centered: false,
         nose: {
             position: { x: 0, y: H.height.nose_base, z: H.depth.nose_tip },
             isVisible: true
@@ -1502,10 +1498,10 @@ function createCanonicalHead(H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): Par
                 isVisible: true
             },
         },
-        skullCenter: {
-            isVisible: true,
-            position: {x:0,y:0,z:0},
-        },
+        // skullCenter: {
+        //     isVisible: true,
+        //     position: {x:0,y:0,z:0},
+        // },
     };
 }
 
@@ -1513,7 +1509,7 @@ function createCanonicalHead(H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): Par
 // Transformation Helpers
 // ============================================================================
 
-const rotateX = (head: ParsedFace, radians: number): ParsedFace => {
+const rotateX = (head: FaceData, radians: number): FaceData => {
     const cos = Math.cos(radians);
     const sin = Math.sin(radians);
 
@@ -1526,7 +1522,7 @@ const rotateX = (head: ParsedFace, radians: number): ParsedFace => {
     return mapPoints(head, transform);
 };
 
-const rotateY = (head: ParsedFace, radians: number): ParsedFace => {
+const rotateY = (head: FaceData, radians: number): FaceData => {
     const cos = Math.cos(radians);
     const sin = Math.sin(radians);
 
@@ -1539,7 +1535,7 @@ const rotateY = (head: ParsedFace, radians: number): ParsedFace => {
     return mapPoints(head, transform);
 };
 
-const rotateZ = (head: ParsedFace, radians: number): ParsedFace => {
+const rotateZ = (head: FaceData, radians: number): FaceData => {
     const cos = Math.cos(radians);
     const sin = Math.sin(radians);
 
@@ -1552,7 +1548,7 @@ const rotateZ = (head: ParsedFace, radians: number): ParsedFace => {
     return mapPoints(head, transform);
 };
 
-const scale = (head: ParsedFace, factor: number): ParsedFace => {
+const scale = (head: FaceData, factor: number): FaceData => {
     const transform = (p: { x: number, y: number, z: number }) => ({
         x: p.x * factor,
         y: p.y * factor,
@@ -1562,7 +1558,7 @@ const scale = (head: ParsedFace, factor: number): ParsedFace => {
     return mapPoints(head, transform);
 };
 
-const translate = (head: ParsedFace, dx: number, dy: number, dz: number): ParsedFace => {
+const translate = (head: FaceData, dx: number, dy: number, dz: number): FaceData => {
     const transform = (p: { x: number, y: number, z: number }) => ({
         x: p.x + dx,
         y: p.y + dy,
@@ -1572,7 +1568,7 @@ const translate = (head: ParsedFace, dx: number, dy: number, dz: number): Parsed
     return mapPoints(head, transform);
 };
 
-const toScreenSpace = (head: ParsedFace, screenCenterX: number = 0.5, screenCenterY: number = 0.5): ParsedFace => {
+const toScreenSpace = (head: FaceData, screenCenterX: number = 0.5, screenCenterY: number = 0.5): FaceData => {
     const transform = (p: { x: number, y: number, z: number }) => ({
         x: p.x + screenCenterX,
         y: p.y + screenCenterY,  // Y+ = down, just add offset
@@ -1584,12 +1580,12 @@ const toScreenSpace = (head: ParsedFace, screenCenterX: number = 0.5, screenCent
 
 // Helper to apply a transformation to all points in RawExtraction
 const mapPoints = (
-    head: ParsedFace,
+    head: FaceData,
     fn: (p: { x: number, y: number, z: number }) => { x: number, y: number, z: number }
-): ParsedFace => {
+): FaceData => {
     return {
-        normalized: false,
-        centered: false,
+        // normalized: false,
+        // centered: false,
         nose: { position: fn(head.nose.position), isVisible: head.nose.isVisible },
         eyes: {
             left: { position: fn(head.eyes.left.position), isVisible: head.eyes.left.isVisible },
@@ -1613,15 +1609,15 @@ const mapPoints = (
             middleTop: { position: fn(head.bounds.middleTop.position), isVisible: head.bounds.middleTop.isVisible },
             middleBottom: { position: fn(head.bounds.middleBottom.position), isVisible: head.bounds.middleBottom.isVisible },
         },
-        skullCenter: {
-            position: fn(head.skullCenter.position),
-            isVisible: head.skullCenter.isVisible,
-        }
+        // skullCenter: {
+        //     position: fn(head.skullCenter.position),
+        //     isVisible: head.skullCenter.isVisible,
+        // }
     };
 };
 
 // Convert RawExtraction to MediaPipe flat array format (for parser.parse())
-const toFlatArray = (head: ParsedFace): Array<{ x: number, y: number, z: number }> => {
+const toFlatArray = (head: FaceData): Array<{ x: number, y: number, z: number }> => {
     const list = new Array(478).fill(null).map(() => ({ x: -1, y: -1, z: 0 }));
 
     const setIfVisible = (index: number, point: { x: number, y: number, z: number }, isVisible: boolean) => {

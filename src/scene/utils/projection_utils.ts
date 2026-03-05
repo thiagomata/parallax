@@ -31,20 +31,6 @@ export function length(v: Vector3): number {
     return Math.hypot(v.x, v.y, v.z);
 }
 
-export function normalize(v: Vector3): Vector3 {
-    const len = Math.hypot(v.x, v.y, v.z);
-    if (len === 0) return { x: 0, y: 0, z: 0 };
-    return { x: v.x / len, y: v.y / len, z: v.z / len };
-}
-
-export function cross(a: Vector3, b: Vector3): Vector3 {
-    return {
-        x: a.y * b.z - a.z * b.y,
-        y: a.z * b.x - a.x * b.z,
-        z: a.x * b.y - a.y * b.x
-    };
-}
-
 export function dot(a: Vector3, b: Vector3): number {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
@@ -297,3 +283,29 @@ export function extractYXZFromBasis(right: Vector3, up: Vector3, forward: Vector
 export function midpoint(a: Vector3, b: Vector3): Vector3 {
     return { x: (a.x + b.x)/2, y: (a.y + b.y)/2, z: (a.z + b.z)/2 };
 }
+
+
+export function normalize(v: Vector3): Vector3 {
+    const len = Math.hypot(v.x, v.y, v.z);
+    return {x: v.x / len, y: v.y / len, z: v.z / len};
+}
+
+export function cross(a: Vector3, b: Vector3): Vector3 {
+    return {
+        x: a.y * b.z - a.z * b.y,
+        y: a.z * b.x - a.x * b.z,
+        z: a.x * b.y - a.y * b.x
+    };
+}
+
+export const wrap2Pi = (a: number) => {
+    while (a <= -Math.PI - 0.005) a += 2 * Math.PI;
+    while (a >= Math.PI + 0.005) a -= 2 * Math.PI;
+    return a;
+};
+
+export const wrapPi = (a: number) => {
+    while (a <= -Math.PI) a += Math.PI;
+    while (a >= Math.PI) a -= Math.PI;
+    return a;
+};

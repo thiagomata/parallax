@@ -1,30 +1,6 @@
 import type {Rotation3, Vector3} from "../../types.ts";
-import {add, multiply, subtract, dot} from "../../utils/projection_utils.ts";
-
-function normalize(v: Vector3): Vector3 {
-    const len = Math.hypot(v.x, v.y, v.z);
-    return {x: v.x / len, y: v.y / len, z: v.z / len};
-}
-
-function cross(a: Vector3, b: Vector3): Vector3 {
-    return {
-        x: a.y * b.z - a.z * b.y,
-        y: a.z * b.x - a.x * b.z,
-        z: a.x * b.y - a.y * b.x
-    };
-}
-
-export const wrap2Pi = (a: number) => {
-    while (a <= -Math.PI - 0.005) a += 2 * Math.PI;
-    while (a >= Math.PI + 0.005) a -= 2 * Math.PI;
-    return a;
-};
-
-export const wrapPi = (a: number) => {
-    while (a <= -Math.PI) a += Math.PI;
-    while (a >= Math.PI) a -= Math.PI;
-    return a;
-};
+import {add, multiply, subtract, dot, wrapPi, normalize, cross, wrap2Pi} from "../../utils/projection_utils.ts";
+import {DEFAULT_HEAD_PROPORTIONS, type FaceData, type HeadProportions} from "./face.ts";
 
 export const INDEX = {
     NOSE: 1,
@@ -41,90 +17,6 @@ export const INDEX = {
     TOP: 10,
     BOTTOM: 152
 };
-
-interface RawLandmark {
-    position: Vector3;
-    isVisible: boolean;
-}
-
-export interface ParsedFace {
-    readonly nose: RawLandmark;
-    readonly eyes: {
-        readonly left: RawLandmark;
-        readonly right: RawLandmark;
-    };
-    readonly brows: {
-        readonly left: RawLandmark;
-        readonly right: RawLandmark;
-    }
-    readonly mouth: {
-        readonly left: RawLandmark;
-        readonly right: RawLandmark;
-    };
-    readonly rig: {
-        readonly leftEar: RawLandmark;
-        readonly rightEar: RawLandmark;
-        readonly leftTemple: RawLandmark;
-        readonly rightTemple: RawLandmark;
-    };
-    readonly bounds: {
-        readonly middleTop: RawLandmark;
-        readonly middleBottom: RawLandmark;
-    };
-    readonly skullCenter: RawLandmark;
-    readonly normalized: boolean;
-    readonly centered: boolean;
-}
-
-export interface HeadProportions {
-    width: {
-        ear_to_ear: number,
-        temple_to_temple: number,
-        eye_to_eye: number,
-        mouth_width: number,
-    },
-    depth: {
-        skull_center: number,
-        eye_plane: number,
-        nose_tip: number,
-        mouth_plane: number,
-    },
-    height: {
-        forehead_top: number,
-        eye_line: number,
-        nose_base: number,
-        mouth_line: number,
-        chin_tip: number,
-    },
-    offset: {
-        ear_y: number
-    }
-}
-
-export const DEFAULT_HEAD_PROPORTIONS: HeadProportions = {
-    width: {
-        ear_to_ear: 1.0,
-        temple_to_temple: 0.85,
-        eye_to_eye: 0.45,
-        mouth_width: 0.35
-    },
-    depth: {
-        skull_center: 0.0,
-        eye_plane: -0.45,
-        nose_tip: -0.65,
-        mouth_plane: -0.50
-    },
-    height: {
-        forehead_top: -0.6,  // UP is now negative
-        eye_line: -0.1,      // UP is now negative
-        nose_base: 0.2,      // DOWN is now positive
-        mouth_line: 0.4,     // DOWN is now positive
-        chin_tip: 0.7        // DOWN is now positive
-    },
-    offset: {
-        ear_y: -0.02,        // Slightly UP from center
-    }
-} as const;
 
 export interface HeadParserConfig {
     physicalHeadWidth: number;
@@ -150,7 +42,7 @@ export class FaceParser {
         };
     }
 
-    public parseRawVector(rawDataVector: Partial<Vector3>[]): ParsedFace {
+    public parseRawVector(rawDataVector: Partial<Vector3>[]): FaceData {
         const createLandmark = (index: number): RawLandmark => {
             const landmark = rawDataVector[index];
             if (!landmark) {
@@ -186,9 +78,9 @@ export class FaceParser {
             };
         };
 
-        const extracted: Omit<ParsedFace, "skullCenter"> = {
-            normalized: false,
-            centered: false,
+        const extracted: Omit<FaceData, "skullCenter"> = {
+            // normalized: false,
+            // centered: false,
             mouth: {
                 left: createLandmark(INDEX.MOUTH_LEFT),
                 right: createLandmark(INDEX.MOUTH_RIGHT),
@@ -216,14 +108,14 @@ export class FaceParser {
 
         return {
             ...extracted,
-            skullCenter: this.getSkullCenter(extracted),
+            // skullCenter: this.getSkullCenter(extracted),
         }
     }
 
-    public translateToSkullCenter(extraction: ParsedFace, useCache = true): ParsedFace {
-        if (extraction.centered && !useCache) {
-            return extraction;
-        }
+    public translateToSkullCenter(extraction: FaceData): FaceData {
+        // if (extraction.centered && !useCache) {
+        //     return extraction;
+        // }
 
         const center = this.getSkullCenter(extraction);
 
@@ -255,8 +147,8 @@ export class FaceParser {
         };
 
         return {
-            normalized: false,
-            centered: true,
+            // normalized: false,
+            // centered: true,
             nose: translate(extraction.nose),
             eyes: {
                 left: translate(extraction.eyes.left),
@@ -280,11 +172,11 @@ export class FaceParser {
                 middleTop: translate(extraction.bounds.middleTop),
                 middleBottom: translate(extraction.bounds.middleBottom),
             },
-            skullCenter: translate(extraction.skullCenter),
+            // skullCenter: extraction.skullCenter == undefined ? undefined : translate(extraction.skullCenter),
         };
     }
 
-    public getSkullCenter(face: Omit<ParsedFace, "skullCenter">): RawLandmark {
+    public getSkullCenter(face: Omit<FaceData, "skullCenter">): RawLandmark {
         const props = this.config.headProportions;
         const midpoints: Vector3[] = [];
 
@@ -344,7 +236,7 @@ export class FaceParser {
         };
     }
 
-    public normalizeToUnitScale(extraction: ParsedFace): ParsedFace {
+    public normalizeToUnitScale(extraction: FaceData): FaceData {
         const props = this.config.headProportions;
 
         // Determine measured width
@@ -383,9 +275,9 @@ export class FaceParser {
             }
         };
 
-        const scaled: Omit<ParsedFace, "skullCenter"> = {
-            normalized: false,
-            centered: false,
+        const scaled: Omit<FaceData, "skullCenter"> = {
+            // normalized: false,
+            // centered: false,
             nose: scale(extraction.nose),
             eyes: {
                 left: scale(extraction.eyes.left),
@@ -436,8 +328,8 @@ export class FaceParser {
         };
 
         return {
-            normalized: true,
-            centered: true,
+            // normalized: true,
+            // centered: true,
             nose: translate(scaled.nose),
             eyes: {
                 left: translate(scaled.eyes.left),
@@ -461,16 +353,19 @@ export class FaceParser {
                 middleTop: translate(scaled.bounds.middleTop),
                 middleBottom: translate(scaled.bounds.middleBottom),
             },
-            skullCenter: { position: { x: 0, y: 0, z: 0 }, isVisible: true },
+            // skullCenter: { position: { x: 0, y: 0, z: 0 }, isVisible: true },
         };
     }
 
     /**
      * Recover YXZ Euler angles (in radians) from the current centered 3D face
      */
-    approximateRotation(centered: ParsedFace): Rotation3 {
+    approximateRotation(face: FaceData): Rotation3 {
         // Build a rotation matrix from landmarks
         // We'll use the eyes-nose plane as a simple head basis
+
+        const centered = this.normalizeToUnitScale(face);
+
         const leftEye = centered.eyes.left.position;
         const rightEye = centered.eyes.right.position;
         const nose = centered.nose.position;
@@ -513,7 +408,7 @@ export class FaceParser {
         };
     }
 
-    public fullAxisRotation(centered: ParsedFace): Rotation3 {
+    public fullAxisRotation(centered: FaceData): Rotation3 {
         const {rig, bounds} = centered;
 
         // 1. Construct full 3D corners of the head box
@@ -563,7 +458,7 @@ export class FaceParser {
         };
     }
 
-    getRotation(extraction: ParsedFace) {
+    getRotation(extraction: FaceData) {
         if (extraction.rig.leftEar.isVisible && extraction.rig.rightEar.isVisible && extraction.bounds.middleTop.isVisible && extraction.bounds.middleBottom.isVisible) {
             // most robust method
             return this.fullAxisRotation(extraction);
@@ -578,7 +473,7 @@ export class FaceParser {
     /**
      * Compute roll angle (in radians) from a centered RawExtraction
      */
-    computeRoll(extraction: ParsedFace): number {
+    computeRoll(extraction: FaceData): number {
 
         const head = this.normalizeToUnitScale(extraction);
 
@@ -637,7 +532,7 @@ export class FaceParser {
         return wrapPi(meanAngle);
     }
 
-    computeYaw(extraction: ParsedFace): number {
+    computeYaw(extraction: FaceData): number {
         const head = this.normalizeToUnitScale(extraction);
 
         if (!head.eyes.left.isVisible || !head.eyes.right.isVisible || !head.nose.isVisible) {
@@ -669,7 +564,7 @@ export class FaceParser {
         return Math.abs(rawYaw) < 1e-10 ? 0 : rawYaw;
     }
 
-    computePitch(extraction: ParsedFace): number {
+    computePitch(extraction: FaceData): number {
         const head = this.normalizeToUnitScale(extraction);
 
         if (!head.eyes.left.isVisible ||
@@ -702,7 +597,7 @@ export class FaceParser {
         return Math.asin(ratio) - alpha;
     }
 
-    private getSkullYCenter(extraction: Omit<ParsedFace, "skullCenter">): number {
+    private getSkullYCenter(extraction: Omit<FaceData, "skullCenter">): number {
         const props = this.config.headProportions;
 
         if (extraction.bounds.middleTop.isVisible && 
@@ -751,7 +646,7 @@ export class FaceParser {
     // computePitch(head: RawExtraction) {
     //     return this.getRotation(head).pitch;
 
-    private getFaceHeight(extraction:  Omit<ParsedFace, "skullCenter">): { value: number, isVisible: boolean } {
+    private getFaceHeight(extraction:  Omit<FaceData, "skullCenter">): { value: number, isVisible: boolean } {
         const props = this.config.headProportions;
 
         // 1. Determine the "Anatomical Constant" for a Full Head
