@@ -95,8 +95,8 @@ export class Face {
 
     public constructor(data: FaceData, proportions: HeadProportions) {
         this.data = data;
-        this.skullCenter = this.getSkullCenter();
         this.proportions = proportions;
+        this.skullCenter = this.getSkullCenter();
         this.normalized = false;
         this.centered = false;
     }
@@ -249,6 +249,63 @@ export class Face {
             }
         };
         return this.transform(scale);
+    }
+
+    public rotateX(radians: number): Face {
+        const cos = Math.cos(radians);
+        const sin = Math.sin(radians);
+
+        const transform = (lm: RawLandmark): RawLandmark => {
+            if (!lm) return lm;
+            const { x, y, z } = lm.position;
+            return {
+                ...lm,
+                position: {
+                    x,
+                    y: y * cos - z * sin,
+                    z: y * sin + z * cos
+                }
+            };
+        };
+        return this.transform(transform);
+    }
+
+    public rotateY(radians: number): Face {
+        const cos = Math.cos(radians);
+        const sin = Math.sin(radians);
+
+        const transform = (lm: RawLandmark): RawLandmark => {
+            if (!lm) return lm;
+            const { x, y, z } = lm.position;
+            return {
+                ...lm,
+                position: {
+                    x: x * cos + z * sin,
+                    y,
+                    z: -x * sin + z * cos
+                }
+            };
+        };
+        return this.transform(transform);
+    }
+
+    public rotateZ(radians: number): Face {
+        const cos = Math.cos(radians);
+        const sin = Math.sin(radians);
+
+        const transform = (lm: RawLandmark): RawLandmark => {
+            if (!lm) return lm;
+            const { x, y, z } = lm.position;
+            return {
+                ...lm,
+                position: {
+                    x: x * cos - y * sin,
+                    y: x * sin + y * cos,
+                    z
+                }
+            };
+        };
+        return this.transform(transform);
     }
 
     public normalize(): Face {

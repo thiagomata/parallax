@@ -749,6 +749,20 @@ describe('Face Parser - rotation', () => {
     it('should recover Euler angles (YXZ) with high-magnitude asymmetric rotation', () => {
         const parser = new FaceParser();
 
+        let sumErrorFull = 0;
+        let sumErrorApprox = 0;
+        let countFull = 0;
+        let countApprox = 0;
+        let winsFull = 0;
+        let winsApprox = 0;
+        let maxErrorFull = 0;
+        let maxErrorApprox = 0;
+        let minErrorFull = Infinity;
+        let minErrorApprox = Infinity;
+
+        let sumYawFull = 0, sumPitchFull = 0, sumRollFull = 0;
+        let sumYawApprox = 0, sumPitchApprox = 0, sumRollApprox = 0;
+
         const slices = 2;
         const maxAngle = Math.PI / 6; // ±30°
 
@@ -766,40 +780,78 @@ describe('Face Parser - rotation', () => {
                     transformed = rotateX(transformed, pitch);
                     transformed = rotateZ(transformed, roll);
 
-                    const screenData = toFlatArray(toScreenSpace(
+                    const screenData = toFlatArray(
                         translate(scale(transformed, 0.2), -0.05, 0.05, 0)
-                    ));
+                    );
 
                     const raw = parser.parseRawVector(screenData);
                     const normalized = parser.normalizeToUnitScale(raw);
-                    const result = parser.getRotation(normalized);
+                    const resultFull = parser.fullAxisRotation(normalized);
+                    const resultApprox = parser.approximateRotation(normalized);
 
-                    const tolerance = 0.4; // ~23° tolerance for combined rotations
+                    const errorFull = {
+                        yaw: Math.abs(resultFull.yaw - yaw),
+                        pitch: Math.abs(resultFull.pitch - pitch),
+                        roll: Math.abs(resultFull.roll - roll),
+                    };
+                    const errorApprox = {
+                        yaw: Math.abs(resultApprox.yaw - yaw),
+                        pitch: Math.abs(resultApprox.pitch - pitch),
+                        roll: Math.abs(resultApprox.roll - roll),
+                    };
 
-                    const yawlMatch = result.yaw + tolerance > yaw && result.yaw - tolerance < yaw;
-                    const rollMatch = result.roll + tolerance > roll && result.roll - tolerance < roll;
-                    const pitchMatch = result.pitch + tolerance > yaw && result.pitch - tolerance < pitch;
+                    const totalErrorFull = errorFull.yaw + errorFull.pitch + errorFull.roll;
+                    const totalErrorApprox = errorApprox.yaw + errorApprox.pitch + errorApprox.roll;
+
+                    sumErrorFull += totalErrorFull;
+                    sumErrorApprox += totalErrorApprox;
+                    countFull++;
+                    countApprox++;
+
+                    sumYawFull += errorFull.yaw;
+                    sumPitchFull += errorFull.pitch;
+                    sumRollFull += errorFull.roll;
+                    sumYawApprox += errorApprox.yaw;
+                    sumPitchApprox += errorApprox.pitch;
+                    sumRollApprox += errorApprox.roll;
+
+                    if (totalErrorFull < totalErrorApprox) {
+                        winsFull++;
+                    } else {
+                        winsApprox++;
+                    }
+
+                    maxErrorFull = Math.max(maxErrorFull, totalErrorFull);
+                    maxErrorApprox = Math.max(maxErrorApprox, totalErrorApprox);
+                    minErrorFull = Math.min(minErrorFull, totalErrorFull);
+                    minErrorApprox = Math.min(minErrorApprox, totalErrorApprox);
 
                     console.log(
-                        "yaw Match", yawlMatch,
-                        "roll Match", rollMatch,
-                        "pitch Match", pitchMatch,
-                        "expected yaw", yaw,
-                        "received yaw", result.yaw,
-                        "expected pitch", pitch,
-                        "received pitch", result.pitch,
-                        "expected roll", roll,
-                        "received roll", result.roll,
-                    )
-                    // expect(result.yaw).toBeGreaterThan(yaw - tolerance);
-                    // expect(result.yaw).toBeLessThan(yaw + tolerance);
-                    // expect(result.pitch).toBeGreaterThan(pitch - tolerance);
-                    // expect(result.pitch).toBeLessThan(pitch + tolerance);
-                    // expect(result.roll).toBeGreaterThan(roll - tolerance);
-                    // expect(result.roll).toBeLessThan(roll + tolerance);
+                        "expected yaw", yaw, "pitch", pitch, "roll", roll,
+                        "| full:", "yaw", resultFull.yaw.toFixed(3), "pitch", resultFull.pitch.toFixed(3), "roll", resultFull.roll.toFixed(3),
+                        "| approx:", "yaw", resultApprox.yaw.toFixed(3), "pitch", resultApprox.pitch.toFixed(3), "roll", resultApprox.roll.toFixed(3),
+                        "| err full", totalErrorFull.toFixed(3), "err approx", totalErrorApprox.toFixed(3),
+                    );
                 }
             }
         }
+
+        const avgErrorFull = sumErrorFull / countFull;
+        const avgErrorApprox = sumErrorApprox / countApprox;
+
+        const avgYawFull = sumYawFull / countFull;
+        const avgPitchFull = sumPitchFull / countFull;
+        const avgRollFull = sumRollFull / countFull;
+        const avgYawApprox = sumYawApprox / countApprox;
+        const avgPitchApprox = sumPitchApprox / countApprox;
+        const avgRollApprox = sumRollApprox / countApprox;
+
+        console.log("=== ROTATION STRATEGY COMPARISON ===");
+        console.log("Full Axis Rotation - avg:", avgErrorFull.toFixed(4), "max:", maxErrorFull.toFixed(4), "min:", minErrorFull.toFixed(4), "wins:", winsFull);
+        console.log("  Per-axis: yaw", avgYawFull.toFixed(4), "pitch", avgPitchFull.toFixed(4), "roll", avgRollFull.toFixed(4));
+        console.log("Approx Rotation    - avg:", avgErrorApprox.toFixed(4), "max:", maxErrorApprox.toFixed(4), "min:", minErrorApprox.toFixed(4), "wins:", winsApprox);
+        console.log("  Per-axis: yaw", avgYawApprox.toFixed(4), "pitch", avgPitchApprox.toFixed(4), "roll", avgRollApprox.toFixed(4));
+        console.log("Winner:", avgErrorFull < avgErrorApprox ? "fullAxisRotation" : "approximateRotation");
     });
 });
 
@@ -1457,11 +1509,11 @@ function createCanonicalHead(H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): Fac
         },
         rig: {
             leftEar: {
-                position: { x: -H.width.ear_to_ear / 2, y: H.offset.ear_y, z: 0 },
+                position: { x: -H.width.ear_to_ear / 2, y: H.offset.ear_y, z: -0.02 },
                 isVisible: true
             },
             rightEar: {
-                position: { x: H.width.ear_to_ear / 2, y: H.offset.ear_y, z: 0 },
+                position: { x: H.width.ear_to_ear / 2, y: H.offset.ear_y, z: -0.02 },
                 isVisible: true
             },
             leftTemple: {
@@ -1495,13 +1547,13 @@ function createCanonicalHead(H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): Fac
         },
         bounds: {
             middleTop: {
-                position: { x: 0, y: H.height.forehead_top, z: 0 },
+                position: { x: 0, y: H.height.forehead_top, z: 0.02 },
                 isVisible: true
             },
             middleBottom: {
-                position: { x: 0, y: H.height.chin_tip, z: 0 },
+                position: { x: 0, y: H.height.chin_tip, z: 0.02 },
                 isVisible: true
-            },
+            }
         },
         // skullCenter: {
         //     isVisible: true,

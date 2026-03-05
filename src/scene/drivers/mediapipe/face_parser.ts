@@ -411,13 +411,10 @@ export class FaceParser {
     public fullAxisRotation(centered: FaceData): Rotation3 {
         const {rig, bounds} = centered;
 
-        // 1. Construct full 3D corners of the head box
         const topLeft = {x: rig.leftEar.position.x, y: bounds.middleTop.position.y, z: rig.leftEar.position.z};
         const topRight = {x: rig.rightEar.position.x, y: bounds.middleTop.position.y, z: rig.rightEar.position.z};
         const bottomLeft = {x: rig.leftEar.position.x, y: bounds.middleBottom.position.y, z: rig.leftEar.position.z};
-        // const bottomRight = {x: rig.rightEar.position.x, y: bounds.middleBottom.position.y, z: rig.rightEar.position.z};
 
-        // 2. Compute basis vectors
         const right = normalize({
             x: topRight.x - topLeft.x,
             y: topRight.y - topLeft.y,
@@ -431,9 +428,8 @@ export class FaceParser {
         });
 
         const forward = normalize(cross(up, right));
-        const trueUp = cross(right, forward); // Gram-Schmidt re-orthogonalize
+        const trueUp = cross(right, forward);
 
-        // 3. Extract YXZ Euler angles from rotation matrix
         const m02 = forward.x, m10 = right.y, m11 = trueUp.y, m12 = forward.y, m22 = forward.z;
 
         const pitch = wrap2Pi(Math.asin(-m12));
@@ -447,16 +443,74 @@ export class FaceParser {
         };
     }
 
+    sequentialRotation(centered: FaceData): Rotation3 {
+        const leftEye = centered.eyes.left.position;
+        const rightEye = centered.eyes.right.position;
+        const nose = centered.nose.position;
+
+        const xAxis = normalize(subtract(rightEye, leftEye));
+        const eyeCenter = multiply(add(leftEye, rightEye), 0.5);
+        const yAxis = normalize(subtract(nose, eyeCenter));
+        const zAxis = normalize(cross(xAxis, yAxis));
+        const yOrtho = cross(zAxis, xAxis);
+
+        const R = [
+            [xAxis.x, yOrtho.x, zAxis.x],
+            [xAxis.y, yOrtho.y, zAxis.y],
+            [xAxis.z, yOrtho.z, zAxis.z]
+        ];
+
+        const yaw = Math.atan2(-R[2][0], R[0][0]);
+
+        const cosYaw = Math.cos(-yaw);
+        const sinYaw = Math.sin(-yaw);
+        const unrotateY = (p: Vector3): Vector3 => ({
+            x: p.x * cosYaw - p.z * sinYaw,
+            y: p.y,
+            z: p.x * sinYaw + p.z * cosYaw
+        });
+
+        const unrotatedNose = unrotateY(nose);
+        const unrotatedLeftEye = unrotateY(leftEye);
+        const unrotatedRightEye = unrotateY(rightEye);
+
+        const unrotatedEyeCenter = multiply(add(unrotatedLeftEye, unrotatedRightEye), 0.5);
+
+        const pitch = Math.atan2(unrotatedEyeCenter.y - unrotatedNose.y, unrotatedNose.z - unrotatedEyeCenter.z);
+
+        const cosPitch = Math.cos(-pitch);
+        const sinPitch = Math.sin(-pitch);
+        const unrotateP = (p: Vector3): Vector3 => ({
+            x: p.x,
+            y: p.y * cosPitch - p.z * sinPitch,
+            z: p.y * sinPitch + p.z * cosPitch
+        });
+
+        const pitchUnrotatedLeftEye = unrotateP(unrotatedLeftEye);
+        const pitchUnrotatedRightEye = unrotateP(unrotatedRightEye);
+
+        const roll = Math.atan2(
+            pitchUnrotatedLeftEye.y - pitchUnrotatedRightEye.y,
+            pitchUnrotatedRightEye.x - pitchUnrotatedLeftEye.x
+        );
+
+        return {
+            yaw: wrapPi(yaw),
+            pitch: wrapPi(pitch),
+            roll: wrapPi(roll),
+        };
+    }
+
     getRotation(extraction: FaceData) {
-        // if (extraction.rig.leftEar.isVisible && extraction.rig.rightEar.isVisible && extraction.bounds.middleTop.isVisible && extraction.bounds.middleBottom.isVisible) {
+        if (extraction.rig.leftEar.isVisible && extraction.rig.rightEar.isVisible && extraction.bounds.middleTop.isVisible && extraction.bounds.middleBottom.isVisible) {
             // most robust method
             return this.fullAxisRotation(extraction);
-        // }
+        }
 
-        // if (extraction.eyes.left.isVisible && extraction.eyes.right.isVisible && extraction.nose.isVisible) {
-        //     return this.approximateRotation(extraction); // fallback strategy
-        // }
-        // return {yaw: 0, pitch: 0, roll: 0}; // not enough data
+        if (extraction.eyes.left.isVisible && extraction.eyes.right.isVisible && extraction.nose.isVisible) {
+            return this.approximateRotation(extraction); // fallback strategy
+        }
+        return {yaw: 0, pitch: 0, roll: 0}; // not enough data
     }
 
     /**
