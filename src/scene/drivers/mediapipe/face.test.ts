@@ -240,6 +240,119 @@ describe('Face - computeRoll', () => {
     });
 });
 
+describe('Face - rotateX', () => {
+    it('should rotate around X axis', () => {
+        const head = createCanonicalHead();
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        
+        const rotated = face.rotateX(Math.PI / 4);
+        
+        expect(rotated.data.nose.position.x).toBeCloseTo(head.nose.position.x);
+        expect(rotated.data.nose.position.y).not.toBeCloseTo(head.nose.position.y);
+    });
+
+    it('should rotate forward and back around X axis', () => {
+        const head = createCanonicalHead();
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const angle = Math.PI / 6;
+        
+        const rotated = face.rotateX(angle).rotateX(-angle);
+        
+        expect(rotated.data.nose.position.x).toBeCloseTo(head.nose.position.x, 5);
+        expect(rotated.data.nose.position.y).toBeCloseTo(head.nose.position.y, 5);
+        expect(rotated.data.nose.position.z).toBeCloseTo(head.nose.position.z, 5);
+    });
+});
+
+describe('Face - rotateY', () => {
+    it('should rotate around Y axis', () => {
+        const head = createCanonicalHead();
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        
+        const rotated = face.rotateY(Math.PI / 4);
+        
+        expect(rotated.data.nose.position.y).toBeCloseTo(head.nose.position.y);
+        expect(rotated.data.nose.position.x).not.toBeCloseTo(head.nose.position.x);
+    });
+
+    it('should rotate forward and back around Y axis', () => {
+        const head = createCanonicalHead();
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const angle = Math.PI / 6;
+        
+        const rotated = face.rotateY(angle).rotateY(-angle);
+        
+        expect(rotated.data.nose.position.x).toBeCloseTo(head.nose.position.x, 5);
+        expect(rotated.data.nose.position.y).toBeCloseTo(head.nose.position.y, 5);
+        expect(rotated.data.nose.position.z).toBeCloseTo(head.nose.position.z, 5);
+    });
+});
+
+describe('Face - rotateZ', () => {
+    it('should rotate around Z axis', () => {
+        const head = createCanonicalHead();
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        
+        const rotated = face.rotateZ(Math.PI / 4);
+        
+        expect(rotated.data.nose.position.z).toBeCloseTo(head.nose.position.z);
+        expect(rotated.data.nose.position.x).not.toBeCloseTo(head.nose.position.x);
+    });
+
+    it('should rotate forward and back around Z axis', () => {
+        const head = createCanonicalHead();
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const angle = Math.PI / 6;
+        
+        const rotated = face.rotateZ(angle).rotateZ(-angle);
+        
+        expect(rotated.data.nose.position.x).toBeCloseTo(head.nose.position.x, 5);
+        expect(rotated.data.nose.position.y).toBeCloseTo(head.nose.position.y, 5);
+        expect(rotated.data.nose.position.z).toBeCloseTo(head.nose.position.z, 5);
+    });
+});
+
+describe('Face - combined rotations', () => {
+    it('should rotate in YXZ order and return close to original when reversed', () => {
+        const head = createCanonicalHead();
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const yaw = Math.PI / 8;
+        const pitch = Math.PI / 8;
+        const roll = Math.PI / 8;
+        
+        const rotated = face
+            .rotateY(yaw)
+            .rotateX(pitch)
+            .rotateZ(roll);
+        
+        const restored = rotated
+            .rotateZ(-roll)
+            .rotateX(-pitch)
+            .rotateY(-yaw);
+        
+        expect(restored.data.nose.position.x).toBeCloseTo(head.nose.position.x, 3);
+        expect(restored.data.nose.position.y).toBeCloseTo(head.nose.position.y, 3);
+        expect(restored.data.nose.position.z).toBeCloseTo(head.nose.position.z, 3);
+    });
+
+    it('should chain multiple rotations and preserve all landmarks', () => {
+        const head = createCanonicalHead();
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        
+        const rotated = face
+            .rotateY(Math.PI / 6)
+            .rotateX(Math.PI / 6)
+            .rotateZ(Math.PI / 6);
+        
+        expect(rotated.data.eyes.left.position).toBeDefined();
+        expect(rotated.data.eyes.right.position).toBeDefined();
+        expect(rotated.data.nose.position).toBeDefined();
+        expect(rotated.data.rig.leftEar.position).toBeDefined();
+        expect(rotated.data.rig.rightEar.position).toBeDefined();
+        expect(rotated.data.bounds.middleTop.position).toBeDefined();
+    });
+});
+
 describe('Face - getRotation (yaw, pitch, roll properties)', () => {
     it('should return all rotation angles for a canonical head', () => {
         const head = createCanonicalHead();
