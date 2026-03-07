@@ -461,6 +461,9 @@ describe('Face - rotation comparison with known rotations', () => {
     it('should recover YXZ rotation within reasonable tolerance', () => {
         const maxAngle = Math.PI / 12; // 15 degrees
         const slices = 2;
+
+        let totalErrorYXY = 0;
+        let count = 0;
         
         for (let iYaw = 0; iYaw <= 2 * slices; iYaw++) {
             for (let iPitch = 0; iPitch <= 2 * slices; iPitch++) {
@@ -472,31 +475,157 @@ describe('Face - rotation comparison with known rotations', () => {
                     if (yaw === 0 && pitch === 0 && roll === 0) continue;
 
                     const head = createCanonicalHead();
-                    const face = new Face(head);
-                    
+                    const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+
                     const transformed = face
                         .rotateY(yaw)
                         .rotateX(pitch)
                         .rotateZ(roll)
                         .scale(0.2)
                         .translate({ x: -0.05, y: 0.05, z: 0 });
-                    
+
+
                     const rotation = transformed.getRotation();
-                    
+
                     const yawError = Math.abs(rotation.yaw - yaw);
                     const pitchError = Math.abs(rotation.pitch - pitch);
                     const rollError = Math.abs(rotation.roll - roll);
-                    
+
                     const totalError = yawError + pitchError + rollError;
-                    
+                    totalErrorYXY += totalError;
+                    count++;
+
                     console.log(
-                        "expected", "yaw", yaw.toFixed(3), "pitch", pitch.toFixed(3), "roll", roll.toFixed(3),
+                        "default expected", "yaw", yaw.toFixed(3), "pitch", pitch.toFixed(3), "roll", roll.toFixed(3),
                         "| got", "yaw", rotation.yaw.toFixed(3), "pitch", rotation.pitch.toFixed(3), "roll", rotation.roll.toFixed(3),
                         "| err", totalError.toFixed(3)
                     );
                 }
             }
         }
+        
+        console.log("=== RECOVERY TEST RESULTS ===");
+        console.log("Total test cases:", count);
+        console.log("Avg error (YXZ order):", (totalErrorYXY / count).toFixed(4));
+    });
+
+    it('should test different undo orders for rotation recovery', () => {
+        const maxAngle = Math.PI / 8;
+        const slices = 3;
+        
+        let totalErrorZXY = 0;
+        let totalErrorYXY = 0;
+        let totalErrorZYX = 0;
+
+        let totalAxisErrorZXY = 0;
+        let totalAxisErrorYXY = 0;
+        let totalAxisErrorZYX = 0;
+
+        let count = 0;
+        
+        for (let iYaw = 0; iYaw <= slices; iYaw++) {
+            for (let iPitch = 0; iPitch <= slices; iPitch++) {
+                for (let iRoll = 0; iRoll <= slices; iRoll++) {
+                    const yaw = -maxAngle + iYaw * (2 * maxAngle) / slices;
+                    const pitch = -maxAngle + iPitch * (2 * maxAngle) / slices;
+                    const roll = -maxAngle + iRoll * (2 * maxAngle) / slices;
+
+                    if (yaw === 0 && pitch === 0 && roll === 0) continue;
+
+                    const head = createCanonicalHead();
+                    const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+                    
+                    const transformed = face.normalize()
+                        .rotateY(yaw).normalize()
+                        .rotateX(pitch).normalize()
+                        .rotateZ(roll).normalize();
+
+                    // Method 1: Undo in reverse order Z -> X -> Y
+                    const ZXYRoll = transformed.computeRoll();
+                    const restoredZXY1 = transformed.rotateZ(-ZXYRoll).normalize();
+                    const ZXYPitch = restoredZXY1.computePitch();
+                    const restoredZXY2 = restoredZXY1.rotateX(-ZXYPitch).normalize();
+                    const ZXYYall = restoredZXY2.computeYaw();
+                    const restoredZXY3 = restoredZXY2.rotateY(-ZXYYall).normalize();
+
+                    // Method 2: Undo in same order Y -> X -> Z
+                    const YXZYall = transformed.computeYaw();
+                    const restoredYXZ1 = transformed.rotateY(-YXZYall).normalize();
+                    const YXZPitch = restoredYXZ1.computePitch();
+                    const restoredYXZ2 = restoredYXZ1.rotateX(-YXZPitch).normalize();
+                    const YXZRoll = restoredYXZ2.computeRoll();
+                    const restoredYXZ3 = restoredYXZ2.rotateZ(-YXZRoll).normalize();
+
+                    // Method 3: Try ZYX order
+                    const ZYXRoll = transformed.computeRoll();
+                    const restoredZYX1 = transformed.rotateZ(-ZYXRoll).normalize();
+                    const ZYXYall = restoredZYX1.computeYaw();
+                    const restoredZYX2 = restoredZYX1.rotateY(-ZYXYall).normalize();
+                    const ZYXPitch = restoredZYX2.computePitch();
+                    const restoredZYX3 = restoredZYX2.rotateX(-ZYXPitch).normalize();
+
+
+                    const errorZXY = Math.abs(restoredZXY3.data.nose.position.x - head.nose.position.x) +
+                                    Math.abs(restoredZXY3.data.nose.position.y - head.nose.position.y) +
+                                    Math.abs(restoredZXY3.data.nose.position.z - head.nose.position.z);
+                    
+                    const errorYXZ = Math.abs(restoredYXZ3.data.nose.position.x - head.nose.position.x) +
+                                    Math.abs(restoredYXZ3.data.nose.position.y - head.nose.position.y) +
+                                    Math.abs(restoredYXZ3.data.nose.position.z - head.nose.position.z);
+                    
+                    const errorZYX = Math.abs(restoredZYX3.data.nose.position.x - head.nose.position.x) +
+                                    Math.abs(restoredZYX3.data.nose.position.y - head.nose.position.y) +
+                                    Math.abs(restoredZYX3.data.nose.position.z - head.nose.position.z);
+
+                    const errorAxisZXY = Math.abs(ZYXRoll- roll) +
+                        Math.abs(ZXYYall- yaw) +
+                        Math.abs(ZXYPitch - pitch);
+
+                    const errorAxisYXZ = Math.abs(YXZRoll- roll) +
+                        Math.abs(YXZYall- yaw) +
+                        Math.abs(YXZPitch - pitch);
+
+                    const errorAxisZYX = Math.abs(ZYXRoll- roll) +
+                        Math.abs(ZYXYall- yaw) +
+                        Math.abs(ZYXPitch - pitch);
+
+
+                    totalErrorZXY += errorZXY;
+                    totalErrorYXY += errorYXZ;
+                    totalErrorZYX += errorZYX;
+
+                    totalAxisErrorZXY += errorAxisZXY;
+                    totalAxisErrorYXY += errorAxisYXZ;
+                    totalAxisErrorZYX += errorAxisZYX;
+
+                    count++;
+                }
+            }
+        }
+
+        const avgErrorZXY = totalErrorZXY / count;
+        const avgErrorYXY = totalErrorYXY / count;
+        const avgErrorZYX = totalErrorZYX / count;
+
+        const avgAxisErrorZXY = totalAxisErrorZXY / count;
+        const avgAxisErrorYXY = totalAxisErrorYXY / count;
+        const avgAxisErrorZYX = totalAxisErrorZYX / count;
+
+        console.log("=== UNDO ORDER COMPARISON ===");
+        console.log("Test cases:", count);
+        console.log("Avg error ZXY:", avgErrorZXY.toFixed(4));
+        console.log("Avg error YXY:", avgErrorYXY.toFixed(4));
+        console.log("Avg error ZYX:", avgErrorZYX.toFixed(4));
+        console.log("Best order:", avgErrorZXY < avgErrorYXY && avgErrorZXY < avgErrorZYX ? "Z -> X -> Y" : (avgErrorYXY < avgErrorZYX ? "Y -> X -> Z" : "Z -> Y -> X"));
+        console.log("Avg Axis error ZXY:", avgAxisErrorZXY.toFixed(4));
+        console.log("Avg Axis error YXY:", avgAxisErrorYXY.toFixed(4));
+        console.log("Avg Axis error ZYX:", avgAxisErrorZYX.toFixed(4));
+        console.log("Best Axis order:", avgAxisErrorZXY < avgAxisErrorYXY && avgAxisErrorZXY < avgAxisErrorZYX ? "Z -> X -> Y" : (avgAxisErrorYXY < avgAxisErrorZYX ? "Y -> X -> Z" : "Z -> Y -> X"));
+
+        expect(avgErrorZXY).toBeLessThan(0.1);
+        expect(avgErrorZXY).toBeLessThan(avgErrorYXY);
+        expect(avgErrorZXY).toBeLessThan(0.1);
+        expect(avgErrorZXY).toBeLessThan(avgErrorYXY);
     });
 });
 

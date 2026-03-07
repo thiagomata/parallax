@@ -92,6 +92,8 @@ export class Face {
     private normalized: boolean;
     private centered: boolean;
     private rotation?: Rotation3;
+    private normalFace?: Face;
+    private centerFace?: Face;
 
     public constructor(data: FaceData, proportions: HeadProportions = DEFAULT_HEAD_PROPORTIONS) {
         this.data = data;
@@ -151,6 +153,9 @@ export class Face {
         if (this.centered && useCache) {
             return this;
         }
+        if (this.centerFace && useCache) {
+            return this.centerFace;
+        }
 
         const center = this.getSkullCenter();
 
@@ -170,6 +175,7 @@ export class Face {
         translatedToCenter.centered = true;
         // keep previous normalization flag since centering do not change it.
         translatedToCenter.normalized = this.normalized;
+        this.centerFace = translatedToCenter;
         return translatedToCenter;
     }
 
@@ -267,7 +273,11 @@ export class Face {
                 }
             };
         };
-        return this.transform(transform);
+        if ( this.centered ) {
+            return this.transform(transform);
+        }
+        const center = this.getSkullCenter();
+        return this.center().transform(transform).translate(center.position);
     }
 
     public rotateY(radians: number): Face {
@@ -286,7 +296,11 @@ export class Face {
                 }
             };
         };
-        return this.transform(transform);
+        if ( this.centered ) {
+            return this.transform(transform);
+        }
+        const center = this.getSkullCenter();
+        return this.center().transform(transform).translate(center.position);
     }
 
     public rotateZ(radians: number): Face {
@@ -305,10 +319,20 @@ export class Face {
                 }
             };
         };
-        return this.transform(transform);
+        if ( this.centered ) {
+            return this.transform(transform);
+        }
+        const center = this.getSkullCenter();
+        return this.center().transform(transform).translate(center.position);
     }
 
-    public normalize(): Face {
+    public normalize(useCache: boolean = true): Face {
+        if (this.normalized && useCache) {
+            return this;
+        }
+        if (this.normalFace && useCache) {
+            return this.normalFace;
+        }
         const props = this.proportions;
 
         // Determine measured width
@@ -336,28 +360,31 @@ export class Face {
         const normalizedFace = this.scale(factor).center();
         normalizedFace.normalized = true;
         normalizedFace.centered = true;
+        this.normalFace = normalizedFace;
         return normalizedFace;
     }
 
+
     /**
-     * Recover YXZ Euler angles (in radians) from the current centered 3D face
+     * Try to recover the roll, pitch and yaw from the rotated face, using the ZYX strategy.
+     * As proved by the test 'should test different undo orders for rotation recovery' it was the order with better performance.
      */
     getRotation(): Rotation3 {
         if (this.rotation) {
             return this.rotation;
         }
-        let face = this.normalize();
+        let face = this.center().normalize();
         const roll = face.computeRoll();
-        face = face.rotateZ(-roll);
+        face = face.rotateZ(-roll).normalize();
         const yaw = face.computeYaw();
-        face = face.rotateY(-yaw);
+        face = face.rotateY(-yaw).normalize();
         const pitch = face.computePitch();
-        this.rotation = {
+
+        return {
             roll,
             pitch,
             yaw
         }
-        return this.rotation;
     }
 
     get yaw(): number {
