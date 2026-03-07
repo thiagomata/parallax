@@ -254,7 +254,11 @@ export class Face {
                 }
             }
         };
-        return this.transform(scale);
+        const scaled = this.transform(scale);
+        if (this.centered) {
+            return scaled.center();
+        }
+        return scaled;
     }
 
     public rotateX(radians: number): Face {
@@ -273,11 +277,11 @@ export class Face {
                 }
             };
         };
-        if ( this.centered ) {
-            return this.transform(transform);
+        const centered = this.center().transform(transform);
+        if (this.centered) {
+            return centered.center();
         }
-        const center = this.getSkullCenter();
-        return this.center().transform(transform).translate(center.position);
+        return centered.translate(this.skullCenter.position);
     }
 
     public rotateY(radians: number): Face {
@@ -296,11 +300,11 @@ export class Face {
                 }
             };
         };
-        if ( this.centered ) {
-            return this.transform(transform);
+        const centered = this.center().transform(transform);
+        if (this.centered) {
+            return centered.center();
         }
-        const center = this.getSkullCenter();
-        return this.center().transform(transform).translate(center.position);
+        return centered.translate(this.skullCenter.position);
     }
 
     public rotateZ(radians: number): Face {
@@ -319,11 +323,11 @@ export class Face {
                 }
             };
         };
-        if ( this.centered ) {
-            return this.transform(transform);
+        const centered = this.center().transform(transform);
+        if (this.centered) {
+            return centered.center();
         }
-        const center = this.getSkullCenter();
-        return this.center().transform(transform).translate(center.position);
+        return centered.translate(this.skullCenter.position);
     }
 
     public normalize(useCache: boolean = true): Face {
@@ -367,18 +371,23 @@ export class Face {
 
     /**
      * Try to recover the roll, pitch and yaw from the rotated face, using the ZYX strategy.
-     * As proved by the test 'should test different undo orders for rotation recovery' it was the order with better performance.
+     * As proved by the test 'should test all 6 rotation computation orders for angle recovery' it was the order with better performance.
      */
     getRotation(): Rotation3 {
         if (this.rotation) {
             return this.rotation;
         }
+
         let face = this.center().normalize();
+        // Z
         const roll = face.computeRoll();
         face = face.rotateZ(-roll).normalize();
+        // Y
         const yaw = face.computeYaw();
         face = face.rotateY(-yaw).normalize();
+        // X
         const pitch = face.computePitch();
+        face = face.rotateX(-pitch).normalize();
 
         return {
             roll,
@@ -387,6 +396,28 @@ export class Face {
         }
     }
 
+    getRotationYXZ(): Rotation3 {
+        if (this.rotation) {
+            return this.rotation;
+        }
+
+        let face = this.center().normalize();
+        // Y
+        const yaw = face.computeYaw();
+        face = face.rotateY(-yaw).normalize();
+        // X
+        const pitch = face.computePitch();
+        face = face.rotateX(-pitch).normalize();
+        // Z
+        const roll = face.computeRoll();
+        face = face.rotateZ(-roll).normalize();
+
+        return {
+            roll,
+            pitch,
+            yaw
+        }
+    }
     get yaw(): number {
         return this.getRotation().yaw;
     }
