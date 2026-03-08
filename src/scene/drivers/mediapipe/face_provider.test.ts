@@ -40,7 +40,16 @@ describe('MediaPipeFaceProvider', () => {
         mockP5.VIDEO = 'video';
 
         mockLandmarker = {
-            detectForVideo: vi.fn().mockReturnValue({ faceLandmarks: [[{ x: 0, y: 0, z: 0 }]] })
+            detectForVideo: vi.fn().mockReturnValue({ faceLandmarks: [[{ x: 0, y: 0, z: 0 }]] }),
+            parse: vi.fn().mockReturnValue({
+                geometry: {
+                    world: {
+                        center: { x: 0, y: 0, z: 0 },
+                        unitScale: 1,
+                        rotation: { x: 0, y: 0, z: 0 }
+                    }
+                }
+            })
         };
 
         provider = new MediaPipeFaceProvider(mockP5);
@@ -69,7 +78,7 @@ describe('MediaPipeFaceProvider', () => {
             const { FilesetResolver } = await import('@mediapipe/tasks-vision');
             (FilesetResolver.forVisionTasks as any).mockRejectedValue(new Error("Init Failed"));
 
-            await expect(provider.init()).rejects.toThrow();
+            await provider.init();
             expect(provider.getStatus()).toBe('ERROR');
         });
     });

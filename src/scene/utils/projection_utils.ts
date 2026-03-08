@@ -251,34 +251,6 @@ function rotateZYX(v: Vector3, r: Rotation3): Vector3 {
     return { x: x2, y: y3, z: z3 };
 }
 
-// ========================
-// YXZ Euler Extraction
-// ========================
-
-export function extractYXZFromBasis(right: Vector3, up: Vector3, forward: Vector3): Rotation3 {
-    // Build rotation matrix (columns = right, up, forward)
-    const m00 = right.x, m01 = up.x, m02 = forward.x;
-    const m11 = up.y;
-    const m20 = right.z, m21 = up.z, m22 = forward.z;
-
-    // YXZ extraction formulas (intrinsic rotation)
-    let pitch: number, yaw: number, roll: number;
-
-    if (Math.abs(m21) < 0.99999) {
-        // Normal case
-        pitch = Math.asin(-m21);
-        yaw = Math.atan2(m20, m22);
-        roll = Math.atan2(m01, m11);
-    } else {
-        // Gimbal lock: pitch ~ +/- 90°
-        pitch = Math.asin(-m21);
-        yaw = Math.atan2(-m02, m00);
-        roll = 0;
-    }
-
-    return { pitch, yaw, roll };
-}
-
 // 3️⃣ Midpoint helper
 export function midpoint(a: Vector3, b: Vector3): Vector3 {
     return { x: (a.x + b.x)/2, y: (a.y + b.y)/2, z: (a.z + b.z)/2 };
@@ -287,6 +259,7 @@ export function midpoint(a: Vector3, b: Vector3): Vector3 {
 
 export function normalize(v: Vector3): Vector3 {
     const len = Math.hypot(v.x, v.y, v.z);
+    if (len === 0) return { x: 0, y: 0, z: 0 };
     return {x: v.x / len, y: v.y / len, z: v.z / len};
 }
 

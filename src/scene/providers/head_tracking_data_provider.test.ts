@@ -59,7 +59,7 @@ describe("HeadTrackingDataProvider", () => {
         const expectedNose: Vector3 = {
             x: (mockFace.nose.x - 0.5) * sceneHeadWidth,
             y: (mockFace.nose.y - 0.5) * sceneHeadWidth * defaultProportions.heightRatio,
-            z: (mockFace.nose.z - 0.5) * sceneHeadWidth * defaultProportions.depthRatio
+            z: (mockFace.bounds.right.x - mockFace.bounds.left.x - 0.3) * 500 + (0.5 - mockFace.nose.z) * sceneHeadWidth * defaultProportions.depthRatio
         };
 
         expect(data!.nose).toEqual(expectedNose);
