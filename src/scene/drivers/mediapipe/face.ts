@@ -1,5 +1,6 @@
-import type {FaceGeometry, Rotation3, Vector3} from "../../types.ts";
+import type {Rotation3, Vector3} from "../../types.ts";
 import {averageVectors, wrapPi} from "../../utils/projection_utils.ts";
+import type {FaceGeometry} from "../../providers/face_provider.ts";
 
 
 interface RawLandmark {
@@ -98,6 +99,7 @@ export class Face {
     private normalFace?: Face;
     private centerFace?: Face;
     private faceGeometry?: FaceGeometry;
+    private faceWidth?: number;
 
     public constructor(data: FaceData, proportions: HeadProportions = DEFAULT_HEAD_PROPORTIONS) {
         this.data = data;
@@ -344,24 +346,7 @@ export class Face {
         const props = this.proportions;
 
         // Determine measured width
-        let measuredWidth: number;
-
-        if (this.data.rig.leftEar.isVisible && this.data.rig.rightEar.isVisible) {
-            measuredWidth = Math.hypot(
-                this.data.rig.rightEar.position.x - this.data.rig.leftEar.position.x,
-                this.data.rig.rightEar.position.y - this.data.rig.leftEar.position.y
-            );
-            // measuredWidth = this.data.rig.rightEar.position.x - this.data.rig.leftEar.position.x;
-        } else if (this.data.eyes.left.isVisible && this.data.eyes.right.isVisible) {
-            const eyeSpan = Math.hypot(
-                this.data.eyes.right.position.x - this.data.eyes.left.position.x,
-                this.data.eyes.right.position.y - this.data.eyes.left.position.y
-            );
-            // const eyeSpan =  this.data.eyes.right.position.x - this.data.eyes.left.position.x;
-            measuredWidth = eyeSpan * (props.width.ear_to_ear / props.width.eye_to_eye);
-        } else {
-            measuredWidth = props.width.eye_to_eye;
-        }
+        let measuredWidth= this.width;
 
         // Compute the scaling factor to reach canonical width
         const factor = props.width.ear_to_ear / measuredWidth;
@@ -372,6 +357,31 @@ export class Face {
         return normalizedFace;
     }
 
+
+    public get width(): number {
+        if (this.faceWidth) {
+            return this.faceWidth;
+        }
+        const props = this.proportions;
+        if (this.data.rig.leftEar.isVisible && this.data.rig.rightEar.isVisible) {
+            this.faceWidth = Math.hypot(
+                this.data.rig.rightEar.position.x - this.data.rig.leftEar.position.x,
+                this.data.rig.rightEar.position.y - this.data.rig.leftEar.position.y
+            );
+            return this.faceWidth;
+        }
+        if (this.data.eyes.left.isVisible && this.data.eyes.right.isVisible) {
+            const eyeSpan = Math.hypot(
+                this.data.eyes.right.position.x - this.data.eyes.left.position.x,
+                this.data.eyes.right.position.y - this.data.eyes.left.position.y
+            );
+            // const eyeSpan =  this.data.eyes.right.position.x - this.data.eyes.left.position.x;
+            this.faceWidth = eyeSpan * (props.width.ear_to_ear / props.width.eye_to_eye);
+            return this.faceWidth;
+        }
+        this.faceWidth = props.width.eye_to_eye;
+        return this.faceWidth;
+    }
 
     /**
      * Try to recover the roll, pitch and yaw from the rotated face, using the ZYX strategy.

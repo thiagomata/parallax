@@ -1,7 +1,9 @@
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
-import type {FaceGeometry, FaceProvider, TrackingStatus} from "../../types";
+import type {TrackingStatus} from "../../types";
 import { FaceParser } from "./face_parser";
 import p5 from "p5";
+import type {Face} from "./face.ts";
+import type {FaceProvider} from "../../providers/face_provider.ts";
 
 export class MediaPipeFaceProvider implements FaceProvider {
     private landmarker: FaceLandmarker | null = null;
@@ -69,7 +71,7 @@ export class MediaPipeFaceProvider implements FaceProvider {
      * Returns the cleaned FaceGeometry.
      * Synchronous and safe to call inside p5's draw loop.
      */
-    getFace(): FaceGeometry | null {
+    getFace(): Face | null {
         if (this.status !== 'READY' || !this.landmarker) return null;
 
         const videoElt = this.capture.elt as HTMLVideoElement;
@@ -81,7 +83,7 @@ export class MediaPipeFaceProvider implements FaceProvider {
 
         if (result.faceLandmarks && result.faceLandmarks.length > 0) {
             // We immediately use our FaceParser to turn indices into semantics
-            return this.parser.parse(result.faceLandmarks[0]).geometry;
+            return this.parser.parse(result.faceLandmarks[0]);
         }
 
         return null;

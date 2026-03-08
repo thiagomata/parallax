@@ -1,6 +1,7 @@
 import p5 from "p5";
-import type { DataProviderBundle, FaceProvider, Vector3 } from "../types.ts";
+import type { DataProviderBundle, Vector3 } from "../types.ts";
 import { MediaPipeFaceProvider } from "../drivers/mediapipe/face_provider.ts";
+import type {FaceProvider} from "./face_provider.ts";
 
 export interface HeadProportions {
     width: number;       // reference = 1
@@ -54,7 +55,7 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     constructor(
         p: p5,
         sceneHeadWidth: number = 50, // scene units
-        headProportions: HeadProportions = { width: 1, heightRatio: 1.25, depthRatio: 0.85 },
+        headProportions: HeadProportions = { width: 1, heightRatio: 1, depthRatio: 0.85 },
         mirror: boolean = false
     ) {
         this.provider = new MediaPipeFaceProvider(p, "/parallax/wasm", "/parallax/models/face_landmarker.task", mirror);
@@ -83,7 +84,7 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         // 1️⃣ Determine the Z-Position (Movement, not Growth)
         // We measure how large the face is in the camera feed to decide
         // where to place the head on the scene's Z-axis.
-        const rawFaceWidth = Math.abs(face.bounds.right.x - face.bounds.left.x);
+        const rawFaceWidth = Math.abs(face.data.rig.rightEar.position.x - face.data.rig.leftEar.position.x);
         const neutralFaceWidth = 0.3; // The "normalized" size when user is at Z=0
         const movementSensitivity = 500; // How far the head travels in Z space
 
@@ -96,82 +97,113 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         // We use the fixed 'sceneHeadWidth' to keep dimensions constant.
         const mapToRigidWorld = (normalizedPoint: Vector3) => {
             return {
-                x: (normalizedPoint.x - 0.5) * this.sceneHeadWidth,
+                x: -(normalizedPoint.x - 0.5) * this.sceneHeadWidth,
                 y: (normalizedPoint.y - 0.5) * this.sceneHeadWidth * this.headProportions.heightRatio,
                 // The Z is a combination of the global position and the local feature depth
-                z: headGlobalZ + (0.5 - normalizedPoint.z) * this.sceneHeadWidth * this.headProportions.depthRatio
+                z: headGlobalZ + (0.5 - normalizedPoint.z) * this.sceneHeadWidth * this.headProportions.depthRatio * face.width
             };
         };
 
+        const scale = (vector: Vector3, factor: number): Vector3 => {
+            return {
+                x: -vector.x * factor,
+                y: vector.y * factor,
+                z: -vector.z * factor,
+            }
+        }
+
+        const avg = (vectors: Vector3[]): Vector3 => {
+            const sum = vectors.reduce(
+                (a,b) => {
+                    return {
+                        x: a.x + b.x,
+                        y: a.y + b.y,
+                        z: b.z + b.z,
+                    }
+                }
+            )
+            return {
+                x: sum.x / vectors.length,
+                y: sum.y / vectors.length,
+                z: sum.z / vectors.length,
+            }
+        }
+
         // 3️⃣ Establish the Rigid Points
-        const noseWorld = mapToRigidWorld(face.nose);
-        const leftEyeWorld = mapToRigidWorld(face.eyes.left);
-        const rightEyeWorld = mapToRigidWorld(face.eyes.right);
-        const middileEyeWorld = mapToRigidWorld(face.eyes.midpoint);
+        // const noseWorld =
+        const noseWorld = scale(face.normalize().data.nose.position, -50);
+        const leftEyeWorld = scale(face.normalize().data.eyes.left.position, 100);
+        const rightEyeWorld = scale(face.normalize().data.eyes.right.position, 100);
+        // const rightEyeWorld = mapToRigidWorld(face.data.eyes.right.position);
+        const middileEyeWorld = mapToRigidWorld(avg([
+            face.data.eyes.left.position,
+            face.data.eyes.right.position,
+        ]));
 
         // Bounds are calculated once as a fixed-size container
-        const boundsLeftWorld = mapToRigidWorld(face.bounds.left);
-        const boundsRightWorld = mapToRigidWorld(face.bounds.right);
-        const boundsTopWorld = mapToRigidWorld(face.bounds.top);
-        const boundsBottomWorld = mapToRigidWorld(face.bounds.bottom);
+        const boundsLeftWorld = mapToRigidWorld(face.data.rig.leftTemple.position);
+        const boundsRightWorld = mapToRigidWorld(face.data.rig.rightTemple.position);
+        const boundsTopWorld = mapToRigidWorld(face.data.bounds.middleTop.position);
+        const boundsBottomWorld = mapToRigidWorld(face.data.bounds.middleBottom.position);
 
         // 4️⃣ Rotation Logic (YXZ Order)
         // Calculate the pivot (the center of the head)
-        const rotationPivot = {
-            x: (boundsLeftWorld.x + boundsRightWorld.x) / 2,
-            y: (boundsTopWorld.y + boundsBottomWorld.y) / 2,
-            z: (boundsLeftWorld.z + boundsRightWorld.z) / 2
-        };
+        // const rotationPivot = {
+        //     x: (boundsLeftWorld.x + boundsRightWorld.x) / 2,
+        //     y: (boundsTopWorld.y + boundsBottomWorld.y) / 2,
+        //     z: (boundsLeftWorld.z + boundsRightWorld.z) / 2
+        // };
 
-        const eyeDistanceX = face.eyes.right.x - face.eyes.left.x;
-        const eyeDistanceY = face.eyes.right.y - face.eyes.left.y;
+        // const eyeDistanceX = face.eyes.right.x - face.eyes.left.x;
+        // const eyeDistanceY = face.eyes.right.y - face.eyes.left.y;
 
         // Roll (Z rotation)
-        const rollAngle = -Math.atan2(eyeDistanceY, eyeDistanceX);
+        // const rollAngle = -Math.atan2(eyeDistanceY, eyeDistanceX);
 
         // Yaw and Pitch (calculated by nose offset from face center)
-        const faceCenterNormalizedX = (face.bounds.left.x + face.bounds.right.x) / 2;
-        const faceCenterNormalizedY = (face.bounds.top.y + face.bounds.bottom.y) / 2;
+        // const faceCenterNormalizedX = (face.bounds.left.x + face.bounds.right.x) / 2;
+        // const faceCenterNormalizedY = (face.bounds.top.y + face.bounds.bottom.y) / 2;
 
-        const yawAngle = (face.nose.x - faceCenterNormalizedX) * Math.PI;
-        const pitchAngle = (face.nose.y - faceCenterNormalizedY) * Math.PI;
+        // const yawAngle = (face.nose.x - faceCenterNormalizedX) * Math.PI;
+        // const pitchAngle = (face.nose.y - faceCenterNormalizedY) * Math.PI;
 
         const applyRigidRotation = (point: Vector3) => {
-            // Translate to pivot
-            let localX = point.x - rotationPivot.x;
-            let localY = point.y - rotationPivot.y;
-            let localZ = point.z - rotationPivot.z;
-
-            // Y - Yaw
-            const cosYaw = Math.cos(yawAngle);
-            const sinYaw = Math.sin(yawAngle);
-            const yawX = localX * cosYaw + localZ * sinYaw;
-            const yawZ = -localX * sinYaw + localZ * cosYaw;
-            localX = yawX;
-            localZ = yawZ;
-
-            // X - Pitch
-            const cosPitch = Math.cos(pitchAngle);
-            const sinPitch = Math.sin(pitchAngle);
-            const pitchY = localY * cosPitch - localZ * sinPitch;
-            const pitchZ = localY * sinPitch + localZ * cosPitch;
-            localY = pitchY;
-            localZ = pitchZ;
-
-            // Z - Roll
-            const cosRoll = Math.cos(rollAngle);
-            const sinRoll = Math.sin(rollAngle);
-            const rollX = localX * cosRoll - localY * sinRoll;
-            const rollY = localX * sinRoll + localY * cosRoll;
-            localX = rollX;
-            localY = rollY;
-
-            // Translate back
-            return {
-                x: localX + rotationPivot.x,
-                y: localY + rotationPivot.y,
-                z: localZ + rotationPivot.z
-            };
+            return point;
+            // // Translate to pivot
+            // let localX = point.x - rotationPivot.x;
+            // let localY = point.y - rotationPivot.y;
+            // let localZ = point.z - rotationPivot.z;
+            //
+            // // Y - Yaw
+            // const cosYaw = Math.cos(yawAngle);
+            // const sinYaw = Math.sin(yawAngle);
+            // const yawX = localX * cosYaw + localZ * sinYaw;
+            // const yawZ = -localX * sinYaw + localZ * cosYaw;
+            // localX = yawX;
+            // localZ = yawZ;
+            //
+            // // X - Pitch
+            // const cosPitch = Math.cos(pitchAngle);
+            // const sinPitch = Math.sin(pitchAngle);
+            // const pitchY = localY * cosPitch - localZ * sinPitch;
+            // const pitchZ = localY * sinPitch + localZ * cosPitch;
+            // localY = pitchY;
+            // localZ = pitchZ;
+            //
+            // // Z - Roll
+            // const cosRoll = Math.cos(rollAngle);
+            // const sinRoll = Math.sin(rollAngle);
+            // const rollX = localX * cosRoll - localY * sinRoll;
+            // const rollY = localX * sinRoll + localY * cosRoll;
+            // localX = rollX;
+            // localY = rollY;
+            //
+            // // Translate back
+            // return {
+            //     x: localX + rotationPivot.x,
+            //     y: localY + rotationPivot.y,
+            //     z: localZ + rotationPivot.z
+            // };
         };
 
         // 5️⃣ Final Output
@@ -188,8 +220,12 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
                 top: applyRigidRotation(boundsTopWorld),
                 bottom: applyRigidRotation(boundsBottomWorld),
             },
-            midpoint: applyRigidRotation(mapToRigidWorld(face.rig.center)),
-            stick: { yaw: yawAngle, pitch: pitchAngle, roll: rollAngle }
+            midpoint: applyRigidRotation(mapToRigidWorld(face.skullCenter.position)),
+            stick: {
+                yaw: face.yaw,
+                pitch: -face.pitch,
+                roll: -face.roll,
+            }
         };
 
         return this.lastFace;
