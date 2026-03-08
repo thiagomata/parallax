@@ -1,5 +1,5 @@
-import type {Rotation3, Vector3} from "../../types.ts";
-import {wrapPi} from "../../utils/projection_utils.ts";
+import type {FaceGeometry, Rotation3, Vector3} from "../../types.ts";
+import {averageVectors, wrapPi} from "../../utils/projection_utils.ts";
 
 
 interface RawLandmark {
@@ -91,9 +91,13 @@ export class Face {
     readonly skullCenter: RawLandmark;
     private normalized: boolean;
     private centered: boolean;
-    private rotation?: Rotation3;
+    private rotation?: {
+        rotation: Rotation3;
+        face: Face;
+    };
     private normalFace?: Face;
     private centerFace?: Face;
+    private faceGeometry?: FaceGeometry;
 
     public constructor(data: FaceData, proportions: HeadProportions = DEFAULT_HEAD_PROPORTIONS) {
         this.data = data;
@@ -373,7 +377,10 @@ export class Face {
      * Try to recover the roll, pitch and yaw from the rotated face, using the ZYX strategy.
      * As proved by the test 'should test all 6 rotation computation orders for angle recovery' it was the order with better performance.
      */
-    getRotation(): Rotation3 {
+    getRotation(): {
+        rotation: Rotation3,
+        face: Face,
+    } {
         if (this.rotation) {
             return this.rotation;
         }
@@ -389,45 +396,146 @@ export class Face {
         const pitch = face.computePitch();
         face = face.rotateX(-pitch).normalize();
 
-        return {
-            roll,
-            pitch,
-            yaw
+        this.rotation = {
+            face: face,
+            rotation:{
+                roll,
+                pitch,
+                yaw
+            }
         }
+        return this.rotation;
     }
 
-    getRotationYXZ(): Rotation3 {
-        if (this.rotation) {
-            return this.rotation;
+    public get yaw(): number {
+        return this.getRotation().rotation.yaw;
+    }
+
+    public get pitch(): number {
+        return this.getRotation().rotation.pitch;
+    }
+
+    public get roll(): number {
+        return this.getRotation().rotation.roll;
+    }
+
+    /**
+     * Returns the face after removing all the rotations.
+     * All the elements in the face are in relative position of the face in neutral rotation.
+     */
+    public get rebase(): Face {
+        return this.getRotation().face;
+    }
+
+    public get geometry(): FaceGeometry {
+        return this.getGeometry();
+    }
+
+    public getGeometry (): FaceGeometry  {
+        if (this.faceGeometry) {
+            return this.faceGeometry;
         }
+        const geometry: FaceGeometry = {
+            /**
+             * Absolute transformation of the head within the camera view.
+             * These values place the head in the 3D scene.
+             */
+            world: {
+                /**
+                 * The (x,y,z) position of the skull center in scene space.
+                 * Used for 3D scene translation.
+                 */
+                center: this.getSkullCenter().position,
+                /**
+                 * Scale factor derived from head size in the frame.
+                 * Represents how large the head appears relative to canonical size.
+                 * Used for 3D scene scaling.
+                 */
+                unitScale: this.getFaceHeight().value,
+                /**
+                 * Computed Euler angles in radians from canonical head positions.
+                 * Follows YXZ rotation order.
+                 * These angles describe the head's orientation relative to canonical pose.
+                 */
+                rotation: {
+                    /** Y-axis rotation: Left/Right turn. */
+                    yaw: this.yaw,
+                    /** X-axis rotation: Up/Down tilt. */
+                    pitch: this.pitch,
+                    /** Z-axis rotation: Side-to-side lean. */
+                    roll: this.roll,
+                },
+            },
 
-        let face = this.center().normalize();
-        // Y
-        const yaw = face.computeYaw();
-        face = face.rotateY(-yaw).normalize();
-        // X
-        const pitch = face.computePitch();
-        face = face.rotateX(-pitch).normalize();
-        // Z
-        const roll = face.computeRoll();
-        face = face.rotateZ(-roll).normalize();
+            /**
+             * The tip of the nose.
+             * Position relative to skull center (local space).
+             * Fixed anatomical position - does not change with rotation.
+             */
+            nose: this.data.nose.position,
 
-        return {
-            roll,
-            pitch,
-            yaw
-        }
-    }
-    get yaw(): number {
-        return this.getRotation().yaw;
-    }
+            /**
+             * Facial features located on the frontal "Face Plate".
+             */
+            eyes: {
+                /**
+                 * Left eye center.
+                 * Position relative to skull center: Approx [-0.2, 0, -0.45]. */
+                left: this.data.eyes.left.position,
+                /**
+                 * Right eye center.
+                 * Position relative to skull center: Approx [0.2, 0, -0.45].
+                 * */
+                right: this.data.eyes.right.position,
+                /**
+                 * Midpoint of the eye-line (nasal bridge).
+                 * Position relative to skull center: Approx [0, 0, -0.45].
+                 */
+                midpoint: averageVectors([
+                    this.data.eyes.left.position,
+                    this.data.eyes.right.position,
+                ]),
+            },
 
-    get pitch(): number {
-        return this.getRotation().pitch;
-    }
+            /**
+             * The internal scaffolding (Rig) of the head model.
+             */
+            rig: {
+                /**
+                 * The mathematical pivot of the head.
+                 * Always [0, 0, 0] in local space.
+                 */
+                center: averageVectors([
+                    this.data.rig.leftEar.position,
+                    this.data.rig.rightEar.position,
+                ]),
+                /**
+                 * Left ear (Tragus).
+                 * Position relative to skull center: [-0.5, 0, 0].
+                 */
+                leftEar: this.data.rig.leftEar.position,
+                /**
+                 * Right ear (Tragus).
+                 * Position relative to skull center: [0.5, 0, 0].
+                 */
+                rightEar: this.data.rig.rightEar.position,
+            },
 
-    get roll(): number {
-        return this.getRotation().roll;
+            /**
+             * Extremities used for bounding volumes and interaction logic.
+             * All positions are relative to the skull center.
+             */
+            bounds: {
+                /** Top of the skull/hairline. Approx [0, 0.6, -0.2]. */
+                top: this.data.bounds.middleTop.position,
+                /** Bottom of the chin. Approx [0, -0.7, -0.4]. */
+                bottom: this.data.bounds.middleBottom.position,
+                left: this.data.rig.leftEar.position,
+                right: this.data.rig.rightEar.position,
+            },
+        };
+        this.faceGeometry = geometry;
+        return geometry;
     }
 
     /**

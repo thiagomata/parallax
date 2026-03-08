@@ -468,9 +468,9 @@ describe('Face - getRotation (yaw, pitch, roll properties)', () => {
         
         const rotation = face.getRotation();
 
-        expect(rotation.yaw).toBeCloseTo(0, 5);
-        expect(rotation.pitch).toBeCloseTo(0, 5);
-        expect(rotation.roll).toBeCloseTo(0, 5);
+        expect(rotation.rotation.yaw).toBeCloseTo(0, 5);
+        expect(rotation.rotation.pitch).toBeCloseTo(0, 5);
+        expect(rotation.rotation.roll).toBeCloseTo(0, 5);
     });
 
     it('should use getter properties for yaw, pitch, roll', () => {
@@ -499,7 +499,7 @@ describe('Face - rotation with combined rotations', () => {
         
         const rotation = transformed.getRotation();
         
-        expect(rotation.yaw).not.toBeCloseTo(0, 2);
+        expect(rotation.rotation.yaw).not.toBeCloseTo(0, 2);
     });
 });
 
@@ -528,7 +528,7 @@ describe('Face - rotation comparison with known rotations', () => {
             { 
                 name: "Z->X->Y", 
                 fn: (f: Face) => { 
-                    const roll = f.roll; 
+                    const roll = f.computeRoll();
                     const t1 = f.rotateZ(-roll).normalize(); 
                     const pitch = t1.computePitch(); 
                     const t2 = t1.rotateX(-pitch).normalize(); 
@@ -543,14 +543,14 @@ describe('Face - rotation comparison with known rotations', () => {
                     const t1 = f.rotateY(-yaw).normalize(); 
                     const pitch = t1.computePitch(); 
                     const t2 = t1.rotateX(-pitch).normalize(); 
-                    const roll = t2.roll; 
+                    const roll = t2.computeRoll();
                     return { yaw, pitch, roll }; 
                 }
             },
             { 
                 name: "Z->Y->X", 
                 fn: (f: Face) => { 
-                    const roll = f.roll; 
+                    const roll = f.computeRoll();
                     const t1 = f.rotateZ(-roll).normalize(); 
                     const yaw = t1.computeYaw(); 
                     const t2 = t1.rotateY(-yaw).normalize(); 
@@ -574,7 +574,7 @@ describe('Face - rotation comparison with known rotations', () => {
                 fn: (f: Face) => { 
                     const pitch = f.computePitch(); 
                     const t1 = f.rotateX(-pitch).normalize(); 
-                    const roll = t1.roll; 
+                    const roll = t1.computeRoll();
                     const t2 = t1.rotateZ(-roll).normalize(); 
                     const yaw = t2.computeYaw(); 
                     return { yaw, pitch, roll }; 
@@ -585,7 +585,7 @@ describe('Face - rotation comparison with known rotations', () => {
                 fn: (f: Face) => { 
                     const yaw = f.computeYaw(); 
                     const t1 = f.rotateY(-yaw).normalize(); 
-                    const roll = t1.roll; 
+                    const roll = t1.computeRoll();
                     const t2 = t1.rotateZ(-roll).normalize(); 
                     const pitch = t2.computePitch(); 
                     return { yaw, pitch, roll }; 

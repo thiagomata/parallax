@@ -1,11 +1,13 @@
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import type {FaceGeometry, FaceProvider, TrackingStatus} from "../../types";
+import { FaceParser } from "./face_parser";
 import p5 from "p5";
 
 export class MediaPipeFaceProvider implements FaceProvider {
     private landmarker: FaceLandmarker | null = null;
     private capture: any = null; // p5 Video Element
     private status: TrackingStatus = 'IDLE';
+    private parser: FaceParser;
     private readonly p: p5;
     private readonly wasmPath: string;
     private readonly modelPath: string;
@@ -21,6 +23,11 @@ export class MediaPipeFaceProvider implements FaceProvider {
         this.wasmPath = wasmPath;
         this.modelPath = modelPath;
         this.mirror = mirror;
+        this.parser = new FaceParser({mirror: this.mirror});
+    }
+
+    public setFaceParser(faceParser: FaceParser): void {
+        this.parser = faceParser;
     }
 
     /**
@@ -74,7 +81,7 @@ export class MediaPipeFaceProvider implements FaceProvider {
 
         if (result.faceLandmarks && result.faceLandmarks.length > 0) {
             // We immediately use our FaceParser to turn indices into semantics
-            return FaceParser.parse(result.faceLandmarks[0], this.mirror);
+            return this.parser.parse(result.faceLandmarks[0]).geometry;
         }
 
         return null;

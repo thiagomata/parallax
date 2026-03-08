@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { FaceParser } from './face_parser.old';
 import { createMockP5 } from '../../mock/mock_p5.mock';
 import {MediaPipeFaceProvider} from "./face_provider.ts";
 
@@ -10,12 +9,6 @@ vi.mock('@mediapipe/tasks-vision', () => ({
     },
     FilesetResolver: {
         forVisionTasks: vi.fn(),
-    }
-}));
-
-vi.mock('./face_parser', () => ({
-    FaceParser: {
-        parse: vi.fn()
     }
 }));
 
@@ -50,10 +43,8 @@ describe('MediaPipeFaceProvider', () => {
             detectForVideo: vi.fn().mockReturnValue({ faceLandmarks: [[{ x: 0, y: 0, z: 0 }]] })
         };
 
-        // Default mock setup
-        (FaceParser.parse as any).mockReturnValue({ nose: { x: 0.5, y: 0.5, z: 0 } });
-
         provider = new MediaPipeFaceProvider(mockP5);
+        provider.setFaceParser(mockLandmarker);
     });
 
     describe('Initialization', () => {
@@ -62,7 +53,7 @@ describe('MediaPipeFaceProvider', () => {
             (FilesetResolver.forVisionTasks as any).mockResolvedValue({});
             (FaceLandmarker.createFromOptions as any).mockResolvedValue(mockLandmarker);
 
-mockP5.createCapture.mockReturnValue({
+            mockP5.createCapture.mockReturnValue({
                 size: vi.fn(),
                 hide: vi.fn(),
                 elt: { readyState: 4 }
