@@ -1,16 +1,5 @@
 import type { Rotation3, Vector3 } from "../types";
 
-// ========================
-// Vector Math Helpers
-// ========================
-
-export function subtract(a: Vector3, b: Vector3): Vector3 {
-    return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
-}
-
-export function add(a: any, b: any) { return { x: a.x + b.x, y: a.y + b.y, z: (a.z || 0) + (b.z || 0) }; }
-
-// Average an array of vectors
 export function averageVectors(vectors: Vector3[]): Vector3 {
     if (vectors.length === 0) throw new Error("Cannot average empty vector array");
     const sum = vectors.reduce(
@@ -22,17 +11,6 @@ export function averageVectors(vectors: Vector3[]): Vector3 {
         { x: 0, y: 0, z: 0 }
     );
     return { x: sum.x / vectors.length, y: sum.y / vectors.length, z: sum.z / vectors.length };
-}
-
-export function multiply(a: any, scalar: number) { return { x: a.x * scalar, y: a.y * scalar, z: (a.z || 0) * scalar }; }
-
-
-export function length(v: Vector3): number {
-    return Math.hypot(v.x, v.y, v.z);
-}
-
-export function dot(a: Vector3, b: Vector3): number {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
 export function rotateVector(v: Vector3, r: Rotation3): Vector3 {
@@ -67,18 +45,6 @@ export function rotateVector(v: Vector3, r: Rotation3): Vector3 {
     };
 }
 
-export function composeRotation(parent: Rotation3, local: Rotation3): Rotation3 {
-    return {
-        yaw: parent.yaw + local.yaw,
-        pitch: parent.pitch + local.pitch,
-        roll: parent.roll + local.roll,
-    };
-}
-
-/**
- * Compute rotation angles to face a target point from a source position.
- * Returns pitch/yaw/roll that makes the object look at the target.
- */
 export function lookAtRotation(from: Vector3, to: Vector3): Rotation3 {
     const dx = to.x - from.x;
     const dy = to.y - from.y;
@@ -99,164 +65,6 @@ export function lookAtRotation(from: Vector3, to: Vector3): Rotation3 {
     return { pitch, yaw, roll: 0 };
 }
 
-/**
- * Compute direction vector from rotation angles.
- */
-export function rotationToDirection(r: Rotation3): Vector3 {
-    const cosP = Math.cos(r.pitch);
-    const sinP = Math.sin(r.pitch);
-    const cosY = Math.cos(r.yaw);
-    const sinY = Math.sin(r.yaw);
-
-    return {
-        x: sinY * cosP,
-        y: sinP,
-        z: cosY * cosP,
-    };
-}
-
-/**
- * Apply rotation in a specific order.
- */
-export function applyRotationOrder(v: Vector3, r: Rotation3, order: string): Vector3 {
-    switch (order) {
-        case 'XYZ':
-            return rotateXYZ(v, r);
-        case 'YXZ':
-            return rotateYXZ(v, r);
-        case 'ZXY':
-            return rotateZXY(v, r);
-        case 'XZY':
-            return rotateXZY(v, r);
-        case 'YZX':
-            return rotateYZX(v, r);
-        case 'ZYX':
-            return rotateZYX(v, r);
-        default:
-            return rotateYXZ(v, r); // default
-    }
-}
-
-function rotateXYZ(v: Vector3, r: Rotation3): Vector3 {
-    // X then Y then Z
-    let { x, y, z } = v;
-
-    // Rotate X (pitch)
-    let y1 = y * Math.cos(r.pitch) - z * Math.sin(r.pitch);
-    let z1 = y * Math.sin(r.pitch) + z * Math.cos(r.pitch);
-
-    // Rotate Y (yaw)
-    let x2 = x * Math.cos(r.yaw) + z1 * Math.sin(r.yaw);
-    let z2 = -x * Math.sin(r.yaw) + z1 * Math.cos(r.yaw);
-
-    // Rotate Z (roll)
-    let x3 = x2 * Math.cos(r.roll) - y1 * Math.sin(r.roll);
-    let y3 = x2 * Math.sin(r.roll) + y1 * Math.cos(r.roll);
-
-    return { x: x3, y: y3, z: z2 };
-}
-
-function rotateYXZ(v: Vector3, r: Rotation3): Vector3 {
-    // Y then X then Z
-    let { x, y, z } = v;
-
-    // Rotate Y (yaw)
-    let x1 = x * Math.cos(r.yaw) + z * Math.sin(r.yaw);
-    let z1 = -x * Math.sin(r.yaw) + z * Math.cos(r.yaw);
-
-    // Rotate X (pitch)
-    let y2 = y * Math.cos(r.pitch) - z1 * Math.sin(r.pitch);
-    let z2 = y * Math.sin(r.pitch) + z1 * Math.cos(r.pitch);
-
-    // Rotate Z (roll)
-    let x3 = x1 * Math.cos(r.roll) - y2 * Math.sin(r.roll);
-    let y3 = x1 * Math.sin(r.roll) + y2 * Math.cos(r.roll);
-
-    return { x: x3, y: y3, z: z2 };
-}
-
-function rotateZXY(v: Vector3, r: Rotation3): Vector3 {
-    // Z then X then Y
-    let { x, y, z } = v;
-
-    // Rotate Z (roll)
-    let x1 = x * Math.cos(r.roll) - y * Math.sin(r.roll);
-    let y1 = x * Math.sin(r.roll) + y * Math.cos(r.roll);
-
-    // Rotate X (pitch)
-    let y2 = y1 * Math.cos(r.pitch) - z * Math.sin(r.pitch);
-    let z2 = y1 * Math.sin(r.pitch) + z * Math.cos(r.pitch);
-
-    // Rotate Y (yaw)
-    let x3 = x1 * Math.cos(r.yaw) + z2 * Math.sin(r.yaw);
-    let z3 = -x1 * Math.sin(r.yaw) + z2 * Math.cos(r.yaw);
-
-    return { x: x3, y: y2, z: z3 };
-}
-
-function rotateXZY(v: Vector3, r: Rotation3): Vector3 {
-    // X then Z then Y
-    let { x, y, z } = v;
-
-    // Rotate X (pitch)
-    let y1 = y * Math.cos(r.pitch) - z * Math.sin(r.pitch);
-    let z1 = y * Math.sin(r.pitch) + z * Math.cos(r.pitch);
-
-    // Rotate Z (roll)
-    let x2 = x * Math.cos(r.roll) + z1 * Math.sin(r.roll);
-    let z2 = -x * Math.sin(r.roll) + z1 * Math.cos(r.roll);
-
-    // Rotate Y (yaw)
-    let x3 = x2 * Math.cos(r.yaw) - y1 * Math.sin(r.yaw);
-    let y3 = x2 * Math.sin(r.yaw) + y1 * Math.cos(r.yaw);
-
-    return { x: x3, y: y3, z: z2 };
-}
-
-function rotateYZX(v: Vector3, r: Rotation3): Vector3 {
-    // Y then Z then X
-    let { x, y, z } = v;
-
-    // Rotate Y (yaw)
-    let x1 = x * Math.cos(r.yaw) + z * Math.sin(r.yaw);
-    let z1 = -x * Math.sin(r.yaw) + z * Math.cos(r.yaw);
-
-    // Rotate Z (roll)
-    let x2 = x1 * Math.cos(r.roll) + y * Math.sin(r.roll);
-    let y2 = -x1 * Math.sin(r.roll) + y * Math.cos(r.roll);
-
-    // Rotate X (pitch)
-    let y3 = y2 * Math.cos(r.pitch) - z1 * Math.sin(r.pitch);
-    let z3 = y2 * Math.sin(r.pitch) + z1 * Math.cos(r.pitch);
-
-    return { x: x2, y: y3, z: z3 };
-}
-
-function rotateZYX(v: Vector3, r: Rotation3): Vector3 {
-    // Z then Y then X
-    let { x, y, z } = v;
-
-    // Rotate Z (roll)
-    let x1 = x * Math.cos(r.roll) - y * Math.sin(r.roll);
-    let y1 = x * Math.sin(r.roll) + y * Math.cos(r.roll);
-
-    // Rotate Y (yaw)
-    let x2 = x1 * Math.cos(r.yaw) + z * Math.sin(r.yaw);
-    let z2 = -x1 * Math.sin(r.yaw) + z * Math.cos(r.yaw);
-
-    // Rotate X (pitch)
-    let y3 = y1 * Math.cos(r.pitch) - z2 * Math.sin(r.pitch);
-    let z3 = y1 * Math.sin(r.pitch) + z2 * Math.cos(r.pitch);
-
-    return { x: x2, y: y3, z: z3 };
-}
-
-// 3️⃣ Midpoint helper
-export function midpoint(a: Vector3, b: Vector3): Vector3 {
-    return { x: (a.x + b.x)/2, y: (a.y + b.y)/2, z: (a.z + b.z)/2 };
-}
-
-
 export function normalize(v: Vector3): Vector3 {
     const len = Math.hypot(v.x, v.y, v.z);
     if (len === 0) return { x: 0, y: 0, z: 0 };
@@ -270,12 +78,6 @@ export function cross(a: Vector3, b: Vector3): Vector3 {
         z: a.x * b.y - a.y * b.x
     };
 }
-
-export const wrap2Pi = (a: number) => {
-    while (a <= -Math.PI - 0.005) a += 2 * Math.PI;
-    while (a >= Math.PI + 0.005) a -= 2 * Math.PI;
-    return a;
-};
 
 export const wrapPi = (a: number) => {
     while (a <= -Math.PI) a += Math.PI;

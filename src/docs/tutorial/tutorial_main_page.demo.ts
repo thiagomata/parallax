@@ -62,10 +62,10 @@ Object.assign(window, {
     WorldSettings,
     SceneClock: SceneClock,
     CameraModifier: HeadTrackingModifier,
+    CenterFocusModifier: CenterFocusModifier,
     P5AssetLoader,
     P5GraphicProcessor,
     OrbitModifier,
-    CenterFocusModifier,
     HeadTrackingModifier,
     LookAtEffect,
     ELEMENT_TYPES,
@@ -79,9 +79,9 @@ Object.assign(window, {
 import { transform } from 'sucrase';
 import {tutorialStepTemplate} from "./tutorial.template.ts";
 import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
-import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
 import {LookAtEffect} from "../../scene/effects/look_at_effect.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
+import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
 
 function toggleFS(id: string) {
     const element = document.getElementById(id);

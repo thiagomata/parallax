@@ -264,13 +264,13 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
             const elementPos = node.props.position ?? { x: 0, y: 0, z: 0 };
             rotation = lookAtRotation(elementPos, node.props.lookAt);
         }
-        
-        // Apply local rotation (always YXZ order)
-        this.rotate(rotation);
-        
+
         // Apply local translation
         this.translate(node.props.position);
-        
+
+        // Apply local rotation (always YXZ order)
+        this.rotate(rotation);
+
         // Render this element
         this.renderElement(node.props, node.assets, state);
         

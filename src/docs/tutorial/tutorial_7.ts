@@ -54,7 +54,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         lookMode: LOOK_MODES.ROTATION,
         modifiers: {
             carModifiers: [
-                new OrbitModifier(p, 400, 0),
+                // new OrbitModifier(p, 400, 0),
             ],
             stickModifiers: [
                 new CenterFocusModifier()
@@ -233,9 +233,9 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
                 const face = ctx.dataProviders['headTracker'];
                 if (!face) return { pitch: 0, yaw: 0, roll: 0 };
                 return {
-                    yaw:   face.stick.yaw * 2,
-                    pitch: face.stick.pitch * 2,
-                    roll:  face.stick.roll,
+                    yaw:   -face.stick.yaw,
+                    pitch: -face.stick.pitch,
+                    roll:  -face.stick.roll,
                 };
             },
 
