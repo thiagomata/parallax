@@ -17,18 +17,18 @@ import 'prismjs/components/prism-javascript';
 import '../style/style.css';
 
 // Tutorial Steps
-// import {tutorial_1} from './tutorial_1.ts';
-// import step1Source from './tutorial_1.ts?raw';
-// import {tutorial_2} from './tutorial_2.ts';
-// import step2Source from './tutorial_2.ts?raw';
-// import {tutorial_3} from './tutorial_3.ts';
-// import step3Source from './tutorial_3.ts?raw';
-// import {tutorial_4} from './tutorial_4.ts';
-// import step4Source from './tutorial_4.ts?raw';
-// import {tutorial_5} from './tutorial_5.ts';
-// import step5Source from './tutorial_5.ts?raw';
-// import {tutorial_6} from "./tutorial_6.ts";
-// import step6Source from './tutorial_6.ts?raw';
+import {tutorial_1} from './tutorial_1.ts';
+import step1Source from './tutorial_1.ts?raw';
+import {tutorial_2} from './tutorial_2.ts';
+import step2Source from './tutorial_2.ts?raw';
+import {tutorial_3} from './tutorial_3.ts';
+import step3Source from './tutorial_3.ts?raw';
+import {tutorial_4} from './tutorial_4.ts';
+import step4Source from './tutorial_4.ts?raw';
+import {tutorial_5} from './tutorial_5.ts';
+import step5Source from './tutorial_5.ts?raw';
+import {tutorial_6} from "./tutorial_6.ts";
+import step6Source from './tutorial_6.ts?raw';
 import {tutorial_7} from "./tutorial_7.ts";
 import step7Source from './tutorial_7.ts?raw';
 
@@ -37,7 +37,6 @@ export interface SketchConfig {
     height: number;
     backgroundColor?: string;
     clock?: SceneClock,
-    // cameraModifier?: HeadTrackingModifier,
     loader?: P5AssetLoader,
     paused: boolean,
 }
@@ -122,11 +121,32 @@ export function renderStep(
         stepMain.innerHTML = tutorialStepTemplate({ containerId, title, source }).innerHTML;
     }
 
+    // Tab switching logic
+    const tabButtons = stepMain.querySelectorAll('.tab-btn');
+    const tabContents = stepMain.querySelectorAll('.step-content');
+    
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.getAttribute('data-tab');
+            
+            // Update buttons
+            tabButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Update content
+            tabContents.forEach(content => {
+                if (content.getAttribute('data-content') === tab) {
+                    content.classList.add('active');
+                } else {
+                    content.classList.remove('active');
+                }
+            });
+        });
+    });
+
     const codeSide   = stepMain.querySelector('.code-side') as HTMLElement;
     const canvasSide = stepMain.querySelector('.canvas-side') as HTMLElement;
 
-    // Temporarily hide code side for testing
-    codeSide.style.display = 'none';
     canvasSide.style.width = '100%';
 
     const editorBox    = codeSide.querySelector('.editor-box') as HTMLElement;
@@ -228,12 +248,12 @@ export function renderStep(
 }
 
 // Initialize the updated Curriculum
-// renderStep('tutorial-1', '1. The Foundation (Registration)', tutorial_1, step1Source);
-// renderStep('tutorial-2', '2. Animation (Temporal Phase)', tutorial_2, step2Source);
-// renderStep('tutorial-3', '3. Movement (Spatial Orbit)', tutorial_3, step3Source);
-// renderStep('tutorial-4', '4. Camera (Modifiers)', tutorial_4, step4Source);
-// renderStep('tutorial-5', '5. Textures & Fonts (Hydration)', tutorial_5, step5Source);
-// renderStep('tutorial-6', '6. Integrated Scene (Hybrid Props)', tutorial_6, step6Source);
+renderStep('tutorial-1', '1. The Foundation (Registration)', tutorial_1, step1Source);
+renderStep('tutorial-2', '2. Animation (Temporal Phase)', tutorial_2, step2Source);
+renderStep('tutorial-3', '3. Movement (Spatial Orbit)', tutorial_3, step3Source);
+renderStep('tutorial-4', '4. Camera (Modifiers)', tutorial_4, step4Source);
+renderStep('tutorial-5', '5. Textures & Fonts (Hydration)', tutorial_5, step5Source);
+renderStep('tutorial-6', '6. Integrated Scene (Hybrid Props)', tutorial_6, step6Source);
 renderStep('tutorial-7', '7. Head Tracking', tutorial_7, step7Source);
 // renderStep('tutorial-8', '8. Billboard', tutorial_8, step8Source);
 // renderStep('tutorial-9', '9. Follow Object', tutorial_9, step9Source);

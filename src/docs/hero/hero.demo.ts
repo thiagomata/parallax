@@ -99,6 +99,27 @@ export function renderStep(
         stepMain.innerHTML = tutorialStepTemplate({ containerId, title, source }).innerHTML;
     }
 
+    // Tab switching logic
+    const tabButtons = stepMain.querySelectorAll('.tab-btn');
+    const tabContents = stepMain.querySelectorAll('.step-content');
+    
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.getAttribute('data-tab');
+            
+            tabButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            tabContents.forEach(content => {
+                if (content.getAttribute('data-content') === tab) {
+                    content.classList.add('active');
+                } else {
+                    content.classList.remove('active');
+                }
+            });
+        });
+    });
+
     const codeSide   = stepMain.querySelector('.code-side') as HTMLElement;
     const canvasSide = stepMain.querySelector('.canvas-side') as HTMLElement;
 
