@@ -157,7 +157,7 @@ export function renderStep(
             const log = document.createElement('div');
             log.className = 'log-entry info';
             log.style.color = 'var(--error)';
-            log.textContent = `⚠️ Error: ${e.message}`;
+            log.textContent = `Error: ${e.message}`;
             consolePanel.appendChild(log);
         }
     };

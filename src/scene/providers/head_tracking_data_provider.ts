@@ -4,10 +4,18 @@ import { MediaPipeFaceProvider } from "../drivers/mediapipe/face_provider.ts";
 import type {FaceProvider} from "./face_provider.ts";
 import type {Face} from "../drivers/mediapipe/face.ts";
 
+/**
+ * Data provider library type for head tracking.
+ * Used to type the relationship between HeadTrackingDataProvider and modifiers.
+ */
 export type HeadTrackerDataProviderLib = {
     headTracker: DataProviderBundle<"headTracker", FaceWorldData>
 };
 
+/**
+ * Container for face data transformed to scene coordinates.
+ * Provides access to facial features and rotation in scene units.
+ */
 export class FaceWorldData {
     readonly face: Face;
     readonly sceneHeadWidth: number;
@@ -22,6 +30,10 @@ export class FaceWorldData {
         this.midpoint = midpoint;
     }
 
+    /**
+     * Transforms a vector from face-local coordinates to scene coordinates.
+     * Applies coordinate flipping and scaling to sceneHeadWidth.
+     */
     private transform = (vector: Vector3) => {
 
         return scale(vector, this.sceneHeadWidth);
@@ -57,6 +69,9 @@ export class FaceWorldData {
         };
     }
 
+    /**
+     * Returns rotation angles. Pitch and roll are negated to match scene coordinate system.
+     */
     public get stick() {
         return {
             yaw: this.face.yaw,
@@ -66,6 +81,10 @@ export class FaceWorldData {
     }
 }
 
+/**
+ * Scales and flips a vector for scene coordinates.
+ * Flips X and Z (camera to scene coordinate conversion) and applies scale factor.
+ */
 const scale = (vector: Vector3, factor: number): Vector3 => {
     return {
         x: -vector.x * factor,

@@ -112,7 +112,6 @@ export function renderStep(
     const root = document.getElementById('tutorial-root');
     if (!root) return;
 
-    // --- create or reuse the step container ---
     let stepMain = document.getElementById(`step-${containerId}`);
     if (!stepMain) {
         stepMain = tutorialStepTemplate({ containerId, title, source });
@@ -148,10 +147,8 @@ export function renderStep(
     const pauseBtn    = canvasSide.querySelector('.pause-btn') as HTMLButtonElement;
     const fsCanvasBtn = canvasSide.querySelector('.fullscreen-btn') as HTMLButtonElement;
 
-    // --- config/state for this step ---
     const sketchConfig: SketchConfig = { ...DEFAULT_SKETCH_CONFIG, ...config, width, height, paused: false };
 
-    // --- track current p5 instance ---
     let currentP5: p5 | null = null;
 
     const createSketch = (sketchFn: P5Sketch) => {
@@ -162,7 +159,6 @@ export function renderStep(
         currentP5 = new p5((p: p5) => sketchFn(p, sketchConfig), canvasBox);
     };
 
-    // --- execute update (compile/run) ---
     const executeUpdate = () => {
         consolePanel.style.display = 'block';
         consolePanel.innerHTML = '';
@@ -194,12 +190,11 @@ export function renderStep(
             const log = document.createElement('div');
             log.className = 'log-entry info';
             log.style.color = 'var(--error)';
-            log.textContent = `⚠️ Error: ${e.message}`;
+            log.textContent = `Error: ${e.message}`;
             consolePanel.appendChild(log);
         }
     };
 
-    // --- button listeners ---
     playBtn.addEventListener('click', executeUpdate);
 
     resetBtn.addEventListener('click', () => {
@@ -229,7 +224,6 @@ export function renderStep(
         }
     });
 
-    // --- initially create sketch ---
     createSketch(initialSketch);
 }
 

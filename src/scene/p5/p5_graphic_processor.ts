@@ -36,7 +36,6 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.loader = loader;
     }
 
-    // --- Act 1: The Perspective Rig ---
 
     public setCamera(eye: ResolvedProjection): void {
         this.p.camera(
@@ -58,7 +57,6 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         }
     }
 
-    // --- Act 2: The Drawing Pipeline ---
 
     public drawBox(props: ResolvedBox, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.p.push();
@@ -167,7 +165,6 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     }
 
 
-    // --- Act 3: Spatial & Temporal Context ---
 
     public millis = () => this.p.millis();
     public deltaTime = () => this.p.deltaTime;
@@ -176,7 +173,6 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     public map = (v: number, s1: number, st1: number, s2: number, st2: number, c?: boolean) => this.p.map(v, s1, st1, s2, st2, c);
     public lerp = (s: number, e: number, a: number) => this.p.lerp(s, e, a);
 
-    // --- Act 4: Orchestration Helpers ---
 
     private applyContext(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
             // this.translate(props.position);
@@ -216,7 +212,6 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
 
     private to8Bit = (val: number) => Math.round(val * 255);
 
-    // --- Debug ---
 
     public drawHUDText(s: string, x: number, y: number): void {
         this.p.text(s, x, y);
@@ -249,7 +244,6 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.stroke(color.red, color.green, color.blue, finalAlphaUnsigned8Bits);
     }
 
-    // --- Tree Rendering ---
 
     public drawTree(node: RenderTreeNode | null, state: ResolvedSceneState): void {
         if (!node) return;

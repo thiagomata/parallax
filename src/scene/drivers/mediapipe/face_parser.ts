@@ -1,6 +1,9 @@
 import {DEFAULT_HEAD_PROPORTIONS, Face, type FaceData, type HeadProportions} from "./face.ts";
 import type {Vector3} from "../../types.ts";
 
+/**
+ * Maps MediaPipe landmark indices to semantic face landmarks.
+ */
 export const INDEX = {
     NOSE: 1,
     EYE_LEFT: 33,
@@ -17,6 +20,9 @@ export const INDEX = {
     BOTTOM: 152
 };
 
+/**
+ * Configuration for face parsing.
+ */
 export interface HeadParserConfig {
     physicalHeadWidth: number;
     focalLength: number;
@@ -41,6 +47,11 @@ export class FaceParser {
         };
     }
 
+    /**
+     * Parses raw MediaPipe landmarks into semantic Face data.
+     * @param rawDataVector - array of landmarks from MediaPipe (indices 0-477)
+     * @returns Face with semantic landmarks and visibility flags
+     */
     public parse(rawDataVector: Partial<Vector3>[]): Face {
         const createLandmark = (index: number): RawLandmark => {
             const landmark = rawDataVector[index];

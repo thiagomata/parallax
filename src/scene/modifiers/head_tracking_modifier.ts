@@ -10,10 +10,17 @@ import type {
 } from "../types.ts";
 import type { FaceWorldData, HeadTrackerDataProviderLib } from "../providers/head_tracking_data_provider.ts";
 
+/**
+ * Configuration for HeadTrackingModifier.
+ */
 export interface HeadTrackingModifierConfig {
+    /** X/Y position movement range in scene units */
     travelRange: number;
+    /** Rotation intensity multiplier (0-1), higher values reduce head movement */
     damping: number;
+    /** Camera distance for stick rotation calculation */
     lookDistance: number;
+    /** Z depth movement range in scene units */
     zTravelRange: number;
 }
 

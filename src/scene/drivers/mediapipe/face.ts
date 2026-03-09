@@ -106,6 +106,11 @@ export class Face {
         this.centered = false;
     }
 
+    /**
+     * Applies a transformation function to all landmarks.
+     * @param fn - transformation to apply to each landmark
+     * @returns new Face with transformed landmarks
+     */
     private transform(fn: (lm: RawLandmark) => RawLandmark): Face {
         const transformedData: FaceData = {
             nose: fn(this.data.nose),
@@ -135,6 +140,11 @@ export class Face {
         return new Face(transformedData, this.proportions);
     }
 
+    /**
+     * Shifts all landmarks by an offset vector.
+     * @param offset - vector to subtract from all positions
+     * @returns new Face with translated landmarks
+     */
     public translate(offset: Vector3): Face {
         const translate = (lm: RawLandmark): RawLandmark => {
             if (!lm) {
@@ -152,6 +162,12 @@ export class Face {
         return this.transform(translate);
     }
 
+    /**
+     * Centers face landmarks around the skull center (0,0,0).
+     * Uses caching to avoid recomputation.
+     * @param useCache - whether to use cached centered face
+     * @returns new Face centered at origin
+     */
     public center(useCache = true): Face {
         if (this.centered && useCache) {
             return this;
@@ -182,6 +198,11 @@ export class Face {
         return translatedToCenter;
     }
 
+    /**
+     * Computes the skull center by averaging midpoints of ear-to-ear, temple-to-temple, 
+     * and eye-to-eye lines. Uses anatomical proportions to estimate Z when ears unavailable.
+     * @returns RawLandmark with position at center and visibility flag
+     */
     public getSkullCenter(): RawLandmark {
         const props = this.proportions;
         const midpoints: Vector3[] = [];
@@ -242,6 +263,12 @@ export class Face {
         };
     }
 
+    /**
+     * Scales all positions by a factor around the skull center.
+     * If face is centered, re-centers after scaling.
+     * @param factor - multiplier for all coordinates
+     * @returns new Face with scaled positions
+     */
     public scale(factor: number): Face {
         // Scale all positions (including skullCenter)
         const scale = (lm: RawLandmark): RawLandmark => {
@@ -264,6 +291,12 @@ export class Face {
         return scaled;
     }
 
+    /**
+     * Rotates face around X-axis (pitch: up/down tilt).
+     * Centers face, applies rotation, then translates back.
+     * @param radians - rotation angle in radians
+     * @returns new Face with X-axis rotation applied
+     */
     public rotateX(radians: number): Face {
         const cos = Math.cos(radians);
         const sin = Math.sin(radians);
@@ -287,6 +320,12 @@ export class Face {
         return centered.translate(this.skullCenter.position);
     }
 
+    /**
+     * Rotates face around Y-axis (yaw: left/right turn).
+     * Centers face, applies rotation, then translates back.
+     * @param radians - rotation angle in radians
+     * @returns new Face with Y-axis rotation applied
+     */
     public rotateY(radians: number): Face {
         const cos = Math.cos(radians);
         const sin = Math.sin(radians);
@@ -310,6 +349,12 @@ export class Face {
         return centered.translate(this.skullCenter.position);
     }
 
+    /**
+     * Rotates face around Z-axis (roll: side-to-side tilt).
+     * Centers face, applies rotation, then translates back.
+     * @param radians - rotation angle in radians
+     * @returns new Face with Z-axis rotation applied
+     */
     public rotateZ(radians: number): Face {
         const cos = Math.cos(radians);
         const sin = Math.sin(radians);
@@ -333,6 +378,12 @@ export class Face {
         return centered.translate(this.skullCenter.position);
     }
 
+    /**
+     * Normalizes face to canonical size (ear-to-ear = 1.0).
+     * Scales face so measured width matches anatomical proportions.
+     * @param useCache - whether to use cached normalized face
+     * @returns new Face normalized to canonical size
+     */
     public normalize(useCache: boolean = true): Face {
         if (this.normalized && useCache) {
             return this;
@@ -355,6 +406,11 @@ export class Face {
     }
 
 
+    /**
+     * Measures face width in normalized units.
+     * Uses ear-to-ear if visible, otherwise computes from eye span.
+     * @returns face width in normalized coordinates
+     */
     public get width(): number {
         if (this.faceWidth) {
             return this.faceWidth;
@@ -531,6 +587,11 @@ export class Face {
         return wrapPi(meanAngle);
     }
 
+    /**
+     * Computes yaw (left/right turn) from normalized face.
+     * Uses nose offset from eye center relative to anatomical depth-to-width ratio.
+     * @returns yaw in radians
+     */
     computeYaw(): number {
         const head = this.normalized ? this : this.normalize();
 
@@ -563,6 +624,11 @@ export class Face {
         return Math.abs(rawYaw) < 1e-10 ? 0 : rawYaw;
     }
 
+    /**
+     * Computes pitch (up/down tilt) from normalized face.
+     * Uses nose offset from eye center using trigonometric projection.
+     * @returns pitch in radians
+     */
     computePitch(): number {
         const head = this.normalized ? this : this.normalize();
 
@@ -596,6 +662,11 @@ export class Face {
         return Math.asin(ratio) - alpha;
     }
 
+    /**
+     * Computes Y position of skull center using anatomical proportions.
+     * Uses forehead-to-chin distance scaled to eye line position.
+     * @returns Y coordinate of skull center
+     */
     private getSkullYCenter(): number {
         const props = this.proportions;
 
@@ -642,6 +713,12 @@ export class Face {
         return (this.data.eyes.right.position.y + this.data.eyes.left.position.y) / 2;
     }
 
+    /**
+     * Measures face height using visible landmarks.
+     * Strategy A: Uses top/bottom bounds if visible.
+     * Strategy B: Computes from nose-to-eye distance and anatomical proportions.
+     * @returns height value and visibility flag
+     */
     private getFaceHeight(): { value: number, isVisible: boolean } {
         const props = this.proportions;
 
