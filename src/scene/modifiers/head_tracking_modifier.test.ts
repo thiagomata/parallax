@@ -1,281 +1,140 @@
-import { describe, it, expect, vi, beforeEach, type Mocked } from 'vitest';
-import type p5 from "p5";
-import { FaceFeatures } from "../drivers/mediapipe/face_features";
-import type { FaceProvider } from "../types.ts";
-import { MockFaceFactory } from "../mock/mock_face.mock.ts";
-import { createMockP5 } from "../mock/mock_p5.mock.ts";
-import {HeadTrackingModifier} from "./head_tracking_modifier.ts";
+import { describe, it, expect, beforeEach } from 'vitest';
+import { HeadTrackingModifier, DEFAULT_HEAD_TRACKING_CONFIG } from "./head_tracking_modifier.ts";
+import type { ResolutionContext, DataProviderBundle } from "../types.ts";
+import type { FaceWorldData } from "../providers/head_tracking_data_provider.ts";
 
-describe('CameraModifier', () => {
-    let mockP5;
-    let mockProvider: Mocked<FaceProvider>;
-    let factory: MockFaceFactory;
+type TestDataProviderLib = { headTracker: DataProviderBundle<"headTracker", FaceWorldData> };
+
+function createMockContext(headData: FaceWorldData | null): ResolutionContext<TestDataProviderLib> {
+    return {
+        previousResolved: null,
+        playback: { now: 0, delta: 0, frameCount: 0, progress: 0 },
+        settings: { 
+            window: { width: 640, height: 480, halfWidth: 320, halfHeight: 240, aspectRatio: 1.33, z: 0, depth: 1000, near: 0.1, far: 2000, epsilon: 0.001 }, 
+            pixelRatio: 1,
+            playback: { speed: 1, loop: true, duration: 0 },
+            debug: false,
+            alpha: 1,
+            startPaused: false
+        },
+        projectionPool: {},
+        elementPool: {},
+        dataProviders: {
+            headTracker: headData as unknown as DataProviderBundle<"headTracker", FaceWorldData>
+        }
+    } as unknown as ResolutionContext<TestDataProviderLib>;
+}
+
+function createMockFaceWorldData(overrides: Partial<FaceWorldData> = {}): FaceWorldData {
+    return {
+        face: {} as any,
+        sceneHeadWidth: 120,
+        midpoint: { x: 0, y: 0, z: 0 },
+        nose: { x: 0, y: 0, z: 0 },
+        eyes: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
+        brows: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
+        bounds: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 }, top: { x: 0, y: 0, z: 0 }, bottom: { x: 0, y: 0, z: 0 } },
+        stick: { yaw: 0, pitch: 0, roll: 0 },
+        ...overrides
+    } as FaceWorldData;
+}
+
+describe('HeadTrackingModifier', () => {
     let modifier: HeadTrackingModifier;
 
-    const config = {
-        smoothing: 0.5,
-        travelRange: 100,
-        zTravelRange: 500,
-        damping: 1.0,
-        lookDistance: 1000
-    };
-
-    const factoryFaces = new MockFaceFactory();
-    const testFaces = [
-        factoryFaces.createCenterFace(),
-        factoryFaces.shiftX(null, 0.2),
-        factoryFaces.scale(null, 1.5),
-        factoryFaces.rotate(null, 0.1, -0.1)
-    ];
-
     beforeEach(() => {
-        vi.clearAllMocks();
-        factory = new MockFaceFactory();
-        mockP5 = createMockP5();
-
-        mockP5.lerp.mockImplementation((start, end, amt) => start + (end - start) * amt);
-
-        mockProvider = {
-            init: vi.fn().mockResolvedValue(undefined),
-            getFace: vi.fn(),
-            getStatus: vi.fn().mockReturnValue('READY'),
-            getVideo: vi.fn(),
-        } as Mocked<FaceProvider>;
-        modifier = new HeadTrackingModifier(mockP5 as unknown as p5, mockProvider, config);
+        modifier = new HeadTrackingModifier();
     });
 
-    describe('1. Initialization & Registration', () => {
-        it('should report the correct tracking status', async () => {
-            let face = factoryFaces.createCenterFace();
-            let tick = 0
-            let getStatusCounter = 0;
-
-            // created as idle
-            expect(modifier.getStatus()).toBe('IDLE');
-            expect(mockProvider.getStatus).toBeCalledTimes(getStatusCounter++);
-
-            // keep as idle
-            mockProvider.getStatus.mockReturnValue('IDLE');
-            await modifier.init();
-            expect(modifier.getStatus()).toBe('IDLE');
-            expect(mockProvider.getStatus).toBeCalledTimes(getStatusCounter++);
-            modifier.tick(tick++);
-            expect(modifier.getStatus()).toBe('IDLE');
-            expect(mockProvider.getStatus).toBeCalledTimes(getStatusCounter++);
-
-            // change to initializing with the provider
-            mockProvider.getStatus.mockReturnValue('INITIALIZING');
-            modifier.tick(tick++);
-            expect(modifier.getStatus()).toBe('INITIALIZING');
-            expect(mockProvider.getStatus).toBeCalledTimes(getStatusCounter++);
-
-            // keep ready as provider keep ready and returning faces
-            mockProvider.getStatus.mockReturnValue('READY');
-            (mockProvider.getFace as any).mockReturnValue(face);
-            modifier.tick(tick++);
-            expect(modifier.getStatus()).toBe('READY');
-            expect(mockProvider.getStatus).toBeCalledTimes(getStatusCounter++);
-
-            // keep drifting until the threshold
-            for (let failures= 0; failures < modifier.RESET_HEAD_THRESHOLD; failures++ ) {
-                (mockProvider.getFace as any).mockReturnValue(null);
-                modifier.tick(tick++);
-                expect(modifier.getStatus()).toBe('DRIFTING');
-                expect(mockProvider.getStatus).toBeCalledTimes(getStatusCounter++);
-            }
-
-            // change to DISCONNECTED after threshold
-            (mockProvider.getFace as any).mockReturnValue(null);
-            modifier.tick(tick++);
-            expect(modifier.getStatus()).toBe('DISCONNECTED');
-            expect(mockProvider.getStatus).toBeCalledTimes(getStatusCounter++);
-
-            // recover to ready as provider keep ready and returning faces
-            (mockProvider.getFace as any).mockReturnValue(face);
-            modifier.tick(tick++);
-            expect(modifier.getStatus()).toBe('READY');
-            expect(mockProvider.getStatus).toBeCalledTimes(getStatusCounter++);
-
-            // change to disconnected when provider change to error
-            mockProvider.getStatus.mockReturnValue('DISCONNECTED');
-            modifier.tick(tick++);
-            expect(modifier.getStatus()).toBe('DISCONNECTED');
-            expect(mockProvider.getStatus).toBeCalledTimes(getStatusCounter++);
-
-            // change to error when provider change to error
-            mockProvider.getStatus.mockReturnValue('ERROR');
-            modifier.tick(tick++);
-            expect(modifier.getStatus()).toBe('ERROR');
-            expect(mockProvider.getStatus).toBeCalledTimes(getStatusCounter++);
-
-            // recovers
-            mockProvider.getStatus.mockReturnValue('READY');
-            (mockProvider.getFace as any).mockReturnValue(face);
-            modifier.tick(tick++);
-            expect(modifier.getStatus()).toBe('READY');
-            expect(mockProvider.getStatus).toBeCalledTimes(getStatusCounter++);
+    describe('1. Configuration', () => {
+        it('should use default config when no overrides provided', () => {
+            const mod = new HeadTrackingModifier();
+            expect(mod.name).toBe("Head Tracker Camera");
+            expect(mod.priority).toBe(10);
+            expect(mod.active).toBe(true);
         });
 
-        it('should initialize the hardware provider during the hydration phase', async () => {
-            await modifier.init();
-            expect(mockProvider.init).toHaveBeenCalled();
+        it('should accept custom config overrides', () => {
+            const mod = new HeadTrackingModifier({ travelRange: 200, damping: 0.8 });
+            expect(mod).toBeDefined();
+        });
+
+        it('should declare required data providers', () => {
+            expect(modifier.requiredDataProviders).toContain('headTracker');
         });
     });
 
-    describe('2. Calibration', () => {
-        it.each(testFaces)('should establish a unique neutral scale on the first frame seen', (face) => {
-            (mockProvider.getFace as any).mockReturnValue(face);
-            modifier.tick(1);
-
-            const expectedScale = new FaceFeatures(face).scale;
-            expect((modifier as any).neutralHeadSize).toBeCloseTo(expectedScale);
-        });
-    });
-
-    describe('3. Active Tracking & Semantic Smoothing', () => {
-        it.each(testFaces)('should interpolate Nudge X towards the target using config smoothing', (targetFace) => {
-            const startFace = factory.createCenterFace();
-            const startFeatures = new FaceFeatures(startFace);
-            const targetFeatures = new FaceFeatures(targetFace);
-
-            (mockProvider.getFace as any).mockReturnValue(startFace);
-            modifier.tick(1); // Baseline
-
-            (mockProvider.getFace as any).mockReturnValue(targetFace);
-            modifier.tick(2); // Smoothed step
-
-            const result = modifier.getNudge();
-            if (result.success) {
-                const startX = startFeatures.nudge.x * (config.travelRange * 2);
-                const targetX = targetFeatures.nudge.x * (config.travelRange * 2);
-                const expectedX = startX + (targetX - startX) * config.smoothing;
-                expect(result.value.x).toBeCloseTo(expectedX);
+    describe('2. Stick Output', () => {
+        it('should return error when no face detected', () => {
+            const context = createMockContext(null);
+            const result = modifier.getStick({ x: 0, y: 0, z: 0 }, context);
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error).toBe("No face detected");
             }
         });
 
-        it.each(testFaces)('should derive Z-Nudge relative to the specific calibrated head size', (calibrationFace) => {
-            const neutralScale = new FaceFeatures(calibrationFace).scale;
-            const movementFace = factory.scale(calibrationFace, 1.5);
-            const movementScale = new FaceFeatures(movementFace).scale;
+        it('should return stick data when face is detected', () => {
+            const faceData = createMockFaceWorldData({
+                stick: { yaw: 0.5, pitch: 0.3, roll: 0.1 }
+            });
+            const context = createMockContext(faceData);
+            const result = modifier.getStick({ x: 0, y: 0, z: 0 }, context);
 
-            (mockProvider.getFace as any).mockReturnValue(calibrationFace);
-            modifier.tick(1);
-
-            (mockProvider.getFace as any).mockReturnValue(movementFace);
-            modifier.tick(2);
-
-            const result = modifier.getNudge();
-            if (result.success) {
-                const targetZ = -(movementScale - neutralScale) * config.zTravelRange;
-                const expectedZ = targetZ * config.smoothing;
-                expect(result.value.z).toBeCloseTo(expectedZ);
-            }
+            expect(result.success).toBe(true);
+            expect(result.success && result.value.yaw).toBeCloseTo(0.5 * DEFAULT_HEAD_TRACKING_CONFIG.damping);
+            expect(result.success && result.value.pitch).toBeCloseTo(0.3 * DEFAULT_HEAD_TRACKING_CONFIG.damping);
+            expect(result.success && result.value.roll).toBeCloseTo(0.1 * DEFAULT_HEAD_TRACKING_CONFIG.damping);
+            expect(result.success && result.value.distance).toBe(DEFAULT_HEAD_TRACKING_CONFIG.lookDistance);
+            expect(result.success && result.value.priority).toBe(10);
         });
     });
 
-    describe('4. Data Mapping (The Graphics Bundle)', () => {
-        it.each(testFaces)('should transform raw geometry into engine-ready results', (face) => {
-            const features = new FaceFeatures(face);
-            (mockProvider.getFace as any).mockReturnValue(face);
-            modifier.tick(1);
+    describe('3. Car Position Output', () => {
+        it('should return error when no face detected', () => {
+            const context = createMockContext(null);
+            const result = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context);
+            expect(result.success).toBe(false);
+        });
 
-            const car = modifier.getCarPosition();
-            const stick = modifier.getStick();
+        it('should return midpoint position when face is detected', () => {
+            const faceData = createMockFaceWorldData({
+                midpoint: { x: 50, y: -30, z: 100 }
+            });
+            const context = createMockContext(faceData);
+            const result = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context);
 
-            expect(car.success && stick.success).toBe(true);
-            if (car.success && stick.success) {
-                // carPos should now be scaled by travelRange (100)
-                expect(car.value.position.x).toBe(features.midpoint.x * config.travelRange);
-                expect(car.value.position.y).toBe(features.midpoint.y * config.travelRange);
-                expect(stick.value.yaw).toBeCloseTo(features.stick.yaw * config.damping);
-                expect(stick.value.distance).toBe(config.lookDistance);
-                expect(stick.value.priority).toBe(modifier.priority);
-            }
+            expect(result.success).toBe(true);
+            expect(result.success && result.value.name).toBe("Head Tracker Camera");
+            expect(result.success && result.value.position).toEqual({ x: 50, y: -30, z: 100 });
         });
     });
 
-    describe('5. Resilience & Graceful Degradation', () => {
-        it('should drift back toward neutral (0,0,0) when the face is temporarily lost', () => {
-            const face = factory.shiftX(null, 0.2);
-            const startX = new FaceFeatures(face).nudge.x * (config.travelRange * 2);
-
-            (mockProvider.getFace as any).mockReturnValue(face);
-            modifier.tick(1);
-
-            (mockProvider.getFace as any).mockReturnValue(null);
-            modifier.tick(2);
-
-            const result = modifier.getNudge();
-            if (result.success) {
-                const expectedX = startX + (0 - startX) * config.smoothing;
-                expect(result.value.x).toBeCloseTo(expectedX);
-            }
+    describe('4. Nudge Output', () => {
+        it('should return error when no face detected', () => {
+            const context = createMockContext(null);
+            const result = modifier.getNudge({ x: 0, y: 0, z: 0 }, context);
+            expect(result.success).toBe(false);
         });
 
-        it.each(testFaces)('should clear cache and neutral calibration after the 90-frame threshold', (face) => {
-            const threshold = modifier.RESET_HEAD_THRESHOLD;
-            (mockProvider.getFace).mockReturnValue(face);
-            modifier.tick(0);
+        it('should return scaled nudge values when face is detected', () => {
+            const faceData = createMockFaceWorldData({
+                midpoint: { x: 0.5, y: 0.3, z: 0.2 }
+            });
+            const context = createMockContext(faceData);
+            const result = modifier.getNudge({ x: 0, y: 0, z: 0 }, context);
 
-            (mockProvider.getFace).mockReturnValue(null);
-            for (let i = 1; i <= threshold + 1; i++) modifier.tick(i);
-
-            expect(modifier.getCarPosition().success).toBe(false);
-            expect(modifier.getNudge().success).toBe(false);
-            expect(modifier.getStick().success).toBe(false);
-        });
-
-        it.each(testFaces)('should re-calibrate and repopulate cache when tracking is regained', (face) => {
-            const threshold = modifier.RESET_HEAD_THRESHOLD;
-            (mockProvider.getFace as any).mockReturnValue(face);
-            modifier.tick(0);
-
-            // Force hard reset
-            (mockProvider.getFace as any).mockReturnValue(null);
-            for (let i = 1; i <= threshold + 1; i++) modifier.tick(i);
-
-            // Regain
-            (mockProvider.getFace as any).mockReturnValue(face);
-            modifier.tick(threshold + 2);
-
-            expect(modifier.getCarPosition().success).toBe(true);
-            expect((modifier as any).neutralHeadSize).not.toBeNull();
+            expect(result.success).toBe(true);
+            expect(result.success && result.value.x).toBeCloseTo(0.5 * DEFAULT_HEAD_TRACKING_CONFIG.travelRange);
+            expect(result.success && result.value.y).toBeCloseTo(0.3 * DEFAULT_HEAD_TRACKING_CONFIG.travelRange);
+            expect(result.success && result.value.z).toBeCloseTo(0.2 * DEFAULT_HEAD_TRACKING_CONFIG.zTravelRange);
         });
     });
 
-    describe('6. Performance & Idempotency (Implementation Guardrails)', () => {
-        it('should not re-calculate features if called multiple times with the same sceneId', () => {
-            const face = factory.createCenterFace();
-            (mockProvider.getFace as any).mockReturnValue(face);
-
-            // First call for Scene 1
-            modifier.tick(1);
-            expect(mockProvider.getFace).toHaveBeenCalledTimes(1);
-
-            // Second call for Scene 1 (Redundant)
-            modifier.tick(1);
-
-            // Should still be 1 because it should have exited early
-            expect(mockProvider.getFace).toHaveBeenCalledTimes(1);
-
-            // Third call for Scene 2 (New Frame)
-            modifier.tick(2);
-            expect(mockProvider.getFace).toHaveBeenCalledTimes(2);
-        });
-
-        it('should maintain the same cache values when tick is skipped due to sceneId', () => {
-            const face1 = factory.createCenterFace();
-            const face2 = factory.shiftX(null, 0.5); // New data that should be ignored
-
-            (mockProvider.getFace as any).mockReturnValue(face1);
-            modifier.tick(1);
-            const initialPos = (modifier.getCarPosition() as any).value.position.x;
-
-            (mockProvider.getFace as any).mockReturnValue(face2);
-            modifier.tick(1); // Same sceneId, should skip update
-
-            const secondPos = (modifier.getCarPosition() as any).value.position.x;
-            expect(secondPos).toBe(initialPos);
+    describe('5. Tick', () => {
+        it('should have a tick method that does nothing', () => {
+            expect(() => modifier.tick(1)).not.toThrow();
+            expect(() => modifier.tick(100)).not.toThrow();
         });
     });
 });

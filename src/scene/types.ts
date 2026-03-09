@@ -475,15 +475,18 @@ export interface ModifierContext {
 
 export interface CarModifier<TDataProviderLib extends DataProviderLib = DataProviderLib> extends Modifier {
     readonly priority: number;
+    readonly requiredDataProviders?: (keyof TDataProviderLib)[];
     getCarPosition(initialCam: Vector3, context: ResolutionContext<TDataProviderLib>): FailableResult<CarResult>;
 }
 
 export interface NudgeModifier<TDataProviderLib extends DataProviderLib = DataProviderLib> extends Modifier {
+    readonly requiredDataProviders?: (keyof TDataProviderLib)[];
     getNudge(currentCarPos: Vector3, context: ResolutionContext<TDataProviderLib>): FailableResult<Partial<Vector3>>;
 }
 
 export interface StickModifier<TDataProviderLib extends DataProviderLib = DataProviderLib> extends Modifier {
     readonly priority: number;
+    readonly requiredDataProviders?: (keyof TDataProviderLib)[];
     getStick(finalPos: Vector3, context: ResolutionContext<TDataProviderLib>): FailableResult<StickResult>;
 }
 

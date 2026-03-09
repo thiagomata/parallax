@@ -2,7 +2,7 @@ import p5 from 'p5';
 import { World } from "../../scene/world.ts";
 import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
 import { SceneClock } from "../../scene/scene_clock.ts";
-import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts";
+// import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts";
 import { HeadTrackingDataProvider } from "../../scene/providers/head_tracking_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, PROJECTION_TYPES} from "../../scene/types.ts";
@@ -32,7 +32,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     });
 
     // Camera Logic: Use injected or create default
-    const headTracker = config.cameraModifier ?? new HeadTrackingModifier(p);
+    // const headTracker = config.cameraModifier ?? new HeadTrackingModifier(p);
 
     // Data Provider for face elements
     const faceDataProvider = new HeadTrackingDataProvider(p);
@@ -85,7 +85,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     });
 
 
-    headTracker.init().catch(console.error);
+    // headTracker.init().catch(console.error);
 
     p.setup = async () => {
         p.createCanvas(config.width, config.height, p.WEBGL);

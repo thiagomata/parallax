@@ -1,7 +1,7 @@
 import {World} from "../../scene/world.ts";
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {ElementResolver} from "../../scene/resolver/element_resolver.ts"; // New Manifest-compliant resolver
-import {HeadTrackingModifier} from "../../scene/modifiers/head_tracking_modifier.ts";
+// import {HeadTrackingModifier} from "../../scene/modifiers/head_tracking_modifier.ts";
 import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {ASSET_STATUS, DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
@@ -37,7 +37,7 @@ export interface SketchConfig {
     height: number;
     backgroundColor?: string;
     clock?: SceneClock,
-    cameraModifier?: HeadTrackingModifier,
+    // cameraModifier?: HeadTrackingModifier,
     loader?: P5AssetLoader,
     paused: boolean,
 }
@@ -61,12 +61,12 @@ Object.assign(window, {
     World,
     WorldSettings,
     SceneClock: SceneClock,
-    CameraModifier: HeadTrackingModifier,
+    // CameraModifier: HeadTrackingModifier,
     CenterFocusModifier: CenterFocusModifier,
     P5AssetLoader,
     P5GraphicProcessor,
     OrbitModifier,
-    HeadTrackingModifier,
+    // HeadTrackingModifier,
     LookAtEffect,
     ELEMENT_TYPES,
     DEFAULT_SETTINGS: DEFAULT_SCENE_SETTINGS,

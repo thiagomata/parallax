@@ -4,11 +4,9 @@ import { MediaPipeFaceProvider } from "../drivers/mediapipe/face_provider.ts";
 import type {FaceProvider} from "./face_provider.ts";
 import type {Face} from "../drivers/mediapipe/face.ts";
 
-export interface HeadProportions {
-    width: number;       // reference = 1
-    heightRatio: number; // height / width
-    depthRatio: number;  // depth / width
-}
+export type HeadTrackerDataProviderLib = {
+    headTracker: DataProviderBundle<"headTracker", FaceWorldData>
+};
 
 export class FaceWorldData {
     readonly face: Face;
@@ -103,7 +101,6 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
      */
     readonly sceneScreenHeadProportion: number;
 
-    private headProportions: HeadProportions;
     private sceneId: number = -1;
     private lastFace: FaceWorldData | null = null;
     readonly cameraPosition: Vector3;
@@ -113,7 +110,6 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         p: p5,
         sceneHeadWidth: number = 120,
         sceneScreenWidth: number = 650,
-        headProportions: HeadProportions = { width: 1, heightRatio: 1, depthRatio: 0.3 },
         mirror: boolean = false,
         panelPosition?: Vector3,
         cameraPosition?: Vector3,
@@ -126,7 +122,6 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         }
         this.sceneHeadWidth = sceneHeadWidth;
         this.sceneScreenWidth = sceneScreenWidth;
-        this.headProportions = headProportions;
         this.sceneScreenHeadProportion = this.sceneHeadWidth / this.sceneScreenWidth;
 
         this.panelPosition  = panelPosition ?? {x: 0, y: 0, z: 0};
@@ -156,7 +151,6 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         const faceScreeWidth = face.width * this.sceneScreenWidth; // measured width in world units
         const cameraToPanelZ = this.panelPosition.z - this.cameraPosition.z;
         const diff = ((this.sceneHeadWidth / faceScreeWidth) - 1);
-        document.title = diff;
         const midPointZ = cameraToPanelZ * diff;
 
         const midpoint = {
