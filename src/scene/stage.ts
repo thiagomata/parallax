@@ -137,13 +137,13 @@ export class Stage<
         const targetId = blueprint.targetId;
 
         if (targetId) {
-            // 1. Existence: The target must already exist in the projection registry
+            // Existence: The target must already exist in the projection registry
             const target = this.projectionRegistry.get(targetId);
             if (!target) {
                 throw new Error(`Target ${targetId} not found for projection ${blueprint.id}`);
             }
 
-            // 2. Recursion Check: Trace back to ensure no loops
+            // Recursion Check: Trace back to ensure no loops
             let current: DynamicProjection | undefined = target;
             while (current) {
                 if (current.id === blueprint.id) {

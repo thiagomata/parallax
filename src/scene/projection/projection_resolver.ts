@@ -124,7 +124,7 @@ export class ProjectionResolver<
             dataProviders: {},
         };
 
-        // 1. Resolve Dynamic Properties (local space)
+        // Resolve Dynamic Properties (local space)
         const resolved = this.loopResolve(dynamic, resolutionContext);
 
         const modifierContext: ResolutionContext = {
@@ -136,11 +136,11 @@ export class ProjectionResolver<
             dataProviders: {},
         };
 
-        // 2. Apply Modifiers in Local Space
+        // Apply Modifiers in Local Space
         let currentPosition = { ...resolved.position };
         let currentRotation = { ...resolved.rotation };
 
-        // 3. Car Modifiers
+        // Car Modifiers
         for (const carModifier of dynamic.modifiers?.carModifiers ?? []) {
             const res = carModifier.getCarPosition(currentPosition, modifierContext);
             if (res.success) {
@@ -149,7 +149,7 @@ export class ProjectionResolver<
             }
         }
 
-        // 4. Nudge Modifiers (Averaging/Voting)
+        // Nudge Modifiers (Averaging/Voting)
         const votes = { x: [] as number[], y: [] as number[], z: [] as number[] };
         for (const nudgeModifier of dynamic.modifiers?.nudgeModifiers ?? []) {
             const res = nudgeModifier.getNudge(currentPosition, modifierContext);
@@ -168,7 +168,7 @@ export class ProjectionResolver<
             z: currentPosition.z + avg(votes.z),
         };
 
-    // 5. Stick Modifiers (rotation adjustments allowed, but lookAt remains authority)
+    // Stick Modifiers (rotation adjustments allowed, but lookAt remains authority)
         let stickRotation = { pitch: 0, yaw: 0, roll: 0 };
         for (const stickModifier of dynamic.modifiers?.stickModifiers ?? []) {
             const res = stickModifier.getStick(currentPosition, modifierContext);

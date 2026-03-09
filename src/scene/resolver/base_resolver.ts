@@ -79,7 +79,7 @@ export abstract class BaseResolver<
         context: ResolutionContext,
         resolutionPool: Record<string, TResolved> = {} as Record<string, TResolved>
     ): Unwrapped<T> {
-        // 1. Handle the DynamicProperty Container
+        // Handle the DynamicProperty Container
         if (this.isDynamicProperty(src)) {
             switch (src.kind) {
                 case SPEC_KINDS.STATIC:
@@ -91,7 +91,7 @@ export abstract class BaseResolver<
             }
         }
 
-        // 2. Handle Objects (Branches in the tree)
+        // Handle Objects (Branches in the tree)
         if (src && typeof src === 'object' && !Array.isArray(src)) {
             const result: any = {};
             for (const key in src) {
@@ -106,7 +106,7 @@ export abstract class BaseResolver<
             return result as Unwrapped<T>;
         }
 
-        // 3. Leaf/Primitive identity
+        // Leaf/Primitive identity
         return src as Unwrapped<T>;
     }
 

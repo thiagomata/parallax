@@ -234,16 +234,16 @@ export class Face {
             };
         }
 
-        // 1. Average X for stability
+        // Average X for stability
         let sumX = 0;
         for (const m of midpoints) sumX += m.x;
         const centerX = sumX / midpoints.length;
 
-        // 2. Resolve Y (Vertical Pivot) using nose_base
+        // Resolve Y (Vertical Pivot) using nose_base
         // const eyeY = (extraction.eyes.left.position.y + extraction.eyes.right.position.y) / 2;
         const centerY = this.getSkullYCenter();
 
-        // 3. Resolve Z (Depth Pivot)
+        // Resolve Z (Depth Pivot)
         let centerZ: number;
         if (this.data.rig.leftEar.isVisible && this.data.rig.rightEar.isVisible) {
             centerZ = (this.data.rig.leftEar.position.z + this.data.rig.rightEar.position.z) / 2;
@@ -613,14 +613,14 @@ export class Face {
 
         let rawYaw = -Math.atan2(noseXRel, currentEyeWidth * depthToWidthRatio);
 
-        // 1. Handle the NaN Singularity
+        // Handle the NaN Singularity
         if (isNaN(rawYaw)) {
             // If everything is 0, we assume the head has turned
             // fully to the side that the nose is currently on.
             rawYaw = noseXRel >= 0 ? Math.PI / 2 : -Math.PI / 2;
         }
 
-        // 2. Snap to zero for clean neutral pose
+        // Snap to zero for clean neutral pose
         return Math.abs(rawYaw) < 1e-10 ? 0 : rawYaw;
     }
 
@@ -722,7 +722,7 @@ export class Face {
     private getFaceHeight(): { value: number, isVisible: boolean } {
         const props = this.proportions;
 
-        // 1. Determine the "Anatomical Constant" for a Full Head
+        // Determine the "Anatomical Constant" for a Full Head
         // forehead_top (0.6) - chin_tip (-0.7) = 1.3 units
         const totalManifestHeight = Math.abs(props.height.forehead_top - props.height.chin_tip);
 

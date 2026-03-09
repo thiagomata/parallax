@@ -20,7 +20,7 @@ import {WorldSettings} from "../../scene/world_settings.ts";
 export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any, any> => {
     let gp: P5GraphicProcessor;
 
-    // 1. Temporal & Spatial Orchestration
+    // Temporal & Spatial Orchestration
     const clock = new SceneClock(DEFAULT_SCENE_SETTINGS);
 
     const settings = {
@@ -46,7 +46,7 @@ export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any,
         p.createCanvas(config.width, config.height, p.WEBGL);
         gp = new P5GraphicProcessor(p, loader);
 
-        // 2. The Projection Rig
+        // The Projection Rig
         // Modifiers are now properties of the Eye projection itself.
         // world.stage.setEye({
         //     id: 'eye',
@@ -59,7 +59,7 @@ export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any,
         //     }
         // });
         //
-        // 3. Shape Registration
+        // Shape Registration
         world.addPyramid({
             id: 'back-pyramid',
             type: ELEMENT_TYPES.PYRAMID,
