@@ -1,5 +1,5 @@
-import type {FaceGeometry, Vector3} from "../../types.ts";
 import {DEFAULT_HEAD_PROPORTIONS, Face, type FaceData, type HeadProportions} from "./face.ts";
+import type {Vector3} from "../../types.ts";
 
 export const INDEX = {
     NOSE: 1,
@@ -39,12 +39,6 @@ export class FaceParser {
             mirror: config.mirror ?? false,
             headProportions: config.headProportions ?? DEFAULT_HEAD_PROPORTIONS,
         };
-    }
-
-    public static parse(rawDataVector: Partial<Vector3>[], mirror = false): FaceGeometry {
-        const parser = new FaceParser({ mirror });
-        const face = parser.parse(rawDataVector);
-        return face.geometry;
     }
 
     public parse(rawDataVector: Partial<Vector3>[]): Face {

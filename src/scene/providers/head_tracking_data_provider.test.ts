@@ -1,9 +1,11 @@
 import { describe, it, vi, expect } from 'vitest';
 import { HeadTrackingDataProvider, type HeadProportions } from "./head_tracking_data_provider";
 import type {FaceGeometry, FaceProvider, Vector3} from "../types.ts";
+import {Face} from "../drivers/mediapipe/face.ts";
+import {createCanonicalHead} from "../drivers/mediapipe/face.test.ts";
 
 
-function MockFaceProvider(mockFace: FaceGeometry | null) {
+function MockFaceProvider(mockFace: Face | null) {
 
     return {
         getFace: vi.fn().mockReturnValue(mockFace),
@@ -16,37 +18,41 @@ function MockFaceProvider(mockFace: FaceGeometry | null) {
 describe("HeadTrackingDataProvider", () => {
     const defaultProportions: HeadProportions = { width: 1, heightRatio: 1.25, depthRatio: 0.85 };
 
-    const mockFace: FaceGeometry = {
-        world: {
-            center: { x: 0.5, y: 0.5, z: 0.5 },
-            unitScale: 1.0,
-            rotation: { yaw: 0, pitch: 0, roll: 0 }
-        },
-        nose: { x: 0.5, y: 0.5, z: 0.5 },
-        eyes: {
-            left: { x: 0.4, y: 0.45, z: 0.45 },
-            right: { x: 0.6, y: 0.45, z: 0.45 },
-            midpoint: { x: 0.5, y: 0.45, z: 0.45 }
-        },
-        rig: {
-            center: { x: 0.5, y: 0.5, z: 0.5 },
-            leftEar: { x: 0.3, y: 0.5, z: 0.5 },
-            rightEar: { x: 0.7, y: 0.5, z: 0.5 }
-        },
-        bounds: {
-            left: { x: 0.3, y: 0.4, z: 0.4 },
-            right: { x: 0.7, y: 0.6, z: 0.6 },
-            top: { x: 0.5, y: 0.4, z: 0.4 },
-            bottom: { x: 0.5, y: 0.6, z: 0.6 }
-        }
-    };
+    const mockFace: Face = new Face(createCanonicalHead());
+
+    // const mockFace: FaceGeometry = {
+    //     world: {
+    //         center: { x: 0.5, y: 0.5, z: 0.5 },
+    //         unitScale: 1.0,
+    //         rotation: { yaw: 0, pitch: 0, roll: 0 }
+    //     },
+    //     nose: { x: 0.5, y: 0.5, z: 0.5 },
+    //     eyes: {
+    //         left: { x: 0.4, y: 0.45, z: 0.45 },
+    //         right: { x: 0.6, y: 0.45, z: 0.45 },
+    //         midpoint: { x: 0.5, y: 0.45, z: 0.45 }
+    //     },
+    //     rig: {
+    //         center: { x: 0.5, y: 0.5, z: 0.5 },
+    //         leftEar: { x: 0.3, y: 0.5, z: 0.5 },
+    //         rightEar: { x: 0.7, y: 0.5, z: 0.5 }
+    //     },
+    //     bounds: {
+    //         left: { x: 0.3, y: 0.4, z: 0.4 },
+    //         right: { x: 0.7, y: 0.6, z: 0.6 },
+    //         top: { x: 0.5, y: 0.4, z: 0.4 },
+    //         bottom: { x: 0.5, y: 0.6, z: 0.6 }
+    //     }
+    // };
 
     it("should transform normalized coordinates to scene units correctly", () => {
         const mockProvider = MockFaceProvider(mockFace);
         const sceneHeadWidth = 50;
+        const screenWidth = 640;
         const tracker = new HeadTrackingDataProvider(
             {} as any, // p5 instance not needed for test
             sceneHeadWidth,
+            screenWidth,
             defaultProportions
         );
 
@@ -59,7 +65,7 @@ describe("HeadTrackingDataProvider", () => {
         const expectedNose: Vector3 = {
             x: (mockFace.nose.x - 0.5) * sceneHeadWidth,
             y: (mockFace.nose.y - 0.5) * sceneHeadWidth * defaultProportions.heightRatio,
-            z: (mockFace.bounds.right.x - mockFace.bounds.left.x - 0.3) * 500 + (0.5 - mockFace.nose.z) * sceneHeadWidth * defaultProportions.depthRatio
+            z: (mockFace.data.rig.rightEar.x - mockFace.data.rig.leftEar.x - 0.3) * 500 + (0.5 - mockFace.nose.z) * sceneHeadWidth * defaultProportions.depthRatio
         };
 
         expect(data!.nose).toEqual(expectedNose);

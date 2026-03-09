@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Face, DEFAULT_HEAD_PROPORTIONS, type FaceData, type HeadProportions } from "./face";
 
-const createCanonicalHead = (H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): FaceData => {
+export const createCanonicalHead = (H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): FaceData => {
     return {
         nose: {
             position: { x: 0, y: H.height.nose_base, z: H.depth.nose_tip },

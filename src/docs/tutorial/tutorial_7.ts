@@ -8,7 +8,7 @@ import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts
 import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, PROJECTION_TYPES} from "../../scene/types.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
-import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
+// import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
 
 /**
@@ -35,7 +35,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     const headTracker = config.cameraModifier ?? new HeadTrackingModifier(p);
 
     // Data Provider for face elements
-    const faceDataProvider = new HeadTrackingDataProvider(p, 450);
+    const faceDataProvider = new HeadTrackingDataProvider(p);
 
     // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
@@ -47,6 +47,28 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     // Wide FOV to see more of the scene
     world.enableDefaultPerspective(config.width, config.height, Math.PI / 2);
 
+    world.addBox({
+        type: ELEMENT_TYPES.BOX,
+        id: 'camera-square',
+        width: 50,
+        position:  { x:0, y:0, z: 300 },
+        fillColor: { red: 255, green: 255, blue: 255 },
+        strokeColor: { red: 0, green: 0, blue: 255 },
+        strokeWidth: 1,
+    });
+    world.addCylinder({
+        id: 'camera-front',
+        type: ELEMENT_TYPES.CYLINDER,
+        targetId: 'camera-square',
+        radius: 10,
+        rotate: {pitch: Math.PI/2, roll: 0, yaw: 0},
+        height: 20,
+        position:  { x:0, y:0, z: -40 },
+        fillColor: { red: 255, green: 255, blue: 255 },
+        strokeColor: { red: 0, green: 0, blue: 255 },
+        strokeWidth: 1
+    });
+
     // Apply head tracking to screen position (moves the "window" we're looking through)
     world.setScreen({
         id: 'screen',
@@ -54,7 +76,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         lookMode: LOOK_MODES.ROTATION,
         modifiers: {
             carModifiers: [
-                new OrbitModifier(p, 400, 0),
+                // new OrbitModifier(p, 300, 0),
             ],
             stickModifiers: [
                 new CenterFocusModifier()
@@ -62,27 +84,6 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         }
     });
 
-    // Set eye very close to fill screen with 90 degree FOV
-    // world.setEye({
-    //     id: 'eye',
-    //     targetId: 'screen',
-    //     type: PROJECTION_TYPES.EYE,
-    //     lookMode: LOOK_MODES.LOOK_AT,
-    //     position: { x: 0, y: 0, z: 500 },
-    //     lookAt: { x: 0, y: 0, z: 0 },
-    // });
-
-    //
-    // // Apply head tracking to eye (adds parallax/rotation)
-    // world.setEye({
-    //     id: 'eye',
-    //     type: PROJECTION_TYPES.EYE,
-    //     lookMode: LOOK_MODES.ROTATION,
-    //     modifiers: {
-    //         nudgeModifiers: [headTracker],
-    //         stickModifiers: [headTracker]
-    //     }
-    // });
 
     headTracker.init().catch(console.error);
 
@@ -93,125 +94,6 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         
         gp = new P5GraphicProcessor(p, loader);
 
-        // Boxes at different Z depths for parallax effect
-        // Closer = more floating out effect
-        // z positive = in front of camera, z negative = behind
-
-        // Closest (z = 50) - should appear to float out
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'close-right',
-        //     position: { x: 100, y: 0, z: 50 },
-        //     width: 30,
-        //     fillColor: { red: 255, green: 0, blue: 0 },    // Red
-        // });
-        //
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'close-center',
-        //     position: { x: 0, y: 0, z: 50 },
-        //     width: 30,
-        //     fillColor: { red: 0, green: 255, blue: 0 },  // Green
-        // });
-        //
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'close-left',
-        //     position: { x: -100, y: 0, z: 50 },
-        //     width: 30,
-        //     fillColor: { red: 0, green: 0, blue: 255 },  // Blue
-        // });
-        //
-        // // Middle (z = -100)
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'mid-right',
-        //     position: { x: 100, y: 0, z: -100 },
-        //     width: 30,
-        //     fillColor: { red: 255, green: 255, blue: 0 }, // Yellow
-        // });
-        //
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'mid-center',
-        //     position: { x: 0, y: 0, z: -100 },
-        //     width: 30,
-        //     fillColor: { red: 255, green: 0, blue: 255 }, // Magenta
-        // });
-        //
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'mid-left',
-        //     position: { x: -100, y: 0, z: -100 },
-        //     width: 30,
-        //     fillColor: { red: 0, green: 255, blue: 255 }, // Cyan
-        // });
-        //
-        // // Far (z = -300)
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'far-right',
-        //     position: { x: 100, y: 0, z: -300 },
-        //     width: 30,
-        //     fillColor: { red: 255, green: 128, blue: 0 }, // Orange
-        // });
-        //
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'far-center',
-        //     position: { x: 0, y: 0, z: -300 },
-        //     width: 30,
-        //     fillColor: { red: 128, green: 0, blue: 255 }, // Purple
-        // });
-        //
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'far-left',
-        //     position: { x: -100, y: 0, z: -300 },
-        //     width: 30,
-        //     fillColor: { red: 255, green: 255, blue: 255 }, // White
-        // });
-
-        // Face tracking elements - spheres for eyes and nose
-        // Position them closer to camera (-50) so they pop out from the box
-        // world.addSphere({
-        //     type: ELEMENT_TYPES.SPHERE,
-        //     id: 'nose',
-        //     radius: 30,
-        //     position: (ctx) => {
-        //         const face = ctx.dataProviders['headTracker'];
-        //         if (!face) return { x: 0, y: 0, z: -50 };
-        //         return { x: face.nose.x, y: face.nose.y, z: face.nose.z - 50 };
-        //     },
-        //     fillColor: (ctx) => {
-        //         const face = ctx.dataProviders['headTracker'];
-        //         return face ? { red: 0, green: 255, blue: 0 } : { red: 100, green: 100, blue: 100 };
-        //     },
-        // });
-        //
-        // world.addSphere({
-        //     type: ELEMENT_TYPES.SPHERE,
-        //     id: 'leftEye',
-        //     radius: 40,
-        //     position: (ctx) => {
-        //         const face = ctx.dataProviders['headTracker'];
-        //         if (!face) return { x: -30, y: 0, z: -50 };
-        //         return { x: face.leftEye.x, y: face.leftEye.y, z: face.leftEye.z - 50 };
-        //     },
-        //     fillColor: { red: 255, green: 0, blue: 0 },
-        // });
-        //
-        // world.addSphere({
-        //     type: ELEMENT_TYPES.SPHERE,
-        //     id: 'rightEye',
-        //     radius: 40,
-        //     position: (ctx) => {
-        //         const face = ctx.dataProviders['headTracker'];
-        //         if (!face) return { x: 30, y: 0, z: -50 };
-        //         return { x: face.rightEye.x, y: face.rightEye.y, z: face.rightEye.z - 50 };
-        //     },
-        //     fillColor: { red: 0, green: 0, blue: 255 },
-        // });
 
         // Full face box
         world.addBox({
@@ -248,116 +130,128 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         const boxSize = 15;
         
         // Nose box - red
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'debug_nose',
-        //     width: boxSize,
-        //     height: boxSize,
-        //     depth: boxSize,
-        //     position: (ctx) => {
-        //         const face = ctx.dataProviders['headTracker'];
-        //         if (!face) return { x: 0, y: 0, z: 0 };
-        //         return face.nose;
-        //     },
-        //     fillColor: { red: 255, green: 0, blue: 0 },
-        //     strokeWidth: 1,
-        // });
+        world.addBox({
+            type: ELEMENT_TYPES.BOX,
+            id: 'debug_nose',
+            targetId: 'faceBox',
+            width: boxSize,
+            height: boxSize,
+            depth: boxSize,
+            position: (ctx) => {
+                const face = ctx.dataProviders['headTracker'];
+                if (!face) return { x: 0, y: 0, z: 0 };
+                return face.nose;
+            },
+            fillColor: { red: 255, green: 0, blue: 0 },
+            strokeWidth: 1,
+        });
 
-        // // Left eye box - green
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'debug_leftEye',
-        //     width: boxSize,
-        //     height: boxSize,
-        //     depth: boxSize,
-        //     position: (ctx) => {
-        //         const face = ctx.dataProviders['headTracker'];
-        //         if (!face) return { x: 0, y: 0, z: 0 };
-        //         return face.eyes.left;
-        //     },
-        //     fillColor: { red: 0, green: 255, blue: 0 },
-        //     strokeWidth: 1,
-        // });
-        //
-        // // Right eye box - blue
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'debug_rightEye',
-        //     width: boxSize,
-        //     height: boxSize,
-        //     depth: boxSize,
-        //     position: (ctx) => {
-        //         const face = ctx.dataProviders['headTracker'];
-        //         if (!face) return { x: 0, y: 0, z: 0 };
-        //         return face.eyes.right;
-        //     },
-        //     fillColor: { red: 0, green: 0, blue: 255 },
-        //     strokeWidth: 1,
-        // });
+        // Left eye box - green
+        world.addBox({
+            type: ELEMENT_TYPES.BOX,
+            id: 'debug_leftEye',
+            targetId: 'faceBox',
+            width: boxSize,
+            height: boxSize,
+            depth: boxSize,
+            position: (ctx) => {
+                const face = ctx.dataProviders['headTracker'];
+                if (!face) return { x: 0, y: 0, z: 0 };
+                // return face.eyes.left;
+                return {
+                    x: face.eyes.left.x,
+                    y: face.eyes.left.y,
+                    z: face.eyes.left.z,
+                }
+            },
+            fillColor: { red: 0, green: 255, blue: 0 },
+            strokeWidth: 1,
+        });
 
-        // // Bounds left box - yellow
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'debug_boundsLeft',
-        //     width: boxSize,
-        //     height: boxSize,
-        //     depth: boxSize,
-        //     position: (ctx) => {
-        //         const face = ctx.dataProviders['headTracker'];
-        //         if (!face) return { x: 0, y: 0, z: 0 };
-        //         return face.boundsLeft;
-        //     },
-        //     fillColor: { red: 255, green: 255, blue: 0 },
-        //     strokeWidth: 1,
-        // });
-        //
-        // // Bounds right box - cyan
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'debug_boundsRight',
-        //     width: boxSize,
-        //     height: boxSize,
-        //     depth: boxSize,
-        //     position: (ctx) => {
-        //         const face = ctx.dataProviders['headTracker'];
-        //         if (!face) return { x: 0, y: 0, z: 0 };
-        //         return face.boundsRight;
-        //     },
-        //     fillColor: { red: 0, green: 255, blue: 255 },
-        //     strokeWidth: 1,
-        // });
+        // Right eye box - blue
+        world.addBox({
+            type: ELEMENT_TYPES.BOX,
+            id: 'debug_rightEye',
+            targetId: 'faceBox',
+            width: boxSize,
+            height: boxSize,
+            depth: boxSize,
+            position: (ctx) => {
+                const face = ctx.dataProviders['headTracker'];
+                if (!face) return { x: 0, y: 0, z: 0 };
+                return face.eyes.right;
+            },
+            fillColor: { red: 0, green: 0, blue: 255 },
+            strokeWidth: 1,
+        });
 
-        // // Bounds top box - magenta
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'debug_boundsTop',
-        //     width: boxSize,
-        //     height: boxSize,
-        //     depth: boxSize,
-        //     position: (ctx) => {
-        //         const face = ctx.dataProviders['headTracker'];
-        //         if (!face) return { x: 0, y: 0, z: 0 };
-        //         return face.boundsTop;
-        //     },
-        //     fillColor: { red: 255, green: 0, blue: 255 },
-        //     strokeWidth: 1,
-        // });
-        //
-        // // Bounds bottom box - orange
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'debug_boundsBottom',
-        //     width: boxSize,
-        //     height: boxSize,
-        //     depth: boxSize,
-        //     position: (ctx) => {
-        //         const face = ctx.dataProviders['headTracker'];
-        //         if (!face) return { x: 0, y: 0, z: 0 };
-        //         return face.boundsBottom;
-        //     },
-        //     fillColor: { red: 255, green: 165, blue: 0 },
-        //     strokeWidth: 1,
-        // });
+        // Bounds left box - yellow
+        world.addBox({
+            type: ELEMENT_TYPES.BOX,
+            id: 'debug_boundsLeft',
+            targetId: 'faceBox',
+            width: boxSize,
+            height: boxSize,
+            depth: boxSize,
+            position: (ctx) => {
+                const face = ctx.dataProviders['headTracker'];
+                if (!face) return { x: 0, y: 0, z: 0 };
+                return face.bounds.left;
+            },
+            fillColor: { red: 255, green: 255, blue: 0 },
+            strokeWidth: 1,
+        });
+
+        // Bounds right box - cyan
+        world.addBox({
+            type: ELEMENT_TYPES.BOX,
+            id: 'debug_boundsRight',
+            targetId: 'faceBox',
+            width: boxSize,
+            height: boxSize,
+            depth: boxSize,
+            position: (ctx) => {
+                const face = ctx.dataProviders['headTracker'];
+                if (!face) return { x: 0, y: 0, z: 0 };
+                return face.bounds.right;
+            },
+            fillColor: { red: 0, green: 255, blue: 255 },
+            strokeWidth: 1,
+        });
+
+        // Bounds top box - magenta
+        world.addBox({
+            type: ELEMENT_TYPES.BOX,
+            id: 'debug_boundsTop',
+            targetId: 'faceBox',
+            width: boxSize,
+            height: boxSize,
+            depth: boxSize,
+            position: (ctx) => {
+                const face = ctx.dataProviders['headTracker'];
+                if (!face) return { x: 0, y: 0, z: 0 };
+                return face.bounds.top;
+            },
+            fillColor: { red: 255, green: 0, blue: 255 },
+            strokeWidth: 1,
+        });
+
+        // Bounds bottom box - orange
+        world.addBox({
+            type: ELEMENT_TYPES.BOX,
+            id: 'debug_boundsBottom',
+            targetId: 'faceBox',
+            width: boxSize,
+            height: boxSize,
+            depth: boxSize,
+            position: (ctx) => {
+                const face = ctx.dataProviders['headTracker'];
+                if (!face) return { x: 0, y: 0, z: 0 };
+                return face.bounds.bottom;
+            },
+            fillColor: { red: 255, green: 165, blue: 0 },
+            strokeWidth: 1,
+        });
 
         // Nose sphere - child of faceBox
         world.addBox({
@@ -376,7 +270,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             id: 'left-eye',
             targetId: 'faceBox',
             radius: 20,
-            position: { x: -25, y: -25, z: 50 },
+            position: { x: -25, y: -25, z: 25 },
             // position: (ctx) => {
             //     const face = ctx.dataProviders['headTracker'];
             //     if (!face) return { x: 0, y: 0, z: 0 };
@@ -386,8 +280,8 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             //         z: face.eyes.left.z,
             //     };
             // },
-            strokeWidth: 4,
-            strokeColor: { red: 0, green: 0, blue: 255 },
+            alpha: 0.5,
+            fillColor: { red: 255, green: 255, blue: 255 },
         });
 
         world.addSphere({
@@ -395,7 +289,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             id: 'right-eye',
             targetId: 'faceBox',
             radius: 20,
-            position: { x: 25, y: -25, z: 50 },
+            position: { x: 25, y: -25, z: 25 },
             // position: (ctx) => {
             //     const face = ctx.dataProviders['headTracker'];
             //     if (!face) return { x: 0, y: 0, z: 0 };
@@ -405,8 +299,8 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             //         z: face.eyes.right.z,
             //     };
             // },
-            strokeWidth: 4,
-            strokeColor: { red: 0, green: 0, blue: 255 },
+            alpha: 0.5,
+            fillColor: { red: 255, green: 255, blue: 255 },
         });
 
         // Video panel - use exact video dimensions
@@ -422,14 +316,14 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
             fillColor: videoEl ? undefined : { red: 50, green: 50, blue: 50 },
         });
 
-        world.addPanel({
-            type: ELEMENT_TYPES.PANEL,
-            id: 'white',
-            width: 640,
-            height: 480,
-            position: { x: 0, y: 0, z: -100 },
-            fillColor: { red: 255, green: 255, blue: 255 },
-        });
+        // world.addPanel({
+        //     type: ELEMENT_TYPES.PANEL,
+        //     id: 'white',
+        //     width: 640,
+        //     height: 480,
+        //     position: { x: 0, y: 0, z: -100 },
+        //     fillColor: { red: 255, green: 255, blue: 255 },
+        // });
     };
 
     p.draw = () => {

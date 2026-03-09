@@ -1,7 +1,5 @@
 import type {Rotation3, Vector3} from "../../types.ts";
-import {averageVectors, wrapPi} from "../../utils/projection_utils.ts";
-import type {FaceGeometry} from "../../providers/face_provider.ts";
-
+import {wrapPi} from "../../utils/projection_utils.ts";
 
 interface RawLandmark {
     position: Vector3;
@@ -98,7 +96,6 @@ export class Face {
     };
     private normalFace?: Face;
     private centerFace?: Face;
-    private faceGeometry?: FaceGeometry;
     private faceWidth?: number;
 
     public constructor(data: FaceData, proportions: HeadProportions = DEFAULT_HEAD_PROPORTIONS) {
@@ -437,115 +434,40 @@ export class Face {
         return this.getRotation().face;
     }
 
-    public get geometry(): FaceGeometry {
-        return this.getGeometry();
+    public get nose(): Vector3 {
+        return this.data.nose.position;
     }
 
-    public getGeometry (): FaceGeometry  {
-        if (this.faceGeometry) {
-            return this.faceGeometry;
-        }
-        const geometry: FaceGeometry = {
-            /**
-             * Absolute transformation of the head within the camera view.
-             * These values place the head in the 3D scene.
-             */
-            world: {
-                /**
-                 * The (x,y,z) position of the skull center in scene space.
-                 * Used for 3D scene translation.
-                 */
-                center: this.getSkullCenter().position,
-                /**
-                 * Scale factor derived from head size in the frame.
-                 * Represents how large the head appears relative to canonical size.
-                 * Used for 3D scene scaling.
-                 */
-                unitScale: this.getFaceHeight().value,
-                /**
-                 * Computed Euler angles in radians from canonical head positions.
-                 * Follows YXZ rotation order.
-                 * These angles describe the head's orientation relative to canonical pose.
-                 */
-                rotation: {
-                    /** Y-axis rotation: Left/Right turn. */
-                    yaw: this.yaw,
-                    /** X-axis rotation: Up/Down tilt. */
-                    pitch: this.pitch,
-                    /** Z-axis rotation: Side-to-side lean. */
-                    roll: this.roll,
-                },
-            },
+    public get leftEye(): Vector3 {
+        return this.data.eyes.left.position;
+    }
 
-            /**
-             * The tip of the nose.
-             * Position relative to skull center (local space).
-             * Fixed anatomical position - does not change with rotation.
-             */
-            nose: this.data.nose.position,
+    public get rightEye(): Vector3 {
+        return this.data.eyes.right.position;
+    }
 
-            /**
-             * Facial features located on the frontal "Face Plate".
-             */
-            eyes: {
-                /**
-                 * Left eye center.
-                 * Position relative to skull center: Approx [-0.2, 0, -0.45]. */
-                left: this.data.eyes.left.position,
-                /**
-                 * Right eye center.
-                 * Position relative to skull center: Approx [0.2, 0, -0.45].
-                 * */
-                right: this.data.eyes.right.position,
-                /**
-                 * Midpoint of the eye-line (nasal bridge).
-                 * Position relative to skull center: Approx [0, 0, -0.45].
-                 */
-                midpoint: averageVectors([
-                    this.data.eyes.left.position,
-                    this.data.eyes.right.position,
-                ]),
-            },
+    public get leftBrow(): Vector3 {
+        return this.data.brows.left.position;
+    }
 
-            /**
-             * The internal scaffolding (Rig) of the head model.
-             */
-            rig: {
-                /**
-                 * The mathematical pivot of the head.
-                 * Always [0, 0, 0] in local space.
-                 */
-                center: averageVectors([
-                    this.data.rig.leftEar.position,
-                    this.data.rig.rightEar.position,
-                ]),
-                /**
-                 * Left ear (Tragus).
-                 * Position relative to skull center: [-0.5, 0, 0].
-                 */
-                leftEar: this.data.rig.leftEar.position,
-                /**
-                 * Right ear (Tragus).
-                 * Position relative to skull center: [0.5, 0, 0].
-                 */
-                rightEar: this.data.rig.rightEar.position,
-            },
+    public get rightBrow(): Vector3 {
+        return this.data.brows.right.position;
+    }
 
-            /**
-             * Extremities used for bounding volumes and interaction logic.
-             * All positions are relative to the skull center.
-             */
-            bounds: {
-                /** Top of the skull/hairline. Approx [0, 0.6, -0.2]. */
-                top: this.data.bounds.middleTop.position,
-                /** Bottom of the chin. Approx [0, -0.7, -0.4]. */
-                bottom: this.data.bounds.middleBottom.position,
-                left: this.data.rig.leftEar.position,
-                right: this.data.rig.rightEar.position,
-            },
-        };
-        this.faceGeometry = geometry;
-        return geometry;
+    public get leftEar(): Vector3 {
+        return this.data.rig.leftEar.position;
+    }
+
+    public get rightEar(): Vector3 {
+        return this.data.rig.rightEar.position;
+    }
+
+    public get middleTop(): Vector3 {
+        return this.data.bounds.middleTop.position;
+    }
+
+    public get middleBottom(): Vector3 {
+        return this.data.bounds.middleBottom.position;
     }
 
     /**
