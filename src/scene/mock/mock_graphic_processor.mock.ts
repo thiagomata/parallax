@@ -1,4 +1,4 @@
-import type {AssetLoader, GraphicsBundle, ResolvedSceneState, Vector3} from "../types.ts";
+import type {AssetLoader, GraphicProcessor, GraphicsBundle, ResolvedSceneState, Vector3} from "../types.ts";
 import {vi} from "vitest";
 
 export const createMockGraphicProcessor = <TBundle extends GraphicsBundle>(_mockState: ResolvedSceneState | null = null) => {
@@ -48,6 +48,7 @@ export const createMockGraphicProcessor = <TBundle extends GraphicsBundle>(_mock
         setProjectionMatrix: vi.fn(),
         millis: vi.fn(),
         deltaTime: vi.fn(),
-        frameCount: vi.fn()
-    }
+        frameCount: vi.fn(),
+        drawTree: vi.fn(),
+    } as GraphicProcessor<TBundle>
 };

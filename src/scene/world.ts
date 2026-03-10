@@ -42,7 +42,7 @@ export class World<
     TDataProviderLib extends DataProviderLib = {},
 > {
     public readonly stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib, TDataProviderLib>;
-    private sceneClock: SceneClock;
+    public readonly sceneClock: SceneClock;
     private projectionMatrixCalculator: ProjectionMatrixCalculator | null = null;
 
     constructor(

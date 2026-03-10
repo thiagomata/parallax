@@ -18,7 +18,7 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         playback: {
             ...DEFAULT_SCENE_SETTINGS.playback,
             duration: 5000,
-            isLoop: true
+            isLoop: true,
         }
     });
 
