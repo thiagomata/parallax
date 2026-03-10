@@ -122,6 +122,91 @@ The concrete implementation (e.g., `P5Processor`) converts the requests into a f
 
 ---
 
+## 🗝 Key Concepts
+
+### Projections (The Camera System)
+
+Parallax separates the **view** from the **projection**. A projection represents a virtual camera that can target another projection:
+
+```typescript
+const screen = {
+    id: 'screen',
+    type: PROJECTION_TYPES.SCREEN,
+    position: { x: 0, y: 0, z: 1000 },
+    targetId: undefined  // Root - no parent
+};
+
+const eye = {
+    id: 'eye',
+    type: PROJECTION_TYPES.EYE,
+    position: { x: 0, y: 0, z: 100 },
+    targetId: 'screen'  // Child of screen
+};
+```
+
+This hierarchy (`targetId`) creates a dependency graph where child projections inherit and transform relative to their parent.
+
+> **Note:** Head tracking is documented in detail at [`src/scene/head_tracking.md`](src/scene/head_tracking.md).
+
+### Projection Modifiers
+
+Each projection has its own modifier stack that transforms its position and rotation:
+
+| Modifier | Purpose | Example |
+|----------|---------|---------|
+| `CarModifier` | Base position (vehicle mount, rail) | Path following |
+| `NudgeModifier` | Position offset | Head tracking, vibration |
+| `StickModifier` | Rotation & distance | Camera rotation |
+
+Multiple modifiers of the same type are resolved by priority or voting.
+
+### Look Modes
+
+Projections support two look modes:
+
+- **`LOOK_AT`**: Direction computed from a target position (default)
+- **`ROTATION`**: Direction computed from yaw/pitch/roll angles + distance
+
+### Data Providers
+
+Modifiers can declare **explicit dependencies** on external data sources:
+
+```typescript
+class MyModifier implements NudgeModifier<TDataProviderLib> {
+    readonly requiredDataProviders: (keyof TDataProviderLib)[] = ['headTracker'];
+    
+    getNudge(pos, context) {
+        const faceData = context.dataProviders.headTracker; // Type-safe access
+        // ...
+    }
+}
+```
+
+This enables compile-time safety and explicit contracts.
+
+### Effect Bundles
+
+Both projections and elements support **effects** — reusable behaviors that transform the resolved state:
+
+```typescript
+const myEffect = {
+    type: 'myEffect',
+    defaults: { strength: 1.0 },
+    apply(current, context, settings, pool) {
+        // Transform current state
+        return { ...current, position: { ...current.position } };
+    }
+};
+```
+
+Effects run during the resolution phase, enabling:
+- Procedural animation
+- Constraints
+- Physics-like behaviors
+- Debug visualization
+
+---
+
 ## 🛠 Implementation Guardrails
 
 To maintain the integrity of this deterministic pipeline, all development must respect these constraints:
