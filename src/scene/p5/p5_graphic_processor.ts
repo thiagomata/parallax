@@ -21,9 +21,7 @@ import {
     type Vector3,
     type Rotation3,
     ELEMENT_TYPES,
-    ELEMENT_LOOK_MODES,
 } from "../types.ts";
-import { lookAtRotation } from "../utils/projection_utils.ts";
 import type {P5Bundler} from "./p5_asset_loader.ts";
 import p5 from "p5";
 
@@ -254,11 +252,6 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         // Handle lookMode - compute rotation from lookAt if needed
         let rotation = node.props.rotate;
         
-        if (node.props.lookMode === ELEMENT_LOOK_MODES.LOOK_AT && node.props.lookAt) {
-            const elementPos = node.props.position ?? { x: 0, y: 0, z: 0 };
-            rotation = lookAtRotation(elementPos, node.props.lookAt);
-        }
-
         // Apply local translation
         this.translate(node.props.position);
 

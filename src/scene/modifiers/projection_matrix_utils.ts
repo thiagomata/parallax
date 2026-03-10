@@ -1,34 +1,8 @@
 import {
     type ProjectionMatrix,
     type ProjectionMatrixComponent,
-    type ResolvedProjection,
-    type Vector3, WindowConfig
+    type Vector3,
 } from "../types.ts";
-
-/**
- * Zero-recalculation Off-Axis Utility.
- */
-export function calculateOffAxisMatrix(
-    eye: ResolvedProjection,
-    screen: ResolvedProjection,
-    window: WindowConfig
-): ProjectionMatrix {
-    const dx = eye.position.x - screen.position.x;
-    const dy = eye.position.y - screen.position.y;
-
-    const distance = Math.abs(eye.position.z - screen.position.z);
-    const dz = distance < window.epsilon ? window.epsilon : distance;
-
-    const scale = window.near / dz;
-
-    // Direct property access - no division/multiplication overhead here
-    const left   = (-window.halfWidth - dx) * scale;
-    const right  = ( window.halfWidth - dx) * scale;
-    const bottom = (-window.halfHeight - dy) * scale;
-    const top    = ( window.halfHeight - dy) * scale;
-
-    return projectionMatrixFromFrustum(left, right, bottom, top, window.near, window.far);
-}
 
 /**
  * Convert ProjectionMatrix to Float32Array for P5/WebGL compatibility.

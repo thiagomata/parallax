@@ -6,6 +6,7 @@ import {
     type ResolutionContext,
     type Rotation3,
 } from "../types.ts";
+import { lookAtRotation } from "../utils/projection_utils.ts";
 
 export interface LookAtEffectConfig extends BaseModifierSettings {
     enabled?: boolean;
@@ -39,7 +40,12 @@ function lookAtCamera(
         return current;  // Graceful degradation - no camera found
     }
 
-    const rotationUpdate = computeLookAtRotation(current.position, camera.position, rotate, settings);
+    const rotationUpdate = computeLookAtRotation(
+        current.position,
+        camera.position,
+        rotate,
+        settings,
+    );
 
     return {
         ...current,
@@ -63,7 +69,12 @@ function lookAtElement(
         return current;
     }
 
-    const rotationUpdate = computeLookAtRotation(current.position, targetElement.position, rotate, settings);
+    const rotationUpdate = computeLookAtRotation(
+        current.position,
+        targetElement.position,
+        rotate,
+        settings
+    );
 
     return {
         ...current,
@@ -75,34 +86,21 @@ function computeLookAtRotation(
     fromPosition: { x: number; y: number; z: number },
     toPosition: { x: number; y: number; z: number },
     rotate: Rotation3,
-    settings: LookAtEffectConfig
+    settings: LookAtEffectConfig,
 ): Partial<ResolvedBaseVisual> {
-    // Calculate Vector Difference
-    const dx = toPosition.x - fromPosition.x;
-    const dy = toPosition.y - fromPosition.y;
-    const dz = toPosition.z - fromPosition.z;
+    // Use existing utility function
+    const computed = lookAtRotation(
+        fromPosition,
+        toPosition,
+        settings.axis,
+        rotate,
+    );
 
-    let rotateX = rotate.pitch;
-    let rotateY = rotate.yaw;
-    let rotateZ = rotate.roll;
-
-    // Calculate Angles (Atan2 is your best friend here)
-    if (settings.axis?.y) {
-        // Yaw: Angle on the XZ plane
-        rotateY += Math.atan2(dx, dz);
-    }
-
-    if (settings.axis?.x) {
-        // Pitch: Angle towards the target height
-        const distanceXZ = Math.sqrt(dx * dx + dz * dz);
-        rotateX -= Math.atan2(dy, distanceXZ);
-    }
-
+    // Apply axis locks: use computed + initial (additive), or just initial
+    // Note: pitch uses subtraction to match old behavior (rotateX -= ...)
     return {
         rotate: {
-            pitch: rotateX,
-            yaw: rotateY,
-            roll: rotateZ,
+            ...computed,
         }
     };
 }
