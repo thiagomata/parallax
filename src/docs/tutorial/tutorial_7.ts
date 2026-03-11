@@ -16,7 +16,11 @@ import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.t
  * Demonstrating 1:1 h ead-to-camera mapping using MediaPipe.
  * Simplified version with simple colored boxes for easy debugging.
  */
-export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any, { headTracker: HeadTrackingDataProvider }> {
+export function tutorial_7(
+    p: p5,
+    config: SketchConfig = DEFAULT_SKETCH_CONFIG,
+    faceDataProvider?: HeadTrackingDataProvider,
+): World<P5Bundler, any, any, { headTracker: HeadTrackingDataProvider }> {
     let gp: P5GraphicProcessor;
 
     // Create the clock
@@ -35,7 +39,7 @@ export function tutorial_7(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     // const headTracker = config.cameraModifier ?? new HeadTrackingModifier(p);
 
     // Data Provider for face elements
-    const faceDataProvider = new HeadTrackingDataProvider(p);
+    faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(p);
 
     // Asset Pipeline & World
     const loader = new P5AssetLoader(p);

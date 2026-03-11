@@ -120,8 +120,8 @@ describe('Tutorial 6: Hybrid Props', () => {
         
         // x = sin(PI) * 100 = 0
         expect(sphere50.position?.x).toBeCloseTo(0, 1);
-        // blue = 127 + 127 * sin(PI) = 127 - 127 = 0
-        expect(sphere50.fillColor?.blue).toBeCloseTo(0, 0);
+        // blue = 127 + 127 * sin(PI) = 127 + 127 * 0 = 127
+        expect(sphere50.fillColor?.blue).toBeCloseTo(127, 0);
 
         // Verify side effects - p5 drawing functions called
         expect(mockP5.box).toHaveBeenCalled();

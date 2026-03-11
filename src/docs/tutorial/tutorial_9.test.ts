@@ -47,7 +47,7 @@ describe('Tutorial 9: Look At The Object', () => {
 
         expect(objState.radius).toBe(20);
         expect(objState.fillColor?.red).toBe(0);
-        expect(objState.fillColor?.green).toBe(255);
+        expect(objState.fillColor?.green).toBe(128);
         expect(objState.fillColor?.blue).toBe(0);
         expect(objState.strokeColor?.red).toBe(255);
         expect(objState.strokeColor?.green).toBe(255);

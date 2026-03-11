@@ -93,6 +93,9 @@ const scale = (vector: Vector3, factor: number): Vector3 => {
     }
 }
 
+export const DEFAULT_CAMERA_POSITION: Vector3 = { x: 0, y: 0, z: 300 };
+export const DEFAULT_CAMERA_PANEL_POSITION: Vector3 = { x: 0, y: 0, z: 0 };
+
 export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker", FaceWorldData> {
     readonly type = "headTracker";
 
@@ -130,8 +133,8 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         sceneHeadWidth: number = 120,
         sceneScreenWidth: number = 650,
         mirror: boolean = false,
-        panelPosition?: Vector3,
-        cameraPosition?: Vector3,
+        panelPosition: Vector3 = DEFAULT_CAMERA_PANEL_POSITION,
+        cameraPosition: Vector3 = DEFAULT_CAMERA_POSITION,
     ) {
         if (sceneHeadWidth <= 0) {
             throw new Error("Invalid scene head width");
@@ -143,8 +146,8 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         this.sceneScreenWidth = sceneScreenWidth;
         this.sceneScreenHeadProportion = this.sceneHeadWidth / this.sceneScreenWidth;
 
-        this.panelPosition  = panelPosition ?? {x: 0, y: 0, z: 0};
-        this.cameraPosition = cameraPosition ?? { x:0, y:0, z: 300 }
+        this.panelPosition  = panelPosition;
+        this.cameraPosition = cameraPosition;
 
         this.provider = new MediaPipeFaceProvider(p, "/parallax/wasm", "/parallax/models/face_landmarker.task", mirror);
     }
