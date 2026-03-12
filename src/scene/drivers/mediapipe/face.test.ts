@@ -692,6 +692,8 @@ describe('Face - edge cases', () => {
         const head = createCanonicalHead();
         head.rig.leftEar.isVisible = false;
         head.rig.rightEar.isVisible = false;
+        head.rig.leftTemple.isVisible = false;
+        head.rig.rightTemple.isVisible = false;
         head.eyes.left.isVisible = false;
         head.eyes.right.isVisible = false;
         
@@ -699,6 +701,9 @@ describe('Face - edge cases', () => {
         const centered = face.center();
         
         expect(centered).toBeDefined();
+        // When center can't be resolved, center() falls back to translating by (0.5,0.5,0.5)
+        // and marks the face as centered.
+        expect(centered.data.nose.position.x).toBeCloseTo(head.nose.position.x - 0.5);
     });
 
     it('should handle null/undefined landmark in scale', () => {
@@ -774,5 +779,42 @@ describe('Face - edge cases', () => {
         const rebase2 = face.rebase;
         
         expect(rebase1).toBe(rebase2);
+    });
+});
+
+describe('Face - getters', () => {
+    it('should expose landmark positions via getters', () => {
+        const head = createCanonicalHead();
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+
+        expect(face.nose).toEqual(head.nose.position);
+        expect(face.leftEye).toEqual(head.eyes.left.position);
+        expect(face.rightEye).toEqual(head.eyes.right.position);
+        expect(face.leftBrow).toEqual(head.brows.left.position);
+        expect(face.rightBrow).toEqual(head.brows.right.position);
+        expect(face.leftEar).toEqual(head.rig.leftEar.position);
+        expect(face.rightEar).toEqual(head.rig.rightEar.position);
+        expect(face.middleTop).toEqual(head.bounds.middleTop.position);
+        expect(face.middleBottom).toEqual(head.bounds.middleBottom.position);
+    });
+
+    it('computeYaw should handle NaN singularity by snapping to +/- π/2', () => {
+        // Force depthToWidthRatio to become NaN (0/0) and currentEyeWidth to become 0,
+        // so atan2(..., NaN) produces NaN and triggers the singularity handler.
+        const H: HeadProportions = {
+            ...DEFAULT_HEAD_PROPORTIONS,
+            width: {
+                ...DEFAULT_HEAD_PROPORTIONS.width,
+                eye_to_eye: 0,
+            },
+            depth: {
+                ...DEFAULT_HEAD_PROPORTIONS.depth,
+                eye_plane: DEFAULT_HEAD_PROPORTIONS.depth.nose_tip,
+            },
+        };
+
+        const head = createCanonicalHead(H);
+        const face = new Face(head, H);
+        expect(face.computeYaw()).toBeCloseTo(Math.PI / 2);
     });
 });

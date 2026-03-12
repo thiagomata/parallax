@@ -75,6 +75,56 @@ describe("ProjectionResolver", () => {
             );
         });
 
+        it("should throw error for recursive hierarchy references", () => {
+            registry.register({
+                id: "b",
+                type: PROJECTION_TYPES.SCREEN,
+                lookMode: LOOK_MODES.LOOK_AT,
+                position: {x: 0, y: 0, z: 0},
+                lookAt: {x: 0, y: 0, z: 0},
+                direction: {x: 0, y: 0, z: 1},
+            });
+
+            registry.register({
+                id: "a",
+                type: PROJECTION_TYPES.SCREEN,
+                lookMode: LOOK_MODES.LOOK_AT,
+                targetId: "b",
+                position: {x: 0, y: 0, z: 0},
+                lookAt: {x: 0, y: 0, z: 0},
+                direction: {x: 0, y: 0, z: 1},
+            });
+
+            expect(() =>
+                resolver.prepare(
+                    {
+                        id: "b",
+                        type: PROJECTION_TYPES.SCREEN,
+                        lookMode: LOOK_MODES.LOOK_AT,
+                        targetId: "a",
+                        position: {x: 0, y: 0, z: 0},
+                        lookAt: {x: 0, y: 0, z: 0},
+                        direction: {x: 0, y: 0, z: 1},
+                    },
+                    registry
+                )
+            ).toThrow('Hierarchy Violation: Target "a" has recursive reference.');
+        });
+
+        it("should throw error for invalid projection effect type", () => {
+            const blueprint: BlueprintProjection = {
+                id: "with-effect",
+                type: PROJECTION_TYPES.SCREEN,
+                lookMode: LOOK_MODES.LOOK_AT,
+                position: {x: 0, y: 0, z: 0},
+                lookAt: {x: 0, y: 0, z: 0},
+                direction: {x: 0, y: 0, z: 1},
+                effects: [{type: "missing-effect" as any, settings: {}} as any],
+            };
+
+            expect(() => resolver.prepare(blueprint, registry)).toThrow("Invalid projection effect: missing-effect");
+        });
+
         it("should sort modifiers by priority descending", () => {
             const lowPriority: StickModifier = {
                 name: "low",
@@ -337,6 +387,38 @@ describe("ProjectionResolver", () => {
 
             expect(result.position.x).not.toBe(10);
             expect(result.rotation.yaw).toBe(0.2);
+        });
+
+        it("should use previousResolved when parent is not in the current pool", () => {
+            const parent: ResolvedProjection = {
+                id: "parent",
+                type: PROJECTION_TYPES.SCREEN,
+                position: {x: 100, y: 200, z: 300},
+                rotation: {pitch: 0, yaw: 0, roll: 0},
+                direction: {x: 0, y: 0, z: 1},
+                lookAt: {x: 0, y: 0, z: 0},
+                distance: 100,
+                effects: [],
+            };
+
+            const child: ResolvedProjection = {
+                id: "child",
+                type: PROJECTION_TYPES.SCREEN,
+                targetId: "parent",
+                position: {x: 10, y: 20, z: 30},
+                rotation: {pitch: 0, yaw: 0, roll: 0},
+                direction: {x: 0, y: 0, z: 1},
+                lookAt: {x: 0, y: 0, z: 0},
+                distance: 100,
+                effects: [],
+            };
+
+            const previousResolved = {
+                projections: new Map([["parent", parent]]),
+            } as any;
+
+            const result = resolver.applyHierarchyTransform(child, {}, previousResolved);
+            expect(result.position).toEqual({x: 110, y: 220, z: 330});
         });
     });
 

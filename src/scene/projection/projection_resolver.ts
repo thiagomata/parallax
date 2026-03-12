@@ -373,7 +373,10 @@ export class ProjectionResolver<
 
         return instructions.map(instruction => {
             const bundle = this.effectLib[instruction.type];
-            if (!bundle) throw new Error(`Invalid projection effect: ${instruction.type}`);
+            if (!bundle) {
+                // impossible, only to make TS happy
+                throw new Error(`Invalid projection effect: ${instruction.type}`);
+            }
 
             return {
                 type: instruction.type,

@@ -1,5 +1,4 @@
 import {
-    DEFAULT_SCENE_SETTINGS,
     type SceneSettings,
     type ScenePlaybackState,
 } from "./types";
@@ -21,8 +20,8 @@ export class SceneClock {
 
     constructor(settings: SceneSettings) {
         this.settings = settings;
-        this.paused = settings.startPaused ?? DEFAULT_SCENE_SETTINGS.startPaused;
-        this.startTime = settings.playback?.startTime ?? DEFAULT_SCENE_SETTINGS.playback.startTime;
+        this.paused = settings.startPaused;
+        this.startTime = settings.playback.startTime;
     }
 
     /**
