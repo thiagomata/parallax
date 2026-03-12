@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Stage } from "./stage.ts";
 import {
     ASSET_STATUS,
+    DEFAULT_EYE_ROTATION,
     DEFAULT_SCENE_SETTINGS,
     DEFAULT_WINDOW_CONFIG,
     ELEMENT_TYPES,
@@ -124,5 +125,155 @@ describe("Stage", () => {
         };
         expect(() => getScreenProjection({ screen: nonScreen })).toThrow("ScreenProjection 'screen' is not type screen");
     });
-});
 
+    it("removeElement does not remove children; children become roots when parent is removed", () => {
+        stage.addElement({
+            id: "parent",
+            type: ELEMENT_TYPES.BOX,
+            width: 1,
+            position: { x: 0, y: 0, z: 0 },
+        });
+
+        stage.addElement({
+            id: "child",
+            type: ELEMENT_TYPES.BOX,
+            width: 1,
+            targetId: "parent",
+            position: { x: 1, y: 0, z: 0 },
+        });
+
+        const gp = {
+            dist: () => 0,
+            drawTree: vi.fn(),
+        } as any;
+
+        stage.render(gp, {
+            playback: { now: 0, delta: 0, frameCount: 0, progress: 0 },
+            previousResolved: null,
+            sceneId: 1,
+        });
+
+        const treeBefore = vi.mocked(gp.drawTree).mock.calls[0]?.[0];
+        expect(treeBefore.props.id).toBe("parent");
+        expect(treeBefore.children).toHaveLength(1);
+        expect(treeBefore.children[0].props.id).toBe("child");
+
+        stage.removeElement("parent");
+        expect(stage.getElement("parent")).toBeUndefined();
+        expect(stage.getElement("child")).toBeDefined();
+
+        stage.render(gp, {
+            playback: { now: 16, delta: 16, frameCount: 1, progress: 0 },
+            previousResolved: null,
+            sceneId: 2,
+        });
+
+        const treeAfter = vi.mocked(gp.drawTree).mock.calls[1]?.[0];
+        expect(treeAfter.props.id).toBe("child");
+        expect(treeAfter.children).toHaveLength(0);
+    });
+
+    it("render ticks all projection modifiers (car/nudge/stick)", () => {
+        const carTick = vi.fn();
+        const nudgeTick = vi.fn();
+        const stickTick = vi.fn();
+
+        stage.setScreen({
+            type: PROJECTION_TYPES.SCREEN,
+            modifiers: {
+                carModifiers: [
+                    {
+                        name: "car",
+                        priority: 1,
+                        active: true,
+                        tick: carTick,
+                        getCarPosition: () => ({ success: false, error: "nope" }),
+                    } as any,
+                ],
+                nudgeModifiers: [
+                    {
+                        name: "nudge",
+                        active: true,
+                        tick: nudgeTick,
+                        getNudge: () => ({ success: false, error: "nope" }),
+                    } as any,
+                ],
+                stickModifiers: [
+                    {
+                        name: "stick",
+                        priority: 1,
+                        active: true,
+                        tick: stickTick,
+                        getStick: () => ({ success: false, error: "nope" }),
+                    } as any,
+                ],
+            },
+        } as any);
+
+        const gp = {
+            dist: () => 0,
+            drawTree: vi.fn(),
+        } as any;
+
+        stage.render(gp, {
+            playback: { now: 0, delta: 0, frameCount: 0, progress: 0 },
+            previousResolved: null,
+            sceneId: 123,
+        });
+
+        expect(carTick).toHaveBeenCalledWith(123);
+        expect(nudgeTick).toHaveBeenCalledWith(123);
+        expect(stickTick).toHaveBeenCalledWith(123);
+    });
+
+    it("render ticks data providers and exposes getData results to computed element specs", () => {
+        const provider = {
+            type: "foo",
+            tick: vi.fn(),
+            getData: vi.fn().mockReturnValue({ offsetX: 42 }),
+        };
+
+        const settings = structuredClone(DEFAULT_SCENE_SETTINGS);
+        settings.window = WindowConfig.create(DEFAULT_WINDOW_CONFIG);
+        const stageWithProviders = new Stage<MockGraphicBundle, {}, {}, { foo: typeof provider }>(settings, loader, {}, {}, { foo: provider });
+
+        // Stage currently ticks providers from an internal map; populate it so the tick loop is exercised.
+        (stageWithProviders as any).dataProviders.set("foo", provider);
+
+        stageWithProviders.addElement({
+            id: "box",
+            type: ELEMENT_TYPES.BOX,
+            width: 1,
+            position: (ctx: any) => ({ x: ctx.dataProviders.foo.offsetX, y: 0, z: 0 }),
+        } as any);
+
+        const dist = vi.fn((_a: any, _b: any) => 0);
+        const gp = {
+            dist,
+            drawTree: vi.fn(),
+        } as any;
+
+        stageWithProviders.render(gp, {
+            playback: { now: 0, delta: 0, frameCount: 0, progress: 0 },
+            previousResolved: null,
+            sceneId: 7,
+        });
+
+        expect(provider.tick).toHaveBeenCalledWith(7);
+        expect(provider.getData).toHaveBeenCalled();
+        expect(dist).toHaveBeenCalled();
+        expect(dist.mock.calls[0][1]).toEqual({ x: 42, y: 0, z: 0 });
+    });
+
+    it("setEye replaces the eye projection", () => {
+        const before = (stage as any).projectionRegistry.get("eye");
+        stage.setEye({
+            ...DEFAULT_EYE_ROTATION,
+            position: { x: 1, y: 2, z: 3 },
+        } as any);
+        const after = (stage as any).projectionRegistry.get("eye");
+
+        expect(after).toBeDefined();
+        expect(after).not.toBe(before);
+    });
+});
