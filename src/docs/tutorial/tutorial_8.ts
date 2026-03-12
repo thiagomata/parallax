@@ -48,13 +48,6 @@ export function tutorial_8(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     world.enableDefaultPerspective(config.width, config.height);
 
-    // // Set up screen with default rotation mode
-    // world.setScreen({
-    //     id: 'screen',
-    //     type: PROJECTION_TYPES.SCREEN,
-    //     lookMode: LOOK_MODES.ROTATION,
-    // });
-
     world.setScreen({
         id: STANDARD_PROJECTION_IDS.SCREEN,
         type: PROJECTION_TYPES.SCREEN,
@@ -107,7 +100,6 @@ export function tutorial_8(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
                 { type: 'look_at' }
             ],
             rotate: {
-                // yaw: Math.PI / 4,
                 pitch: Math.PI / 4,
                 roll: Math.PI / 4,
             },

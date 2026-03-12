@@ -37,8 +37,6 @@ describe('Tutorial 2: Progression Integration', () => {
         const element = world.getElement('pulsing-box');
         if (!element) throw new Error("Pulsing box not registered");
 
-        // let graphicProcessor = createMockGraphicProcessor<any>();
-        // world.step(graphicProcessor);
         mockP5.draw();
 
         const box1 = world.getCurrenState()?.elements.get('pulsing-box') as ResolvedBox;

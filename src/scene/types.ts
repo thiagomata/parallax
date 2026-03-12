@@ -181,19 +181,6 @@ export interface ProjectionEffectResolutionGroup<
     readonly settings?: TConfig; // Hydrated/Merged settings
 }
 
-// export interface ProjectionElementDebug {
-//     // cars
-//     logFailedCar(element: ProjectionElement,  carModifier: CarModifier, res: { success: false; error: string }): void;
-//     logSuccessCar(element: ProjectionElement,  carModifier: CarModifier, res: { success: true; value: CarResult }): void;
-//     // nudge
-//     logFailedNudge(element: ProjectionElement,  nudgeModifier: NudgeModifier, res: { success: false; error: string }): void;
-//     logSuccessNudge(element: ProjectionElement,  nudgeModifier: NudgeModifier, res: { success: true; value: Partial<Vector3> }): void;
-//     logFinalNudge(element: ProjectionElement,  finalNudge: { x: number; y: number; z: number }): void;
-//     // stick
-//     logFailedStick(element: ProjectionElement,  stickModifier: StickModifier, res: { success: false; error: string }): void;
-//     logSuccessStick(element: ProjectionElement,  stickModifier: StickModifier, res: { success: true; value: StickResult }): void;
-// }
-
 /**
  * A component of the projection matrix containing 4 values.
  */

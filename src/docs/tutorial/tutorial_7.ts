@@ -42,7 +42,6 @@ export function tutorial_7(
     });
 
     // Camera Logic: Use injected or create default
-    // const headTracker = config.cameraModifier ?? new HeadTrackingModifier(p);
 
     // Data Provider for face elements
     faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(p);
@@ -93,9 +92,6 @@ export function tutorial_7(
             ]
         }
     });
-
-
-    // headTracker.init().catch(console.error);
 
     p.setup = async () => {
         p.createCanvas(config.width, config.height, p.WEBGL);

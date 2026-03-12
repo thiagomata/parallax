@@ -53,8 +53,6 @@ export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any,
 	        world.stage.setScreen({
 	            id: STANDARD_PROJECTION_IDS.SCREEN,
 	            type: PROJECTION_TYPES.SCREEN,
-	            // position: { x: 0, y: 0, z: 1000 },
-	            // lookAt: { x: 0, y: 0, z: 0 },
 	            modifiers: {
                 carModifiers: [new OrbitModifier(p, 1000)],
                 stickModifiers: [new CenterFocusModifier()]
