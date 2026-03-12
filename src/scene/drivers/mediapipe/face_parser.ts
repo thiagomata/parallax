@@ -31,9 +31,9 @@ export interface HeadParserConfig {
 }
 
 interface RawLandmark {
-    position: Vector3;
-    visibility: number | null;
-    isUsable: boolean;
+    readonly position: Readonly<Vector3>;
+    readonly visibility: number | null;
+    readonly isUsable: boolean;
 }
 
 export class FaceParser {

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Face, DEFAULT_HEAD_PROPORTIONS, type FaceData, type HeadProportions } from "./face";
+import { merge } from "../../utils/merge.ts";
 
 export const createCanonicalHead = (H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): FaceData => {
     return {
@@ -673,51 +674,63 @@ describe('Face - rotation comparison with known rotations', () => {
     });
 });
 
-describe('Face - edge cases', () => {
-    it('should handle missing ear landmarks', () => {
-        const head = createCanonicalHead();
-        head.rig.leftEar.isUsable = false;
-        head.rig.rightEar.isUsable = false;
-        
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
-        
-        const center = face.getSkullCenter();
+	describe('Face - edge cases', () => {
+	    it('should handle missing ear landmarks', () => {
+	        const head = merge(createCanonicalHead(), {
+	            rig: {
+	                leftEar: { isUsable: false },
+	                rightEar: { isUsable: false },
+	            },
+	        });
+	        
+	        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+	        
+	        const center = face.getSkullCenter();
         
         expect(center.isUsable).toBe(true); // Should still work using eyes
     });
 
-    it('should handle missing nose landmark', () => {
-        const head = createCanonicalHead();
-        head.nose.isUsable = false;
-        
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
-        
-        const yaw = face.computeYaw();
+	    it('should handle missing nose landmark', () => {
+	        const head = merge(createCanonicalHead(), {
+	            nose: { isUsable: false },
+	        });
+	        
+	        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+	        
+	        const yaw = face.computeYaw();
         expect(yaw).toBe(0);
     });
 
-    it('should handle missing eye landmarks', () => {
-        const head = createCanonicalHead();
-        head.eyes.left.isUsable = false;
-        head.eyes.right.isUsable = false;
-        
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
-        
-        const pitch = face.computePitch();
+	    it('should handle missing eye landmarks', () => {
+	        const head = merge(createCanonicalHead(), {
+	            eyes: {
+	                left: { isUsable: false },
+	                right: { isUsable: false },
+	            },
+	        });
+	        
+	        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+	        
+	        const pitch = face.computePitch();
         expect(pitch).toBe(0);
     });
 
-    it('should handle invisible skull center in center()', () => {
-        const head = createCanonicalHead();
-        head.rig.leftEar.isUsable = false;
-        head.rig.rightEar.isUsable = false;
-        head.rig.leftTemple.isUsable = false;
-        head.rig.rightTemple.isUsable = false;
-        head.eyes.left.isUsable = false;
-        head.eyes.right.isUsable = false;
-        
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
-        const centered = face.center();
+	    it('should handle invisible skull center in center()', () => {
+	        const head = merge(createCanonicalHead(), {
+	            rig: {
+	                leftEar: { isUsable: false },
+	                rightEar: { isUsable: false },
+	                leftTemple: { isUsable: false },
+	                rightTemple: { isUsable: false },
+	            },
+	            eyes: {
+	                left: { isUsable: false },
+	                right: { isUsable: false },
+	            },
+	        });
+	        
+	        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+	        const centered = face.center();
         
         expect(centered).toBeDefined();
         // When center can't be resolved, center() falls back to translating by (0.5,0.5,0.5)
@@ -744,28 +757,36 @@ describe('Face - edge cases', () => {
         expect(width).toBeGreaterThan(0);
     });
 
-    it('should calculate width from eyes when ears not visible', () => {
-        const head = createCanonicalHead();
-        head.rig.leftEar.isUsable = false;
-        head.rig.rightEar.isUsable = false;
-        
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
-        
-        const width = face.width;
+	    it('should calculate width from eyes when ears not visible', () => {
+	        const head = merge(createCanonicalHead(), {
+	            rig: {
+	                leftEar: { isUsable: false },
+	                rightEar: { isUsable: false },
+	            },
+	        });
+	        
+	        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+	        
+	        const width = face.width;
         
         expect(width).toBeGreaterThan(0);
     });
 
-    it('should use default eye_to_eye when neither ears nor eyes visible', () => {
-        const head = createCanonicalHead();
-        head.rig.leftEar.isUsable = false;
-        head.rig.rightEar.isUsable = false;
-        head.eyes.left.isUsable = false;
-        head.eyes.right.isUsable = false;
-        
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
-        
-        const width = face.width;
+	    it('should use default eye_to_eye when neither ears nor eyes visible', () => {
+	        const head = merge(createCanonicalHead(), {
+	            rig: {
+	                leftEar: { isUsable: false },
+	                rightEar: { isUsable: false },
+	            },
+	            eyes: {
+	                left: { isUsable: false },
+	                right: { isUsable: false },
+	            },
+	        });
+	        
+	        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+	        
+	        const width = face.width;
         
         expect(width).toBe(DEFAULT_HEAD_PROPORTIONS.width.eye_to_eye);
     });
@@ -789,14 +810,17 @@ describe('Face - edge cases', () => {
         expect(rebase1).toBe(rebase2);
     });
 
-    it('normalize should not produce Infinity when width collapses to ~0', () => {
-        const head = createCanonicalHead();
-        // Collapse ear-to-ear width to 0 (can happen with bad upstream frames)
-        head.rig.leftEar.position = { x: 0.5, y: 0.5, z: 0 };
-        head.rig.rightEar.position = { x: 0.5, y: 0.5, z: 0 };
+	    it('normalize should not produce Infinity when width collapses to ~0', () => {
+	        // Collapse ear-to-ear width to 0 (can happen with bad upstream frames)
+	        const head = merge(createCanonicalHead(), {
+	            rig: {
+	                leftEar: { position: { x: 0.5, y: 0.5, z: 0 } },
+	                rightEar: { position: { x: 0.5, y: 0.5, z: 0 } },
+	            },
+	        });
 
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
-        const normalized = face.normalize();
+	        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+	        const normalized = face.normalize();
 
         expect(Number.isFinite(normalized.data.nose.position.x)).toBe(true);
         expect(Number.isFinite(normalized.data.nose.position.y)).toBe(true);

@@ -2,11 +2,11 @@ import type {Rotation3, Vector3} from "../../types.ts";
 import {wrapPi} from "../../utils/projection_utils.ts";
 
 interface RawLandmark {
-    position: Vector3;
+    readonly position: Readonly<Vector3>;
     /** Raw MediaPipe visibility score (0..1). Null when unknown/not provided. */
-    visibility: number | null;
+    readonly visibility: number | null;
     /** Internal quality gate: safe/reliable enough to use in geometry. */
-    isUsable: boolean;
+    readonly isUsable: boolean;
 }
 
 export interface FaceData {
