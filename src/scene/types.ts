@@ -560,7 +560,7 @@ export interface RenderTreeNode {
 export interface GraphicProcessor<TBundle extends GraphicsBundle> {
     readonly loader: AssetLoader<TBundle>;
 
-    /* --- Act 1: The Perspective Rig --- */
+    /* --- Camera + Projection (configure view) --- */
 
     /**
      * Positions the hardware camera.
@@ -572,7 +572,7 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
      */
     setProjectionMatrix(projectionMatrix: ProjectionMatrix): void;
 
-    /* --- Act 2: The Drawing Pipeline --- */
+    /* --- Drawing Primitives (render resolved elements) --- */
     drawBox(props: ResolvedBox, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
     drawPanel(props: ResolvedPanel, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
     drawSphere(resolved: ResolvedSphere, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
@@ -584,10 +584,10 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
     drawFloor(resolved: ResolvedFloor, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
     drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
 
-    /* --- Tree Rendering --- */
+    /* --- Tree Rendering (hierarchical draw) --- */
     drawTree(node: RenderTreeNode | null, state: ResolvedSceneState): void;
 
-    /* --- Act 3: Spatial & Temporal Context --- */
+    /* --- Math + Timing (helpers used during render) --- */
     dist(v1: Vector3, v2: Vector3): number;
     map(val: number, s1: number, st1: number, s2: number, st2: number, clamp?: boolean): number;
     lerp(start: number, stop: number, amt: number): number;
@@ -595,7 +595,7 @@ export interface GraphicProcessor<TBundle extends GraphicsBundle> {
     deltaTime(): number;
     frameCount(): number;
 
-    /* --- Act 4: UI & Debugging --- */
+    /* --- Debug Draw (optional overlays) --- */
     drawLabel(s: string, pos: Partial<Vector3>): void;
     drawCrosshair(pos: Partial<Vector3>, size: number): void;
     drawHUDText(s: string, x: number, y: number): void;

@@ -237,9 +237,6 @@ describe("Stage", () => {
         settings.window = WindowConfig.create(DEFAULT_WINDOW_CONFIG);
         const stageWithProviders = new Stage<MockGraphicBundle, {}, {}, { foo: typeof provider }>(settings, loader, {}, {}, { foo: provider });
 
-        // Stage currently ticks providers from an internal map; populate it so the tick loop is exercised.
-        (stageWithProviders as any).dataProviders.set("foo", provider);
-
         stageWithProviders.addElement({
             id: "box",
             type: ELEMENT_TYPES.BOX,

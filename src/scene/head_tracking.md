@@ -90,12 +90,17 @@ import type { HeadTrackerDataProviderLib } from './providers/head_tracking_data_
 // Define your data provider library type
 type MySceneLib = HeadTrackerDataProviderLib;
 
-// Create stage with typed data providers
-const stage = new Stage<any, any, any, MySceneLib>(settings, loader);
-
 // Create and add the head tracking data provider
 const headTracker = new HeadTrackingDataProvider(p5, 120, 650);
-stage.addDataProvider('headTracker', headTracker);
+
+// Create stage with typed (static) data providers
+const stage = new Stage<any, any, any, MySceneLib>(
+  settings,
+  loader,
+  {},
+  {},
+  { headTracker }
+);
 
 // Initialize (loads MediaPipe)
 await headTracker.init();

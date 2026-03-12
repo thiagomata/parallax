@@ -3,7 +3,6 @@ import {
     type BlueprintProjection,
     type BundleDynamicElement,
     type BundleResolvedElement, DEFAULT_EYE_LOOK_AT, DEFAULT_SCREEN_ROTATION,
-    type DataProviderBundle,
     type DataProviderLib,
     type DynamicProjection,
     type DynamicSceneState,
@@ -39,7 +38,6 @@ export class Stage<
     private readonly projectionResolver: ProjectionResolver<TProjectionEffectLib>;
     private readonly settings: SceneSettings;
     private readonly dataProviderLib: TDataProviderLib;
-    private dataProviders: Map<keyof TDataProviderLib, DataProviderBundle<any, any>> = new Map();
 
     private lastFrameState: ResolvedSceneState | null = null;
     private cachedDynamicState: DynamicSceneState | null = null;
@@ -182,9 +180,7 @@ export class Stage<
             sceneId: frameParams.sceneId ?? 0,
         };
 
-        // ==========================================================
-        // STEP 0: Tick all projection modifiers
-        // ==========================================================
+        // Tick projection modifiers (per-frame)
         for (const dynamicProjection of this.projectionRegistry.all()) {
             const modifiers = dynamicProjection.modifiers;
             if (modifiers) {
@@ -200,9 +196,7 @@ export class Stage<
             }
         }
 
-        // ==========================================================
-        // STEP 1: Resolve ALL Projections (Local Space)
-        // ==========================================================
+        // Resolve projections (local space)
         const localProjectionPool: Record<string, ResolvedProjection> = {};
 
         for (const dynamicProjection of this.projectionRegistry.all()) {
@@ -210,9 +204,7 @@ export class Stage<
             localProjectionPool[resolved.id] = resolved;
         }
 
-        // ==========================================================
-        // STEP 2: Transform to Global Space (Apply Hierarchy)
-        // ==========================================================
+        // Apply projection hierarchy (global space)
         const globalProjectionPool: Record<string, ResolvedProjection> = {};
 
         for (const id in localProjectionPool) {
@@ -224,33 +216,21 @@ export class Stage<
             );
         }
 
-        // ==========================================================
-        // STEP 3: Apply Projection Effects
-        // ==========================================================
-
-        // ==========================================================
-        // STEP 3.5: Tick Data Providers
-        // ==========================================================
-        for (const provider of this.dataProviders.values()) {
-            provider.tick(state.sceneId);
-        }
-
+        // Tick providers and snapshot their data for this frame
         const dataProvidersMap: {
             [K in keyof TDataProviderLib]: ReturnType<TDataProviderLib[K]['getData']>;
         } = {} as any;
-        for (const key in this.dataProviderLib) {
+        const keys = Object.keys(this.dataProviderLib) as Array<keyof TDataProviderLib>;
+        for (const key of keys) {
             const provider = this.dataProviderLib[key];
-            if (provider && typeof provider === 'object' && 'getData' in provider) {
-                (dataProvidersMap as Record<string, unknown>)[key] = (provider as DataProviderBundle<any, any>).getData();
-            }
+            provider.tick(state.sceneId);
+            dataProvidersMap[key] = provider.getData();
         }
 
-        // ==========================================================
-        // STEP 4: Resolve Elements (can see resolved projections)
-        // ==========================================================
+        // Resolve elements (distance-sorted, can see resolved projections)
         const screenProjection = this.getScreenProjection(globalProjectionPool);
         
-        // Create context for element resolution - uses GLOBAL projections
+        // Uses GLOBAL projections
         const elementResolutionContext: ResolutionContext<TDataProviderLib> = {
             previousResolved: state.previousResolved,
             playback: state.playback,
@@ -276,22 +256,17 @@ export class Stage<
             bundle: this.elementResolver.resolve(bundle, elementResolutionContext) as BundleResolvedElement<ResolvedElement, TGraphicBundle>,
         }));
 
-        // ==========================================================
-        // STEP 4: Apply Element Hierarchy Transform
-        // ==========================================================
-        
-        // Create element pool for hierarchy lookups
+        // Build element pool for effects and lookups
         const elementPool: Record<string, ResolvedElement> = {};
         for (const pair of resolvedElements) {
             elementPool[pair.id] = pair.bundle.resolved;
         }
 
-        // Create intermediate state with resolved elements + projections
         const resolvedMapElements = new Map(
             resolvedElements.map(pair => [pair.id, pair.bundle.resolved])
         );
 
-        // Create context for effects - has both pools
+        // Apply element effects (context has both pools)
         const effectContext: ResolutionContext<TDataProviderLib> = {
             previousResolved: state.previousResolved,
             playback: state.playback,
@@ -301,17 +276,11 @@ export class Stage<
             dataProviders: dataProvidersMap,
         };
 
-        // ==========================================================
-        // STEP 5: Apply Effects to Elements
-        // ==========================================================
         const finalElements = resolvedElements.map(pair => ({
             id: pair.id,
             bundle: this.elementResolver.effect(pair.bundle, effectContext),
         }));
 
-        // ==========================================================
-        // STEP 6: Apply Effects to Projections
-        // ==========================================================
         const finalMapElements = new Map(finalElements.map(p => [p.id, p.bundle.resolved]));
         
         const finalState: ResolvedSceneState = {
@@ -322,14 +291,9 @@ export class Stage<
             projections: new Map(Object.entries(globalProjectionPool)),
         };
 
-        // ==========================================================
-        // STEP 6: Build Element Tree and Render Hierarchically
-        // ==========================================================
-        
-        // Build tree structure for hierarchical rendering
+        // Build render tree and draw
         const renderTree = this.buildRenderTree(finalElements);
 
-        // Render using tree (push/pop for each node, using LOCAL position/rotation)
         graphicProcessor.drawTree(renderTree, finalState);
 
         this.lastFrameState = finalState;
