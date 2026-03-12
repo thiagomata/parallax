@@ -676,4 +676,103 @@ describe('Face - edge cases', () => {
         const pitch = face.computePitch();
         expect(pitch).toBe(0);
     });
+
+    it('should handle null/undefined landmark in translate', () => {
+        const head = {
+            ...createCanonicalHead(),
+            nose: null as any,
+        };
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        
+        const translated = face.translate({ x: 0.1, y: 0.2, z: 0.3 });
+        expect(translated.data.nose).toBeNull();
+    });
+
+    it('should handle invisible skull center in center()', () => {
+        const head = createCanonicalHead();
+        head.rig.leftEar.isVisible = false;
+        head.rig.rightEar.isVisible = false;
+        head.eyes.left.isVisible = false;
+        head.eyes.right.isVisible = false;
+        
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const centered = face.center();
+        
+        expect(centered).toBeDefined();
+    });
+
+    it('should handle null/undefined landmark in scale', () => {
+        const head = {
+            ...createCanonicalHead(),
+            nose: null as any,
+        };
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        
+        const scaled = face.scale(2);
+        expect(scaled.data.nose).toBeNull();
+    });
+
+    it('should use cached faceWidth', () => {
+        const head = createCanonicalHead();
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        
+        const width1 = face.width;
+        const width2 = face.width;
+        
+        expect(width1).toBe(width2);
+    });
+
+    it('should calculate width from ears when visible', () => {
+        const head = createCanonicalHead();
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        
+        const width = face.width;
+        
+        expect(width).toBeGreaterThan(0);
+    });
+
+    it('should calculate width from eyes when ears not visible', () => {
+        const head = createCanonicalHead();
+        head.rig.leftEar.isVisible = false;
+        head.rig.rightEar.isVisible = false;
+        
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        
+        const width = face.width;
+        
+        expect(width).toBeGreaterThan(0);
+    });
+
+    it('should use default eye_to_eye when neither ears nor eyes visible', () => {
+        const head = createCanonicalHead();
+        head.rig.leftEar.isVisible = false;
+        head.rig.rightEar.isVisible = false;
+        head.eyes.left.isVisible = false;
+        head.eyes.right.isVisible = false;
+        
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        
+        const width = face.width;
+        
+        expect(width).toBe(DEFAULT_HEAD_PROPORTIONS.width.eye_to_eye);
+    });
+
+    it('should return rebase (normalized face)', () => {
+        const head = createCanonicalHead();
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        
+        const rebased = face.rebase;
+        
+        expect(rebased).toBeDefined();
+    });
+
+    it('should cache rebase result', () => {
+        const head = createCanonicalHead();
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        
+        const rebase1 = face.rebase;
+        const rebase2 = face.rebase;
+        
+        expect(rebase1).toBe(rebase2);
+    });
 });

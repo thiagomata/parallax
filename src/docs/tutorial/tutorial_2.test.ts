@@ -47,6 +47,11 @@ describe('Tutorial 2: Progression Integration', () => {
         expect(box1.position).toStrictEqual({x:0,y:0,z:0});
         expect(box1.width).toBe(100);
         expect(box1.fillColor?.blue).toBeCloseTo(254, 0);
+        expect(
+            ( 255 - box1.fillColor!.blue  ) == box1.strokeColor!.blue &&
+            ( 255 - box1.fillColor!.red   ) == box1.strokeColor!.red  &&
+            ( 255 - box1.fillColor!.green ) == box1.strokeColor!.green
+        ).toBe(true);
 
         // TEST POINT B: Progress 0.25 (T = 1000ms / 4000ms) ---
         mockP5.millis.mockReturnValue(1000);

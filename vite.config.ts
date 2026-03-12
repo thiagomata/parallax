@@ -34,6 +34,7 @@ export default defineConfig({
                 'src/**/*.mock.ts',
                 'src/**/*.demo.ts',
                 'src/**/*.template.ts',
+                'src/**/*_test_utils.ts',
             ],
             thresholds: {
                 lines: 80,

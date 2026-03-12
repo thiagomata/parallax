@@ -86,12 +86,6 @@ export class SceneClock {
         return this._sceneId;
     }
 
-    public get settingsRef(): SceneSettings {
-        return this.settings;
-    }
-
-    /* --- Lifecycle Methods --- */
-
     public pause(): void {
         this.paused = true;
     }

@@ -124,6 +124,9 @@ describe('Tutorial 7: The Observer', () => {
         const videoPanel = world.getElement('videoPanel');
         expect(videoPanel).toBeDefined();
         mockP5.draw();
+        const drawVideo = world.getCurrenState()?.elements.get('videoPanel');
+        expect(drawVideo).toBeDefined();
+        expect(drawVideo?.fillColor).toBeDefined();
 
         // Check resolved state for camera elements
         const cameraSquareState = world.getCurrenState()?.elements.get('camera-square') as ResolvedBox;

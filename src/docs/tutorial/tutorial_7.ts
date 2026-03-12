@@ -319,15 +319,6 @@ export function tutorial_7(
             alpha: 0.5,
             fillColor: videoEl ? undefined : { red: 50, green: 50, blue: 50 },
         });
-
-        // world.addPanel({
-        //     type: ELEMENT_TYPES.PANEL,
-        //     id: 'white',
-        //     width: 640,
-        //     height: 480,
-        //     position: { x: 0, y: 0, z: -100 },
-        //     fillColor: { red: 255, green: 255, blue: 255 },
-        // });
     };
 
     p.draw = () => {

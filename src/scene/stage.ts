@@ -63,13 +63,6 @@ export class Stage<
         this.projectionRegistry.register(DEFAULT_EYE_LOOK_AT);
     }
 
-    public addDataProvider<TID extends keyof TDataProviderLib & string>(
-        id: TID,
-        provider: TDataProviderLib[TID]
-    ): void {
-        this.dataProviders.set(id, provider as DataProviderBundle<any, any>);
-    }
-
     public getSettings(): SceneSettings {
         return this.settings;
     }

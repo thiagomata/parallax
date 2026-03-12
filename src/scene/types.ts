@@ -923,10 +923,6 @@ export interface BundleResolvedElement<
     assets: ElementAssets<TGraphicBundle>;
 }
 
-export function toBlueprint<T>(blueprint: MapToBlueprint<T>): MapToBlueprint<T> {
-    return blueprint;
-}
-
 export type TrackingStatus =
     | 'IDLE'           // Created but not yet initialized
     | 'INITIALIZING'   // Hardware/WASM is booting

@@ -81,6 +81,116 @@ describe('MediaPipeFaceProvider', () => {
             await provider.init();
             expect(provider.getStatus()).toBe('ERROR');
         });
+
+        it('should set up onloadedmetadata to play video', async () => {
+            const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
+            (FilesetResolver.forVisionTasks as any).mockResolvedValue({});
+            (FaceLandmarker.createFromOptions as any).mockResolvedValue(mockLandmarker);
+
+            const mockCapture = {
+                size: vi.fn(),
+                hide: vi.fn(),
+                elt: { 
+                    readyState: 4,
+                    onloadedmetadata: null as any,
+                    onerror: null as any,
+                },
+                play: vi.fn(),
+            };
+            mockP5.createCapture.mockReturnValue(mockCapture);
+
+            await provider.init();
+
+            expect(mockCapture.elt.onloadedmetadata).toBeDefined();
+            mockCapture.elt.onloadedmetadata();
+            expect(mockCapture.play).toHaveBeenCalled();
+        });
+
+        it('should set up onerror to transition to ERROR status', async () => {
+            const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
+            (FilesetResolver.forVisionTasks as any).mockResolvedValue({});
+            (FaceLandmarker.createFromOptions as any).mockResolvedValue(mockLandmarker);
+
+            const mockCapture = {
+                size: vi.fn(),
+                hide: vi.fn(),
+                elt: { 
+                    readyState: 4,
+                    onloadedmetadata: null as any,
+                    onerror: null as any,
+                },
+                play: vi.fn(),
+            };
+            mockP5.createCapture.mockReturnValue(mockCapture);
+
+            await provider.init();
+
+            expect(mockCapture.elt.onerror).toBeDefined();
+            mockCapture.elt.onerror();
+            expect(provider.getStatus()).toBe('ERROR');
+        });
+
+        it('should call capture.size and capture.hide', async () => {
+            const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
+            (FilesetResolver.forVisionTasks as any).mockResolvedValue({});
+            (FaceLandmarker.createFromOptions as any).mockResolvedValue(mockLandmarker);
+
+            const mockCapture = {
+                size: vi.fn(),
+                hide: vi.fn(),
+                elt: { readyState: 4 },
+            };
+            mockP5.createCapture.mockReturnValue(mockCapture);
+
+            await provider.init();
+
+            expect(mockCapture.size).toHaveBeenCalledWith(640, 480);
+            expect(mockCapture.hide).toHaveBeenCalled();
+        });
+    });
+
+    describe('getVideo', () => {
+        beforeEach(async () => {
+            const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
+            (FilesetResolver.forVisionTasks as any).mockResolvedValue({});
+            (FaceLandmarker.createFromOptions as any).mockResolvedValue(mockLandmarker);
+        });
+
+        it('should return capture when status is READY', async () => {
+            const mockCapture = {
+                size: vi.fn(),
+                hide: vi.fn(),
+                elt: { readyState: 4 },
+            };
+            mockP5.createCapture.mockReturnValue(mockCapture);
+
+            await provider.init();
+
+            const video = provider.getVideo();
+            expect(video).toBe(mockCapture);
+        });
+
+        it('should return null when status is not READY', async () => {
+            mockP5.createCapture.mockReturnValue({
+                size: vi.fn(),
+                hide: vi.fn(),
+                elt: { readyState: 4 },
+            });
+
+            await provider.init();
+            (provider as any).status = 'INITIALIZING';
+
+            expect(provider.getVideo()).toBeNull();
+        });
+
+        it('should return null when capture is not created', async () => {
+            const { FilesetResolver } = await import('@mediapipe/tasks-vision');
+            (FilesetResolver.forVisionTasks as any).mockRejectedValue(new Error("Init Failed"));
+            
+            await provider.init();
+
+            expect(provider.getVideo()).toBeNull();
+        });
     });
 
     describe('Dynamic Hardware Handling', () => {

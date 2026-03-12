@@ -64,16 +64,6 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
                 alpha: 1.0
             },
             strokeWidth: 5,
-            // strokeColor: (ctx) => {
-            //     const previousMe = ctx.previousResolved?.elements.get('pulsing-box');
-            //     if (!previousMe || !previousMe.fillColor) return {red: 0, green: 0, blue: 0, alpha: 1.0};
-            //     return {
-            //         red:   255 - previousMe.fillColor.red,
-            //         green: 255 - previousMe.fillColor.green,
-            //         blue:  255 - previousMe.fillColor.blue,
-            //         alpha: 1.0
-            //     }
-            // },
             effects: [
                 {
                     type: TransformEffect.type,
