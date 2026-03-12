@@ -3,7 +3,10 @@ import {wrapPi} from "../../utils/projection_utils.ts";
 
 interface RawLandmark {
     position: Vector3;
-    isVisible: boolean;
+    /** Raw MediaPipe visibility score (0..1). Null when unknown/not provided. */
+    visibility: number | null;
+    /** Internal quality gate: safe/reliable enough to use in geometry. */
+    isUsable: boolean;
 }
 
 export interface FaceData {
@@ -147,9 +150,6 @@ export class Face {
      */
     public translate(offset: Vector3): Face {
         const translate = (lm: RawLandmark): RawLandmark => {
-            if (!lm) {
-                return lm;
-            }
             return {
                 ...lm,
                 position: {
@@ -180,7 +180,7 @@ export class Face {
 
         let offset;
 
-        if (!center.isVisible) {
+        if (!center.isUsable) {
             offset = {
                 x: 0.5,
                 y: 0.5,
@@ -214,7 +214,7 @@ export class Face {
         ];
 
         for (const pair of pairs) {
-            if (pair.left.isVisible && pair.right.isVisible) {
+            if (pair.left.isUsable && pair.right.isUsable) {
                 midpoints.push({
                     x: (pair.left.position.x + pair.right.position.x) / 2,
                     y: (pair.left.position.y + pair.right.position.y) / 2,
@@ -227,10 +227,11 @@ export class Face {
         const faceHeightExtraction = this.getFaceHeight();
 
         // If no stable midpoints or no height can be resolved, we can't find a valid skull center
-        if (midpoints.length === 0 || !faceHeightExtraction.isVisible) {
+        if (midpoints.length === 0 || !faceHeightExtraction.isUsable) {
             return {
                 position: {x: 0.5, y: 0.5, z: 0.5},
-                isVisible: false,
+                visibility: null,
+                isUsable: false,
             };
         }
 
@@ -245,7 +246,7 @@ export class Face {
 
         // Resolve Z (Depth Pivot)
         let centerZ: number;
-        if (this.data.rig.leftEar.isVisible && this.data.rig.rightEar.isVisible) {
+        if (this.data.rig.leftEar.isUsable && this.data.rig.rightEar.isUsable) {
             centerZ = (this.data.rig.leftEar.position.z + this.data.rig.rightEar.position.z) / 2;
         } else {
             // eye_to_eye width (0.45) vs full width (1.0)
@@ -259,7 +260,8 @@ export class Face {
 
         return {
             position: {x: centerX, y: centerY, z: centerZ},
-            isVisible: true,
+            visibility: null,
+            isUsable: true,
         };
     }
 
@@ -270,11 +272,11 @@ export class Face {
      * @returns new Face with scaled positions
      */
     public scale(factor: number): Face {
+        if (!Number.isFinite(factor)) {
+            return this;
+        }
         // Scale all positions (including skullCenter)
         const scale = (lm: RawLandmark): RawLandmark => {
-            if (!lm) {
-                return lm;
-            }
             return {
                 ...lm,
                 position: {
@@ -302,7 +304,6 @@ export class Face {
         const sin = Math.sin(radians);
 
         const transform = (lm: RawLandmark): RawLandmark => {
-            if (!lm) return lm;
             const { x, y, z } = lm.position;
             return {
                 ...lm,
@@ -331,7 +332,6 @@ export class Face {
         const sin = Math.sin(radians);
 
         const transform = (lm: RawLandmark): RawLandmark => {
-            if (!lm) return lm;
             const { x, y, z } = lm.position;
             return {
                 ...lm,
@@ -360,7 +360,6 @@ export class Face {
         const sin = Math.sin(radians);
 
         const transform = (lm: RawLandmark): RawLandmark => {
-            if (!lm) return lm;
             const { x, y, z } = lm.position;
             return {
                 ...lm,
@@ -394,7 +393,12 @@ export class Face {
         const props = this.proportions;
 
         // Determine measured width
-        let measuredWidth= this.width;
+        const measuredWidth = this.width;
+        if (!Number.isFinite(measuredWidth) || measuredWidth <= 1e-12) {
+            // If upstream data collapses landmarks (width ~ 0) avoid exploding scales.
+            // Return a centered face so downstream computations stay stable.
+            return this.center(useCache);
+        }
 
         // Compute the scaling factor to reach canonical width
         const factor = props.width.ear_to_ear / measuredWidth;
@@ -416,14 +420,14 @@ export class Face {
             return this.faceWidth;
         }
         const props = this.proportions;
-        if (this.data.rig.leftEar.isVisible && this.data.rig.rightEar.isVisible) {
+        if (this.data.rig.leftEar.isUsable && this.data.rig.rightEar.isUsable) {
             this.faceWidth = Math.hypot(
                 this.data.rig.rightEar.position.x - this.data.rig.leftEar.position.x,
                 this.data.rig.rightEar.position.y - this.data.rig.leftEar.position.y
             );
             return this.faceWidth;
         }
-        if (this.data.eyes.left.isVisible && this.data.eyes.right.isVisible) {
+        if (this.data.eyes.left.isUsable && this.data.eyes.right.isUsable) {
             const eyeSpan = Math.hypot(
                 this.data.eyes.right.position.x - this.data.eyes.left.position.x,
                 this.data.eyes.right.position.y - this.data.eyes.left.position.y
@@ -541,7 +545,7 @@ export class Face {
         }[] = [];
 
         // Ear line
-        if (head.data.rig.leftEar.isVisible && head.data.rig.rightEar.isVisible) {
+        if (head.data.rig.leftEar.isUsable && head.data.rig.rightEar.isUsable) {
             lines.push({
                 a: {x: head.data.rig.leftEar.position.x, y: head.data.rig.leftEar.position.y},
                 b: {x: head.data.rig.rightEar.position.x, y: head.data.rig.rightEar.position.y},
@@ -550,7 +554,7 @@ export class Face {
         }
 
         // Bounds center line
-        if (head.data.bounds.middleTop?.isVisible && head.data.bounds.middleBottom?.isVisible) {
+        if (head.data.bounds.middleTop?.isUsable && head.data.bounds.middleBottom?.isUsable) {
             lines.push({
                 a: {x: head.data.bounds.middleTop.position.x, y: head.data.bounds.middleTop.position.y},
                 b: {x: head.data.bounds.middleBottom.position.x, y: head.data.bounds.middleBottom.position.y},
@@ -595,7 +599,7 @@ export class Face {
     computeYaw(): number {
         const head = this.normalized ? this : this.normalize();
 
-        if (!head.data.eyes.left.isVisible || !head.data.eyes.right.isVisible || !head.data.nose.isVisible) {
+        if (!head.data.eyes.left.isUsable || !head.data.eyes.right.isUsable || !head.data.nose.isUsable) {
             return 0;
         }
 
@@ -632,9 +636,9 @@ export class Face {
     computePitch(): number {
         const head = this.normalized ? this : this.normalize();
 
-        if (!head.data.eyes.left.isVisible ||
-            !head.data.eyes.right.isVisible ||
-            !head.data.nose.isVisible) {
+        if (!head.data.eyes.left.isUsable ||
+            !head.data.eyes.right.isUsable ||
+            !head.data.nose.isUsable) {
             return 0;
         }
 
@@ -670,10 +674,10 @@ export class Face {
     private getSkullYCenter(): number {
         const props = this.proportions;
 
-        if (this.data.bounds.middleTop.isVisible &&
-            this.data.bounds.middleBottom.isVisible &&
-            this.data.eyes.left.isVisible &&
-            this.data.eyes.right.isVisible) {
+        if (this.data.bounds.middleTop.isUsable &&
+            this.data.bounds.middleBottom.isUsable &&
+            this.data.eyes.left.isUsable &&
+            this.data.eyes.right.isUsable) {
 
             const eyeMidY = (this.data.eyes.left.position.y + this.data.eyes.right.position.y) / 2;
 
@@ -695,7 +699,7 @@ export class Face {
             return eyeMidY - props.height.eye_line * scaleRatio;
         }
 
-        if (this.data.eyes.right.isVisible && this.data.eyes.left.isVisible && this.data.nose.isVisible) {
+        if (this.data.eyes.right.isUsable && this.data.eyes.left.isUsable && this.data.nose.isUsable) {
             const eyeMidY = (this.data.eyes.left.position.y + this.data.eyes.right.position.y) / 2;
 
             const currentEyeToNose = Math.hypot(
@@ -719,7 +723,7 @@ export class Face {
      * Strategy B: Computes from nose-to-eye distance and anatomical proportions.
      * @returns height value and visibility flag
      */
-    private getFaceHeight(): { value: number, isVisible: boolean } {
+    private getFaceHeight(): { value: number, isUsable: boolean } {
         const props = this.proportions;
 
         // Determine the "Anatomical Constant" for a Full Head
@@ -727,18 +731,18 @@ export class Face {
         const totalManifestHeight = Math.abs(props.height.forehead_top - props.height.chin_tip);
 
         // Strategy A: Direct Measurement (Bounds)
-        if (this.data.bounds.middleTop.isVisible && this.data.bounds.middleBottom.isVisible) {
+        if (this.data.bounds.middleTop.isUsable && this.data.bounds.middleBottom.isUsable) {
             const dx = this.data.bounds.middleBottom.position.x - this.data.bounds.middleTop.position.x;
             const dy = this.data.bounds.middleBottom.position.y - this.data.bounds.middleTop.position.y;
 
             return {
                 value: Math.sqrt(dx * dx + dy * dy), // Hypotenuse ignores Roll
-                isVisible: true,
+                isUsable: true,
             };
         }
 
         // Strategy B: Anatomical Reconstruction (Euclidean)
-        if (this.data.eyes.left.isVisible && this.data.eyes.right.isVisible && this.data.nose.isVisible) {
+        if (this.data.eyes.left.isUsable && this.data.eyes.right.isUsable && this.data.nose.isUsable) {
             const eyeX = (this.data.eyes.left.position.x + this.data.eyes.right.position.x) / 2;
             const eyeY = (this.data.eyes.left.position.y + this.data.eyes.right.position.y) / 2;
             const nose = this.data.nose.position;
@@ -749,14 +753,14 @@ export class Face {
 
             return {
                 value: (currentInternalDist / manifestInternalDist) * totalManifestHeight,
-                isVisible: true,
+                isUsable: true,
             };
         }
 
         // Last resort: Return a safe default (e.g., 0.5 of frame) or 0
         return {
             value: 0.5,
-            isVisible: false,
+            isUsable: false,
         };
     }
 }

@@ -82,6 +82,39 @@ describe("Stage", () => {
         );
     });
 
+    it("addProjection throws when targetId does not exist", () => {
+        const projection: BlueprintProjection = {
+            id: "p2",
+            type: PROJECTION_TYPES.WORLD,
+            lookMode: LOOK_MODES.LOOK_AT,
+            targetId: "missing",
+            position: { x: 0, y: 0, z: 0 },
+            direction: { x: 0, y: 0, z: 1 },
+            lookAt: { x: 0, y: 0, z: 0 },
+        };
+
+        expect(() => stage.addProjection(projection)).toThrow(
+            "Target missing not found for projection p2"
+        );
+    });
+
+    it("addProjection throws when a projection targets its own descendant", () => {
+        const projection: BlueprintProjection = {
+            id: "screen",
+            type: PROJECTION_TYPES.SCREEN,
+            lookMode: LOOK_MODES.ROTATION,
+            targetId: "eye",
+            position: { x: 0, y: 0, z: 0 },
+            direction: { x: 0, y: 0, z: 1 },
+            rotation: { pitch: 0, yaw: 0, roll: 0 },
+            effects: [],
+        };
+
+        expect(() => stage.addProjection(projection)).toThrow(
+            "Circular dependency: screen targets its own descendant."
+        );
+    });
+
     it("buildRenderTree returns a virtual root when there are multiple roots", () => {
         const buildRenderTree = (stage as any).buildRenderTree.bind(stage) as (elements: any[]) => any;
 

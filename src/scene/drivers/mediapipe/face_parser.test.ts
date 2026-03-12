@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { FaceParser, INDEX } from "./face_parser";
 import type { Vector3 } from "../../types.ts";
 
-const createRawLandmarks = (overrides: Record<number, { x?: number; y?: number; z?: number }> = {}): Partial<Vector3>[] => {
-    const landmarks: Partial<Vector3>[] = new Array(468);
+const createRawLandmarks = (overrides: Record<number, { x?: number; y?: number; z?: number; visibility?: number }> = {}): Array<Partial<Vector3> & { visibility?: number }> => {
+    const landmarks: Array<Partial<Vector3> & { visibility?: number }> = new Array(468);
     for (let i = 0; i < 468; i++) {
         landmarks[i] = overrides[i];
     }
@@ -120,13 +120,13 @@ describe('FaceParser - parse', () => {
         expect(result.data.bounds.middleBottom.position.y).toBe(0.8);
     });
 
-    it('should return invisible landmark for missing index', () => {
+    it('should return unusable landmark for missing index', () => {
         const parser = new FaceParser();
         const rawData = createRawLandmarks({});
         
         const result = parser.parse(rawData);
         
-        expect(result.data.nose.isVisible).toBe(false);
+        expect(result.data.nose.isUsable).toBe(false);
         expect(result.data.nose.position.x).toBe(-1);
     });
 
@@ -141,6 +141,30 @@ describe('FaceParser - parse', () => {
         expect(result.data.nose.position.x).toBe(0.5);
         expect(result.data.nose.position.y).toBe(0);
         expect(result.data.nose.position.z).toBe(0);
+    });
+
+    it('should treat NaN coordinates as missing/unusable', () => {
+        const parser = new FaceParser();
+        const rawData = createRawLandmarks({
+            [INDEX.NOSE]: { x: Number.NaN, y: 0.5, z: 0.1 },
+        });
+
+        const result = parser.parse(rawData);
+
+        expect(result.data.nose.isUsable).toBe(false);
+        expect(result.data.nose.position).toEqual({ x: -1, y: -1, z: -1 });
+    });
+
+    it('should treat Infinity coordinates as missing/unusable', () => {
+        const parser = new FaceParser();
+        const rawData = createRawLandmarks({
+            [INDEX.NOSE]: { x: 0.5, y: Number.POSITIVE_INFINITY, z: 0.1 },
+        });
+
+        const result = parser.parse(rawData);
+
+        expect(result.data.nose.isUsable).toBe(false);
+        expect(result.data.nose.position).toEqual({ x: -1, y: -1, z: -1 });
     });
 });
 
@@ -179,8 +203,8 @@ describe('FaceParser - mirror', () => {
     });
 });
 
-describe('FaceParser - visibility', () => {
-    it('should mark landmark visible when coordinates are valid (0-1)', () => {
+describe('FaceParser - landmark quality', () => {
+    it('marks landmark usable when x/y are present and finite', () => {
         const parser = new FaceParser();
         const rawData = createRawLandmarks({
             [INDEX.NOSE]: { x: 0.5, y: 0.5, z: 0.1 },
@@ -188,54 +212,21 @@ describe('FaceParser - visibility', () => {
         
         const result = parser.parse(rawData);
         
-        expect(result.data.nose.isVisible).toBe(true);
+        expect(result.data.nose.isUsable).toBe(true);
     });
 
-    it('should mark landmark invisible when x < 0', () => {
+    it('does not reject negative/out-of-frame coordinates as long as they are finite', () => {
         const parser = new FaceParser();
         const rawData = createRawLandmarks({
-            [INDEX.NOSE]: { x: -0.1, y: 0.5, z: 0.1 },
+            [INDEX.NOSE]: { x: -0.1, y: 1.1, z: 0.1 },
         });
         
         const result = parser.parse(rawData);
         
-        expect(result.data.nose.isVisible).toBe(false);
+        expect(result.data.nose.isUsable).toBe(true);
     });
 
-    it('should mark landmark invisible when x > 1', () => {
-        const parser = new FaceParser();
-        const rawData = createRawLandmarks({
-            [INDEX.NOSE]: { x: 1.1, y: 0.5, z: 0.1 },
-        });
-        
-        const result = parser.parse(rawData);
-        
-        expect(result.data.nose.isVisible).toBe(false);
-    });
-
-    it('should mark landmark invisible when y < 0', () => {
-        const parser = new FaceParser();
-        const rawData = createRawLandmarks({
-            [INDEX.NOSE]: { x: 0.5, y: -0.1, z: 0.1 },
-        });
-        
-        const result = parser.parse(rawData);
-        
-        expect(result.data.nose.isVisible).toBe(false);
-    });
-
-    it('should mark landmark invisible when y > 1', () => {
-        const parser = new FaceParser();
-        const rawData = createRawLandmarks({
-            [INDEX.NOSE]: { x: 0.5, y: 1.1, z: 0.1 },
-        });
-        
-        const result = parser.parse(rawData);
-        
-        expect(result.data.nose.isVisible).toBe(false);
-    });
-
-    it('should mark landmark invisible when x is undefined', () => {
+    it('marks landmark unusable when x is undefined', () => {
         const parser = new FaceParser();
         const rawData = createRawLandmarks({
             [INDEX.NOSE]: { y: 0.5, z: 0.1 },
@@ -243,10 +234,10 @@ describe('FaceParser - visibility', () => {
         
         const result = parser.parse(rawData);
         
-        expect(result.data.nose.isVisible).toBe(false);
+        expect(result.data.nose.isUsable).toBe(false);
     });
 
-    it('should mark landmark invisible when y is undefined', () => {
+    it('marks landmark unusable when y is undefined', () => {
         const parser = new FaceParser();
         const rawData = createRawLandmarks({
             [INDEX.NOSE]: { x: 0.5, z: 0.1 },
@@ -254,7 +245,18 @@ describe('FaceParser - visibility', () => {
         
         const result = parser.parse(rawData);
         
-        expect(result.data.nose.isVisible).toBe(false);
+        expect(result.data.nose.isUsable).toBe(false);
+    });
+
+    it('exposes MediaPipe visibility score when provided', () => {
+        const parser = new FaceParser();
+        const rawData = createRawLandmarks({
+            [INDEX.NOSE]: { x: 0.5, y: 0.5, z: 0.1, visibility: 0.25 },
+        });
+
+        const result = parser.parse(rawData);
+
+        expect(result.data.nose.visibility).toBe(0.25);
     });
 });
 

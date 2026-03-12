@@ -5,64 +5,77 @@ export const createCanonicalHead = (H: HeadProportions = DEFAULT_HEAD_PROPORTION
     return {
         nose: {
             position: { x: 0, y: H.height.nose_base, z: H.depth.nose_tip },
-            isVisible: true
+            visibility: 1,
+            isUsable: true
         },
         eyes: {
             left: {
                 position: { x: -H.width.eye_to_eye / 2, y: H.height.eye_line, z: H.depth.eye_plane },
-                isVisible: true
+                visibility: 1,
+                isUsable: true
             },
             right: {
                 position: { x: H.width.eye_to_eye / 2, y: H.height.eye_line, z: H.depth.eye_plane },
-                isVisible: true
+                visibility: 1,
+                isUsable: true
             },
         },
         rig: {
             leftEar: {
                 position: { x: -H.width.ear_to_ear / 2, y: H.offset.ear_y, z: -0.02 },
-                isVisible: true
+                visibility: 1,
+                isUsable: true
             },
             rightEar: {
                 position: { x: H.width.ear_to_ear / 2, y: H.offset.ear_y, z: -0.02 },
-                isVisible: true
+                visibility: 1,
+                isUsable: true
             },
             leftTemple: {
                 position: { x: -H.width.temple_to_temple / 2, y: H.offset.ear_y, z: 0 },
-                isVisible: true
+                visibility: 1,
+                isUsable: true
             },
             rightTemple: {
                 position: { x: H.width.temple_to_temple / 2, y: H.offset.ear_y, z: 0 },
-                isVisible: true
+                visibility: 1,
+                isUsable: true
             },
         },
         mouth: {
             left: {
                 position: { x: -H.width.mouth_width / 2, y: H.height.mouth_line, z: H.depth.mouth_plane },
-                isVisible: true
+                visibility: 1,
+                isUsable: true
             },
             right: {
                 position: { x: H.width.mouth_width / 2, y: H.height.mouth_line, z: H.depth.mouth_plane },
-                isVisible: true
+                visibility: 1,
+                isUsable: true
             },
         },
         brows: {
             left: {
                 position: { x: -H.width.eye_to_eye / 2, y: H.height.forehead_top * 0.5, z: H.depth.eye_plane },
-                isVisible: true
+                visibility: 1,
+                isUsable: true
             },
             right: {
                 position: { x: H.width.eye_to_eye / 2, y: H.height.forehead_top * 0.5, z: H.depth.eye_plane },
-                isVisible: true
+                visibility: 1,
+                isUsable: true
             },
         },
         bounds: {
             middleTop: {
                 position: { x: 0, y: H.height.forehead_top, z: 0.02 },
-                isVisible: true
+                visibility: 1,
+                isUsable: true
             },
             middleBottom: {
                 position: { x: 0, y: H.height.chin_tip, z: 0.02 },
-                isVisible: true
+                visibility: 1,
+                isUsable: true
             }
         },
     };
@@ -120,7 +133,7 @@ describe('Face - getSkullCenter', () => {
         
         const center = face.getSkullCenter();
 
-        expect(center.isVisible).toBe(true);
+        expect(center.isUsable).toBe(true);
         expect(center.position.x).toBeCloseTo(0, 1);
     });
 });
@@ -206,23 +219,40 @@ describe('Face - getSkullCenter', () => {
         
         const center = face.getSkullCenter();
 
-        expect(center.isVisible).toBe(true);
+        expect(center.isUsable).toBe(true);
     });
 
     it('should return invisible when no landmarks are visible', () => {
         const emptyHead: FaceData = {
-            nose: { position: { x: 0, y: 0, z: 0 }, isVisible: false },
-            eyes: { left: { position: { x: 0, y: 0, z: 0 }, isVisible: false }, right: { position: { x: 0, y: 0, z: 0 }, isVisible: false } },
-            brows: { left: { position: { x: 0, y: 0, z: 0 }, isVisible: false }, right: { position: { x: 0, y: 0, z: 0 }, isVisible: false } },
-            mouth: { left: { position: { x: 0, y: 0, z: 0 }, isVisible: false }, right: { position: { x: 0, y: 0, z: 0 }, isVisible: false } },
-            rig: { leftEar: { position: { x: 0, y: 0, z: 0 }, isVisible: false }, rightEar: { position: { x: 0, y: 0, z: 0 }, isVisible: false }, leftTemple: { position: { x: 0, y: 0, z: 0 }, isVisible: false }, rightTemple: { position: { x: 0, y: 0, z: 0 }, isVisible: false } },
-            bounds: { middleTop: { position: { x: 0, y: 0, z: 0 }, isVisible: false }, middleBottom: { position: { x: 0, y: 0, z: 0 }, isVisible: false } },
+            nose: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+            eyes: {
+                left: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+                right: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+            },
+            brows: {
+                left: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+                right: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+            },
+            mouth: {
+                left: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+                right: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+            },
+            rig: {
+                leftEar: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+                rightEar: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+                leftTemple: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+                rightTemple: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+            },
+            bounds: {
+                middleTop: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+                middleBottom: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+            },
         };
         const face = new Face(emptyHead, DEFAULT_HEAD_PROPORTIONS);
         
         const center = face.getSkullCenter();
 
-        expect(center.isVisible).toBe(false);
+        expect(center.isUsable).toBe(false);
     });
 });
 
@@ -646,19 +676,19 @@ describe('Face - rotation comparison with known rotations', () => {
 describe('Face - edge cases', () => {
     it('should handle missing ear landmarks', () => {
         const head = createCanonicalHead();
-        head.rig.leftEar.isVisible = false;
-        head.rig.rightEar.isVisible = false;
+        head.rig.leftEar.isUsable = false;
+        head.rig.rightEar.isUsable = false;
         
         const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
         
         const center = face.getSkullCenter();
         
-        expect(center.isVisible).toBe(true); // Should still work using eyes
+        expect(center.isUsable).toBe(true); // Should still work using eyes
     });
 
     it('should handle missing nose landmark', () => {
         const head = createCanonicalHead();
-        head.nose.isVisible = false;
+        head.nose.isUsable = false;
         
         const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
         
@@ -668,8 +698,8 @@ describe('Face - edge cases', () => {
 
     it('should handle missing eye landmarks', () => {
         const head = createCanonicalHead();
-        head.eyes.left.isVisible = false;
-        head.eyes.right.isVisible = false;
+        head.eyes.left.isUsable = false;
+        head.eyes.right.isUsable = false;
         
         const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
         
@@ -677,25 +707,14 @@ describe('Face - edge cases', () => {
         expect(pitch).toBe(0);
     });
 
-    it('should handle null/undefined landmark in translate', () => {
-        const head = {
-            ...createCanonicalHead(),
-            nose: null as any,
-        };
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
-        
-        const translated = face.translate({ x: 0.1, y: 0.2, z: 0.3 });
-        expect(translated.data.nose).toBeNull();
-    });
-
     it('should handle invisible skull center in center()', () => {
         const head = createCanonicalHead();
-        head.rig.leftEar.isVisible = false;
-        head.rig.rightEar.isVisible = false;
-        head.rig.leftTemple.isVisible = false;
-        head.rig.rightTemple.isVisible = false;
-        head.eyes.left.isVisible = false;
-        head.eyes.right.isVisible = false;
+        head.rig.leftEar.isUsable = false;
+        head.rig.rightEar.isUsable = false;
+        head.rig.leftTemple.isUsable = false;
+        head.rig.rightTemple.isUsable = false;
+        head.eyes.left.isUsable = false;
+        head.eyes.right.isUsable = false;
         
         const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
         const centered = face.center();
@@ -704,17 +723,6 @@ describe('Face - edge cases', () => {
         // When center can't be resolved, center() falls back to translating by (0.5,0.5,0.5)
         // and marks the face as centered.
         expect(centered.data.nose.position.x).toBeCloseTo(head.nose.position.x - 0.5);
-    });
-
-    it('should handle null/undefined landmark in scale', () => {
-        const head = {
-            ...createCanonicalHead(),
-            nose: null as any,
-        };
-        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
-        
-        const scaled = face.scale(2);
-        expect(scaled.data.nose).toBeNull();
     });
 
     it('should use cached faceWidth', () => {
@@ -738,8 +746,8 @@ describe('Face - edge cases', () => {
 
     it('should calculate width from eyes when ears not visible', () => {
         const head = createCanonicalHead();
-        head.rig.leftEar.isVisible = false;
-        head.rig.rightEar.isVisible = false;
+        head.rig.leftEar.isUsable = false;
+        head.rig.rightEar.isUsable = false;
         
         const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
         
@@ -750,10 +758,10 @@ describe('Face - edge cases', () => {
 
     it('should use default eye_to_eye when neither ears nor eyes visible', () => {
         const head = createCanonicalHead();
-        head.rig.leftEar.isVisible = false;
-        head.rig.rightEar.isVisible = false;
-        head.eyes.left.isVisible = false;
-        head.eyes.right.isVisible = false;
+        head.rig.leftEar.isUsable = false;
+        head.rig.rightEar.isUsable = false;
+        head.eyes.left.isUsable = false;
+        head.eyes.right.isUsable = false;
         
         const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
         
@@ -779,6 +787,28 @@ describe('Face - edge cases', () => {
         const rebase2 = face.rebase;
         
         expect(rebase1).toBe(rebase2);
+    });
+
+    it('normalize should not produce Infinity when width collapses to ~0', () => {
+        const head = createCanonicalHead();
+        // Collapse ear-to-ear width to 0 (can happen with bad upstream frames)
+        head.rig.leftEar.position = { x: 0.5, y: 0.5, z: 0 };
+        head.rig.rightEar.position = { x: 0.5, y: 0.5, z: 0 };
+
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+        const normalized = face.normalize();
+
+        expect(Number.isFinite(normalized.data.nose.position.x)).toBe(true);
+        expect(Number.isFinite(normalized.data.nose.position.y)).toBe(true);
+        expect(Number.isFinite(normalized.data.nose.position.z)).toBe(true);
+    });
+
+    it('scale ignores non-finite factors', () => {
+        const head = createCanonicalHead();
+        const face = new Face(head, DEFAULT_HEAD_PROPORTIONS);
+
+        expect(face.scale(Number.POSITIVE_INFINITY)).toBe(face);
+        expect(face.scale(Number.NaN)).toBe(face);
     });
 });
 

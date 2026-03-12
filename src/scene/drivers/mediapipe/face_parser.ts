@@ -32,7 +32,8 @@ export interface HeadParserConfig {
 
 interface RawLandmark {
     position: Vector3;
-    isVisible: boolean;
+    visibility: number | null;
+    isUsable: boolean;
 }
 
 export class FaceParser {
@@ -50,37 +51,48 @@ export class FaceParser {
     /**
      * Parses raw MediaPipe landmarks into semantic Face data.
      * @param rawDataVector - array of landmarks from MediaPipe (indices 0-477)
-     * @returns Face with semantic landmarks and visibility flags
+     * @returns Face with semantic landmarks, raw `visibility` scores, and `isUsable` quality flags
      */
-    public parse(rawDataVector: Partial<Vector3>[]): Face {
+    public parse(rawDataVector: Array<Partial<Vector3> & { visibility?: number | null }>): Face {
+        const missing: RawLandmark = {
+            position: { x: -1, y: -1, z: -1 },
+            visibility: null,
+            isUsable: false,
+        };
+
         const createLandmark = (index: number): RawLandmark => {
             const landmark = rawDataVector[index];
             if (!landmark) {
-                return {
-                    position: { x: -1, y: -1, z: -1 },
-                    isVisible: false,
-                };
+                return missing;
             }
 
-            let x = landmark?.x ?? 0;
+            const hasXY = landmark.x !== undefined && landmark.x !== null &&
+                landmark.y !== undefined && landmark.y !== null;
+
+            const rawX = landmark.x ?? 0;
+            const rawY = landmark.y ?? 0;
+            const rawZ = landmark.z ?? 0;
+
+            if (!Number.isFinite(rawX) || !Number.isFinite(rawY) || !Number.isFinite(rawZ)) {
+                return missing;
+            }
+
+            let x = rawX;
 
             if (this.config.mirror) {
                 x = 1.0 - x;
             }
 
-            const isVisible = 
-                landmark.x !== undefined && landmark.x !== null &&
-                landmark.y !== undefined && landmark.y !== null &&
-                landmark.x >= 0 && landmark.x <= 1 &&
-                landmark.y >= 0 && landmark.y <= 1;
+            const visibility = Number.isFinite(landmark.visibility as number) ? (landmark.visibility as number) : null;
 
             return {
                 position: {
-                    x: x ?? 0,
-                    y: landmark?.y ?? 0,
-                    z: landmark?.z ?? 0
+                    x,
+                    y: rawY,
+                    z: rawZ
                 },
-                isVisible
+                visibility,
+                isUsable: hasXY,
             };
         };
 
