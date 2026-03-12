@@ -7,7 +7,7 @@ import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts
 import {
     DEFAULT_SCENE_SETTINGS,
     ELEMENT_TYPES, LOOK_MODES,
-    PROJECTION_IDS,
+    STANDARD_PROJECTION_IDS,
     PROJECTION_TYPES,
 } from "../../scene/types.ts";
 import {
@@ -81,7 +81,7 @@ export function tutorial_7(
 
     // Apply head tracking to screen position (moves the "window" we're looking through)
     world.setScreen({
-        id: PROJECTION_IDS.SCREEN,
+        id: STANDARD_PROJECTION_IDS.SCREEN,
         type: PROJECTION_TYPES.SCREEN,
         lookMode: LOOK_MODES.ROTATION,
         modifiers: {

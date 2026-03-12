@@ -6,7 +6,7 @@ import {
     DEFAULT_SCENE_SETTINGS,
     ELEMENT_TYPES,
     LOOK_MODES,
-    PROJECTION_IDS,
+    STANDARD_PROJECTION_IDS,
     PROJECTION_TYPES
 } from "../../scene/types.ts";
 import {
@@ -53,7 +53,7 @@ export function tutorial_9(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     world.enableDefaultPerspective(config.width, config.height);
 
     world.setScreen({
-        id: PROJECTION_IDS.SCREEN,
+        id: STANDARD_PROJECTION_IDS.SCREEN,
         type: PROJECTION_TYPES.SCREEN,
         lookMode: LOOK_MODES.ROTATION,
         modifiers: {

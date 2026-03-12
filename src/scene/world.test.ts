@@ -5,7 +5,7 @@ import {SceneClock} from "./scene_clock";
 import type {WorldSettings} from "./world_settings";
 import {
     PROJECTION_TYPES,
-    PROJECTION_IDS,
+    STANDARD_PROJECTION_IDS,
     LOOK_MODES,
     DEFAULT_WINDOW_CONFIG,
     WindowConfig,
@@ -39,7 +39,7 @@ describe("World", () => {
                 settings: DEFAULT_SCENE_SETTINGS,
                 playback: {now: 0, delta: 16, progress: 0, frameCount: 1},
                 elements: new Map(),
-                projections: new Map([[PROJECTION_IDS.EYE, {id: PROJECTION_IDS.EYE}], [PROJECTION_IDS.SCREEN, {id: PROJECTION_IDS.SCREEN}]]),
+                projections: new Map([[STANDARD_PROJECTION_IDS.EYE, {id: STANDARD_PROJECTION_IDS.EYE}], [STANDARD_PROJECTION_IDS.SCREEN, {id: STANDARD_PROJECTION_IDS.SCREEN}]]),
             }),
             setEye: vi.fn(),
             setScreen: vi.fn(),
@@ -51,7 +51,7 @@ describe("World", () => {
                 settings: DEFAULT_SCENE_SETTINGS,
                 playback: {now: 0, delta: 16, progress: 0, frameCount: 1},
                 elements: new Map(),
-                projections: new Map([[PROJECTION_IDS.EYE, {id: PROJECTION_IDS.EYE}], [PROJECTION_IDS.SCREEN, {id: PROJECTION_IDS.SCREEN}]]),
+                projections: new Map([[STANDARD_PROJECTION_IDS.EYE, {id: STANDARD_PROJECTION_IDS.EYE}], [STANDARD_PROJECTION_IDS.SCREEN, {id: STANDARD_PROJECTION_IDS.SCREEN}]]),
             }),
             getSettings: vi.fn().mockReturnValue({
                 window: WindowConfig.create(DEFAULT_WINDOW_CONFIG),
@@ -123,7 +123,7 @@ describe("World", () => {
 
         it("should throw error for invalid mode", () => {
             expect(() => {
-                world.setEye({lookMode: 'invalid' as any, id: PROJECTION_IDS.EYE, type: PROJECTION_TYPES.EYE});
+                world.setEye({lookMode: 'invalid' as any, id: STANDARD_PROJECTION_IDS.EYE, type: PROJECTION_TYPES.EYE});
             }).toThrow("invalid mode");
         });
     });
@@ -159,7 +159,7 @@ describe("World", () => {
 
         it("should throw error for invalid mode", () => {
             expect(() => {
-                world.setScreen({lookMode: 'invalid' as any, id: PROJECTION_IDS.SCREEN, type: PROJECTION_TYPES.SCREEN});
+                world.setScreen({lookMode: 'invalid' as any, id: STANDARD_PROJECTION_IDS.SCREEN, type: PROJECTION_TYPES.SCREEN});
             }).toThrow("invalid mode");
         });
     });

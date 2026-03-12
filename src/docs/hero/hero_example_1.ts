@@ -4,7 +4,7 @@ import {
 	    DEFAULT_SCENE_SETTINGS,
 	    WindowConfig,
 	    type ResolutionContext,
-        PROJECTION_IDS,
+        STANDARD_PROJECTION_IDS,
         PROJECTION_TYPES,
 	} from "../../scene/types.ts";
 import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
@@ -51,7 +51,7 @@ export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any,
 	        // The Projection Rig
 	        // Modifiers are now properties of the Eye projection itself.
 	        world.stage.setScreen({
-	            id: PROJECTION_IDS.SCREEN,
+	            id: STANDARD_PROJECTION_IDS.SCREEN,
 	            type: PROJECTION_TYPES.SCREEN,
 	            // position: { x: 0, y: 0, z: 1000 },
 	            // lookAt: { x: 0, y: 0, z: 0 },

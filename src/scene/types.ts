@@ -41,6 +41,11 @@ export const ELEMENT_LOOK_MODES = {
 } as const;
 export type ElementLookMode = typeof ELEMENT_LOOK_MODES[keyof typeof ELEMENT_LOOK_MODES];
 
+export const STANDARD_PROJECTION_IDS = {
+    EYE: 'eye',
+    SCREEN: 'screen',
+} as const;
+
 /**
  * Modifiers are static refs in the blueprint
  */
@@ -219,16 +224,11 @@ export const PROJECTION_TYPES = {
 } as const;
 export type ProjectionType = typeof PROJECTION_TYPES[keyof typeof PROJECTION_TYPES];
 
-export const PROJECTION_IDS = {
-    EYE: 'eye',
-    SCREEN: 'screen',
-} as const;
-
 export const DEFAULT_EYE_LOOK_AT: BlueprintProjectionLookAt = {
     type: PROJECTION_TYPES.EYE,
     lookMode: LOOK_MODES.LOOK_AT,
-    id: PROJECTION_IDS.EYE,
-    targetId: PROJECTION_IDS.SCREEN,
+    id: STANDARD_PROJECTION_IDS.EYE,
+    targetId: STANDARD_PROJECTION_IDS.SCREEN,
     position: {x: 0, y: 0, z: 100},
     lookAt: {x: 0, y: 0, z: 0},
     direction: {x: 0, y: 0, z: -1},
@@ -238,8 +238,8 @@ export const DEFAULT_EYE_LOOK_AT: BlueprintProjectionLookAt = {
 export const DEFAULT_EYE_ROTATION: BlueprintProjectionRotation = {
     type: PROJECTION_TYPES.EYE,
     lookMode: LOOK_MODES.ROTATION,
-    id: PROJECTION_IDS.EYE,
-    targetId: PROJECTION_IDS.SCREEN,
+    id: STANDARD_PROJECTION_IDS.EYE,
+    targetId: STANDARD_PROJECTION_IDS.SCREEN,
     position: {x: 0, y: 0, z: 100},
     rotation: {pitch: 0, yaw: 0, roll: 0},
     direction: {x: 0, y: 0, z: -1},
@@ -247,7 +247,7 @@ export const DEFAULT_EYE_ROTATION: BlueprintProjectionRotation = {
 };
 
 export const DEFAULT_SCREEN_LOOK_AT: BlueprintProjectionLookAt = {
-    id: PROJECTION_IDS.SCREEN,
+    id: STANDARD_PROJECTION_IDS.SCREEN,
     type: PROJECTION_TYPES.SCREEN,
     lookMode: LOOK_MODES.LOOK_AT,
     position: {x: 0, y: 0, z: 1000},
@@ -257,7 +257,7 @@ export const DEFAULT_SCREEN_LOOK_AT: BlueprintProjectionLookAt = {
 };
 
 export const DEFAULT_SCREEN_ROTATION: BlueprintProjectionRotation = {
-    id: PROJECTION_IDS.SCREEN,
+    id: STANDARD_PROJECTION_IDS.SCREEN,
     type: PROJECTION_TYPES.SCREEN,
     lookMode: LOOK_MODES.ROTATION,
     position: {x: 0, y: 0, z: 100},
@@ -678,8 +678,8 @@ export type Unwrapped<T> = T extends DynamicProperty<infer U> ? Unwrapped<U> : T
  */
 export type ReservedElementId =
     | 'camera'
-    | 'eye'
-    | 'screen'
+    | typeof STANDARD_PROJECTION_IDS.EYE
+    | typeof STANDARD_PROJECTION_IDS.SCREEN
     | 'player'
     | 'world'
     | 'origin';

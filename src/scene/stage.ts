@@ -18,11 +18,11 @@ import {
     type SceneSettings,
     projectionIsType,
     WindowConfig,
-    DEFAULT_EYE_LOOK_AT,
-    DEFAULT_SCREEN_ROTATION,
-    PROJECTION_IDS,
-    PROJECTION_TYPES,
-} from "./types.ts";
+	    DEFAULT_EYE_LOOK_AT,
+	    DEFAULT_SCREEN_ROTATION,
+	    STANDARD_PROJECTION_IDS,
+	    PROJECTION_TYPES,
+	} from "./types.ts";
 import {ElementResolver} from "./resolver/element_resolver.ts";
 import {ProjectionResolver} from "./projection/projection_resolver.ts";
 import {ProjectionAssetRegistry} from "./registry/projection_asset_registry.ts";
@@ -351,20 +351,20 @@ export class Stage<
 
     private getScreenProjection(
         resolutionPool: Record<string, ResolvedProjection>
-    ): ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN } {
-        const resolvedProjectionsMap = new Map(Object.entries(resolutionPool));
-        if (!resolvedProjectionsMap.has(PROJECTION_IDS.SCREEN)) {
-            throw new Error(`Resolution '${PROJECTION_IDS.SCREEN}' not found.`);
-        }
-        const screenProjection = resolvedProjectionsMap.get(PROJECTION_IDS.SCREEN);
-        if (!screenProjection) {
-            throw new Error(`Projection '${PROJECTION_IDS.SCREEN}' for screen not found`);
-        }
-        if(!projectionIsType(screenProjection, PROJECTION_TYPES.SCREEN)) {
-            throw new Error(`ScreenProjection '${PROJECTION_IDS.SCREEN}' is not type screen`);
-        }
-        return screenProjection;
-    }
+	    ): ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN } {
+	        const resolvedProjectionsMap = new Map(Object.entries(resolutionPool));
+	        if (!resolvedProjectionsMap.has(STANDARD_PROJECTION_IDS.SCREEN)) {
+	            throw new Error(`Resolution '${STANDARD_PROJECTION_IDS.SCREEN}' not found.`);
+	        }
+	        const screenProjection = resolvedProjectionsMap.get(STANDARD_PROJECTION_IDS.SCREEN);
+	        if (!screenProjection) {
+	            throw new Error(`Projection '${STANDARD_PROJECTION_IDS.SCREEN}' for screen not found`);
+	        }
+	        if(!projectionIsType(screenProjection, PROJECTION_TYPES.SCREEN)) {
+	            throw new Error(`ScreenProjection '${STANDARD_PROJECTION_IDS.SCREEN}' is not type screen`);
+	        }
+	        return screenProjection;
+	    }
 
     getCurrentState(): ResolvedSceneState | null {
         return this.lastFrameState;

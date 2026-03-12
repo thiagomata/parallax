@@ -7,7 +7,7 @@ import {
     DEFAULT_WINDOW_CONFIG,
     ELEMENT_TYPES,
     LOOK_MODES,
-    PROJECTION_IDS,
+    STANDARD_PROJECTION_IDS,
     PROJECTION_TYPES,
     WindowConfig,
     type AssetLoader,
@@ -56,7 +56,7 @@ describe("Stage", () => {
     });
 
     it("addElement throws when ID collides with an existing projection", () => {
-        expect(() => stage.addElement({ id: PROJECTION_IDS.SCREEN })).toThrow(
+        expect(() => stage.addElement({ id: STANDARD_PROJECTION_IDS.SCREEN })).toThrow(
             "ID collision: Cannot add element 'screen' - a projection with the same ID already exists."
         );
     });
@@ -101,10 +101,10 @@ describe("Stage", () => {
 
     it("addProjection throws when a projection targets its own descendant", () => {
         const projection: BlueprintProjection = {
-            id: PROJECTION_IDS.SCREEN,
+            id: STANDARD_PROJECTION_IDS.SCREEN,
             type: PROJECTION_TYPES.SCREEN,
             lookMode: LOOK_MODES.ROTATION,
-            targetId: PROJECTION_IDS.EYE,
+            targetId: STANDARD_PROJECTION_IDS.EYE,
             position: { x: 0, y: 0, z: 0 },
             direction: { x: 0, y: 0, z: 1 },
             rotation: { pitch: 0, yaw: 0, roll: 0 },
@@ -145,10 +145,10 @@ describe("Stage", () => {
         const getScreenProjection = (stage as any).getScreenProjection.bind(stage) as (pool: Record<string, ResolvedProjection>) => ResolvedProjection;
 
         expect(() => getScreenProjection({})).toThrow("Resolution 'screen' not found.");
-        expect(() => getScreenProjection({ [PROJECTION_IDS.SCREEN]: undefined as any })).toThrow("Projection 'screen' for screen not found");
+        expect(() => getScreenProjection({ [STANDARD_PROJECTION_IDS.SCREEN]: undefined as any })).toThrow("Projection 'screen' for screen not found");
 
         const nonScreen: ResolvedProjection = {
-            id: PROJECTION_IDS.SCREEN,
+            id: STANDARD_PROJECTION_IDS.SCREEN,
             type: PROJECTION_TYPES.EYE,
             position: { x: 0, y: 0, z: 0 },
             rotation: { pitch: 0, yaw: 0, roll: 0 },
@@ -157,7 +157,7 @@ describe("Stage", () => {
             distance: 1,
             effects: [],
         };
-        expect(() => getScreenProjection({ [PROJECTION_IDS.SCREEN]: nonScreen })).toThrow("ScreenProjection 'screen' is not type screen");
+        expect(() => getScreenProjection({ [STANDARD_PROJECTION_IDS.SCREEN]: nonScreen })).toThrow("ScreenProjection 'screen' is not type screen");
     });
 
     it("removeElement does not remove children; children become roots when parent is removed", () => {
@@ -297,12 +297,12 @@ describe("Stage", () => {
     });
 
 	    it("setEye replaces the eye projection", () => {
-	        const before = (stage as any).projectionRegistry.get(PROJECTION_IDS.EYE);
+	        const before = (stage as any).projectionRegistry.get(STANDARD_PROJECTION_IDS.EYE);
 	        stage.setEye({
 	            ...DEFAULT_EYE_ROTATION,
 	            position: { x: 1, y: 2, z: 3 },
 	        } as any);
-	        const after = (stage as any).projectionRegistry.get(PROJECTION_IDS.EYE);
+	        const after = (stage as any).projectionRegistry.get(STANDARD_PROJECTION_IDS.EYE);
 
 	        expect(after).toBeDefined();
 	        expect(after).not.toBe(before);
