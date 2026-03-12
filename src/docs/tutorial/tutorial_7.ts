@@ -2,13 +2,19 @@ import p5 from 'p5';
 import { World } from "../../scene/world.ts";
 import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
 import { SceneClock } from "../../scene/scene_clock.ts";
-// import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts";
 import { HeadTrackingDataProvider } from "../../scene/providers/head_tracking_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, PROJECTION_TYPES} from "../../scene/types.ts";
-import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
+import {
+    DEFAULT_SCENE_SETTINGS,
+    ELEMENT_TYPES, LOOK_MODES,
+    PROJECTION_IDS,
+    PROJECTION_TYPES,
+} from "../../scene/types.ts";
+import {
+    DEFAULT_SKETCH_CONFIG,
+    type SketchConfig
+} from "./tutorial_main_page.demo.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
-// import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
 
 /**
@@ -75,7 +81,7 @@ export function tutorial_7(
 
     // Apply head tracking to screen position (moves the "window" we're looking through)
     world.setScreen({
-        id: 'screen',
+        id: PROJECTION_IDS.SCREEN,
         type: PROJECTION_TYPES.SCREEN,
         lookMode: LOOK_MODES.ROTATION,
         modifiers: {

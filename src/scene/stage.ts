@@ -2,23 +2,26 @@ import {
     type AssetLoader,
     type BlueprintProjection,
     type BundleDynamicElement,
-    type BundleResolvedElement, DEFAULT_EYE_LOOK_AT, DEFAULT_SCREEN_ROTATION,
+    type BundleResolvedElement,
     type DataProviderLib,
     type DynamicProjection,
     type DynamicSceneState,
     type EffectLib,
     type GraphicProcessor,
     type GraphicsBundle,
-    PROJECTION_TYPES,
     type ProjectionEffectLib,
-    projectionIsType,
     type ResolutionContext,
     type ResolvedElement,
     type ResolvedProjection,
     type ResolvedSceneState,
     type ScenePlaybackState,
     type SceneSettings,
-    WindowConfig
+    projectionIsType,
+    WindowConfig,
+    DEFAULT_EYE_LOOK_AT,
+    DEFAULT_SCREEN_ROTATION,
+    PROJECTION_IDS,
+    PROJECTION_TYPES,
 } from "./types.ts";
 import {ElementResolver} from "./resolver/element_resolver.ts";
 import {ProjectionResolver} from "./projection/projection_resolver.ts";
@@ -350,15 +353,15 @@ export class Stage<
         resolutionPool: Record<string, ResolvedProjection>
     ): ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN } {
         const resolvedProjectionsMap = new Map(Object.entries(resolutionPool));
-        if (!resolvedProjectionsMap.has('screen')) {
-            throw new Error(`Resolution 'screen' not found.`);
+        if (!resolvedProjectionsMap.has(PROJECTION_IDS.SCREEN)) {
+            throw new Error(`Resolution '${PROJECTION_IDS.SCREEN}' not found.`);
         }
-        const screenProjection = resolvedProjectionsMap.get('screen');
+        const screenProjection = resolvedProjectionsMap.get(PROJECTION_IDS.SCREEN);
         if (!screenProjection) {
-            throw new Error(`Projection 'screen' for screen not found`);
+            throw new Error(`Projection '${PROJECTION_IDS.SCREEN}' for screen not found`);
         }
         if(!projectionIsType(screenProjection, PROJECTION_TYPES.SCREEN)) {
-            throw new Error(`ScreenProjection 'screen' is not type screen`);
+            throw new Error(`ScreenProjection '${PROJECTION_IDS.SCREEN}' is not type screen`);
         }
         return screenProjection;
     }

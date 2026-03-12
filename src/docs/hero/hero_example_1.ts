@@ -1,10 +1,12 @@
 import p5 from "p5";
 import {
-    ELEMENT_TYPES,
-    DEFAULT_SCENE_SETTINGS,
-    WindowConfig,
-    type ResolutionContext, PROJECTION_TYPES,
-} from "../../scene/types.ts";
+	    ELEMENT_TYPES,
+	    DEFAULT_SCENE_SETTINGS,
+	    WindowConfig,
+	    type ResolutionContext,
+        PROJECTION_IDS,
+        PROJECTION_TYPES,
+	} from "../../scene/types.ts";
 import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
 import { World } from "../../scene/world.ts";
@@ -46,14 +48,14 @@ export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any,
         p.createCanvas(config.width, config.height, p.WEBGL);
         gp = new P5GraphicProcessor(p, loader);
 
-        // The Projection Rig
-        // Modifiers are now properties of the Eye projection itself.
-        world.stage.setScreen({
-            id: 'screen',
-            type: PROJECTION_TYPES.SCREEN,
-            // position: { x: 0, y: 0, z: 1000 },
-            // lookAt: { x: 0, y: 0, z: 0 },
-            modifiers: {
+	        // The Projection Rig
+	        // Modifiers are now properties of the Eye projection itself.
+	        world.stage.setScreen({
+	            id: PROJECTION_IDS.SCREEN,
+	            type: PROJECTION_TYPES.SCREEN,
+	            // position: { x: 0, y: 0, z: 1000 },
+	            // lookAt: { x: 0, y: 0, z: 0 },
+	            modifiers: {
                 carModifiers: [new OrbitModifier(p, 1000)],
                 stickModifiers: [new CenterFocusModifier()]
             }

@@ -219,11 +219,16 @@ export const PROJECTION_TYPES = {
 } as const;
 export type ProjectionType = typeof PROJECTION_TYPES[keyof typeof PROJECTION_TYPES];
 
+export const PROJECTION_IDS = {
+    EYE: 'eye',
+    SCREEN: 'screen',
+} as const;
+
 export const DEFAULT_EYE_LOOK_AT: BlueprintProjectionLookAt = {
     type: PROJECTION_TYPES.EYE,
     lookMode: LOOK_MODES.LOOK_AT,
-    id: 'eye',
-    targetId: 'screen',
+    id: PROJECTION_IDS.EYE,
+    targetId: PROJECTION_IDS.SCREEN,
     position: {x: 0, y: 0, z: 100},
     lookAt: {x: 0, y: 0, z: 0},
     direction: {x: 0, y: 0, z: -1},
@@ -233,8 +238,8 @@ export const DEFAULT_EYE_LOOK_AT: BlueprintProjectionLookAt = {
 export const DEFAULT_EYE_ROTATION: BlueprintProjectionRotation = {
     type: PROJECTION_TYPES.EYE,
     lookMode: LOOK_MODES.ROTATION,
-    id: 'eye',
-    targetId: 'screen',
+    id: PROJECTION_IDS.EYE,
+    targetId: PROJECTION_IDS.SCREEN,
     position: {x: 0, y: 0, z: 100},
     rotation: {pitch: 0, yaw: 0, roll: 0},
     direction: {x: 0, y: 0, z: -1},
@@ -242,7 +247,7 @@ export const DEFAULT_EYE_ROTATION: BlueprintProjectionRotation = {
 };
 
 export const DEFAULT_SCREEN_LOOK_AT: BlueprintProjectionLookAt = {
-    id: 'screen',
+    id: PROJECTION_IDS.SCREEN,
     type: PROJECTION_TYPES.SCREEN,
     lookMode: LOOK_MODES.LOOK_AT,
     position: {x: 0, y: 0, z: 1000},
@@ -252,7 +257,7 @@ export const DEFAULT_SCREEN_LOOK_AT: BlueprintProjectionLookAt = {
 };
 
 export const DEFAULT_SCREEN_ROTATION: BlueprintProjectionRotation = {
-    id: 'screen',
+    id: PROJECTION_IDS.SCREEN,
     type: PROJECTION_TYPES.SCREEN,
     lookMode: LOOK_MODES.ROTATION,
     position: {x: 0, y: 0, z: 100},

@@ -1,10 +1,11 @@
 import {
-    ALL_ELEMENT_TYPES,
     type BaseModifierSettings,
     type EffectBundle,
     type ResolvedBaseVisual,
     type ResolutionContext,
     type Rotation3,
+    ALL_ELEMENT_TYPES,
+    PROJECTION_IDS,
 } from "../types.ts";
 import { lookAtRotation } from "../utils/projection_utils.ts";
 
@@ -35,7 +36,7 @@ function lookAtCamera(
     current: ResolvedBaseVisual
 ): ResolvedBaseVisual {
     // Look up camera (EYE) projection from pool
-    const camera = context.projectionPool['eye'] || context.projectionPool['screen'];
+    const camera = context.projectionPool[PROJECTION_IDS.EYE] || context.projectionPool[PROJECTION_IDS.SCREEN];
     if (!camera) {
         return current;  // Graceful degradation - no camera found
     }

@@ -4,26 +4,36 @@ import {
     type BlueprintCone,
     type BlueprintCylinder,
     type BlueprintElliptical,
-    type BlueprintFloor, blueprintIsType, blueprintLookModeIs,
+    type BlueprintFloor,
+    blueprintIsType,
+    blueprintLookModeIs,
     type BlueprintPanel,
-    type BlueprintProjection, type BlueprintProjectionLookAt, type BlueprintProjectionRotation,
+    type BlueprintProjection,
+    type BlueprintProjectionLookAt,
+    type BlueprintProjectionRotation,
     type BlueprintPyramid,
     type BlueprintSphere,
     type BlueprintText,
     type BlueprintTorus,
-    type BundleDynamicElement, DEFAULT_EYE_LOOK_AT, DEFAULT_EYE_ROTATION,
-    DEFAULT_SCREEN_LOOK_AT, DEFAULT_SCREEN_ROTATION,
+    type BundleDynamicElement,
     type DataProviderLib,
     type EffectLib,
     type ElementId,
     type GraphicProcessor,
-    type GraphicsBundle, LOOK_MODES, type LookMode,
-    PROJECTION_TYPES,
+    type GraphicsBundle,
+    type LookMode,
     type ProjectionEffectLib,
     type ProjectionMatrix,
     type ResolvedProjection,
     type ResolvedSceneState,
     WindowConfig,
+    DEFAULT_EYE_LOOK_AT,
+    DEFAULT_EYE_ROTATION,
+    DEFAULT_SCREEN_LOOK_AT,
+    DEFAULT_SCREEN_ROTATION,
+    LOOK_MODES,
+    PROJECTION_IDS,
+    PROJECTION_TYPES,
 } from "./types.ts";
 import {Stage} from "./stage.ts";
 import type {WorldSettings} from "./world_settings.ts";
@@ -62,7 +72,7 @@ export class World<
 
     public setEye<T extends Partial<BlueprintProjection>>(
         blueprintEye: T & {
-            id: 'eye',
+            id: typeof PROJECTION_IDS.EYE,
             type: typeof PROJECTION_TYPES.EYE,
             lookMode: LookMode,
         }
@@ -71,7 +81,7 @@ export class World<
             const rotateEye: BlueprintProjectionRotation = {
                 ...DEFAULT_EYE_ROTATION,
                 ...blueprintEye,
-                id: 'eye',
+                id: PROJECTION_IDS.EYE,
                 type: PROJECTION_TYPES.EYE,
                 lookMode: LOOK_MODES.ROTATION,
             };
@@ -85,7 +95,7 @@ export class World<
             const lookAtEye: BlueprintProjectionLookAt = {
                 ...DEFAULT_EYE_LOOK_AT,
                 ...blueprintEye,
-                id: 'eye',
+                id: PROJECTION_IDS.EYE,
                 type: PROJECTION_TYPES.EYE,
                 lookMode: LOOK_MODES.LOOK_AT,
             };
@@ -100,7 +110,7 @@ export class World<
 
     public setScreen<T extends Partial<BlueprintProjection>>(
         blueprintScreen: T & {
-            id: 'screen',
+            id: typeof PROJECTION_IDS.SCREEN,
             type: typeof PROJECTION_TYPES.SCREEN,
             lookMode: LookMode,
         }
@@ -109,7 +119,7 @@ export class World<
             const rotateScreen: BlueprintProjectionRotation = {
                 ...DEFAULT_SCREEN_ROTATION,
                 ...blueprintScreen,
-                id: 'screen',
+                id: PROJECTION_IDS.SCREEN,
                 type: PROJECTION_TYPES.SCREEN,
                 lookMode: LOOK_MODES.ROTATION,
             };
@@ -123,7 +133,7 @@ export class World<
             const lookAtScreen: BlueprintProjectionLookAt = {
                 ...DEFAULT_SCREEN_LOOK_AT,
                 ...blueprintScreen,
-                id: 'screen',
+                id: PROJECTION_IDS.SCREEN,
                 type: PROJECTION_TYPES.SCREEN,
                 lookMode: LOOK_MODES.LOOK_AT,
             };
@@ -259,8 +269,8 @@ export class World<
             sceneId: this.sceneClock.sceneId,
         });
 
-        const eye = finalState.projections?.get('eye');
-        const screen = finalState.projections?.get('screen');
+        const eye = finalState.projections?.get(PROJECTION_IDS.EYE);
+        const screen = finalState.projections?.get(PROJECTION_IDS.SCREEN);
 
         if (eye && screen) {
             gp.setCamera(eye);

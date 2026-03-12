@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { LookAtEffect } from './look_at_effect.ts';
-import type { ResolvedBaseVisual } from '../types.ts';
+import { PROJECTION_IDS, type ResolvedBaseVisual } from '../types.ts';
 
 describe('LookAtEffect', () => {
     const createContext = (projectionPool: Record<string, any> = {}, previousResolved: any = null) => {
@@ -31,12 +31,12 @@ describe('LookAtEffect', () => {
     });
 
     describe("lookAt: 'CAMERA'", () => {
-        it('should rotate to face camera when camera exists in pool', () => {
+	        it('should rotate to face camera when camera exists in pool', () => {
             // Camera at (0, 0, 100), element at (0, 0, 0) - camera directly in front
-            const element = createElement({ x: 0, y: 0, z: 0 }, { pitch: 0, yaw: 0, roll: 0 });
-            const context = createContext({
-                eye: { position: { x: 0, y: 0, z: 100 }, rotate: { pitch: 0, yaw: 0, roll: 0 } }
-            });
+	            const element = createElement({ x: 0, y: 0, z: 0 }, { pitch: 0, yaw: 0, roll: 0 });
+	            const context = createContext({
+	                [PROJECTION_IDS.EYE]: { position: { x: 0, y: 0, z: 100 }, rotate: { pitch: 0, yaw: 0, roll: 0 } }
+	            });
             const settings = { lookAt: 'CAMERA', enabled: true, axis: { x: true, y: true, z: false } };
             const resolutionPool = createResolutionPool({});
 
@@ -64,11 +64,11 @@ describe('LookAtEffect', () => {
             expect(result.rotate?.roll).toBe(0.1);
         });
 
-        it('should use screen as fallback when eye not in pool', () => {
-            const element = createElement({ x: 0, y: 0, z: 0 });
-            const context = createContext({
-                screen: { position: { x: 0, y: 0, z: 1000 }, rotate: { pitch: 0, yaw: 0, roll: 0 } }
-            });
+	        it('should use screen as fallback when eye not in pool', () => {
+	            const element = createElement({ x: 0, y: 0, z: 0 });
+	            const context = createContext({
+	                [PROJECTION_IDS.SCREEN]: { position: { x: 0, y: 0, z: 1000 }, rotate: { pitch: 0, yaw: 0, roll: 0 } }
+	            });
             const settings = { lookAt: 'CAMERA', enabled: true };
             const resolutionPool = createResolutionPool({});
 
@@ -80,11 +80,11 @@ describe('LookAtEffect', () => {
             expect(result.rotate?.yaw).toBeCloseTo(0);
         });
 
-        it('should respect axis locks', () => {
-            const element = createElement({ x: 0, y: 0, z: 0 });
-            const context = createContext({
-                eye: { position: { x: 100, y: 100, z: 100 }, rotate: { pitch: 0, yaw: 0, roll: 0 } }
-            });
+	        it('should respect axis locks', () => {
+	            const element = createElement({ x: 0, y: 0, z: 0 });
+	            const context = createContext({
+	                [PROJECTION_IDS.EYE]: { position: { x: 100, y: 100, z: 100 }, rotate: { pitch: 0, yaw: 0, roll: 0 } }
+	            });
             const settings = { lookAt: 'CAMERA', enabled: true, axis: { x: false, y: true, z: false } };
             const resolutionPool = createResolutionPool({});
 
