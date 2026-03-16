@@ -145,6 +145,9 @@ export class ProjectionResolver<
             const res = carModifier.getCarPosition(currentPosition, modifierContext);
             if (res.success) {
                 currentPosition = res.value.position;
+                if (res.value.rotation) {
+                    currentRotation = res.value.rotation;
+                }
                 break;
             }
         }

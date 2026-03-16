@@ -16,16 +16,19 @@ import {
     type BlueprintText,
     type BlueprintTorus,
     type BundleDynamicElement,
+    type CarModifier,
     type DataProviderLib,
     type EffectLib,
     type ElementId,
     type GraphicProcessor,
     type GraphicsBundle,
     type LookMode,
+    type NudgeModifier,
     type ProjectionEffectLib,
     type ProjectionMatrix,
     type ResolvedProjectionWithGlobals,
     type ResolvedSceneState,
+    type StickModifier,
     WindowConfig,
     DEFAULT_EYE_LOOK_AT,
     DEFAULT_EYE_ROTATION,
@@ -214,6 +217,14 @@ export class World<
         for (const element of preset.elements) {
             this.stage.addElement(element as any);
         }
+    }
+
+    public addModifierToProjection(
+        projectionId: string,
+        modifier: CarModifier | NudgeModifier | StickModifier,
+        modifierType: 'car' | 'nudge' | 'stick'
+    ): void {
+        this.stage.addModifierToProjection(projectionId, modifier, modifierType);
     }
 
     public getElement(id: string): BundleDynamicElement<any, TBundle> | undefined {

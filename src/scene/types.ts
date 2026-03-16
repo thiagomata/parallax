@@ -421,6 +421,7 @@ export interface SceneStateDebugLog {
 export interface CarResult {
     name: string;
     position: Vector3;
+    rotation?: Rotation3;
 }
 
 export interface StickResult {

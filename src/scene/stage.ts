@@ -9,6 +9,9 @@ import {
     type EffectLib,
     type GraphicProcessor,
     type GraphicsBundle,
+    type CarModifier,
+    type NudgeModifier,
+    type StickModifier,
     type ProjectionEffectLib,
     type ResolutionContext,
     type ResolvedElement,
@@ -22,9 +25,10 @@ import {
     WindowConfig,
   	    DEFAULT_EYE_LOOK_AT,
   	    DEFAULT_SCREEN_ROTATION,
+  	    LOOK_MODES,
   	    STANDARD_PROJECTION_IDS,
   	    PROJECTION_TYPES,
- 	} from "./types.ts";
+  	} from "./types.ts";
 import {ElementResolver} from "./resolver/element_resolver.ts";
 import {ProjectionResolver} from "./projection/projection_resolver.ts";
 import {ProjectionAssetRegistry} from "./registry/projection_asset_registry.ts";
@@ -153,6 +157,57 @@ export class Stage<
         }
 
         this.projectionRegistry.register(blueprint);
+        this.cachedDynamicState = null; // invalidate cache
+    }
+
+    public addModifierToProjection(
+        projectionId: string,
+        modifier: CarModifier | NudgeModifier | StickModifier,
+        modifierType: 'car' | 'nudge' | 'stick'
+    ): void {
+        const projection = this.projectionRegistry.get(projectionId);
+        if (!projection) {
+            throw new Error(`Projection '${projectionId}' not found`);
+        }
+
+        // Validate modifier type based on lookMode
+        const lookMode = projection.lookMode;
+        
+        if (lookMode === LOOK_MODES.LOOK_AT) {
+            // LOOK_AT mode only allows carModifiers and nudgeModifiers
+            if (modifierType === 'stick') {
+                throw new Error(`Cannot add stickModifier to projection '${projectionId}' with lookMode LOOK_AT`);
+            }
+        }
+
+        // Create new modifiers object with the new modifier
+        const existingModifiers = projection.modifiers ?? {};
+        
+        let newModifiers: {
+            carModifiers?: readonly CarModifier[];
+            nudgeModifiers?: readonly NudgeModifier[];
+            stickModifiers?: readonly StickModifier[];
+        };
+
+        if (modifierType === 'car') {
+            const existing = existingModifiers.carModifiers ?? [];
+            newModifiers = { ...existingModifiers, carModifiers: [...existing, modifier as CarModifier] };
+        } else if (modifierType === 'nudge') {
+            const existing = existingModifiers.nudgeModifiers ?? [];
+            newModifiers = { ...existingModifiers, nudgeModifiers: [...existing, modifier as NudgeModifier] };
+        } else {
+            const existing = existingModifiers.stickModifiers ?? [];
+            newModifiers = { ...existingModifiers, stickModifiers: [...existing, modifier as StickModifier] };
+        }
+
+        // Create new projection with updated modifiers (immutable update)
+        const updatedProjection: DynamicProjection = {
+            ...projection,
+            modifiers: newModifiers,
+        };
+
+        // Update the registry
+        this.projectionRegistry.update(projectionId, updatedProjection);
         this.cachedDynamicState = null; // invalidate cache
     }
 

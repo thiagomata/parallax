@@ -7,17 +7,20 @@ export class OrbitModifier implements CarModifier {
     active = true;
     private readonly radius: number;
     private readonly verticalBaseline: number;
+    private readonly rotationSpeed: number;
 
     tick() {}
 
-    constructor(_p5: p5, radius: number, verticalBaseline: number = -400) {
+    constructor(_p5: p5, radius: number, verticalBaseline: number = -400, rotationSpeed: number = 0) {
         this.radius = radius;
         this.verticalBaseline = verticalBaseline;
+        this.rotationSpeed = rotationSpeed;
     }
 
     getCarPosition(_initialCam: Vector3, context: ResolutionContext): FailableResult<{
         name: string;
-        position: Vector3
+        position: Vector3;
+        rotation?: { yaw: number; pitch: number; roll: number };
     }> {
         const circularProgress = context.playback.progress * 2 * Math.PI;
 
@@ -31,6 +34,7 @@ export class OrbitModifier implements CarModifier {
             value: {
                 name: this.name,
                 position: {x: camX, y: camY, z: camZ},
+                rotation: this.rotationSpeed ? { yaw: circularProgress * this.rotationSpeed, pitch: 0, roll: 0 } : undefined,
             }
         };
     }

@@ -652,4 +652,83 @@ describe("Stage", () => {
 	        expect(after).toBeDefined();
 	        expect(after).not.toBe(before);
 	    });
+
+    describe("addModifierToProjection", () => {
+        it("throws if projection doesn't exist", () => {
+            expect(() => {
+                (stage as any).addModifierToProjection('nonexistent', {} as any, 'car');
+            }).toThrow("Projection 'nonexistent' not found");
+        });
+
+        it("adds car modifier to projection", () => {
+            const mockModifier = {
+                name: 'test',
+                active: true,
+                tick: () => {},
+                priority: 1,
+                getCarPosition: () => ({ success: true, value: { name: 'test', position: { x: 10, y: 20, z: 30 } } })
+            };
+
+            (stage as any).addModifierToProjection('eye', mockModifier, 'car');
+
+            const projection = (stage as any).projectionRegistry.get('eye');
+            expect(projection.modifiers?.carModifiers).toHaveLength(1);
+            expect(projection.modifiers?.carModifiers?.[0]).toBe(mockModifier);
+        });
+
+        it("adds stick modifier to projection with ROTATION lookMode", () => {
+            const mockStickModifier = {
+                name: 'stickTest',
+                active: true,
+                tick: () => {},
+                priority: 1,
+                getStick: () => ({ success: true, value: { yaw: 0.5, pitch: 0.2, roll: 0.1 } })
+            };
+
+            (stage as any).addModifierToProjection('eye', mockStickModifier as any, 'stick');
+
+            const projection = (stage as any).projectionRegistry.get('eye');
+            expect(projection.modifiers?.stickModifiers).toHaveLength(1);
+        });
+
+        it("throws when adding stick modifier to LOOK_AT projection", () => {
+            // Add a LOOK_AT projection directly to registry
+            const lookAtProjection = {
+                id: 'testLookAt',
+                type: PROJECTION_TYPES.EYE,
+                position: { x: 0, y: 0, z: 0 },
+                lookAt: { x: 0, y: 0, z: 1 },
+                lookMode: LOOK_MODES.LOOK_AT,
+                modifiers: {},
+            };
+            
+            (stage as any).projectionRegistry.update('testLookAt', lookAtProjection as any);
+
+            const mockStickModifier = {
+                name: 'stickTest',
+                active: true,
+                tick: () => {},
+                priority: 1,
+                getStick: () => ({ success: true, value: { yaw: 0.5, pitch: 0.2, roll: 0.1 } })
+            };
+
+            expect(() => {
+                (stage as any).addModifierToProjection('testLookAt', mockStickModifier as any, 'stick');
+            }).toThrow("Cannot add stickModifier to projection 'testLookAt' with lookMode LOOK_AT");
+        });
+
+        it("adds nudge modifier", () => {
+            const mockNudgeModifier = {
+                name: 'nudgeTest',
+                active: true,
+                tick: () => {},
+                getNudge: () => ({ success: true, value: { x: 5, y: 10, z: 15 } })
+            };
+
+            (stage as any).addModifierToProjection('eye', mockNudgeModifier as any, 'nudge');
+
+            const projection = (stage as any).projectionRegistry.get('eye');
+            expect(projection.modifiers?.nudgeModifiers).toHaveLength(1);
+        });
+    });
 });
