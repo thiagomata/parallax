@@ -38,6 +38,7 @@ import {
 import {Stage} from "./stage.ts";
 import type {WorldSettings} from "./world_settings.ts";
 import {createPerspectiveMatrix} from "./modifiers/projection_matrix_utils.ts";
+import type { WorldPreset } from "./presets.ts";
 
 type ProjectionMatrixCalculator = (
     eye: ResolvedProjectionWithGlobals,
@@ -204,6 +205,15 @@ export class World<
         blueprint: BlueprintPanel<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
+    }
+
+    public loadPreset(preset: WorldPreset): void {
+        for (const projector of preset.projectors) {
+            this.stage.addProjection(projector);
+        }
+        for (const element of preset.elements) {
+            this.stage.addElement(element as any);
+        }
     }
 
     public getElement(id: string): BundleDynamicElement<any, TBundle> | undefined {

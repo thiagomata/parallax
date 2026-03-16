@@ -42,8 +42,11 @@ export const ELEMENT_LOOK_MODES = {
 export type ElementLookMode = typeof ELEMENT_LOOK_MODES[keyof typeof ELEMENT_LOOK_MODES];
 
 export const STANDARD_PROJECTION_IDS = {
-    EYE: 'eye',
+    ROOT: 'root',
+    CAR: 'car',
     SCREEN: 'screen',
+    HEAD: 'head',
+    EYE: 'eye',
 } as const;
 
 /**
