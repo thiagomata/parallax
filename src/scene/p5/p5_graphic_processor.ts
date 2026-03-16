@@ -4,6 +4,7 @@ import {
     type ElementAssets,
     type GraphicProcessor,
     type ProjectionMatrix,
+    type ProjectionTreeNode,
     type RenderTreeNode,
     type ResolvedBaseVisual,
     type ResolvedBox,
@@ -41,6 +42,35 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
             eye.lookAt.x, eye.lookAt.y, eye.lookAt.z,
             0, 1, 0
         );
+    }
+
+    public setCameraTree(root: ProjectionTreeNode | null): void {
+        if (!root) return;
+
+        const eyeNode = this.findProjectionInTree(root, 'eye');
+        const screenNode = this.findProjectionInTree(root, 'screen');
+
+        if (!eyeNode || !screenNode) {
+            throw new Error("No eye or screen projection found in tree");
+        }
+
+        const eyePos = eyeNode.props.globalPosition;
+        const screenPos = screenNode.props.globalPosition;
+
+        this.p.camera(
+            eyePos.x, eyePos.y, eyePos.z,
+            screenPos.x, screenPos.y, screenPos.z,
+            0, 1, 0
+        );
+    }
+
+    private findProjectionInTree(node: ProjectionTreeNode, id: string): ProjectionTreeNode | null {
+        if (node.props.id === id) return node;
+        for (const child of node.children) {
+            const found = this.findProjectionInTree(child, id);
+            if (found) return found;
+        }
+        return null;
     }
 
     public setProjectionMatrix(m: ProjectionMatrix): void {

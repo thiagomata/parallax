@@ -141,23 +141,365 @@ describe("Stage", () => {
         expect(buildRenderTree([])).toBeNull();
     });
 
-    it("getScreenProjection throws helpful errors for invalid pools", () => {
-        const getScreenProjection = (stage as any).getScreenProjection.bind(stage) as (pool: Record<string, ResolvedProjection>) => ResolvedProjection;
+    describe("buildProjectionTree", () => {
+        it("returns null when there are no projections", () => {
+            const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
+            const result = buildProjectionTree({});
+            expect(result.tree).toBeNull();
+            expect(result.flatMap.size).toBe(0);
+        });
 
-        expect(() => getScreenProjection({})).toThrow("Resolution 'screen' not found.");
-        expect(() => getScreenProjection({ [STANDARD_PROJECTION_IDS.SCREEN]: undefined as any })).toThrow("Projection 'screen' for screen not found");
+        it("builds tree with single root projection", () => {
+            const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
+            const pool: Record<string, ResolvedProjection> = {
+                eye: {
+                    id: "eye",
+                    type: PROJECTION_TYPES.EYE,
+                    position: { x: 0, y: 5, z: 10 },
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 10,
+                    effects: [],
+                }
+            };
 
-        const nonScreen: ResolvedProjection = {
-            id: STANDARD_PROJECTION_IDS.SCREEN,
-            type: PROJECTION_TYPES.EYE,
-            position: { x: 0, y: 0, z: 0 },
-            rotation: { pitch: 0, yaw: 0, roll: 0 },
-            direction: { x: 0, y: 0, z: 1 },
-            lookAt: { x: 0, y: 0, z: 0 },
-            distance: 1,
-            effects: [],
-        };
-        expect(() => getScreenProjection({ [STANDARD_PROJECTION_IDS.SCREEN]: nonScreen })).toThrow("ScreenProjection 'screen' is not type screen");
+            const result = buildProjectionTree(pool);
+
+            expect(result.tree).not.toBeNull();
+            expect(result.tree!.props.id).toBe("eye");
+            expect(result.tree!.children).toHaveLength(0);
+            expect(result.flatMap.size).toBe(1);
+        });
+
+        it("computes global position for root projection", () => {
+            const pool: Record<string, ResolvedProjection> = {
+                eye: {
+                    id: "eye",
+                    type: PROJECTION_TYPES.EYE,
+                    position: { x: 10, y: 20, z: 30 },
+                    rotation: { yaw: 0.1, pitch: 0.2, roll: 0.3 },
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 10,
+                    effects: [],
+                }
+            };
+
+            const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
+            const result = buildProjectionTree(pool);
+
+            expect(result.tree!.props.globalPosition).toEqual({ x: 10, y: 20, z: 30 });
+            expect(result.tree!.props.globalRotation).toEqual({ yaw: 0.1, pitch: 0.2, roll: 0.3 });
+        });
+
+        it("links child projection to parent via targetId", () => {
+            const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
+            const pool: Record<string, ResolvedProjection> = {
+                screen: {
+                    id: "screen",
+                    type: PROJECTION_TYPES.SCREEN,
+                    position: { x: 0, y: 0, z: 0 },
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 10 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 10,
+                    effects: [],
+                },
+                eye: {
+                    id: "eye",
+                    type: PROJECTION_TYPES.EYE,
+                    targetId: "screen",
+                    position: { x: 0, y: 5, z: -10 },
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 10,
+                    effects: [],
+                }
+            };
+
+            const result = buildProjectionTree(pool);
+
+            expect(result.tree).not.toBeNull();
+            expect(result.tree!.props.id).toBe("screen");
+            expect(result.tree!.children).toHaveLength(1);
+            expect(result.tree!.children[0].props.id).toBe("eye");
+        });
+
+        it("computes global position for child projection", () => {
+            const pool: Record<string, ResolvedProjection> = {
+                screen: {
+                    id: "screen",
+                    type: PROJECTION_TYPES.SCREEN,
+                    position: { x: 0, y: 0, z: 0 },
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 10 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 10,
+                    effects: [],
+                },
+                eye: {
+                    id: "eye",
+                    type: PROJECTION_TYPES.EYE,
+                    targetId: "screen",
+                    position: { x: 0, y: 5, z: -10 },
+                    rotation: { yaw: 0.5, pitch: 0.2, roll: 0.1 },
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 10,
+                    effects: [],
+                }
+            };
+
+            const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
+            const result = buildProjectionTree(pool);
+
+            // screen (root): global = local
+            expect(result.flatMap.get("screen")!.globalPosition).toEqual({ x: 0, y: 0, z: 0 });
+            expect(result.flatMap.get("screen")!.globalRotation).toEqual({ yaw: 0, pitch: 0, roll: 0 });
+
+            // eye (child): global = parentGlobal + rotate(local)
+            // position: (0, 5, -10) + (0, 0, 0) = (0, 5, -10)
+            expect(result.flatMap.get("eye")!.globalPosition).toEqual({ x: 0, y: 5, z: -10 });
+            // rotation: (0.5, 0.2, 0.1) + (0, 0, 0) = (0.5, 0.2, 0.1)
+            expect(result.flatMap.get("eye")!.globalRotation).toEqual({ yaw: 0.5, pitch: 0.2, roll: 0.1 });
+        });
+
+        it("computes global position with parent rotation", () => {
+            const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
+            const pool: Record<string, ResolvedProjection> = {
+                screen: {
+                    id: "screen",
+                    type: PROJECTION_TYPES.SCREEN,
+                    position: { x: 10, y: 0, z: 0 },
+                    rotation: { yaw: Math.PI / 2, pitch: 0, roll: 0 }, // 90 degrees yaw
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 10,
+                    effects: [],
+                },
+                eye: {
+                    id: "eye",
+                    type: PROJECTION_TYPES.EYE,
+                    targetId: "screen",
+                    position: { x: 0, y: 0, z: -5 }, // 5 units "forward" in local space
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 5,
+                    effects: [],
+                }
+            };
+
+            const result = buildProjectionTree(pool);
+
+            // screen (root): global = local
+            expect(result.flatMap.get("screen")!.globalPosition).toEqual({ x: 10, y: 0, z: 0 });
+
+            // eye: position rotated by parent's rotation (90 yaw)
+            // local (0, 0, -5) rotated by (PI/2, 0, 0) = (5, 0, 0)
+            // global = (10, 0, 0) + (5, 0, 0) = (15, 0, 0)
+            expect(result.flatMap.get("eye")!.globalPosition.x).toBeCloseTo(15, 5);
+            expect(result.flatMap.get("eye")!.globalPosition.y).toBeCloseTo(0, 5);
+            expect(result.flatMap.get("eye")!.globalPosition.z).toBeCloseTo(0, 5);
+        });
+
+        it("returns virtual root when there are multiple roots", () => {
+            const pool: Record<string, ResolvedProjection> = {
+                eye: {
+                    id: "eye",
+                    type: PROJECTION_TYPES.EYE,
+                    position: { x: 0, y: 5, z: 10 },
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 10,
+                    effects: [],
+                },
+                screen: {
+                    id: "screen",
+                    type: PROJECTION_TYPES.SCREEN,
+                    position: { x: 0, y: 0, z: 0 },
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 10 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 10,
+                    effects: [],
+                }
+            };
+
+            const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
+            const result = buildProjectionTree(pool);
+
+            expect(result.tree).not.toBeNull();
+            expect(result.tree!.props.id).toBe("__root__");
+            expect(result.tree!.children).toHaveLength(2);
+        });
+
+        it("handles deep hierarchy", () => {
+            const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
+            const pool: Record<string, ResolvedProjection> = {
+                root: {
+                    id: "root",
+                    type: PROJECTION_TYPES.SCREEN,
+                    position: { x: 0, y: 0, z: 0 },
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 1 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 1,
+                    effects: [],
+                },
+                child1: {
+                    id: "child1",
+                    type: PROJECTION_TYPES.EYE,
+                    targetId: "root",
+                    position: { x: 0, y: 0, z: -10 },
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 10,
+                    effects: [],
+                },
+                child2: {
+                    id: "child2",
+                    type: PROJECTION_TYPES.EYE,
+                    targetId: "child1",
+                    position: { x: 5, y: 0, z: 0 },
+                    rotation: { yaw: 0.1, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 5,
+                    effects: [],
+                }
+            };
+
+            const result = buildProjectionTree(pool);
+
+            expect(result.tree!.props.id).toBe("root");
+            expect(result.tree!.children[0].props.id).toBe("child1");
+            expect(result.tree!.children[0].children[0].props.id).toBe("child2");
+
+            // child2 global = root + child1 + child2 transforms
+            // child1: (0, 0, -10) + (0, 0, 0) = (0, 0, -10)
+            expect(result.flatMap.get("child1")!.globalPosition).toEqual({ x: 0, y: 0, z: -10 });
+            // child2: (5, 0, 0) rotated by child1 rot (0) + child1 pos (0, 0, -10)
+            // = (5, 0, 0) + (0, 0, -10) = (5, 0, -10)
+            expect(result.flatMap.get("child2")!.globalPosition).toEqual({ x: 5, y: 0, z: -10 });
+        });
+
+        it("computes global rotation by accumulating all parent rotations", () => {
+            const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
+            const pool: Record<string, ResolvedProjection> = {
+                root: {
+                    id: "root",
+                    type: PROJECTION_TYPES.SCREEN,
+                    position: { x: 0, y: 0, z: 0 },
+                    rotation: { yaw: 0.1, pitch: 0.2, roll: 0.3 },
+                    lookAt: { x: 0, y: 0, z: 1 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 1,
+                    effects: [],
+                },
+                child: {
+                    id: "child",
+                    type: PROJECTION_TYPES.EYE,
+                    targetId: "root",
+                    position: { x: 0, y: 0, z: 0 },
+                    rotation: { yaw: 0.5, pitch: 0.6, roll: 0.7 },
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 1,
+                    effects: [],
+                }
+            };
+
+            const result = buildProjectionTree(pool);
+
+            // Child global rotation = local + parent
+            expect(result.flatMap.get("child")!.globalRotation).toEqual({
+                yaw: 0.1 + 0.5,
+                pitch: 0.2 + 0.6,
+                roll: 0.3 + 0.7
+            });
+        });
+
+        it("preserves original projection properties (effects, type, id)", () => {
+            const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
+            const pool: Record<string, ResolvedProjection> = {
+                eye: {
+                    id: "eye",
+                    type: PROJECTION_TYPES.EYE,
+                    position: { x: 0, y: 5, z: 10 },
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 10,
+                    effects: [{ type: 'testEffect', config: { foo: 'bar' } }] as any,
+                }
+            };
+
+            const result = buildProjectionTree(pool);
+
+            expect(result.tree!.props.id).toBe("eye");
+            expect(result.tree!.props.type).toBe(PROJECTION_TYPES.EYE);
+            expect(result.tree!.props.effects).toHaveLength(1);
+            expect((result.tree!.props.effects as any)[0].type).toBe("testEffect");
+            expect(result.tree!.props.lookAt).toEqual({ x: 0, y: 0, z: 0 });
+            expect(result.tree!.props.direction).toEqual({ x: 0, y: 0, z: 1 });
+        });
+
+        it("flatMap contains all projections with globals", () => {
+            const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
+            const pool: Record<string, ResolvedProjection> = {
+                screen: {
+                    id: "screen",
+                    type: PROJECTION_TYPES.SCREEN,
+                    position: { x: 0, y: 0, z: 0 },
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 10 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 10,
+                    effects: [],
+                },
+                eye: {
+                    id: "eye",
+                    type: PROJECTION_TYPES.EYE,
+                    targetId: "screen",
+                    position: { x: 0, y: 5, z: -10 },
+                    rotation: { yaw: 0.5, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 10,
+                    effects: [],
+                },
+                child: {
+                    id: "child",
+                    type: PROJECTION_TYPES.EYE,
+                    targetId: "eye",
+                    position: { x: 3, y: 0, z: 0 },
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    direction: { x: 0, y: 0, z: 1 },
+                    distance: 3,
+                    effects: [],
+                }
+            };
+
+            const result = buildProjectionTree(pool);
+
+            expect(result.flatMap.size).toBe(3);
+            expect(result.flatMap.has("screen")).toBe(true);
+            expect(result.flatMap.has("eye")).toBe(true);
+            expect(result.flatMap.has("child")).toBe(true);
+
+            // All entries should have globalPosition and globalRotation
+            for (const [id, proj] of result.flatMap) {
+                expect(proj.globalPosition).toBeDefined();
+                expect(proj.globalRotation).toBeDefined();
+                expect(proj.id).toBe(id);
+            }
+        });
     });
 
     it("removeElement does not remove children; children become roots when parent is removed", () => {
@@ -179,6 +521,7 @@ describe("Stage", () => {
         const gp = {
             dist: () => 0,
             drawTree: vi.fn(),
+            setCameraTree: vi.fn(),
         } as any;
 
         stage.render(gp, {
@@ -247,6 +590,7 @@ describe("Stage", () => {
         const gp = {
             dist: () => 0,
             drawTree: vi.fn(),
+            setCameraTree: vi.fn(),
         } as any;
 
         stage.render(gp, {
@@ -282,6 +626,7 @@ describe("Stage", () => {
         const gp = {
             dist,
             drawTree: vi.fn(),
+            setCameraTree: vi.fn(),
         } as any;
 
         stageWithProviders.render(gp, {

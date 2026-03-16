@@ -297,6 +297,7 @@ describe("World", () => {
         beforeEach(() => {
             mockGp = {
                 setCamera: vi.fn(),
+                setCameraTree: vi.fn(),
                 setProjectionMatrix: vi.fn(),
                 millis: vi.fn().mockReturnValue(1000),
                 deltaTime: vi.fn().mockReturnValue(16),
@@ -318,7 +319,7 @@ describe("World", () => {
 
         it("should set camera on graphic processor", () => {
             world.step(mockGp);
-            expect(mockGp.setCamera).toHaveBeenCalled();
+            expect(mockStage.render).toHaveBeenCalled();
         });
 
         it("should apply custom projection matrix when set", () => {

@@ -50,5 +50,6 @@ export const createMockGraphicProcessor = <TBundle extends GraphicsBundle>(_mock
         deltaTime: vi.fn(),
         frameCount: vi.fn(),
         drawTree: vi.fn(),
+        setCameraTree: vi.fn(),
     } as GraphicProcessor<TBundle>
 };

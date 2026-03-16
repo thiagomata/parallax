@@ -24,24 +24,24 @@ import {
     type LookMode,
     type ProjectionEffectLib,
     type ProjectionMatrix,
-    type ResolvedProjection,
+    type ResolvedProjectionWithGlobals,
     type ResolvedSceneState,
     WindowConfig,
     DEFAULT_EYE_LOOK_AT,
     DEFAULT_EYE_ROTATION,
     DEFAULT_SCREEN_LOOK_AT,
-	    DEFAULT_SCREEN_ROTATION,
-	    LOOK_MODES,
-	    STANDARD_PROJECTION_IDS,
-	    PROJECTION_TYPES,
-	} from "./types.ts";
+ 	    DEFAULT_SCREEN_ROTATION,
+ 	    LOOK_MODES,
+ 	    STANDARD_PROJECTION_IDS,
+ 	    PROJECTION_TYPES,
+ 	} from "./types.ts";
 import {Stage} from "./stage.ts";
 import type {WorldSettings} from "./world_settings.ts";
 import {createPerspectiveMatrix} from "./modifiers/projection_matrix_utils.ts";
 
 type ProjectionMatrixCalculator = (
-    eye: ResolvedProjection,
-    screen: ResolvedProjection,
+    eye: ResolvedProjectionWithGlobals,
+    screen: ResolvedProjectionWithGlobals,
     window: WindowConfig
 ) => ProjectionMatrix;
 
@@ -273,8 +273,6 @@ export class World<
 	        const screen = finalState.projections?.get(STANDARD_PROJECTION_IDS.SCREEN);
 
         if (eye && screen) {
-            gp.setCamera(eye);
-
             // Apply custom projection matrix if calculator is set
             if (this.projectionMatrixCalculator) {
                 const windowConfig = this.getWindowConfig();

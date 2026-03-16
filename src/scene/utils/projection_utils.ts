@@ -45,6 +45,29 @@ export function rotateVector(v: Vector3, r: Rotation3): Vector3 {
     };
 }
 
+export function computeGlobalTransform(
+    localPosition: Vector3,
+    localRotation: Rotation3,
+    parentGlobalPosition: Vector3,
+    parentGlobalRotation: Rotation3
+): { globalPosition: Vector3; globalRotation: Rotation3 } {
+    const rotatedPosition = rotateVector(localPosition, parentGlobalRotation);
+    
+    const globalPosition = {
+        x: rotatedPosition.x + parentGlobalPosition.x,
+        y: rotatedPosition.y + parentGlobalPosition.y,
+        z: rotatedPosition.z + parentGlobalPosition.z,
+    };
+    
+    const globalRotation = {
+        yaw: localRotation.yaw + parentGlobalRotation.yaw,
+        pitch: localRotation.pitch + parentGlobalRotation.pitch,
+        roll: localRotation.roll + parentGlobalRotation.roll,
+    };
+    
+    return { globalPosition, globalRotation };
+}
+
 export function lookAtRotation(
     fromPosition: Vector3,
     toPosition: Vector3,
