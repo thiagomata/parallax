@@ -27,7 +27,7 @@ export class OrbitModifier implements CarModifier {
         // Exactly the same math as the dummy
         const camX = Math.sin(circularProgress) * this.radius;
         const camZ = Math.cos(circularProgress) * this.radius;
-        const camY = this.verticalBaseline + Math.sin(circularProgress * 0.5) * 100;
+        const camY = this.verticalBaseline;
 
         return {
             success: true,

@@ -1,4 +1,4 @@
-import {type FailableResult, type StickModifier, type StickResult, type Vector3} from '../types';
+import {type FailableResult, type ResolutionContext, type StickModifier, type StickResult, type Vector3} from '../types';
 
 export class CenterFocusModifier implements StickModifier {
     name = "Center Focus";
@@ -11,7 +11,7 @@ export class CenterFocusModifier implements StickModifier {
     tick() {
     }
 
-    getStick(cameraPos: Vector3): FailableResult<StickResult> {
+    getStick(cameraPos: Vector3, _context: ResolutionContext): FailableResult<StickResult> {
         const distance = Math.sqrt(
             cameraPos.x ** 2 +
             cameraPos.y ** 2 +

@@ -47,7 +47,7 @@ export interface HeadTrackingModifierConfig {
 export const DEFAULT_HEAD_TRACKING_CONFIG: HeadTrackingModifierConfig = {
     damping: 1,
     smoothing: 0.1,
-    rotationSmoothing: 0.02,
+    rotationSmoothing: 0.1,
     threshold: 0.5,
     rotationThreshold: 0.01,
 };

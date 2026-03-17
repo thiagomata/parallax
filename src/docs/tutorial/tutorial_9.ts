@@ -5,9 +5,6 @@ import { SceneClock } from "../../scene/scene_clock.ts";
 import {
     DEFAULT_SCENE_SETTINGS,
     ELEMENT_TYPES,
-    LOOK_MODES,
-    STANDARD_PROJECTION_IDS,
-    PROJECTION_TYPES
 } from "../../scene/types.ts";
 import {
     P5AssetLoader,
@@ -19,9 +16,8 @@ import {
 } from "./tutorial_main_page.demo.ts";
 import { WorldSettings } from "../../scene/world_settings.ts";
 import { LookAtEffect } from "../../scene/effects/look_at_effect.ts";
-import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
-import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
 import {COLORS} from "../../scene/colors.ts";
+import {CenterOrbit} from "../../scene/presets.ts";
 
 /**
  * TUTORIAL 9: LOOK AT THE OBJECT
@@ -51,20 +47,7 @@ export function tutorial_9(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     );
 
     world.enableDefaultPerspective(config.width, config.height);
-
-    world.setScreen({
-        id: STANDARD_PROJECTION_IDS.SCREEN,
-        type: PROJECTION_TYPES.SCREEN,
-        lookMode: LOOK_MODES.ROTATION,
-        modifiers: {
-            carModifiers: [
-                new OrbitModifier(p, 300, 300),
-            ],
-            stickModifiers: [
-                new CenterFocusModifier()
-            ]
-        }
-    });
+    world.loadPreset(CenterOrbit(p, {radius: 300, verticalBaseline: 100}));
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
