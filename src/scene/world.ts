@@ -315,38 +315,6 @@ export class World<
         const eye = finalState.projections?.get(STANDARD_PROJECTION_IDS.EYE);
         const screen = finalState.projections?.get(STANDARD_PROJECTION_IDS.SCREEN);
 
-        // let x = document.getElementById("debugger") as HTMLElement;
-        // if (x) {
-        //     x.innerHTML = JSON.stringify(
-        //         {
-        //             "eye": {
-        //                 globalPosition: {
-        //                     x: Math.round(eye?.globalPosition?.x ?? -100),
-        //                     y: Math.round(eye?.globalPosition?.y ?? -100),
-        //                     z: Math.round(eye?.globalPosition?.z ?? 100),
-        //                 },
-        //                 globalRotation: {
-        //                     yaw:  Math.round(100 * (eye?.globalRotation?.yaw ?? -100)),
-        //                     pitch:  Math.round(100 * (eye?.globalRotation?.pitch ?? -100)),
-        //                     roll:  Math.round(100 * (eye?.globalRotation?.roll ?? -100)),
-        //                 }
-        //             },
-        //             "screen": {
-        //                 globalPosition: {
-        //                     x: Math.round(screen?.globalPosition?.x ?? -100),
-        //                     y: Math.round(screen?.globalPosition?.y ?? -100),
-        //                     z: Math.round(screen?.globalPosition?.z ?? 100),
-        //                 },
-        //                 globalRotation: {
-        //                     yaw:  Math.round(100 * (screen?.globalRotation?.yaw ?? -100)),
-        //                     pitch:  Math.round(100 * (screen?.globalRotation?.pitch ?? -100)),
-        //                     roll:  Math.round(100 * (screen?.globalRotation?.roll ?? -100)),
-        //                 }
-        //             }
-        //         }
-        //     )
-        // }
-
         if (eye && screen) {
             // Apply custom projection matrix if calculator is set
             if (this.projectionMatrixCalculator) {
