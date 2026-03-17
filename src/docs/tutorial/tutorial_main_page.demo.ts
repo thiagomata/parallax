@@ -268,4 +268,4 @@ renderStep('tutorial-6', '6. Integrated Scene (Hybrid Props)', tutorial_6, step6
 renderStep('tutorial-7', '7. Head Tracking', tutorial_7, step7Source);
 renderStep('tutorial-8', '8. Billboard', tutorial_8, step8Source);
 renderStep('tutorial-9', '9. Follow Object', tutorial_9, step9Source);
-    renderStep('tutorial-10', '10. Out of Screen', tutorial_10, step10Source);
+renderStep('tutorial-10', '10. Out of Screen', tutorial_10, step10Source);
