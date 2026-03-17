@@ -7,7 +7,6 @@ import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type ResolutionContext} from "../
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
 
-
 export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let graphicProcessor: P5GraphicProcessor;
     let world: World<P5Bundler, any, any>;
@@ -37,31 +36,30 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     // Call this to verify the custom projection pipeline works
     world.enableDefaultPerspective(config.width, config.height);
 
+    world.addBox({
+        type: ELEMENT_TYPES.BOX,
+        id: 'box',
+        width: 100,
+
+        // Dynamic Rotation: Continuous rotation
+        rotate: (context: ResolutionContext) => ({
+            pitch: -0.25 * Math.PI,
+            yaw: 0.25 * Math.PI + Math.PI * 2 * context.playback.progress,
+            roll: 0
+        }),
+
+        position: {x: 0, y: 0, z: 0},
+        fillColor: {red: 100, green: 100, blue: 255},
+        strokeColor: {red: 255, green: 255, blue: 255},
+        strokeWidth: 1,
+    });
+
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
 
         // Graphic Processor Initialization
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // REGISTRATION
-        // Using the "Extreme Typed" addBox method (no manual toProps/casting)
-        world.addBox({
-            type: ELEMENT_TYPES.BOX,
-            id: 'box',
-            width: 100,
-            
-            // Dynamic Rotation: Continuous rotation
-            rotate: (context: ResolutionContext) => ({
-                pitch: -0.25 * Math.PI,
-                yaw: 0.25 * Math.PI + Math.PI * 2 * context.playback.progress,
-                roll: 0
-            }),
-            
-            position: {x: 0, y: 0, z: 0},
-            fillColor: {red: 100, green: 100, blue: 255},
-            strokeColor: {red: 255, green: 255, blue: 255},
-            strokeWidth: 1,
-        });
     };
 
     p.draw = () => {

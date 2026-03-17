@@ -162,7 +162,7 @@ describe("HeadTrackingDataProvider", () => {
             expect(bounds.bottom.x).toBeDefined();
         });
 
-        it("should provide stick rotation with negated pitch and roll", () => {
+        it("should provide stick rotation", () => {
             const mockProvider = MockFaceProvider(mockFace);
             const tracker = new HeadTrackingDataProvider(
                 {} as any,

@@ -112,7 +112,8 @@ export class ProjectionResolver<
     resolve(
         dynamic: DynamicProjection,
         state: DynamicSceneState,
-        projectionPool: Record<string, ResolvedProjection> = {}
+        projectionPool: Record<string, ResolvedProjection> = {},
+        dataProviders: Record<string, unknown> = {}
     ): ResolvedProjection {
 
         const resolutionContext: ResolutionContext = {
@@ -121,7 +122,7 @@ export class ProjectionResolver<
             settings: state.settings,
             projectionPool,
             elementPool: {},
-            dataProviders: {},
+            dataProviders,
         };
 
         // Resolve Dynamic Properties (local space)
@@ -133,7 +134,7 @@ export class ProjectionResolver<
             settings: state.settings,
             projectionPool,
             elementPool: {},
-            dataProviders: {},
+            dataProviders,
         };
 
         // Apply Modifiers in Local Space
@@ -193,6 +194,7 @@ export class ProjectionResolver<
         let distance: number;
         let direction: Vector3;
         let finalLookAt: Vector3;
+        let finalRotation = currentRotation;
         
         if (lookMode === LOOK_MODES.ROTATION) {
             // rotation mode: compute lookAt from position + rotation + distance
@@ -278,19 +280,9 @@ export class ProjectionResolver<
             
             finalLookAt = resolved.lookAt;
             
-            // In lookAt mode, stick modifiers are ignored for direction
-            // (but roll could still be applied separately if needed)
+            // In lookAt mode, keep the original rotation for hierarchy transforms.
+            // Don't derive new rotation from direction - use what modifiers set.
         }
-
-        // Derive yaw/pitch from direction (−Z forward convention)
-        const yaw = Math.atan2(direction.x, -direction.z);
-        const pitch = Math.asin(-direction.y);
-
-        const finalRotation = {
-            ...currentRotation,
-            yaw,
-            pitch
-        };
 
         // Return LOCAL space resolved projection (hierarchy transform not applied)
         return {

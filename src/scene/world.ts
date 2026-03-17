@@ -40,7 +40,7 @@ import {
  	} from "./types.ts";
 import {Stage} from "./stage.ts";
 import type {WorldSettings} from "./world_settings.ts";
-import {createPerspectiveMatrix} from "./modifiers/projection_matrix_utils.ts";
+import {createPerspectiveMatrix, createOffAxisPerspectiveMatrix} from "./modifiers/projection_matrix_utils.ts";
 import type { WorldPreset } from "./presets.ts";
 
 type ProjectionMatrixCalculator = (
@@ -211,6 +211,10 @@ export class World<
     }
 
     public loadPreset(preset: WorldPreset): void {
+        // First, clear existing projections so preset values override defaults
+        for (const projector of preset.projectors) {
+            this.stage.removeProjection(projector.id);
+        }
         for (const projector of preset.projectors) {
             this.stage.addProjection(projector);
         }
@@ -258,8 +262,14 @@ export class World<
      * @param width - Canvas width (optional, uses WindowConfig from settings if not provided)
      * @param height - Canvas height (optional, uses WindowConfig from settings if not provided)
      * @param fov - Field of view in radians (default: PI/3 = 60 degrees)
+     * @param useOffAxis - If true, uses off-axis projection based on eye position (for VR head tracking)
      */
-    public enableDefaultPerspective(width?: number, height?: number, fov: number = Math.PI / 3): void {
+    public enableDefaultPerspective(
+        width?: number, 
+        height?: number, 
+        fov: number = Math.PI / 3,
+        useOffAxis: boolean = false
+    ): void {
         if (width !== undefined && height !== undefined) {
             this.stage.updateWindowConfig(WindowConfig.create({ width, height }));
         }
@@ -267,8 +277,20 @@ export class World<
         // Use createPerspectiveMatrix which matches p5's default perspective()
         // FOV defaults to 60 degrees (PI/3), matching p5's default
         // Near = 0.1, Far = 5000, matching p5's WEBGL defaults
-        this.projectionMatrixCalculator = (_eye, _screen, window) => {
+        this.projectionMatrixCalculator = (eye, screen, window) => {
             const aspect = window.width / window.height;
+            
+            if (useOffAxis) {
+                return createOffAxisPerspectiveMatrix(
+                    eye.globalPosition,
+                    screen.globalPosition,
+                    fov,
+                    aspect,
+                    0.1,
+                    5000
+                );
+            }
+            
             return createPerspectiveMatrix(
                 fov,
                 aspect,
@@ -290,8 +312,40 @@ export class World<
             sceneId: this.sceneClock.sceneId,
         });
 
-	        const eye = finalState.projections?.get(STANDARD_PROJECTION_IDS.EYE);
-	        const screen = finalState.projections?.get(STANDARD_PROJECTION_IDS.SCREEN);
+        const eye = finalState.projections?.get(STANDARD_PROJECTION_IDS.EYE);
+        const screen = finalState.projections?.get(STANDARD_PROJECTION_IDS.SCREEN);
+
+        // let x = document.getElementById("debugger") as HTMLElement;
+        // if (x) {
+        //     x.innerHTML = JSON.stringify(
+        //         {
+        //             "eye": {
+        //                 globalPosition: {
+        //                     x: Math.round(eye?.globalPosition?.x ?? -100),
+        //                     y: Math.round(eye?.globalPosition?.y ?? -100),
+        //                     z: Math.round(eye?.globalPosition?.z ?? 100),
+        //                 },
+        //                 globalRotation: {
+        //                     yaw:  Math.round(100 * (eye?.globalRotation?.yaw ?? -100)),
+        //                     pitch:  Math.round(100 * (eye?.globalRotation?.pitch ?? -100)),
+        //                     roll:  Math.round(100 * (eye?.globalRotation?.roll ?? -100)),
+        //                 }
+        //             },
+        //             "screen": {
+        //                 globalPosition: {
+        //                     x: Math.round(screen?.globalPosition?.x ?? -100),
+        //                     y: Math.round(screen?.globalPosition?.y ?? -100),
+        //                     z: Math.round(screen?.globalPosition?.z ?? 100),
+        //                 },
+        //                 globalRotation: {
+        //                     yaw:  Math.round(100 * (screen?.globalRotation?.yaw ?? -100)),
+        //                     pitch:  Math.round(100 * (screen?.globalRotation?.pitch ?? -100)),
+        //                     roll:  Math.round(100 * (screen?.globalRotation?.roll ?? -100)),
+        //                 }
+        //             }
+        //         }
+        //     )
+        // }
 
         if (eye && screen) {
             // Apply custom projection matrix if calculator is set

@@ -35,8 +35,18 @@ export class FaceWorldData {
      * Applies coordinate flipping and scaling to sceneHeadWidth.
      */
     private transform = (vector: Vector3) => {
-
-        return scale(vector, this.sceneHeadWidth);
+        // return {x:0,y:0,z:0};
+        const scaled = {
+            x: vector.x * this.sceneHeadWidth,
+            y: vector.y * this.sceneHeadWidth,
+            z: vector.z * this.sceneHeadWidth,
+        };
+        // Flip Y and Z for p5 coordinate system
+        return {
+            x: scaled.x,
+            y: scaled.y,
+            z: -scaled.z,
+        };
     }
 
     public get nose() {
@@ -70,7 +80,7 @@ export class FaceWorldData {
     }
 
     /**
-     * Returns rotation angles. Pitch and roll are negated to match scene coordinate system.
+     * Returns rotation angles.
      */
     public get stick() {
         return {
@@ -78,18 +88,6 @@ export class FaceWorldData {
             pitch: -this.face.pitch,
             roll: -this.face.roll,
         }
-    }
-}
-
-/**
- * Scales and flips a vector for scene coordinates.
- * Flips X and Z (camera to scene coordinate conversion) and applies scale factor.
- */
-const scale = (vector: Vector3, factor: number): Vector3 => {
-    return {
-        x: -vector.x * factor,
-        y: vector.y * factor,
-        z: -vector.z * factor,
     }
 }
 

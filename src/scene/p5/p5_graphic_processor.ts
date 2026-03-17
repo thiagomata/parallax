@@ -89,10 +89,15 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     public drawBox(props: ResolvedBox, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.p.push();
         this.applyContext(props, assets, state);
+
+        const width = props.width;
+        const height = props.height ?? props.width;
+        const depth = props.depth  ?? props.width;
+
         this.p.box(
-            props.width,
-            props.height ?? props.width,
-            props.depth  ?? props.width
+            width,
+            height,
+            depth
         );
         this.p.pop();
     }
@@ -272,30 +277,71 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.stroke(color.red, color.green, color.blue, finalAlphaUnsigned8Bits);
     }
 
+    private getCenterOffset(props: ResolvedBaseVisual): Vector3 {
+        const p = props as any;
+        switch (props.type) {
+            case ELEMENT_TYPES.BOX:
+                const width = p.width ?? 0;
+                const height = p.height ?? width;
+                const depth = p.depth ?? width;
+                return {
+                    x: (width) / 2,
+                    y: (height) / 2,
+                    z: (depth) / 2
+                };
+            case ELEMENT_TYPES.PANEL:
+                return {
+                    x: (p.width || 0) / 2,
+                    y: (p.height || 0) / 2,
+                    z: 0
+                };
+            case ELEMENT_TYPES.SPHERE:
+            case ELEMENT_TYPES.CONE:
+            case ELEMENT_TYPES.CYLINDER:
+            case ELEMENT_TYPES.TORUS:
+            case ELEMENT_TYPES.ELLIPTICAL:
+            case ELEMENT_TYPES.PYRAMID:
+            case ELEMENT_TYPES.FLOOR:
+            case ELEMENT_TYPES.TEXT:
+            default:
+                return { x: 0, y: 0, z: 0 };
+        }
+    }
+
 
     public drawTree(node: RenderTreeNode | null, state: ResolvedSceneState): void {
         if (!node) return;
 
-        // Push transform, apply local rotation and translation, render self, render children, pop
-        this.p.push();
-        
-        // Handle lookMode - compute rotation from lookAt if needed
         let rotation = node.props.rotate;
-        
-        // Apply local translation
-        this.translate(node.props.position);
+        const centerOffset = this.getCenterOffset(node.props);
+        const drawOffset = { x: -centerOffset.x, y: -centerOffset.y, z: -centerOffset.z };
 
-        // Apply local rotation (always YXZ order)
-        this.rotate(rotation);
+        this.p.push();
+        {
+            this.translate(node.props.position);
+            this.p.push();
+            {
+                this.translate(drawOffset);
+                this.p.push();
+                {
+                    this.translate(centerOffset);
+                    this.rotate(rotation);
+                    this.p.push();
+                    {
+                        this.renderElement(node.props, node.assets, state);
+                    }
+                    this.p.pop();
 
-        // Render this element
-        this.renderElement(node.props, node.assets, state);
-        
-        // Render children
-        for (const child of node.children) {
-            this.drawTree(child, state);
+                    for (const child of node.children) {
+                        this.drawTree(child, state);
+                    }
+
+                }
+                this.p.pop();
+            }
+            this.p.pop();
+
         }
-        
         this.p.pop();
     }
 

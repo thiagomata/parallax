@@ -15,7 +15,7 @@ import {
     type SketchConfig
 } from "./tutorial_main_page.demo.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
-import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
+import {COLORS} from "../../scene/colors.ts";
 
 /**
  * TUTORIAL 7: THE OBSERVER
@@ -88,7 +88,7 @@ export function tutorial_7(
                 // new OrbitModifier(p, 300, 0),
             ],
             stickModifiers: [
-                new CenterFocusModifier()
+                // new CenterFocusModifier()
             ]
         }
     });
@@ -101,10 +101,19 @@ export function tutorial_7(
         gp = new P5GraphicProcessor(p, loader);
 
 
+        world.addBox({
+            type: ELEMENT_TYPES.BOX,
+            id: 'bigBox',
+            width: 500,
+            position: { x:0, y:0, z: -200},
+            rotate: {pitch: 0, roll: 0, yaw: Math.PI/4},
+        });
+
         // Full face box
         world.addBox({
             type: ELEMENT_TYPES.BOX,
             id: 'faceBox',
+            targetId: 'bigBox',
             width: 150,
             height: 180,
             depth: 100,
@@ -148,11 +157,11 @@ export function tutorial_7(
                 if (!face) return { x: 0, y: 0, z: 0 };
                 return face.nose;
             },
-            fillColor: { red: 255, green: 0, blue: 0 },
+            fillColor: COLORS.red,
             strokeWidth: 1,
         });
 
-        // Left eye box - green
+        // // Left eye box - green
         world.addBox({
             type: ELEMENT_TYPES.BOX,
             id: 'debug_leftEye',
@@ -259,60 +268,61 @@ export function tutorial_7(
             strokeWidth: 1,
         });
 
-        // Nose sphere - child of faceBox
-        world.addBox({
-            type: ELEMENT_TYPES.BOX,
-            id: 'nose',
-            targetId: 'faceBox',
-            width: 50,
-            position: { x: 0, y: 0, z: 50 },
-            strokeWidth: 4,
-            strokeColor: { red: 255, green: 0, blue: 255 },
-        });
-
-        // Nose sphere - child of faceBox
-        world.addSphere({
-            type: ELEMENT_TYPES.SPHERE,
-            id: 'left-eye',
-            targetId: 'faceBox',
-            radius: 20,
-            position: { x: -25, y: -25, z: 25 },
-            // position: (ctx) => {
-            //     const face = ctx.dataProviders['headTracker'];
-            //     if (!face) return { x: 0, y: 0, z: 0 };
-            //     return {
-            //         x: face.eyes.left.x,
-            //         y: face.eyes.left.y,
-            //         z: face.eyes.left.z,
-            //     };
-            // },
-            alpha: 0.5,
-            fillColor: { red: 255, green: 255, blue: 255 },
-        });
-
-        world.addSphere({
-            type: ELEMENT_TYPES.SPHERE,
-            id: 'right-eye',
-            targetId: 'faceBox',
-            radius: 20,
-            position: { x: 25, y: -25, z: 25 },
-            // position: (ctx) => {
-            //     const face = ctx.dataProviders['headTracker'];
-            //     if (!face) return { x: 0, y: 0, z: 0 };
-            //     return {
-            //         x: face.eyes.right.x,
-            //         y: face.eyes.right.y,
-            //         z: face.eyes.right.z,
-            //     };
-            // },
-            alpha: 0.5,
-            fillColor: { red: 255, green: 255, blue: 255 },
-        });
-
+        // // Nose sphere - child of faceBox
+        // world.addBox({
+        //     type: ELEMENT_TYPES.BOX,
+        //     id: 'nose',
+        //     targetId: 'faceBox',
+        //     width: 50,
+        //     position: { x: 0, y: 0, z: 50 },
+        //     strokeWidth: 4,
+        //     strokeColor: { red: 255, green: 0, blue: 255 },
+        // });
+        //
+        // // Nose sphere - child of faceBox
+        // world.addSphere({
+        //     type: ELEMENT_TYPES.SPHERE,
+        //     id: 'left-eye',
+        //     targetId: 'faceBox',
+        //     radius: 20,
+        //     position: { x: -25, y: -25, z: 25 },
+        //     // position: (ctx) => {
+        //     //     const face = ctx.dataProviders['headTracker'];
+        //     //     if (!face) return { x: 0, y: 0, z: 0 };
+        //     //     return {
+        //     //         x: face.eyes.left.x,
+        //     //         y: face.eyes.left.y,
+        //     //         z: face.eyes.left.z,
+        //     //     };
+        //     // },
+        //     alpha: 0.5,
+        //     fillColor: { red: 255, green: 255, blue: 255 },
+        // });
+        //
+        // world.addSphere({
+        //     type: ELEMENT_TYPES.SPHERE,
+        //     id: 'right-eye',
+        //     targetId: 'faceBox',
+        //     radius: 20,
+        //     position: { x: 25, y: -25, z: 25 },
+        //     // position: (ctx) => {
+        //     //     const face = ctx.dataProviders['headTracker'];
+        //     //     if (!face) return { x: 0, y: 0, z: 0 };
+        //     //     return {
+        //     //         x: face.eyes.right.x,
+        //     //         y: face.eyes.right.y,
+        //     //         z: face.eyes.right.z,
+        //     //     };
+        //     // },
+        //     alpha: 0.5,
+        //     fillColor: { red: 255, green: 255, blue: 255 },
+        // });
+        //
         // Video panel - use exact video dimensions
         const videoEl = faceDataProvider.getVideo();
         world.addPanel({
             type: ELEMENT_TYPES.PANEL,
+            targetId: 'bigBox',
             id: 'videoPanel',
             width: 640,
             height: 480,

@@ -32,6 +32,7 @@ describe("World Presets", () => {
             addElement: vi.fn(),
             getElement: vi.fn(),
             removeElement: vi.fn(),
+            removeProjection: vi.fn(),
             getSettings: vi.fn().mockReturnValue({ window: { width: 800, height: 600 } }),
             render: vi.fn().mockReturnValue({
                 sceneId: 1,
@@ -157,16 +158,16 @@ describe("SIMPLE_PRESET structure", () => {
 });
 
 describe("HEAD_TRACKED_PRESET structure", () => {
-    it("has correct hierarchy without car", () => {
+    it("has correct hierarchy", () => {
         const screen = HEAD_TRACKED_PRESET.projectors.find(p => p.id === 'screen');
         const head = HEAD_TRACKED_PRESET.projectors.find(p => p.id === 'head');
         const eye = HEAD_TRACKED_PRESET.projectors.find(p => p.id === 'eye');
 
-        // screen has no targetId (root)
-        expect(screen?.targetId).toBeUndefined();
+        // head has no targetId (root)
+        expect(head?.targetId).toBeUndefined();
         
-        // head targets screen
-        expect(head?.targetId).toBe('screen');
+        // screen targets head
+        expect(screen?.targetId).toBe('head');
         
         // eye targets head
         expect(eye?.targetId).toBe('head');

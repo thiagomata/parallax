@@ -126,6 +126,11 @@ export class Stage<
         this.cachedDynamicState = null; // invalidate cache
     }
 
+    public removeProjection(id: string): void {
+        this.projectionRegistry.delete(id);
+        this.cachedDynamicState = null; // invalidate cache
+    }
+
     public getElement(id: string): BundleDynamicElement<any, TGraphicBundle> | undefined {
         return this.elementRegistry.get(id);
     }
@@ -257,11 +262,22 @@ export class Stage<
             }
         }
 
-        // Resolve projections (local space)
+        // Tick providers and snapshot their data for this frame (needed for projection modifiers)
+        const dataProvidersMap: {
+            [K in keyof TDataProviderLib]: ReturnType<TDataProviderLib[K]['getData']>;
+        } = {} as any;
+        const keys = Object.keys(this.dataProviderLib) as Array<keyof TDataProviderLib>;
+        for (const key of keys) {
+            const provider = this.dataProviderLib[key];
+            provider.tick(state.sceneId);
+            dataProvidersMap[key] = provider.getData();
+        }
+
+        // Resolve projections (local space) - with access to dataProviders for modifiers
         const localProjectionPool: Record<string, ResolvedProjection> = {};
 
         for (const dynamicProjection of this.projectionRegistry.all()) {
-            const resolved = this.projectionResolver.resolve(dynamicProjection, state, localProjectionPool);
+            const resolved = this.projectionResolver.resolve(dynamicProjection, state, localProjectionPool, dataProvidersMap);
             localProjectionPool[resolved.id] = resolved;
         }
 
@@ -273,17 +289,6 @@ export class Stage<
         const projectionLookupRecord: Record<string, ResolvedProjection> = {};
         for (const [id, proj] of projectionLookup) {
             projectionLookupRecord[id] = proj;
-        }
-
-        // Tick providers and snapshot their data for this frame
-        const dataProvidersMap: {
-            [K in keyof TDataProviderLib]: ReturnType<TDataProviderLib[K]['getData']>;
-        } = {} as any;
-        const keys = Object.keys(this.dataProviderLib) as Array<keyof TDataProviderLib>;
-        for (const key of keys) {
-            const provider = this.dataProviderLib[key];
-            provider.tick(state.sceneId);
-            dataProvidersMap[key] = provider.getData();
         }
 
         // Resolve elements (distance-sorted, can see resolved projections)
