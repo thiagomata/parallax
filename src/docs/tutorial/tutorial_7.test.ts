@@ -4,58 +4,7 @@ import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {DEFAULT_SCENE_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
-
-function createMockFaceData(overrides: {
-    midpoint?: { x: number; y: number; z: number };
-    nose?: { x: number; y: number; z: number };
-    eyes?: { left: { x: number; y: number; z: number }; right: { x: number; y: number; z: number } };
-    stick?: { yaw: number; pitch: number; roll: number };
-} = {}) {
-    return {
-        face: {
-            rebase: {
-                nose: { x: 0, y: 0, z: 0 },
-                leftEye: { x: -0.1, y: 0, z: 0 },
-                rightEye: { x: 0.1, y: 0, z: 0 },
-                leftBrow: { x: 0, y: 0, z: 0 },
-                rightBrow: { x: 0, y: 0, z: 0 },
-                leftEar: { x: 0, y: 0, z: 0 },
-                rightEar: { x: 0, y: 0, z: 0 },
-                middleTop: { x: 0, y: 0, z: 0 },
-                middleBottom: { x: 0, y: 0, z: 0 },
-            },
-            yaw: 0,
-            pitch: 0,
-            roll: 0,
-            width: 0.2,
-            skullCenter: { position: { x: 0.5, y: 0.5, z: 0 } },
-        },
-        sceneHeadWidth: 120,
-        midpoint: overrides.midpoint ?? { x: 0, y: 0, z: 0 },
-        nose: overrides.nose ?? { x: 0, y: 0, z: 0 },
-        eyes: overrides.eyes ?? { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
-        brows: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
-        bounds: { 
-            left: { x: 0, y: 0, z: 0 }, 
-            right: { x: 0, y: 0, z: 0 }, 
-            top: { x: 0, y: 0, z: 0 }, 
-            bottom: { x: 0, y: 0, z: 0 } 
-        },
-        stick: overrides.stick ?? { yaw: 0, pitch: 0, roll: 0 },
-    };
-}
-
-function createMockProvider(getDataMock: ReturnType<typeof vi.fn>) {
-    return {
-        type: 'headTracker' as const,
-        getData: getDataMock,
-        getVideo: () => undefined,
-        init: async () => {},
-        tick: () => {},
-        cameraPosition: { x: 0, y: 0, z: 300 },
-        panelPosition: { x: 0, y: 0, z: 0 },
-    };
-}
+import {createFaceWorldData, createMockHeadTrackingProvider} from "../../scene/mock/face.mock.ts";
 
 describe('Tutorial 7: The Observer', () => {
 
@@ -72,7 +21,7 @@ describe('Tutorial 7: The Observer', () => {
             }
         });
 
-        const face1 = createMockFaceData();
+        const face1 = createFaceWorldData();
         const getDataMock = vi.fn();
         getDataMock.mockReturnValue(face1);
 
@@ -81,7 +30,7 @@ describe('Tutorial 7: The Observer', () => {
             height: 400,
             clock: clock,
             paused: false
-        }, createMockProvider(getDataMock) as any);
+        }, createMockHeadTrackingProvider(getDataMock) as any);
         await mockP5.setup();
         mockP5.draw();
 
@@ -144,7 +93,7 @@ describe('Tutorial 7: The Observer', () => {
         const getDataMock = vi.fn();
         
         // Initial face position
-        const faceData1 = createMockFaceData({
+        const faceData1 = createFaceWorldData({
             midpoint: { x: 50, y: -30, z: 100 },
             nose: { x: 60, y: -25, z: 120 },
             eyes: { 
@@ -160,7 +109,7 @@ describe('Tutorial 7: The Observer', () => {
             height: 400,
             clock: clock,
             paused: false
-        }, createMockProvider(getDataMock) as any);
+        }, createMockHeadTrackingProvider(getDataMock) as any);
         await mockP5.setup();
         
         // First draw - should use first face data
@@ -184,7 +133,7 @@ describe('Tutorial 7: The Observer', () => {
         expect(getDataMock).toHaveBeenCalled();
 
         // Now change the mock data to a new position
-        const faceData2 = createMockFaceData({
+        const faceData2 = createFaceWorldData({
             midpoint: { x: -25, y: 40, z: 50 },
             nose: { x: -20, y: 45, z: 60 },
             eyes: { 
@@ -237,7 +186,7 @@ describe('Tutorial 7: The Observer', () => {
             height: 400,
             clock: clock,
             paused: false
-        }, createMockProvider(getDataMock) as any);
+        }, createMockHeadTrackingProvider(getDataMock) as any);
         await mockP5.setup();
         mockP5.draw();
 
@@ -253,5 +202,48 @@ describe('Tutorial 7: The Observer', () => {
         expect(faceBoxState.rotate?.yaw).toBe(0);
         expect(faceBoxState.rotate?.pitch).toBe(0);
         expect(faceBoxState.rotate?.roll).toBe(0);
+    });
+
+    it('should provide head tracking data to element resolvers', async () => {
+        const mockP5 = createMockP5();
+        mockP5.millis.mockReturnValue(0);
+
+        const clock = new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
+            playback: {
+                ...DEFAULT_SCENE_SETTINGS.playback,
+                duration: 10000,
+                isLoop: true
+            }
+        });
+
+        // Initial face position
+        const faceData1 = createFaceWorldData({
+            midpoint: { x: 50, y: -30, z: 100 },
+            stick: { yaw: 0.5, pitch: 0.3, roll: 0.1 }
+        });
+
+        const getDataMock = vi.fn();
+        getDataMock.mockReturnValue(faceData1);
+
+        const world = tutorial_7(mockP5 as unknown as p5, { 
+            width: 500, 
+            height: 400,
+            clock: clock,
+            paused: false
+        }, createMockHeadTrackingProvider(getDataMock) as any);
+        
+        await mockP5.setup();
+        
+        // First draw - should use first face data
+        mockP5.draw();
+        
+        // Verify screen projection exists
+        const state1 = world.getCurrenState();
+        const screen1 = state1?.projections.get('screen');
+        expect(screen1).toBeDefined();
+        
+        // Verify getData was called (element resolvers use it)
+        expect(getDataMock).toHaveBeenCalled();
     });
 });
