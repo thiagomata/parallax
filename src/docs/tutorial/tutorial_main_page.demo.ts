@@ -181,10 +181,28 @@ export function renderStep(
 
     const createSketch = (sketchFn: P5Sketch) => {
         // remove old instance
-        if (currentP5) currentP5.remove();
+        if (currentP5) {
+            try {
+                currentP5.remove();
+            } catch (e) {
+                console.warn(`[Tutorial ${containerId}] Error removing old sketch:`, e);
+            }
+        }
 
-        // create new p5
+        // create new p5 with error handling
         currentP5 = new p5((p: p5) => {
+            // Override _draw to catch errors
+            const originalDraw = p.draw;
+            p.draw = function(...args: any[]) {
+                try {
+                    return originalDraw.apply(this, args);
+                } catch (e) {
+                    console.error(`[Tutorial ${containerId}] Error in draw:`, e);
+                    // Try to recover by recreating
+                    p.noLoop();
+                }
+            };
+
             const world = sketchFn(p, sketchConfig);
             currentWorld = world;
             return world;
@@ -285,6 +303,42 @@ export function renderStep(
 
     // Window resize handler
     window.addEventListener('resize', handleResize);
+
+    // Track visibility state to detect transitions
+    let wasVisible = true;
+
+    // Pause scene when not visible in viewport (performance optimization)
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (!currentP5 || !currentWorld) return;
+            
+            if (entry.isIntersecting) {
+                if (!wasVisible) {
+                    // Was not visible, now visible - recreate sketch for fresh WebGL context
+                    console.log(`[Tutorial ${containerId}] RECREATE - was paused, recreating sketch`);
+                    // Add delay to let browser clean up WebGL context properly
+                    setTimeout(() => {
+                        createSketch(initialSketch);
+                    }, 200);
+                } else {
+                    console.log(`[Tutorial ${containerId}] RESUME - visible in viewport`);
+                    currentP5.loop();
+                }
+                pauseBtn.dataset.paused = 'false';
+                pauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                wasVisible = true;
+            } else {
+                // Not visible - pause
+                console.log(`[Tutorial ${containerId}] PAUSE - not visible in viewport`);
+                currentP5.noLoop();
+                pauseBtn.dataset.paused = 'true';
+                pauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                wasVisible = false;
+            }
+        });
+    }, { threshold: 0 });
+
+    observer.observe(stepMain);
 }
 
 // Initialize the updated Curriculum
