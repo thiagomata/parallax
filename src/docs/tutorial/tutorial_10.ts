@@ -4,7 +4,7 @@ import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
 import { SceneClock } from "../../scene/scene_clock.ts";
 import { HeadTrackingDataProvider } from "../../scene/providers/head_tracking_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
-import { DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES } from "../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type Vector3} from "../../scene/types.ts";
 import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "./tutorial_main_page.demo.ts";
 import { WorldSettings } from "../../scene/world_settings.ts";
 import { HEAD_TRACKED_PRESET } from "../../scene/presets.ts";
@@ -48,11 +48,130 @@ export function tutorial_10(
     world.loadPreset(HEAD_TRACKED_PRESET);
 
     // Add head tracking modifier to HEAD projection
-    world.addModifierToProjection('head', new HeadTrackingModifier(), 'car');
+    world.addModifierToProjection('head', new HeadTrackingModifier({
+        disableRotation: false,
+        damping: 0.1,
+    }), 'car');
 
     // Add some cubes on a floor
     const floorY = 200;
 
+    for (let i = 0; i < 25; i++) {
+        world.addBox({
+            id: `tunnel-${i}`,
+            type: ELEMENT_TYPES.BOX,
+            width: config.width,
+            height: config.height,
+            depth: 10,
+            strokeWidth: 4,
+            strokeColor: {red: (255 - i * 10), green: (255 - i * 10), blue: (255 - i * 10)},
+            position: { x: 0, y: 50, z: -60 * i },
+        });
+    }
+
+    var counter = 0;
+    function createTarget(pos: Vector3) {
+        counter++;
+        world.addBox({
+            id: `target-${counter}`,
+            type: ELEMENT_TYPES.BOX,
+            position: pos,
+            width: 100
+        });
+        world.addCylinder({
+            id: `target-circle-${counter}`,
+            targetId: `target-${counter}`,
+            type: ELEMENT_TYPES.CYLINDER,
+            radius: 10,
+            height: 1,
+            position: {x: 0, y: 50, z: -50},
+            fillColor: COLORS.red,
+            rotate: {pitch: Math.PI / 2, yaw: 0, roll: 0}
+        });
+        world.addCylinder({
+            id: `target-circle-1-${counter}`,
+            targetId: `target-${counter}`,
+            type: ELEMENT_TYPES.CYLINDER,
+            radius: 8,
+            height: 1,
+            position: {x: 0, y: 50, z: -49.9},
+            fillColor: COLORS.white,
+            rotate: {pitch: Math.PI / 2, yaw: 0, roll: 0}
+        });
+        world.addCylinder({
+            id: `target-circle-2-${counter}`,
+            targetId: `target-${counter}`,
+            type: ELEMENT_TYPES.CYLINDER,
+            radius: 6,
+            height: 1,
+            position: {x: 0, y: 50, z: -49.8},
+            fillColor: COLORS.red,
+            rotate: {pitch: Math.PI / 2, yaw: 0, roll: 0}
+        });
+        world.addCylinder({
+            id: `target-circle-3-${counter}`,
+            targetId: `target-${counter}`,
+            type: ELEMENT_TYPES.CYLINDER,
+            radius: 4,
+            height: 1,
+            position: {x: 0, y: 50, z: -49.7},
+            fillColor: COLORS.white,
+            rotate: {pitch: Math.PI / 2, yaw: 0, roll: 0}
+        });
+        world.addCylinder({
+            id: `target-circle-4-${counter}`,
+            targetId: `target-${counter}`,
+            type: ELEMENT_TYPES.CYLINDER,
+            radius: 2,
+            height: 1,
+            position: {x: 0, y: 50, z: -49.6},
+            fillColor: COLORS.red,
+            rotate: {pitch: Math.PI / 2, yaw: 0, roll: 0}
+        });
+        world.addCylinder({
+            id: `target-stick-${counter}`,
+            targetId: `target-${counter}`,
+            type: ELEMENT_TYPES.CYLINDER,
+            height: 100,
+            radius: 2,
+            position: {x: 0, y: 50, z: -100.1},
+            fillColor: {red: 100, green: 0, blue: 0},
+            rotate: {pitch: Math.PI / 2, yaw: 0, roll: 0}
+        });
+    }
+    createTarget({x: 0, y: 0, z: 0});
+    createTarget({x: -70, y: -10, z: 50});
+    createTarget({x: 50, y: 10, z: 80});
+    createTarget({x: 10, y: -80, z: 30});
+    createTarget({x: 10, y: -200, z: 10});
+    createTarget({x: -30, y: 30, z: 90});
+    createTarget({x: 50, y: -50, z: 70});
+    createTarget({x: -30, y: -20, z: 20});
+    createTarget({x: -130, y: -120, z: 200});
+    createTarget({x: 130, y: 120, z: 250});
+    createTarget({x: 200, y: 200, z: 400});
+    createTarget({x: -200, y: -200, z: 500});
+    
+    // Additional targets spread across the region
+    createTarget({x: -150, y: 0, z: 100});
+    createTarget({x: 150, y: 0, z: 120});
+    createTarget({x: 0, y: 150, z: 150});
+    createTarget({x: 0, y: -150, z: 180});
+    createTarget({x: -100, y: 100, z: 200});
+    createTarget({x: 100, y: -100, z: 220});
+    createTarget({x: -180, y: -50, z: 300});
+    createTarget({x: 180, y: 50, z: 320});
+    createTarget({x: 50, y: 180, z: 350});
+    createTarget({x: -50, y: -180, z: 380});
+    createTarget({x: -220, y: 100, z: 450});
+    createTarget({x: 220, y: -100, z: 480});
+    createTarget({x: 100, y: 200, z: 520});
+    createTarget({x: -100, y: -200, z: 550});
+    createTarget({x: 60, y: 0, z: -50});
+    createTarget({x: -80, y: 50, z: -30});
+    createTarget({x: 80, y: -50, z: -40});
+    createTarget({x: 0, y: -100, z: -20});
+    createTarget({x: 0, y: 100, z: -10});
     // Center cube
     world.addBox({
         id: 'center-cube',
@@ -97,20 +216,8 @@ export function tutorial_10(
         fillColor: COLORS.cyan,
     });
 
-    // Floor plane for reference
-    world.addFloor({
-        type: ELEMENT_TYPES.FLOOR,
-        id: 'floor',
-        width: 800,
-        depth: 800,
-        strokeWidth: 0.1,
-        strokeColor: COLORS.white,
-        position: { x: 0, y: 250, z: -200 },
-        fillColor: COLORS.gray,
-    });
 
-    // // Debug elements in ALL directions
-    // // Front (towards negative Z - in front of camera)
+    // Front (towards negative Z - in front of camera)
     world.addBox({
         id: 'front-cube',
         type: ELEMENT_TYPES.BOX,
@@ -119,39 +226,6 @@ export function tutorial_10(
         strokeColor: COLORS.white,
         position: { x: 0, y: floorY, z: -30 },
         fillColor: COLORS.purple,
-    });
-
-    // // Back (toward positive Z - behind camera)
-    world.addSphere({
-        id: 'back-sphere',
-        type: ELEMENT_TYPES.SPHERE,
-        radius: 25,
-        position: { x: 0, y: floorY, z: 200 },
-        strokeWidth: 0.1,
-        strokeColor: COLORS.white,
-        fillColor: COLORS.brown,
-    });
-
-    // Center floating
-    world.addSphere({
-        id: 'center-sphere',
-        type: ELEMENT_TYPES.SPHERE,
-        radius: 30,
-        position: { x: 0, y: 100, z: -100 },
-        strokeWidth: 0.1,
-        strokeColor: COLORS.white,
-        fillColor: COLORS.white,
-    });
-
-    // Out of screen effect - small sphere between camera (z=50) and screen (z=-50)
-    world.addSphere({
-        id: 'out-of-screen',
-        type: ELEMENT_TYPES.SPHERE,
-        radius: 5,
-        position: { x: 0, y: 10, z: -10 },
-        strokeColor: COLORS.blue,
-        strokeWidth: 0.1,
-        fillColor: COLORS.yellow,
     });
 
     p.setup = async () => {
@@ -163,19 +237,6 @@ export function tutorial_10(
     p.draw = () => {
         p.background(20);
         world.step(gp);
-        
-        // Debug: log camera position once per second
-        if (p.frameCount % 60 === 0) {
-            const state = world.getCurrenState();
-            if (state) {
-                const eye = state.projections.get('eye');
-                const screen = state.projections.get('screen');
-                const head = state.projections.get('head');
-                console.log('head:', head?.position, 'rot:', head?.rotation);
-                console.log('eye:', eye?.globalPosition, 'rot:', eye?.globalRotation);
-                console.log('screen:', screen?.globalPosition);
-            }
-        }
     };
 
     return world;

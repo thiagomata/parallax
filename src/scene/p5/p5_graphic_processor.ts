@@ -220,9 +220,11 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
             (assets.video.elt as HTMLVideoElement).readyState >= 1;
 
         if (videoReady) {
+            this.p.blendMode(this.p.BLEND);
             this.p.texture(assets.video);
             this.p.tint(255, this.to8Bit(combinedAlpha));
         } else if (assets.texture?.status === ASSET_STATUS.READY && assets.texture.value) {
+            this.p.blendMode(this.p.BLEND);
             this.p.texture(assets.texture.value.internalRef);
             this.p.tint(255, this.to8Bit(combinedAlpha));
         } else {

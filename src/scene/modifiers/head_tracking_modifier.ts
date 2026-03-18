@@ -42,6 +42,10 @@ export interface HeadTrackingModifierConfig {
     rotationThreshold: number;
     /** Optional limits for position and rotation */
     limits?: HeadTrackingLimits;
+    /** If true, adds head position to initial camera position instead of replacing */
+    offsetMode?: boolean;
+    /** If true, disables rotation entirely */
+    disableRotation?: boolean;
 }
 
 export const DEFAULT_HEAD_TRACKING_CONFIG: HeadTrackingModifierConfig = {
@@ -50,6 +54,8 @@ export const DEFAULT_HEAD_TRACKING_CONFIG: HeadTrackingModifierConfig = {
     rotationSmoothing: 0.1,
     threshold: 0.5,
     rotationThreshold: 0.01,
+    offsetMode: false,
+    disableRotation: false,
 };
 
 export class HeadTrackingModifier<TDataProviderLib extends DataProviderLib = HeadTrackerDataProviderLib>
@@ -72,7 +78,7 @@ export class HeadTrackingModifier<TDataProviderLib extends DataProviderLib = Hea
         // Data is provided via context, no need to do anything here
     }
 
-    getCarPosition(_initialCam: Vector3, context: ResolutionContext<TDataProviderLib>): FailableResult<CarResult> {
+    getCarPosition(initialCam: Vector3, context: ResolutionContext<TDataProviderLib>): FailableResult<CarResult> {
         const headData = context.dataProviders.headTracker as FaceWorldData | null;
 
         if (!headData) {
@@ -140,12 +146,26 @@ export class HeadTrackingModifier<TDataProviderLib extends DataProviderLib = Hea
         this.lastPosition = smoothedPosition;
         this.lastRotation = smoothedRotation;
 
+        // Disable rotation if configured
+        const finalRotation = this.config.disableRotation
+            ? { yaw: 0, pitch: 0, roll: 0 }
+            : smoothedRotation;
+
+        // In offsetMode, add head position to initial camera position instead of replacing
+        const finalPosition = this.config.offsetMode
+            ? {
+                x: initialCam.x + smoothedPosition.x,
+                y: initialCam.y + smoothedPosition.y,
+                z: initialCam.z + smoothedPosition.z,
+              }
+            : smoothedPosition;
+
         return {
             success: true,
             value: {
                 name: this.name,
-                position: smoothedPosition,
-                rotation: smoothedRotation
+                position: finalPosition,
+                rotation: finalRotation
             }
         };
     }

@@ -39,10 +39,6 @@ import step9Source from './tutorial_9.ts?raw';
 import {tutorial_10} from "./tutorial_10.ts";
 import step10Source from './tutorial_10.ts?raw';
 
-// Preload all tutorials to avoid unused warnings
-const _preload = [tutorial_1, tutorial_2, tutorial_3, tutorial_4, tutorial_5, tutorial_6, tutorial_7, tutorial_8, tutorial_9, tutorial_10];
-const _preloadSources = [step1Source, step2Source, step3Source, step4Source, step5Source, step6Source, step7Source, step8Source, step9Source, step10Source];
-
 export interface SketchConfig {
     width: number;
     height: number;
