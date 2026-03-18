@@ -113,6 +113,25 @@ body {
     color: var(--accent);
 }
 
+/* Title displayed on canvas side */
+.step-title {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0;
+    pointer-events: auto;
+}
+
+.step-title:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
 .is-running .status-dot {
     background: var(--accent);

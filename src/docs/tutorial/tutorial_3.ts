@@ -30,35 +30,34 @@ export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
         WorldSettings.fromLibs({clock, loader})
     );
     world.enableDefaultPerspective(config.width, config.height);
+    // REGISTRATION
+    // Defining the Orbit as a function of the Engine Progress
+    world.addBox({
+        type: ELEMENT_TYPES.BOX,
+        id: 'orbit-box',
+        width: 50,
+        // Orbital Position Logic: x = cos(t), y = sin(t)
+        position: (context: ResolutionContext): Vector3 => ({
+            x: Math.cos(context.playback.progress * Math.PI * 2) * 50,
+            y: Math.sin(context.playback.progress * Math.PI * 2) * 50,
+            z: -100
+        }),
+
+        // Rotation can also follow the orbit path
+        rotate: (context: ResolutionContext): Rotation3 => ({
+            pitch: context.playback.progress * Math.PI,
+            yaw: context.playback.progress * Math.PI * 2,
+            roll: 0,
+        }),
+
+        fillColor: {red: 0, green: 255, blue: 150, alpha: 1.0},
+        strokeColor: {red: 0, green: 0, blue: 255},
+        strokeWidth: 5,
+    });
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
         graphicProcessor = new P5GraphicProcessor(p, loader);
-
-        // REGISTRATION
-        // Defining the Orbit as a function of the Engine Progress
-        world.addBox({
-            type: ELEMENT_TYPES.BOX,
-            id: 'orbit-box',
-            width: 50,
-            // Orbital Position Logic: x = cos(t), y = sin(t)
-            position: (context: ResolutionContext): Vector3 => ({
-                x: Math.cos(context.playback.progress * Math.PI * 2) * 50,
-                y: Math.sin(context.playback.progress * Math.PI * 2) * 50,
-                z: -100
-            }),
-
-            // Rotation can also follow the orbit path
-            rotate: (context: ResolutionContext): Rotation3 => ({
-                pitch: context.playback.progress * Math.PI,
-                yaw: context.playback.progress * Math.PI * 2,
-                roll: 0,
-            }),
-
-            fillColor: {red: 0, green: 255, blue: 150, alpha: 1.0},
-            strokeColor: {red: 0, green: 0, blue: 255},
-            strokeWidth: 5,
-        });
     };
 
     p.draw = () => {

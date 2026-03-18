@@ -24,6 +24,8 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     // Asset Pipeline & World
     const loader = config.loader ?? new P5AssetLoader(p);
+    graphicProcessor = new P5GraphicProcessor(p, loader);
+
     const world = new World<P5Bundler, any, any>(
         WorldSettings.fromLibs({clock, loader, elementEffectLib: {
                 [TransformEffect.type]: TransformEffect
@@ -33,7 +35,6 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
-        graphicProcessor = new P5GraphicProcessor(p, loader);
 
         // Registration
         // We use the blueprint functions to define effect over time
@@ -64,11 +65,13 @@ export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
                 alpha: 1.0
             },
             strokeWidth: 5,
+            // effects run after all transformations just before the rendering, allowing us to interact with computed info
             effects: [
                 {
                     type: TransformEffect.type,
                     settings: {
                         transform: (element, _) => {
+                            // in this case, we are using the computed fill color to define the stroke color
                             return {
                                 ...element,
                                 strokeColor: {

@@ -61,6 +61,9 @@ const createMockP5 = () => {
 
         // time helpers
         millis: vi.fn(() => 1000),
+
+        // video
+        blendMode: vi.fn(),
     };
 
     return p;

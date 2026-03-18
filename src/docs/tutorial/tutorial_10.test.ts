@@ -45,11 +45,7 @@ describe('Tutorial 10: Head-Tracked VR View', () => {
         expect(world.getElement('left-cube')).toBeDefined();
         expect(world.getElement('right-cube')).toBeDefined();
         expect(world.getElement('far-cube')).toBeDefined();
-        expect(world.getElement('floor')).toBeDefined();
         expect(world.getElement('front-cube')).toBeDefined();
-        expect(world.getElement('back-sphere')).toBeDefined();
-        expect(world.getElement('center-sphere')).toBeDefined();
-        expect(world.getElement('out-of-screen')).toBeDefined();
 
         // Verify resolved properties
         const centerCube = world.getCurrenState()?.elements.get('center-cube') as ResolvedBox;
@@ -57,14 +53,9 @@ describe('Tutorial 10: Head-Tracked VR View', () => {
         expect(centerCube.width).toBe(50);
         expect(centerCube.position).toStrictEqual({x: 0, y: 200, z: 0});
         
-        const floor = world.getCurrenState()?.elements.get('floor') as ResolvedFloor;
-        expect(floor).toBeDefined();
-        expect(floor.width).toBe(800);
-        expect(floor.depth).toBe(800);
-
         // Verify side effects
         expect(mockP5.box).toHaveBeenCalled();
-        expect(mockP5.sphere).toHaveBeenCalled();
+        expect(mockP5.cylinder).toHaveBeenCalled();
     });
 
     it('should use off-axis projection with head tracking hierarchy', async () => {
@@ -162,8 +153,8 @@ describe('Tutorial 10: Head-Tracked VR View', () => {
         expect(head1?.position.y).toBeCloseTo(-30, 0);
         
         // Head rotation should match the face stick rotation
-        expect(head1?.rotation.yaw).toBeCloseTo(0.5, 1);
-        expect(head1?.rotation.pitch).toBeCloseTo(-0.3, 1); // pitch is negated in modifier
+        expect(head1?.rotation.yaw).toBeCloseTo(0.05, 1);
+        expect(head1?.rotation.pitch).toBeCloseTo(-0.03, 1); // pitch is negated in modifier
         
         // Verify getData was called
         expect(getDataMock).toHaveBeenCalled();

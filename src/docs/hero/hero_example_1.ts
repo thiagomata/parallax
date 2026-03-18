@@ -4,20 +4,15 @@ import {
 	    DEFAULT_SCENE_SETTINGS,
 	    WindowConfig,
 	    type ResolutionContext,
-        STANDARD_PROJECTION_IDS,
-        PROJECTION_TYPES,
 	} from "../../scene/types.ts";
 import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
 import { World } from "../../scene/world.ts";
 import { SceneClock } from "../../scene/scene_clock.ts";
 
-// Modifiers
-import { CenterFocusModifier } from "../../scene/modifiers/center_focus_modifier.ts";
-import { OrbitModifier } from "../../scene/modifiers/orbit_modifier.ts";
-
 import type { SketchConfig } from "./hero.demo.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
+import {CenterOrbit} from "../../scene/presets.ts";
 
 export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any, any> => {
     let gp: P5GraphicProcessor;
@@ -48,16 +43,7 @@ export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any,
         p.createCanvas(config.width, config.height, p.WEBGL);
         gp = new P5GraphicProcessor(p, loader);
 
-	        // The Projection Rig
-	        // Modifiers are now properties of the Eye projection itself.
-	        world.stage.setScreen({
-	            id: STANDARD_PROJECTION_IDS.SCREEN,
-	            type: PROJECTION_TYPES.SCREEN,
-	            modifiers: {
-                carModifiers: [new OrbitModifier(p, 1000)],
-                stickModifiers: [new CenterFocusModifier()]
-            }
-        });
+        world.loadPreset(CenterOrbit(p))
 
         // Shape Registration
         world.addPyramid({
@@ -81,8 +67,8 @@ export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any,
                 roll: ctx.playback.progress * 2 * Math.PI,
             }),
             position: {
-                x: 0,
-                y: 0,
+                x: -100,
+                y: -100,
                 z: 0
             },
             fillColor: { red: 255, green: 0, blue: 0, alpha: 0.5 },

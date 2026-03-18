@@ -48,7 +48,7 @@ export function tutorial_5(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
                 roll: Math.PI * 2 * context.playback.progress,
             }),
             texture: {
-                path: '/parallax/img/red.png',
+                path: '/parallax/img/target.png',
                 width: 100,
                 height: 100,
             },

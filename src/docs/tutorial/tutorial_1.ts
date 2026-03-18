@@ -26,14 +26,15 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
     // We create the loader here to pass it to the World/Stage
     const loader = new P5AssetLoader(p);
 
+    // Graphic Processor Initialization
+    graphicProcessor = new P5GraphicProcessor(p, loader);
+
     // World Initialization
     world = new World<P5Bundler, any, any>(
         WorldSettings.fromLibs({clock, loader})
     );
 
     // Enable default off-axis perspective projection
-    // This uses calculateOffAxisMatrix which was previously unused
-    // Call this to verify the custom projection pipeline works
     world.enableDefaultPerspective(config.width, config.height);
 
     world.addBox({
@@ -56,10 +57,6 @@ export function tutorial_1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG):
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
-
-        // Graphic Processor Initialization
-        graphicProcessor = new P5GraphicProcessor(p, loader);
-
     };
 
     p.draw = () => {

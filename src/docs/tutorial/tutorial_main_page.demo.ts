@@ -1,11 +1,15 @@
-// @ts-nocheck
 import {World} from "../../scene/world.ts";
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {ElementResolver} from "../../scene/resolver/element_resolver.ts"; // New Manifest-compliant resolver
-// import {HeadTrackingModifier} from "../../scene/modifiers/head_tracking_modifier.ts";
-import {P5AssetLoader} from "../../scene/p5/p5_asset_loader.ts";
+import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
-import {ASSET_STATUS, DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
+import {
+    ASSET_STATUS,
+    DEFAULT_SCENE_SETTINGS,
+    ELEMENT_TYPES,
+    type DataProviderLib,
+    type EffectLib, type ProjectionEffectLib
+} from "../../scene/types.ts";
 
 // libs
 import p5 from 'p5';
@@ -54,7 +58,7 @@ export const DEFAULT_SKETCH_CONFIG: SketchConfig = {
     paused: false,
 };
 
-export type P5Sketch = (p: p5, config: SketchConfig) => void;
+export type P5Sketch = (p: p5, config: SketchConfig) => World<P5Bundler, EffectLib, ProjectionEffectLib, DataProviderLib>;
 
 
 /**
@@ -179,23 +183,52 @@ export function renderStep(
     let currentP5: p5 | null = null;
     let currentWorld: World<any, any, any, any> | null = null;
 
-    const createSketch = (sketchFn: P5Sketch) => {
-        // remove old instance
-        if (currentP5) {
-            try {
-                currentP5.remove();
-            } catch (e) {
-                console.warn(`[Tutorial ${containerId}] Error removing old sketch:`, e);
+    const cleanupSketch = () => {
+        if (!currentP5) return;
+        
+        try {
+            // 1. Stop the loop first
+            currentP5.noLoop();
+            
+            // 2. Try to release WebGL context explicitly
+            const p5WithCanvas = currentP5 as p5 & { canvas: HTMLCanvasElement | undefined };
+            const canvas = p5WithCanvas.canvas;
+            if (canvas) {
+                const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+                if (gl) {
+                    const loseExt = gl.getExtension('WEBGL_lose_context');
+                    if (loseExt) {
+                        loseExt.loseContext();
+                    }
+                }
             }
+            
+            // 3. Remove p5 instance
+            currentP5.remove();
+            
+            // 4. Clear canvas from DOM
+            if (canvas?.parentNode) {
+                canvas.parentNode.removeChild(canvas);
+            }
+        } catch (e) {
+            console.warn(`[Tutorial ${containerId}] Error during cleanup:`, e);
         }
+        
+        currentP5 = null;
+        currentWorld = null;
+    };
+
+    const createSketch = (sketchFn: P5Sketch) => {
+        // Clean up old instance properly before creating new one
+        cleanupSketch();
 
         // create new p5 with error handling
         currentP5 = new p5((p: p5) => {
             // Override _draw to catch errors
             const originalDraw = p.draw;
-            p.draw = function(...args: any[]) {
+            p.draw = function(...args: unknown[]) {
                 try {
-                    return originalDraw.apply(this, args);
+                    return originalDraw.call(this, ...args as []);
                 } catch (e) {
                     console.error(`[Tutorial ${containerId}] Error in draw:`, e);
                     // Try to recover by recreating
@@ -277,8 +310,10 @@ export function renderStep(
     createSketch(initialSketch);
 
     // Handle fullscreen changes - resize canvas to match new dimensions
+    let isInFullscreenTransition = false;
+
     const handleResize = () => {
-        if (!currentP5) return;
+        if (!currentP5 || isInFullscreenTransition) return;
         
         const newRect = canvasWrapper.getBoundingClientRect();
         const newWidth = Math.floor(newRect.width);
@@ -298,48 +333,82 @@ export function renderStep(
 
     // Fullscreen change handler
     document.addEventListener('fullscreenchange', () => {
-        setTimeout(handleResize, 100);
+        isInFullscreenTransition = true;
+        setTimeout(() => {
+            handleResize();
+            isInFullscreenTransition = false;
+        }, 100);
     });
 
     // Window resize handler
     window.addEventListener('resize', handleResize);
 
-    // Track visibility state to detect transitions
-    let wasVisible = true;
-
     // Pause scene when not visible in viewport (performance optimization)
+    // Use simple noLoop/loop like the manual pause button - avoids WebGL context issues
+    let wasVisible = true;
+    
     const observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
-            if (!currentP5 || !currentWorld) return;
+            if (!currentP5) return;
             
             if (entry.isIntersecting) {
                 if (!wasVisible) {
-                    // Was not visible, now visible - recreate sketch for fresh WebGL context
-                    console.log(`[Tutorial ${containerId}] RECREATE - was paused, recreating sketch`);
-                    // Add delay to let browser clean up WebGL context properly
-                    setTimeout(() => {
-                        createSketch(initialSketch);
-                    }, 200);
-                } else {
-                    console.log(`[Tutorial ${containerId}] RESUME - visible in viewport`);
+                    console.log(`[Tutorial ${containerId}] RESUME - visible`);
                     currentP5.loop();
                 }
                 pauseBtn.dataset.paused = 'false';
                 pauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
                 wasVisible = true;
             } else {
-                // Not visible - pause
-                console.log(`[Tutorial ${containerId}] PAUSE - not visible in viewport`);
+                console.log(`[Tutorial ${containerId}] PAUSE - not visible`);
                 currentP5.noLoop();
                 pauseBtn.dataset.paused = 'true';
                 pauseBtn.innerHTML = '<i class="fas fa-play"></i>';
                 wasVisible = false;
             }
         });
-    }, { threshold: 0 });
+    }, { threshold: 0.1 });
 
     observer.observe(stepMain);
 }
+
+// Scroll to tutorial if URL has hash (e.g., #tutorial-10) and optionally start in fullscreen
+function handleHashChange() {
+    const hash = window.location.hash;
+    if (!hash) return;
+    
+    const targetId = hash.replace('#', '');
+    const targetElement = document.getElementById(targetId);
+    
+    if (targetElement) {
+        // Scroll to the tutorial
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        // Show a "Click to Fullscreen" overlay because browsers block auto-fullscreen
+        const canvasElement = document.getElementById(`canv-${targetId}`);
+        if (canvasElement) {
+            // Add a one-time click handler to go fullscreen
+            const startFullscreen = () => {
+                const requestFullscreen = 
+                    canvasElement.requestFullscreen?.bind(canvasElement) ||
+                    (canvasElement as HTMLElement & { webkitRequestFullscreen?: () => void }).webkitRequestFullscreen?.bind(canvasElement);
+                requestFullscreen?.();
+                canvasElement.removeEventListener('click', startFullscreen);
+                canvasElement.style.cursor = '';
+            };
+            
+            canvasElement.addEventListener('click', startFullscreen);
+            canvasElement.style.cursor = 'pointer';
+            canvasElement.title = 'Click to enter fullscreen';
+        }
+    }
+}
+
+// Listen for hash changes
+window.addEventListener('hashchange', handleHashChange);
+
+// Check hash on page load
+handleHashChange();
 
 // Initialize the updated Curriculum
 renderStep('tutorial-1', '1. The Foundation (Registration)', tutorial_1, step1Source);

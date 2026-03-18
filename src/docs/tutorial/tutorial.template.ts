@@ -20,9 +20,9 @@ export function tutorialStepTemplate({ containerId, title, source }: StepArgs): 
 
     <section class="step-content active" data-content="preview">
         <section class="canvas-side" id="canv-${containerId}">
-            <div class="step-anchor" style="pointer-events: none;">
-                <span>Preview</span>
-            </div>
+            <a href="#${containerId}" class="step-anchor step-title">
+                <span>${title}</span>
+            </a>
             <div class="canvas-wrapper">
                 <div class="canvas-box"></div>
             </div>
