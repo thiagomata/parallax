@@ -268,56 +268,38 @@ export function tutorial_7(
             strokeWidth: 1,
         });
 
-        // // Nose sphere - child of faceBox
-        // world.addBox({
-        //     type: ELEMENT_TYPES.BOX,
-        //     id: 'nose',
-        //     targetId: 'faceBox',
-        //     width: 50,
-        //     position: { x: 0, y: 0, z: 50 },
-        //     strokeWidth: 4,
-        //     strokeColor: { red: 255, green: 0, blue: 255 },
-        // });
-        //
-        // // Nose sphere - child of faceBox
-        // world.addSphere({
-        //     type: ELEMENT_TYPES.SPHERE,
-        //     id: 'left-eye',
-        //     targetId: 'faceBox',
-        //     radius: 20,
-        //     position: { x: -25, y: -25, z: 25 },
-        //     // position: (ctx) => {
-        //     //     const face = ctx.dataProviders['headTracker'];
-        //     //     if (!face) return { x: 0, y: 0, z: 0 };
-        //     //     return {
-        //     //         x: face.eyes.left.x,
-        //     //         y: face.eyes.left.y,
-        //     //         z: face.eyes.left.z,
-        //     //     };
-        //     // },
-        //     alpha: 0.5,
-        //     fillColor: { red: 255, green: 255, blue: 255 },
-        // });
-        //
-        // world.addSphere({
-        //     type: ELEMENT_TYPES.SPHERE,
-        //     id: 'right-eye',
-        //     targetId: 'faceBox',
-        //     radius: 20,
-        //     position: { x: 25, y: -25, z: 25 },
-        //     // position: (ctx) => {
-        //     //     const face = ctx.dataProviders['headTracker'];
-        //     //     if (!face) return { x: 0, y: 0, z: 0 };
-        //     //     return {
-        //     //         x: face.eyes.right.x,
-        //     //         y: face.eyes.right.y,
-        //     //         z: face.eyes.right.z,
-        //     //     };
-        //     // },
-        //     alpha: 0.5,
-        //     fillColor: { red: 255, green: 255, blue: 255 },
-        // });
-        //
+        // Nose box - child of faceBox
+        world.addBox({
+            type: ELEMENT_TYPES.BOX,
+            id: 'nose',
+            targetId: 'faceBox',
+            width: 50,
+            position: { x: 0, y: 0, z: 50 },
+            strokeWidth: 4,
+            strokeColor: { red: 255, green: 0, blue: 255 },
+        });
+
+        // Nose sphere - child of faceBox
+        world.addSphere({
+            type: ELEMENT_TYPES.SPHERE,
+            id: 'left-eye',
+            targetId: 'faceBox',
+            radius: 20,
+            position: { x: -25, y: -25, z: 25 },
+            alpha: 0.5,
+            fillColor: { red: 255, green: 255, blue: 255 },
+        });
+
+        world.addSphere({
+            type: ELEMENT_TYPES.SPHERE,
+            id: 'right-eye',
+            targetId: 'faceBox',
+            radius: 20,
+            position: { x: 25, y: -25, z: 25 },
+            alpha: 0.5,
+            fillColor: { red: 255, green: 255, blue: 255 },
+        });
+
         // Video panel - use exact video dimensions
         const videoEl = faceDataProvider.getVideo();
         world.addPanel({

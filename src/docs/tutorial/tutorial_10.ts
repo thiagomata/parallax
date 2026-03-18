@@ -75,7 +75,7 @@ export function tutorial_10(
         fillColor: COLORS.blue,
     });
 
-    // // Right cube
+    // Right cube
     world.addBox({
         id: 'right-cube',
         type: ELEMENT_TYPES.BOX,
@@ -85,8 +85,8 @@ export function tutorial_10(
         position: { x: 150, y: floorY, z: -100 },
         fillColor: COLORS.orange,
     });
-    //
-    // // Far cube
+
+    // Far cube
     world.addBox({
         id: 'far-cube',
         type: ELEMENT_TYPES.BOX,
@@ -131,44 +131,8 @@ export function tutorial_10(
         strokeColor: COLORS.white,
         fillColor: COLORS.brown,
     });
-    //
-    // // Up
-    // world.addBox({
-    //     id: 'up-cube',
-    //     type: ELEMENT_TYPES.BOX,
-    //     width: 30,
-    //     position: { x: 200, y: 0, z: 0 },
-    //     fillColor: COLORS.pink,
-    // });
-    //
-    // // Down (below floor)
-    // world.addBox({
-    //     id: 'down-cube',
-    //     type: ELEMENT_TYPES.BOX,
-    //     width: 30,
-    //     position: { x: -200, y: 400, z: 0 },
-    //     fillColor: { red: 128, green: 0, blue: 255, alpha: 255 },
-    // });
-    //
-    // // Far left
-    // world.addSphere({
-    //     id: 'far-left-sphere',
-    //     type: ELEMENT_TYPES.SPHERE,
-    //     radius: 25,
-    //     position: { x: -300, y: floorY, z: -200 },
-    //     fillColor: { red: 0, green: 255, blue: 128, alpha: 255 },
-    // });
-    //
-    // // Far right
-    // world.addSphere({
-    //     id: 'far-right-sphere',
-    //     type: ELEMENT_TYPES.SPHERE,
-    //     radius: 25,
-    //     position: { x: 300, y: floorY, z: -200 },
-    //     fillColor: { red: 128, green: 128, blue: 0, alpha: 255 },
-    // });
-    //
-    // // Center floating
+
+    // Center floating
     world.addSphere({
         id: 'center-sphere',
         type: ELEMENT_TYPES.SPHERE,
