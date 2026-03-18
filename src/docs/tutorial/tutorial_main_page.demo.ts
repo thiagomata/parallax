@@ -177,13 +177,18 @@ export function renderStep(
     const sketchConfig: SketchConfig = { ...DEFAULT_SKETCH_CONFIG, ...config, width, height, paused: false };
 
     let currentP5: p5 | null = null;
+    let currentWorld: World<any, any, any, any> | null = null;
 
     const createSketch = (sketchFn: P5Sketch) => {
         // remove old instance
         if (currentP5) currentP5.remove();
 
         // create new p5
-        currentP5 = new p5((p: p5) => sketchFn(p, sketchConfig), canvasBox);
+        currentP5 = new p5((p: p5) => {
+            const world = sketchFn(p, sketchConfig);
+            currentWorld = world;
+            return world;
+        }, canvasBox);
     };
 
     const executeUpdate = () => {
@@ -252,6 +257,34 @@ export function renderStep(
     });
 
     createSketch(initialSketch);
+
+    // Handle fullscreen changes - resize canvas to match new dimensions
+    const handleResize = () => {
+        if (!currentP5) return;
+        
+        const newRect = canvasWrapper.getBoundingClientRect();
+        const newWidth = Math.floor(newRect.width);
+        const newHeight = Math.floor(newRect.height);
+        
+        if (newWidth > 0 && newHeight > 0) {
+            currentP5.resizeCanvas(newWidth, newHeight);
+            sketchConfig.width = newWidth;
+            sketchConfig.height = newHeight;
+            
+            // Also update the World scene with new dimensions
+            if (currentWorld) {
+                currentWorld.updateWindowConfig(newWidth, newHeight);
+            }
+        }
+    };
+
+    // Fullscreen change handler
+    document.addEventListener('fullscreenchange', () => {
+        setTimeout(handleResize, 100);
+    });
+
+    // Window resize handler
+    window.addEventListener('resize', handleResize);
 }
 
 // Initialize the updated Curriculum

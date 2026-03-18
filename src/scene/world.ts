@@ -247,6 +247,14 @@ export class World<
     }
 
     /**
+     * Update the window configuration (width, height).
+     * Call this when the canvas is resized.
+     */
+    public updateWindowConfig(width: number, height: number): void {
+        this.stage.updateWindowConfig(WindowConfig.create({ width, height }));
+    }
+
+    /**
      * Set a custom projection matrix calculator.
      * When set, this function will be called each frame to compute the projection matrix.
      * @param calculator - Function that takes (eye, screen, window) and returns a ProjectionMatrix
