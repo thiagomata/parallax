@@ -4,11 +4,45 @@ import {World} from "../../scene/world.ts";
 import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
+import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./sketch_config.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
 import {TransformEffect, type TransformEffectConfig} from "../../scene/effects/transform_effect.ts";
 
-export function tutorial_2(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
+/**
+ * TUTORIAL: Animation Over Time
+ * 
+ * Animate element properties using the playback timeline.
+ */
+export const animation_explanation = `
+<div class="concept">
+<p>The parallax engine includes a built-in <strong>playback timeline</strong> that loops over a configurable duration. Properties can be <em>dynamic functions</em> that receive the current playback state and return computed values. This enables smooth, synchronized animations without manual timing.</p>
+</div>
+
+<h3>How It Works</h3>
+<ol>
+<li><strong>SceneClock</strong> - The clock manages the playback timeline. Configure it with <code>duration</code> (in ms) and <code>isLoop</code> to create repeating animations.</li>
+<li><strong>ResolutionContext</strong> - Every dynamic property receives a context object containing <code>playback.progress</code>, a value from 0 to 1 representing position in the timeline.</li>
+<li><strong>Property Functions</strong> - Instead of static values, pass functions that compute properties each frame. Use sine/cosine waves for smooth oscillation.</li>
+<li><strong>Effects</strong> - Effects run after transformations, allowing you to modify computed properties based on other values (like inverting colors dynamically).</li>
+</ol>
+
+<h3>Key Terms</h3>
+<div class="key-terms">
+<span class="key-term">SceneClock</span>
+<span class="key-term">ResolutionContext</span>
+<span class="key-term">Playback Progress</span>
+<span class="key-term">Effect</span>
+</div>
+
+<div class="related">
+<h3>Related Tutorials</h3>
+<a href="#tutorial-1">Adding Elements</a>
+<a href="#tutorial-3">Orbital Motion</a>
+<a href="#tutorial-6">Dynamic Properties</a>
+</div>
+`;
+
+export function tutorial_animation(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let graphicProcessor: P5GraphicProcessor;
 
     // Scene Orchestration with a custom 5s loop

@@ -1,12 +1,12 @@
 import {describe, expect, it} from 'vitest';
-import {tutorial_4} from './tutorial_4';
+import {tutorial_camera_control} from './tutorial_camera_control';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {createPauseTests} from './pause_test_utils.ts';
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {DEFAULT_SCENE_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
 
-describe('Tutorial 4: Camera Orbit', () => {
+describe('Tutorial 4: Camera Control Camera Orbit', () => {
 
     it('should register grid of boxes and set up orbit camera', async () => {
         const mockP5 = createMockP5();
@@ -21,7 +21,7 @@ describe('Tutorial 4: Camera Orbit', () => {
             }
         });
 
-        const world = tutorial_4(mockP5 as unknown as p5, { 
+        const world = tutorial_camera_control(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400,
             clock: clock,
@@ -73,5 +73,5 @@ describe('Tutorial 4: Camera Orbit', () => {
         expect(mockP5.box).toHaveBeenCalled();
     });
 
-    createPauseTests('Tutorial 4', tutorial_4);
+    createPauseTests('Tutorial 4: Camera Control', tutorial_camera_control);
 });

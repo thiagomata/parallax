@@ -1,49 +1,57 @@
-import p5 from "p5";
-import {
-	    ELEMENT_TYPES,
-	    DEFAULT_SCENE_SETTINGS,
-	    WindowConfig,
-	    type ResolutionContext,
-	} from "../../scene/types.ts";
-import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
-import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
-import { World } from "../../scene/world.ts";
-import { SceneClock } from "../../scene/scene_clock.ts";
-
-import type { SketchConfig } from "./hero.demo.ts";
+import p5 from 'p5';
+import {World} from "../../scene/world.ts";
+import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
+import {SceneClock} from "../../scene/scene_clock.ts";
+import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type ResolutionContext} from "../../scene/types.ts";
+import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "../tutorial/sketch_config.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
 import {CenterOrbit} from "../../scene/presets.ts";
 
-export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any, any> => {
-    let gp: P5GraphicProcessor;
+/**
+ * HERO EXAMPLE: First Steps
+ * 
+ * A tour of different element types with orbital camera.
+ */
+export const heroExample1_explanation = `
+<div class="concept">
+<p>This demo showcases various 3D element types available in the parallax engine, with a camera that orbits around the scene center.</p>
+</div>
 
-    // Temporal & Spatial Orchestration
-    const clock = new SceneClock(DEFAULT_SCENE_SETTINGS);
+<h3>Key Features</h3>
+<ul>
+<li><strong>Element Types</strong> - Pyramids, cylinders, cones, tori, elliptical, and text</li>
+<li><strong>Presets</strong> - Using <code>CenterOrbit</code> for automatic camera movement</li>
+<li><strong>Dynamic Properties</strong> - Rotation based on playback timeline</li>
+</ul>
+`;
 
-    const settings = {
+export function heroExample1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
+    let graphicProcessor: P5GraphicProcessor;
+
+    // Scene Orchestration
+    const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
-        window: WindowConfig.create({
-            width: config.width,
-            height: config.height,
-        }),
+        startPaused: config.paused,
         playback: {
             ...DEFAULT_SCENE_SETTINGS.playback,
             duration: 10000,
             isLoop: true
-        },
-        debug: true
-    };
+        }
+    });
 
-    const loader = config?.loader ?? new P5AssetLoader(p);
+    // Asset Pipeline & World
+    const loader = config.loader ?? new P5AssetLoader(p);
     const world = new World<P5Bundler, any, any>(
-        WorldSettings.fromLibs({clock, loader, settings})
+        WorldSettings.fromLibs({clock, loader})
     );
+
+    world.loadPreset(CenterOrbit(p, {radius: 500}));
+    world.enableDefaultPerspective(config.width, config.height);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
-        gp = new P5GraphicProcessor(p, loader);
-
-        world.loadPreset(CenterOrbit(p))
+        graphicProcessor = new P5GraphicProcessor(p, loader);
 
         // Shape Registration
         world.addPyramid({
@@ -124,9 +132,12 @@ export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any,
     };
 
     p.draw = () => {
+        if (config.paused && !clock.isPaused()) clock.pause();
+        if (!config.paused && clock.isPaused()) clock.resume();
+
         p.background(15);
-        world.step(gp);
+        world.step(graphicProcessor);
     };
 
     return world;
-};
+}

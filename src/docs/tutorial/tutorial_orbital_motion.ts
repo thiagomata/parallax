@@ -7,10 +7,43 @@ import {
     DEFAULT_SCENE_SETTINGS,
     ELEMENT_TYPES, type ResolutionContext, type Vector3, type Rotation3,
 } from "../../scene/types.ts";
-import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./tutorial_main_page.demo.ts";
+import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./sketch_config.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
 
-export function tutorial_3(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
+/**
+ * TUTORIAL: Orbital Motion
+ * 
+ * Move elements in circular paths using trigonometry.
+ */
+export const orbital_motion_explanation = `
+<div class="concept">
+<p>Objects can orbit around a point by using <strong>sin</strong> and <strong>cos</strong> functions. These trigonometric functions map a circular path where the progress value (0 to 1) becomes an angle, and the sine/cosine produce x and y coordinates on the circle.</p>
+</div>
+
+<h3>How It Works</h3>
+<ol>
+<li><strong>Circle Math</strong> - For an orbit: <code>x = cos(angle) * radius</code> and <code>y = sin(angle) * radius</code>. As the angle increases from 0 to 2π, the object traces a circle.</li>
+<li><strong>Mapping Progress</strong> - Multiply <code>progress</code> by 2π to convert the 0-1 timeline into a full rotation (0 to 360 degrees).</li>
+<li><strong>Multi-axis Orbits</strong> - Add different sine/cosine waves to x, y, and z for complex 3D orbital paths.</li>
+<li><strong>Synchronized Rotation</strong> - Apply the same angle to rotation properties so the object tumbles as it orbits, creating natural-looking motion.</li>
+</ol>
+
+<h3>Key Terms</h3>
+<div class="key-terms">
+<span class="key-term">Trigonometry</span>
+<span class="key-term">Sine Wave</span>
+<span class="key-term">Cosine Wave</span>
+<span class="key-term">Orbit</span>
+</div>
+
+<div class="related">
+<h3>Related Tutorials</h3>
+<a href="#tutorial-1">Adding Elements</a>
+<a href="#tutorial-2">Animation Over Time</a>
+</div>
+`;
+
+export function tutorial_orbital_motion(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let graphicProcessor: P5GraphicProcessor;
 
     // Scene Orchestration (5s circular loop)

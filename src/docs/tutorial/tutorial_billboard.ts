@@ -10,17 +10,45 @@ import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts
 import {
     DEFAULT_SKETCH_CONFIG,
     type SketchConfig
-} from "./tutorial_main_page.demo.ts";
+} from "./sketch_config.ts";
 import { WorldSettings } from "../../scene/world_settings.ts";
 import { LookAtEffect } from "../../scene/effects/look_at_effect.ts";
 import {COLORS} from "../../scene/colors.ts";
 import {CenterOrbit} from "../../scene/presets.ts";
 
 /**
- * TUTORIAL 8: THE BILLBOARD
- * Demonstrating billboard elements that always face the camera.
+ * TUTORIAL: Always Face Camera
+ * 
+ * Elements that always rotate to face the camera.
  */
-export function tutorial_8(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
+export const billboard_explanation = `
+<div class="concept">
+<p><strong>Billboarding</strong> is a technique where an element always faces the camera, regardless of camera movement. This is commonly used for sprites, particle effects, and UI elements that need to stay readable. In parallax, we use LookAtEffect with a special camera target.</p>
+</div>
+
+<h3>How It Works</h3>
+<ol>
+<li><strong>Effect Setup</strong> - Apply <code>LookAtEffect</code> without specifying a <code>lookAt</code> target. The effect will automatically target the camera.</li>
+<li><strong>Automatic Rotation</strong> - Each frame, the element calculates the direction to the camera and rotates to face it.</li>
+<li><strong>Preserve Initial Rotation</strong> - Set an initial <code>rotate</code> value. The LookAtEffect computes the final orientation, which may override your initial rotation.</li>
+<li><strong>Use Cases</strong> - Billboards are ideal for flat panels (PANEL elements), sprites, and any element that should always face the viewer.</li>
+</ol>
+
+<h3>Key Terms</h3>
+<div class="key-terms">
+<span class="key-term">Billboard</span>
+<span class="key-term">LookAtEffect</span>
+<span class="key-term">Camera Target</span>
+<span class="key-term">Sprite</span>
+</div>
+
+<div class="related">
+<h3>Related Tutorials</h3>
+<a href="#tutorial-7">Objects Looking at Each Other</a>
+</div>
+`;
+
+export function tutorial_billboard(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
     let graphicProcessor: P5GraphicProcessor;
 
     const clock = config.clock ?? new SceneClock({

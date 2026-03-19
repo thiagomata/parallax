@@ -1,12 +1,12 @@
 import {describe, expect, it} from 'vitest';
-import {tutorial_1} from './tutorial_1';
+import {tutorial_adding_elements} from './tutorial_adding_elements';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {createPauseTests} from './pause_test_utils.ts';
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {DEFAULT_SCENE_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
 
-describe('Tutorial 1: Basic Box with Rotation', () => {
+describe('Tutorial 1: Adding Elements Basic Box with Rotation', () => {
 
     it('should resolve rotating box using the actual tutorial logic', async () => {
         const mockP5 = createMockP5();
@@ -21,7 +21,7 @@ describe('Tutorial 1: Basic Box with Rotation', () => {
             }
         });
 
-        const world = tutorial_1(mockP5 as unknown as p5, { 
+        const world = tutorial_adding_elements(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400, 
             clock: clock,
@@ -93,5 +93,5 @@ describe('Tutorial 1: Basic Box with Rotation', () => {
         expect(mockP5.fill).toHaveBeenCalled();
     });
 
-    createPauseTests('Tutorial 1', tutorial_1);
+    createPauseTests('Tutorial 1: Adding Elements', tutorial_adding_elements);
 });

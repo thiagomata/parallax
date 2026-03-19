@@ -1,12 +1,12 @@
 import {describe, expect, it, vi} from 'vitest';
-import {tutorial_10} from './tutorial_10';
+import {tutorial_parallax} from './tutorial_parallax';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {SceneClock} from "../../scene/scene_clock.ts";
-import {DEFAULT_SCENE_SETTINGS, type ResolvedBox, type ResolvedFloor} from "../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
 import {createFaceWorldData, createMockHeadTrackingProvider} from "../../scene/mock/face.mock.ts";
 
-describe('Tutorial 10: Head-Tracked VR View', () => {
+describe('Tutorial 10: Parallax Head-Tracked VR View', () => {
 
     it('should register all scene elements at canonical head position', async () => {
         const mockP5 = createMockP5();
@@ -30,7 +30,7 @@ describe('Tutorial 10: Head-Tracked VR View', () => {
         const getDataMock = vi.fn();
         getDataMock.mockReturnValue(canonicalFace);
 
-        const world = tutorial_10(mockP5 as unknown as p5, { 
+        const world = await tutorial_parallax(mockP5 as unknown as p5, { 
             width: 640, 
             height: 480,
             clock: clock,
@@ -80,7 +80,7 @@ describe('Tutorial 10: Head-Tracked VR View', () => {
         getDataMock.mockReturnValue(canonicalFace);
 
         // Tutorial 10 uses off-axis projection (4th param = true)
-        const world = tutorial_10(mockP5 as unknown as p5, { 
+        const world = await tutorial_parallax(mockP5 as unknown as p5, { 
             width: 640, 
             height: 480,
             clock: clock,
@@ -133,7 +133,7 @@ describe('Tutorial 10: Head-Tracked VR View', () => {
         const getDataMock = vi.fn();
         getDataMock.mockReturnValue(faceData1);
 
-        const world = tutorial_10(mockP5 as unknown as p5, { 
+        const world = await tutorial_parallax(mockP5 as unknown as p5, { 
             width: 640, 
             height: 480,
             clock: clock,

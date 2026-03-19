@@ -5,24 +5,49 @@ import { SceneClock } from "../../scene/scene_clock.ts";
 import { HeadTrackingDataProvider } from "../../scene/providers/head_tracking_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type Vector3} from "../../scene/types.ts";
-import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "./tutorial_main_page.demo.ts";
+import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "./sketch_config.ts";
 import { WorldSettings } from "../../scene/world_settings.ts";
 import { HEAD_TRACKED_PRESET } from "../../scene/presets.ts";
 import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts";
 import {COLORS} from "../../scene/colors.ts";
 
 /**
- * TUTORIAL 10: HEAD-TRACKED VR VIEW
- * Demonstrates using the HEAD_TRACKED preset with head tracking.
- * User's head movement controls the camera view of a scene with cubes.
+ * TUTORIAL: 3D Parallax Depth
+ * 
+ * Experience depth through head movement.
  */
-export function tutorial_10(
+export const parallax_explanation = `
+<div class="concept">
+<p><strong>3D Parallax</strong> creates the illusion of depth by shifting objects at different speeds based on their distance from the camera. Objects closer to you move more than distant objects when you shift your head, mimicking how real 3D vision works.</p>
+</div>
+
+<h3>How It Works</h3>
+<ol>
+<li><strong>Perspective Projection</strong> - Enable <code>enableDefaultPerspective()</code> with <code>wideFov: true</code>. This creates a wide-angle view that exaggerates parallax.</li>
+<li><strong>Head Tracking</strong> - Head position data is applied to the camera via <code>HeadTrackingModifier</code>, creating responsive parallax based on your actual head position.</li>
+<li><strong>Object Depth</strong> - Objects at different Z positions shift differently as the camera moves. Close objects shift more; distant objects shift less.</li>
+<li><strong>The Pop-Out Effect</strong> - With sufficient head movement and wide FOV, objects near the camera can appear to "pop out" of the screen toward you.</li>
+</ol>
+
+<h3>Key Terms</h3>
+<div class="key-terms">
+<span class="key-term">Parallax</span>
+<span class="key-term">Depth</span>
+<span class="key-term">Wide FOV</span>
+<span class="key-term">Head Tracking</span>
+</div>
+
+<div class="related">
+<h3>Related Tutorials</h3>
+<a href="#tutorial-8">The Observer</a>
+</div>
+`;
+
+export async function tutorial_parallax(
     p: p5,
     config: SketchConfig = DEFAULT_SKETCH_CONFIG,
     faceDataProvider?: HeadTrackingDataProvider,
-): World<P5Bundler, any, any, { headTracker: HeadTrackingDataProvider }> {
-    let gp: P5GraphicProcessor;
-
+): Promise<World<P5Bundler, any, any, { headTracker: HeadTrackingDataProvider }>> {
     const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
@@ -228,16 +253,22 @@ export function tutorial_10(
         fillColor: COLORS.purple,
     });
 
-    p.setup = async () => {
+    let gp: P5GraphicProcessor;
+
+    p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
-        await faceDataProvider.init();
-        gp = new P5GraphicProcessor(p, loader);
     };
 
     p.draw = () => {
         p.background(20);
-        world.step(gp);
+        if (gp) {
+            world.step(gp);
+        }
     };
+
+    // Initialize face tracking before returning
+    await faceDataProvider.init();
+    gp = new P5GraphicProcessor(p, loader);
 
     return world;
 }
