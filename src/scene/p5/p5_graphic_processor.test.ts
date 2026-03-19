@@ -157,7 +157,7 @@ describe("P5GraphicProcessor", () => {
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
         const state = { settings: { alpha: 0.5 } } as any;
-        const assets = { video: { elt: { readyState: 1 } } } as any;
+        const assets = { video: { elt: { readyState: 2 } } } as any;
 
         gp.drawBox(
             { id: "b", type: ELEMENT_TYPES.BOX, width: 10, position: { x: 0, y: 0, z: 0 }, alpha: 0.5 } as any,

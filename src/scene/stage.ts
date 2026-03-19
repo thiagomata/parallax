@@ -51,6 +51,11 @@ export class Stage<
 
     private lastFrameState: ResolvedSceneState | null = null;
     private cachedDynamicState: DynamicSceneState | null = null;
+    
+    // Cache for distance calculations to reduce per-frame computation
+    private distanceCache = new Map<string, number>();
+    private lastCacheUpdate = 0;
+    private readonly cacheValidityMs = 100;
 
     constructor(
         settings: SceneSettings,
@@ -118,17 +123,20 @@ export class Stage<
             throw new Error(`ID collision: Cannot add element '${blueprint.id}' - a projection with the same ID already exists.`);
         }
         this.elementRegistry.register(blueprint as any);
-        this.cachedDynamicState = null; // invalidate cache
+        this.cachedDynamicState = null;
+        this.distanceCache.clear();
     }
 
     public removeElement(id: string): void {
         this.elementRegistry.remove(id);
-        this.cachedDynamicState = null; // invalidate cache
+        this.cachedDynamicState = null;
+        this.distanceCache.delete(id);
     }
 
     public removeProjection(id: string): void {
         this.projectionRegistry.delete(id);
-        this.cachedDynamicState = null; // invalidate cache
+        this.cachedDynamicState = null;
+        this.distanceCache.clear();
     }
 
     public getElement(id: string): BundleDynamicElement<any, TGraphicBundle> | undefined {
@@ -308,15 +316,27 @@ export class Stage<
         };
 
         const renderQueue = Array.from(this.elementRegistry.all())
-            .map(element => ({
-                element,
-                distance: graphicProcessor.dist(
+            .map(element => {
+                const cachedDist = this.distanceCache.get(element.id);
+                if (cachedDist !== undefined) {
+                    return { element, distance: cachedDist };
+                }
+                const distance = graphicProcessor.dist(
                     screenProjection.position,
                     this.elementResolver.resolveProperty(element.dynamic.position, elementResolutionContext)
-                )
-            }))
+                );
+                this.distanceCache.set(element.id, distance);
+                return { element, distance };
+            })
             .sort((a, b) => b.distance - a.distance)
             .map(pair => pair.element);
+        
+        // Invalidate cache periodically to handle dynamic elements
+        const now = performance.now();
+        if (now - this.lastCacheUpdate > this.cacheValidityMs) {
+            this.distanceCache.clear();
+            this.lastCacheUpdate = now;
+        }
 
         const resolvedElements = renderQueue.map(bundle => ({
             id: bundle.id,

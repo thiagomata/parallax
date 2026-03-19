@@ -1,10 +1,13 @@
 import {defineConfig} from 'vitest/config';
 import {codecovVitePlugin} from "@codecov/vite-plugin";
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
 export default defineConfig({
     base: '/parallax/',
     server: {
         open: true,
+        host: true,
+        allowedHosts: true,
     },
     build: {
         sourcemap: true,
@@ -16,6 +19,7 @@ export default defineConfig({
         }
     },
     plugins: [
+        basicSsl(),
         codecovVitePlugin({
             enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
             bundleName: "parallax-camera",

@@ -1,6 +1,6 @@
 import p5 from "p5";
 import type { DataProviderBundle, Vector3 } from "../types.ts";
-import { MediaPipeFaceProvider } from "../drivers/mediapipe/face_provider.ts";
+import { MediaPipeFaceProvider, type FaceProviderConfig } from "../drivers/mediapipe/face_provider.ts";
 import type {FaceProvider} from "./face_provider.ts";
 import type {Face} from "../drivers/mediapipe/face.ts";
 
@@ -133,6 +133,7 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         mirror: boolean = false,
         panelPosition: Vector3 = DEFAULT_CAMERA_PANEL_POSITION,
         cameraPosition: Vector3 = DEFAULT_CAMERA_POSITION,
+        faceConfig: FaceProviderConfig = {},
     ) {
         if (sceneHeadWidth <= 0) {
             throw new Error("Invalid scene head width");
@@ -147,7 +148,7 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         this.panelPosition  = panelPosition;
         this.cameraPosition = cameraPosition;
 
-        this.provider = new MediaPipeFaceProvider(p, "/parallax/wasm", "/parallax/models/face_landmarker.task", mirror);
+        this.provider = new MediaPipeFaceProvider(p, "/parallax/wasm", "/parallax/models/face_landmarker.task", mirror, faceConfig);
     }
 
     async init(): Promise<void> {

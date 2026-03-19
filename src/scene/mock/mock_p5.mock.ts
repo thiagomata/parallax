@@ -1,6 +1,20 @@
 import {vi} from "vitest";
 
+export function createMockCapture() {
+    return {
+        size: vi.fn(),
+        hide: vi.fn(),
+        elt: { 
+            readyState: 4, 
+            onloadedmetadata: null, 
+            onerror: null 
+        },
+        play: vi.fn(),
+    };
+}
+
 export function createMockP5() {
+    const mockCapture = createMockCapture();
     return {
         fill: vi.fn(),
         box: vi.fn(),
@@ -62,10 +76,13 @@ export function createMockP5() {
         
         WEBGL: 'webgl',
         NORMAL: 'normal',
-        setup: undefined as any,
-        draw: undefined as any,
-        createCapture: vi.fn(),
+        setup: vi.fn(),
+        draw: vi.fn(),
+        createCapture: vi.fn().mockReturnValue(mockCapture),
+        _mockCapture: mockCapture,
         lerp: vi.fn(),
         frustum: vi.fn(),
+        loop: vi.fn(),
+        noLoop: vi.fn(),
     };
 }

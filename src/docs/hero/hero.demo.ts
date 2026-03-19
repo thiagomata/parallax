@@ -146,15 +146,27 @@ export function renderStep(
 
     copyBtn.addEventListener('click', () => navigator.clipboard.writeText(editorBox.innerText));
 
-    // Fullscreen button
+    // Fullscreen button - hidden on mobile
+    const isMobile = () => 
+        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints > 0 && window.innerWidth < 769);
+    
     stepMain.querySelectorAll('.fullscreen-btn').forEach(btn => {
+        if (isMobile()) {
+            (btn as HTMLElement).style.display = 'none';
+            return;
+        }
+        
         btn.addEventListener('click', () => {
             const canvasBox = stepMain.querySelector('.canvas-box');
             if (canvasBox) {
-                if (document.fullscreenElement) {
-                    document.exitFullscreen?.();
+                if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+                    document.exitFullscreen?.() || (document as any).webkitExitFullscreen?.();
                 } else {
-                    canvasBox.requestFullscreen?.();
+                    const requestFS = 
+                        canvasBox.requestFullscreen?.bind(canvasBox) ||
+                        (canvasBox as any).webkitRequestFullscreen?.bind(canvasBox);
+                    requestFS?.();
                 }
             }
         });

@@ -30,6 +30,11 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     public readonly loader: AssetLoader<P5Bundler>;
     private p: p5;
 
+    // Cache for center offsets to avoid recalculation
+    private centerOffsetCache = new Map<string, Vector3>();
+    private lastWidth = 0;
+    private lastHeight = 0;
+
     constructor(p: p5, loader: AssetLoader<P5Bundler>) {
         this.p = p;
         this.loader = loader;
@@ -217,7 +222,7 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         const combinedAlpha = (props.alpha ?? 1) * state.settings.alpha;
 
         const videoReady = assets.video?.elt && 
-            (assets.video.elt as HTMLVideoElement).readyState >= 1;
+            (assets.video.elt as HTMLVideoElement).readyState >= 2;
 
         if (videoReady) {
             this.p.blendMode(this.p.BLEND);
@@ -280,33 +285,37 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     }
 
     private getCenterOffset(props: ResolvedBaseVisual): Vector3 {
+        // Cache key based on dimensions
         const p = props as any;
+        const cacheKey = `${props.type}-${p.width ?? 0}-${p.height ?? 0}-${p.depth ?? 0}`;
+        
+        const cached = this.centerOffsetCache.get(cacheKey);
+        if (cached) return cached;
+        
+        let result: Vector3;
         switch (props.type) {
             case ELEMENT_TYPES.BOX:
                 const width = p.width ?? 0;
                 const height = p.height ?? width;
                 const depth = p.depth ?? width;
-                return {
-                    x: (width) / 2,
-                    y: (height) / 2,
-                    z: (depth) / 2
-                };
+                result = { x: width / 2, y: height / 2, z: depth / 2 };
+                break;
             case ELEMENT_TYPES.PANEL:
-                return {
-                    x: (p.width || 0) / 2,
-                    y: (p.height || 0) / 2,
-                    z: 0
-                };
-            case ELEMENT_TYPES.SPHERE:
-            case ELEMENT_TYPES.CONE:
-            case ELEMENT_TYPES.CYLINDER:
-            case ELEMENT_TYPES.TORUS:
-            case ELEMENT_TYPES.ELLIPTICAL:
-            case ELEMENT_TYPES.PYRAMID:
-            case ELEMENT_TYPES.FLOOR:
-            case ELEMENT_TYPES.TEXT:
+                result = { x: (p.width || 0) / 2, y: (p.height || 0) / 2, z: 0 };
+                break;
             default:
-                return { x: 0, y: 0, z: 0 };
+                result = { x: 0, y: 0, z: 0 };
+        }
+        
+        this.centerOffsetCache.set(cacheKey, result);
+        return result;
+    }
+
+    public resize(w: number, h: number): void {
+        if (w !== this.lastWidth || h !== this.lastHeight) {
+            this.centerOffsetCache.clear();
+            this.lastWidth = w;
+            this.lastHeight = h;
         }
     }
 

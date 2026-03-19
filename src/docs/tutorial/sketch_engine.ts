@@ -32,47 +32,53 @@ const p5Instances: Map<string, p5> = new Map();
 const containerElements: Map<string, HTMLElement> = new Map();
 const worldInstances: Map<string, World<any, any, any, any>> = new Map();
 
+const isMobileDevice = () => 
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    navigator.maxTouchPoints > 0;
+
 // Global fullscreen change handler
-document.addEventListener('fullscreenchange', () => {
-    const isFullscreen = !!document.fullscreenElement;
+const handleFullscreenChange = () => {
+    const isFullscreen = !!(
+        document.fullscreenElement || 
+        (document as any).webkitFullscreenElement
+    );
     
     p5Instances.forEach((instance, containerId) => {
         if (!instance) return;
         
         const world = worldInstances.get(containerId);
+        const canvasBox = containerElements.get(containerId);
         
-        if (isFullscreen) {
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            
+        let w: number, h: number;
+        
+        if (isMobileDevice()) {
+            w = visualViewport?.width || window.innerWidth;
+            h = visualViewport?.height || window.innerHeight;
+        } else if (isFullscreen) {
+            w = window.innerWidth;
+            h = window.innerHeight;
+        } else {
+            w = canvasBox?.clientWidth || window.innerWidth;
+            h = canvasBox?.clientHeight || window.innerHeight;
+        }
+        
+        if (w > 0 && h > 0) {
             instance.resizeCanvas(w, h, true);
-            
             if (world) {
                 (world as any).enableDefaultPerspective(w, h);
             }
-            
-            // Force a redraw even when paused
             instance.redraw();
-        } else {
-            const canvasBox = containerElements.get(containerId);
-            if (canvasBox) {
-                const w = canvasBox.clientWidth;
-                const h = canvasBox.clientHeight;
-                
-                if (w > 0 && h > 0) {
-                    instance.resizeCanvas(w, h, true);
-                    
-                    if (world) {
-                        (world as any).enableDefaultPerspective(w, h);
-                    }
-                    
-                    // Force a redraw even when paused
-                    instance.redraw();
-                }
-            }
         }
     });
-});
+};
+
+if (isMobileDevice()) {
+    visualViewport?.addEventListener('resize', handleFullscreenChange);
+} else {
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    window.addEventListener('resize', handleFullscreenChange);
+}
 
 export function getP5Instance(containerId: string): p5 | undefined {
     return p5Instances.get(containerId);
@@ -86,13 +92,45 @@ export function setP5Instance(containerId: string, instance: p5 | undefined): vo
     }
 }
 
+export function cleanupP5Instance(containerId: string): void {
+    const instance = p5Instances.get(containerId);
+    if (!instance) return;
+    
+    try {
+        instance.noLoop();
+        const canvas = (instance as any)?.canvas;
+        if (canvas) {
+            const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+            if (gl) {
+                const loseExt = gl.getExtension('WEBGL_lose_context');
+                if (loseExt) loseExt.loseContext();
+            }
+            if (canvas.parentNode) {
+                canvas.parentNode.removeChild(canvas);
+            }
+        }
+        instance.remove();
+    } catch (e) {
+        console.warn(`[${containerId}] Cleanup error:`, e);
+    }
+    
+    p5Instances.delete(containerId);
+    containerElements.delete(containerId);
+    worldInstances.delete(containerId);
+}
+
 export { DEFAULT_SKETCH_CONFIG };
 export type { SketchConfig };
 import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "./sketch_config.ts";
 
+export type P5SketchExtraArgs = {
+    faceConfig?: any;
+};
+
 export type P5Sketch = (
     p: p5, 
-    config: SketchConfig
+    config: SketchConfig,
+    extraArgs?: P5SketchExtraArgs
 ) => World<P5Bundler, EffectLib, ProjectionEffectLib, DataProviderLib> 
   | Promise<World<P5Bundler, EffectLib, ProjectionEffectLib, DataProviderLib>>;
 
@@ -253,7 +291,8 @@ export function createSketchInstance(
     sketchConfig: SketchConfig,
     canvasBox: HTMLElement,
     containerId: string,
-    previousP5?: p5 | null
+    previousP5?: p5 | null,
+    extraArgs?: P5SketchExtraArgs
 ): { currentP5: p5 | null; currentWorld: World<any, any, any, any> | null } {
     let currentP5: p5 | null = previousP5 || null;
     let currentWorld: World<any, any, any, any> | null = null;
@@ -295,30 +334,47 @@ export function createSketchInstance(
     containerElements.delete(containerId);
     worldInstances.delete(containerId);
 
+    let worldReady = false;
+
     currentP5 = new p5((p: p5) => {
-        if (!p.setup) p.setup = () => {};
-        if (!p.draw) p.draw = () => {};
-        
-        const originalDraw = p.draw;
-        p.draw = function(...args: unknown[]) {
-            try {
-                return originalDraw.call(this, ...args as []);
-            } catch (e) {
-                console.error(`[${containerId}] Error in draw:`, e);
-                p.noLoop();
+        p.setup = () => {
+            if (isMobileDevice()) {
+                p.pixelDensity(1);
+                p.frameRate(30);
             }
+            p.noLoop();
         };
 
-        const worldOrPromise = sketchFn(p, sketchConfig);
+        const worldOrPromise = sketchFn(p, sketchConfig, extraArgs);
+        
+        const wrapDraw = () => {
+            const tutorialDraw = p.draw;
+            if (typeof tutorialDraw !== 'function') return;
+            
+            p.draw = function(this: any, ...args: unknown[]) {
+                if (!worldReady) return;
+                try {
+                    return tutorialDraw.call(this, ...args as []);
+                } catch (e) {
+                    console.error(`[${containerId}] Error in draw:`, e);
+                    p.noLoop();
+                }
+            };
+        };
         
         if (worldOrPromise instanceof Promise) {
             (worldOrPromise as Promise<World<any, any, any, any>>).then((world) => {
                 currentWorld = world;
                 worldInstances.set(containerId, world);
+                worldReady = true;
+                wrapDraw();
+                p.loop();
             });
         } else {
             currentWorld = worldOrPromise as World<any, any, any, any>;
             worldInstances.set(containerId, currentWorld);
+            worldReady = true;
+            wrapDraw();
         }
     }, canvasBox);
 
@@ -326,9 +382,12 @@ export function createSketchInstance(
     p5Instances.set(containerId, currentP5);
     containerElements.set(containerId, canvasBox);
 
-    // Initial resize to fill container (only once, after p5 setup runs)
+    // Initial resize - use requestAnimationFrame to ensure element is rendered
     const doResize = () => {
-        if (currentP5 && !(currentP5 as any)._setupDone) return;
+        if (currentP5 && !(currentP5 as any)._setupDone) {
+            requestAnimationFrame(doResize);
+            return;
+        }
         if (currentP5) {
             const w = canvasBox.clientWidth;
             const h = canvasBox.clientHeight;
@@ -339,9 +398,7 @@ export function createSketchInstance(
             }
         }
     };
-    
-    // Wait for p5 setup to complete, then resize once
-    setTimeout(doResize, 100);
+    requestAnimationFrame(doResize);
 
     return { currentP5, currentWorld };
 }

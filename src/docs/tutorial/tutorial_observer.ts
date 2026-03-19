@@ -53,7 +53,7 @@ export const observer_explanation = `
 export async function tutorial_observer(
     p: p5,
     config: SketchConfig = DEFAULT_SKETCH_CONFIG,
-    faceDataProvider?: HeadTrackingDataProvider,
+    extraArgs?: { faceConfig?: any; faceDataProvider?: HeadTrackingDataProvider },
 ): Promise<World<P5Bundler, any, any, { headTracker: HeadTrackingDataProvider }>> {
     const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
@@ -66,7 +66,9 @@ export async function tutorial_observer(
         },
     });
 
-    faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(p);
+    const faceConfig = extraArgs?.faceConfig;
+    let faceDataProvider = extraArgs?.faceDataProvider;
+    faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(p, 120, 650, false, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 300 }, faceConfig);
 
     const loader = new P5AssetLoader(p);
     const gp = new P5GraphicProcessor(p, loader);

@@ -22,7 +22,7 @@ body {
 .step-row {
     display: flex;
     flex-direction: column;
-    height: 90vh;
+    height: 100dvh;
     background: var(--bg-panel);
     border-bottom: 10px solid #000;
     overflow: hidden;
@@ -63,7 +63,7 @@ body {
 .step-row {
     display: flex;
     flex-direction: column;
-    height: 90vh;
+    height: 100dvh;
 }
 
 .step-content {
@@ -186,7 +186,8 @@ body {
     justify-content: center;
     align-items: center;
     color: #333;
-    min-height: 0;
+    min-height: 200px;
+    min-width: 200px;
     overflow: hidden;
     padding: 0 !important;
 }
@@ -218,8 +219,75 @@ body {
 }
 
 @media (max-width: 1024px) {
-    .step-row { height: auto; }
+    .step-row { height: 100dvh; }
     .step-content { height: 500px; }
+}
+
+/* Desktop only - show fullscreen button */
+@media (min-width: 769px) {
+    .fullscreen-btn { display: flex; }
+}
+
+/* --- TUTORIAL NAVIGATION --- */
+.tutorial-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+}
+
+.tutorial-nav span {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    text-align: center;
+}
+
+.tutorial-nav .icon-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Mobile (both portrait & landscape) */
+@media (max-width: 768px) {
+    .step-row {
+        height: 100dvh;
+        overflow: hidden;
+    }
+    
+    .step-content {
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+    }
+    
+    .code-side { 
+        display: none !important;
+    }
+    
+    .canvas-side {
+        flex: 1;
+        width: 100%;
+    }
+    
+    .canvas-wrapper,
+    .canvas-box {
+        min-height: 0;
+        height: 100%;
+    }
+    
+    .canvas-box canvas {
+        width: 100% !important;
+        height: 100% !important;
+        touch-action: none;
+    }
+    
+    .fullscreen-btn { 
+        display: none !important; 
+    }
 }
 
 /* --- LEARN TAB STYLES --- */
