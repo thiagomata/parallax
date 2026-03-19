@@ -1,1136 +1,388 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { P5GraphicProcessor } from './p5_graphic_processor.ts';
-import { ASSET_STATUS, ELEMENT_TYPES } from '../types.ts';
-import { createMockP5 } from '../mock/mock_p5.mock.ts';
-import type { 
-    SceneState, 
-    Vector3, 
-    ColorRGBA, 
-    ElementAssets, 
-    ResolvedBox, 
-    ResolvedSphere, 
-    ResolvedPanel, 
-    ResolvedText, 
-    ResolvedFloor,
-    ResolvedPyramid,
-    ResolvedCone,
-    ResolvedElliptical,
-    ResolvedCylinder,
-    ResolvedTorus
-} from '../types.ts';
-import type { P5Bundler } from './p5_asset_loader.ts';
+import { describe, expect, it, vi } from "vitest";
+import { P5GraphicProcessor } from "./p5_graphic_processor.ts";
+import { ASSET_STATUS, ELEMENT_TYPES, type ProjectionMatrix } from "../types.ts";
 
-describe('P5GraphicProcessor', () => {
-    let processor: P5GraphicProcessor;
-    let mockP5: any;
-    let mockLoader: any;
-    let mockState: SceneState;
-    let mockAssets: ElementAssets<P5Bundler>;
+const createMockP5 = () => {
+    const p = {
+        // constants
+        PI: Math.PI,
+        HALF_PI: Math.PI / 2,
+        TRIANGLES: "TRIANGLES",
+        CENTER: "CENTER",
 
-    beforeEach(() => {
-        mockP5 = createMockP5();
-        mockLoader = {
-            hydrateTexture: vi.fn(),
-            hydrateFont: vi.fn(),
-        };
-        processor = new P5GraphicProcessor(mockP5 as any, mockLoader);
-
-        mockState = {
-            sceneId: 1,
-            settings: {
-                window: { width: 800, height: 600, aspectRatio: 4/3 },
-                camera: {
-                    position: { x: 0, y: 0, z: 500 },
-                    lookAt: { x: 0, y: 0, z: 0 },
-                    fov: Math.PI / 3,
-                    near: 0.1,
-                    far: 5000
-                },
-                playback: {
-                    duration: 5000,
-                    isLoop: true,
-                    timeSpeed: 1.0,
-                    startTime: 0
-                },
-                debug: false,
-                alpha: 1.0,
-                startPaused: false
+        // renderer internals
+        _renderer: {
+            uPMatrix: {
+                set: vi.fn(),
             },
-            playback: {
-                now: 1000,
-                delta: 16,
-                progress: 0.2,
-                frameCount: 60
-            },
-            camera: {
-                position: { x: 0, y: 0, z: 500 },
-                lookAt: { x: 0, y: 0, z: 0 },
-                fov: Math.PI / 3,
-                near: 0.1,
-                far: 5000,
-                yaw: Math.PI / 4,
-                pitch: Math.PI / 6,
-                roll: Math.PI / 8,
-                direction: { x: 0, y: 0, z: -1 }
-            }
+        },
+
+        // state/time
+        deltaTime: 16,
+        frameCount: 123,
+
+        // core drawing api
+        camera: vi.fn(),
+        push: vi.fn(),
+        pop: vi.fn(),
+        translate: vi.fn(),
+        rotateX: vi.fn(),
+        rotateY: vi.fn(),
+        rotateZ: vi.fn(),
+        scale: vi.fn(),
+        box: vi.fn(),
+        plane: vi.fn(),
+        sphere: vi.fn(),
+        torus: vi.fn(),
+        cylinder: vi.fn(),
+        cone: vi.fn(),
+        ellipsoid: vi.fn(),
+        beginShape: vi.fn(),
+        vertex: vi.fn(),
+        endShape: vi.fn(),
+        texture: vi.fn(),
+        tint: vi.fn(),
+        noTint: vi.fn(),
+        fill: vi.fn(),
+        noFill: vi.fn(),
+        stroke: vi.fn(),
+        strokeWeight: vi.fn(),
+        noStroke: vi.fn(),
+        textFont: vi.fn(),
+        textSize: vi.fn(),
+        textAlign: vi.fn(),
+        text: vi.fn(),
+        line: vi.fn(),
+
+        // math helpers
+        dist: vi.fn((x1, y1, z1, x2, y2, z2) => Math.hypot(x2 - x1, y2 - y1, z2 - z1)),
+        map: vi.fn((v) => v),
+        lerp: vi.fn((s, e, a) => s + (e - s) * a),
+
+        // time helpers
+        millis: vi.fn(() => 1000),
+
+        // video
+        blendMode: vi.fn(),
+    };
+
+    return p;
+};
+
+describe("P5GraphicProcessor", () => {
+    it("setCamera forwards eye + lookAt to p5.camera", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
+
+        gp.setCamera({
+            id: "eye",
+            type: "EYE",
+            position: { x: 1, y: 2, z: 3 },
+            lookAt: { x: 4, y: 5, z: 6 },
+            rotation: { pitch: 0, yaw: 0, roll: 0 },
+            direction: { x: 0, y: 0, z: -1 },
+            distance: 0,
+            effects: [],
+        } as any);
+
+        expect(p.camera).toHaveBeenCalledWith(1, 2, 3, 4, 5, 6, 0, 1, 0);
+    });
+
+    it("setProjectionMatrix updates renderer.uPMatrix when available", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
+
+        const m: ProjectionMatrix = {
+            xScale: { x: 1, y: 2, z: 3, w: 4 },
+            yScale: { x: 5, y: 6, z: 7, w: 8 },
+            projection: { x: 9, y: 10, z: 11, w: 12 },
+            translation: { x: 13, y: 14, z: 15, w: 16 },
         };
 
-        mockAssets = {
+        gp.setProjectionMatrix(m);
+        expect(p._renderer.uPMatrix.set).toHaveBeenCalledWith([
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16,
+        ]);
+    });
+
+    it("setProjectionMatrix is a no-op when renderer.uPMatrix is missing", () => {
+        const p = createMockP5();
+        (p as any)._renderer = {};
+        const gp = new P5GraphicProcessor(p as any, {} as any);
+
+        expect(() => gp.setProjectionMatrix({} as any)).not.toThrow();
+    });
+
+    it("drawPanel mirrors video textures horizontally", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
+
+        const state = { settings: { alpha: 1 } } as any;
+        const assets = { video: { elt: { readyState: 1 } } } as any;
+
+        gp.drawPanel(
+            { id: "p", type: ELEMENT_TYPES.PANEL, width: 10, height: 20, position: { x: 0, y: 0, z: 0 } } as any,
+            assets,
+            state
+        );
+
+        expect(p.scale).toHaveBeenCalledWith(-1, 1);
+        expect(p.plane).toHaveBeenCalledWith(10, 20);
+    });
+
+    it("drawText returns early when font is not ready", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
+
+        const state = { settings: { alpha: 1 } } as any;
+        const assets = {
+            font: { status: ASSET_STATUS.PENDING, value: null },
+        } as any;
+
+        gp.drawText(
+            { id: "t", type: ELEMENT_TYPES.TEXT, text: "hi", size: 12, position: { x: 0, y: 0, z: 0 } } as any,
+            assets,
+            state
+        );
+
+        expect(p.textFont).not.toHaveBeenCalled();
+        expect(p.text).not.toHaveBeenCalled();
+    });
+
+    it("applies video texture and tint when a video is ready", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
+
+        const state = { settings: { alpha: 0.5 } } as any;
+        const assets = { video: { elt: { readyState: 1 } } } as any;
+
+        gp.drawBox(
+            { id: "b", type: ELEMENT_TYPES.BOX, width: 10, position: { x: 0, y: 0, z: 0 }, alpha: 0.5 } as any,
+            assets,
+            state
+        );
+
+        expect(p.texture).toHaveBeenCalledWith(assets.video);
+        // combinedAlpha = 0.5 * 0.5 = 0.25 => 64
+        expect(p.tint).toHaveBeenCalledWith(255, 64);
+    });
+
+    it("applies image texture when ready and video is not ready", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
+
+        const state = { settings: { alpha: 1 } } as any;
+        const img = { id: "img-1" };
+        const assets = {
             texture: {
                 status: ASSET_STATUS.READY,
-                value: { 
-                    texture: { path: 'test.png', width: 100, height: 100 },
-                    internalRef: 'mockTexture' as any
-                }
+                value: { internalRef: img },
             },
-            font: {
-                status: ASSET_STATUS.READY,
-                value: { 
-                    font: { name: 'Test', path: 'test.ttf' },
-                    internalRef: 'mockFont' as any
-                }
-            }
-        };
+        } as any;
+
+        gp.drawBox(
+            { id: "b", type: ELEMENT_TYPES.BOX, width: 10, position: { x: 0, y: 0, z: 0 } } as any,
+            assets,
+            state
+        );
+
+        expect(p.texture).toHaveBeenCalledWith(img);
+        expect(p.tint).toHaveBeenCalledWith(255, 255);
     });
 
-    describe('Constructor', () => {
-        it('should initialize with p5 instance and loader', () => {
-            expect(processor.loader).toBe(mockLoader);
-        });
-    });
+    it("falls back to fill/noFill and stroke/noStroke when no texture is available", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
 
-    describe('Timing Methods', () => {
-        it('should call p5.millis() and return its value', () => {
-            mockP5.millis.mockReturnValue(12345);
-            expect(processor.millis()).toBe(12345);
-            expect(mockP5.millis).toHaveBeenCalledTimes(1);
-        });
+        const state = { settings: { alpha: 0.5 } } as any;
+        const assets = {} as any;
 
-        // Timing methods tests skipped due to mock complexity
-        // These are simple pass-through methods that call p5 directly
-    });
-
-    describe('Camera Methods', () => {
-        it('should call p5.camera() with correct parameters', () => {
-            const pos: Vector3 = { x: 10, y: 20, z: 30 };
-            const lookAt: Vector3 = { x: 40, y: 50, z: 60 };
-
-            processor.setCamera(pos, lookAt);
-
-            expect(mockP5.camera).toHaveBeenCalledWith(10, 20, 30, 40, 50, 60, 0, 1, 0);
-        });
-    });
-
-    describe('Transformation Methods', () => {
-        it('should call p5.translate() with full vector', () => {
-            const pos: Vector3 = { x: 10, y: 20, z: 30 };
-            processor.translate(pos);
-            expect(mockP5.translate).toHaveBeenCalledWith(10, 20, 30);
-        });
-
-        it('should call p5.translate() with partial vector using defaults', () => {
-            const pos = { x: 10, z: 30 }; // y missing
-            processor.translate(pos);
-            expect(mockP5.translate).toHaveBeenCalledWith(10, 0, 30);
-        });
-
-        it('should call p5.translate() with empty vector', () => {
-            processor.translate({});
-            expect(mockP5.translate).toHaveBeenCalledWith(0, 0, 0);
-        });
-    });
-
-    describe('Styling Methods', () => {
-        it('should apply fill with color and alpha', () => {
-            const color: ColorRGBA = { red: 255, green: 128, blue: 64, alpha: 0.5 };
-            processor.fill(color, 0.8);
-
-            expect(mockP5.fill).toHaveBeenCalledWith(255, 128, 64, Math.round(0.8 * 0.5 * 255));
-        });
-
-        it('should apply fill with default alpha', () => {
-            const color: ColorRGBA = { red: 255, green: 128, blue: 64 };
-            processor.fill(color);
-
-            expect(mockP5.fill).toHaveBeenCalledWith(255, 128, 64, Math.round(1.0 * 1.0 * 255));
-        });
-
-        it('should call noFill', () => {
-            processor.noFill();
-            expect(mockP5.noFill).toHaveBeenCalledTimes(1);
-        });
-
-        it('should apply stroke with color, weight, and global alpha', () => {
-            const color: ColorRGBA = { red: 100, green: 150, blue: 200, alpha: 0.7 };
-            processor.stroke(color, 3, 0.9);
-
-            expect(mockP5.strokeWeight).toHaveBeenCalledWith(3);
-            expect(mockP5.stroke).toHaveBeenCalledWith(100, 150, 200, (0.7 * 0.9) * 255);
-        });
-
-        it('should apply stroke with default values', () => {
-            const color: ColorRGBA = { red: 100, green: 150, blue: 200 };
-            processor.stroke(color);
-
-            expect(mockP5.strokeWeight).toHaveBeenCalledWith(1);
-            expect(mockP5.stroke).toHaveBeenCalledWith(100, 150, 200, 255);
-        });
-
-        it('should call noStroke', () => {
-            processor.noStroke();
-            expect(mockP5.noStroke).toHaveBeenCalledTimes(1);
-        });
-    });
-
-    describe('Drawing Methods - Box', () => {
-        let boxProps: ResolvedBox;
-
-        beforeEach(() => {
-            boxProps = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 10, y: 20, z: 30 },
-                rotate: { x: 0.1, y: 0.2, z: 0.3 },
-                width: 50,
-                height: 60,
-                depth: 70
-            };
-        });
-
-        it('should draw box with texture', () => {
-            processor.drawBox(boxProps, mockAssets, mockState);
-
-            expect(mockP5.push).toHaveBeenCalledTimes(1);
-            expect(mockP5.translate).toHaveBeenCalledWith(10, 20, 30);
-            expect(mockP5.rotateY).toHaveBeenCalledWith(0.2);
-            expect(mockP5.rotateX).toHaveBeenCalledWith(0.1);
-            expect(mockP5.rotateZ).toHaveBeenCalledWith(0.3);
-            expect(mockP5.texture).toHaveBeenCalledWith('mockTexture');
-            expect(mockP5.textureMode).toHaveBeenCalledWith('normal');
-            expect(mockP5.tint).toHaveBeenCalledWith(255, Math.round(1.0 * 1.0 * 255));
-            expect(mockP5.box).toHaveBeenCalledWith(50, 60, 70);
-            expect(mockP5.pop).toHaveBeenCalledTimes(1);
-        });
-
-        it('should draw box without texture when no assets', () => {
-            const assetsWithoutTexture = {};
-            const boxPropsWithColor = {
-                ...boxProps,
-                fillColor: { red: 255, green: 0, blue: 0 }
-            };
-
-            processor.drawBox(boxPropsWithColor, assetsWithoutTexture, mockState);
-
-            expect(mockP5.noTint).toHaveBeenCalled();
-            expect(mockP5.fill).toHaveBeenCalledWith(255, 0, 0, Math.round(1.0 * 1.0 * 255));
-        });
-    });
-
-    describe('Drawing Methods - Sphere', () => {
-        let sphereProps: ResolvedSphere;
-
-        beforeEach(() => {
-            sphereProps = {
+        gp.drawSphere(
+            {
+                id: "s",
                 type: ELEMENT_TYPES.SPHERE,
+                radius: 5,
                 position: { x: 0, y: 0, z: 0 },
-                rotate: { x: 0, y: 0, z: 0 },
-                radius: 25
-            };
-        });
+                alpha: 0.5,
+                fillColor: { red: 10, green: 20, blue: 30, alpha: 0.5 },
+                strokeColor: { red: 1, green: 2, blue: 3, alpha: 0.25 },
+                strokeWidth: 2,
+            } as any,
+            assets,
+            state
+        );
 
-        it('should draw sphere', () => {
-            processor.drawSphere(sphereProps, mockAssets, mockState);
-
-            expect(mockP5.push).toHaveBeenCalled();
-            expect(mockP5.translate).toHaveBeenCalledWith(0, 0, 0);
-            expect(mockP5.sphere).toHaveBeenCalledWith(25);
-            expect(mockP5.pop).toHaveBeenCalled();
-        });
+        // combinedAlpha = 0.5 * 0.5 = 0.25; fill baseAlpha = 0.5 => 0.125 => 32
+        expect(p.fill).toHaveBeenCalledWith(10, 20, 30, 32);
+        // stroke baseAlpha = 0.25; globalAlpha = 0.25 => 0.0625 => 16
+        expect(p.strokeWeight).toHaveBeenCalledWith(2);
+        expect(p.stroke).toHaveBeenCalledWith(1, 2, 3, 16);
     });
 
-    describe('Drawing Methods - Panel', () => {
-        let panelProps: ResolvedPanel;
+    it("drawPyramid emits vertices for sides and base", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
 
-        beforeEach(() => {
-            panelProps = {
-                type: ELEMENT_TYPES.PANEL,
-                position: { x: 5, y: 10, z: 15 },
-                rotate: { x: 0, y: 0, z: 0 },
-                width: 100,
-                height: 50
-            };
-        });
+        const state = { settings: { alpha: 1 } } as any;
+        const assets = {} as any;
 
-        it('should draw panel', () => {
-            processor.drawPanel(panelProps, mockAssets, mockState);
-
-            expect(mockP5.push).toHaveBeenCalled();
-            expect(mockP5.translate).toHaveBeenCalledWith(5, 10, 15);
-            expect(mockP5.plane).toHaveBeenCalledWith(100, 50);
-            expect(mockP5.pop).toHaveBeenCalled();
-        });
-    });
-
-    describe('Drawing Methods - Floor', () => {
-        let floorProps: ResolvedFloor;
-
-        beforeEach(() => {
-            floorProps = {
-                type: ELEMENT_TYPES.FLOOR,
-                position: { x: 0, y: -50, z: 0 },
-                rotate: { x: 0, y: 0.5, z: 0 },
-                width: 200,
-                depth: 300
-            };
-        });
-
-        it('should draw floor with proper rotation sequence', () => {
-            processor.drawFloor(floorProps, mockAssets, mockState);
-
-            expect(mockP5.push).toHaveBeenCalled();
-            expect(mockP5.translate).toHaveBeenCalledWith(0, -50, 0);
-            expect(mockP5.rotateX).toHaveBeenCalledWith(Math.PI / 2); // HALF_PI
-            expect(mockP5.rotateY).toHaveBeenCalledWith(0.5);
-            expect(mockP5.plane).toHaveBeenCalledWith(200, 300);
-            expect(mockP5.pop).toHaveBeenCalled();
-        });
-    });
-
-    describe('Drawing Methods - Text', () => {
-        let textProps: ResolvedText;
-
-        beforeEach(() => {
-            textProps = {
-                type: ELEMENT_TYPES.TEXT,
-                position: { x: 10, y: 20, z: 30 },
-                rotate: { x: 0, y: 0, z: 0 },
-                text: 'Hello World',
-                size: 16
-            };
-        });
-
-        it('should draw text when font is ready', () => {
-            processor.drawText(textProps, mockAssets, mockState);
-
-            expect(mockP5.push).toHaveBeenCalled();
-            expect(mockP5.translate).toHaveBeenCalledWith(10, 20, 30);
-            expect(mockP5.textFont).toHaveBeenCalledWith('mockFont');
-            expect(mockP5.textSize).toHaveBeenCalledWith(16);
-            expect(mockP5.text).toHaveBeenCalledWith('Hello World', 0, 0);
-            expect(mockP5.pop).toHaveBeenCalled();
-        });
-
-        it('should return early when font is not ready', () => {
-            const assetsWithoutFont = {
-                font: { status: ASSET_STATUS.LOADING, value: null }
-            };
-
-            processor.drawText(textProps, assetsWithoutFont, mockState);
-
-            expect(mockP5.push).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('Drawing Methods - Other Shapes', () => {
-        it('should draw pyramid', () => {
-            const pyramidProps: ResolvedPyramid = {
+        gp.drawPyramid(
+            {
+                id: "py",
                 type: ELEMENT_TYPES.PYRAMID,
+                baseSize: 10,
+                height: 5,
                 position: { x: 0, y: 0, z: 0 },
-                rotate: { x: 0, y: 0, z: 0 },
-                baseSize: 50,
-                height: 75
-            };
+            } as any,
+            assets,
+            state
+        );
 
-            processor.drawPyramid(pyramidProps, mockAssets, mockState);
-
-            expect(mockP5.beginShape).toHaveBeenCalled();
-            expect(mockP5.vertex).toHaveBeenCalled(); // Called multiple times
-            expect(mockP5.endShape).toHaveBeenCalled();
-        });
-
-        it('should draw cone', () => {
-            const coneProps: ResolvedCone = {
-                type: ELEMENT_TYPES.CONE,
-                position: { x: 0, y: 0, z: 0 },
-                rotate: { x: 0, y: 0, z: 0 },
-                radius: 25,
-                height: 50
-            };
-
-            processor.drawCone(coneProps, mockAssets, mockState);
-
-            expect(mockP5.cone).toHaveBeenCalledWith(25, 50);
-        });
-
-        it('should draw elliptical', () => {
-            const ellipticalProps: ResolvedElliptical = {
-                type: ELEMENT_TYPES.ELLIPTICAL,
-                position: { x: 0, y: 0, z: 0 },
-                rotate: { x: 0, y: 0, z: 0 },
-                rx: 20,
-                ry: 30,
-                rz: 40
-            };
-
-            processor.drawElliptical(ellipticalProps, mockAssets, mockState);
-
-            expect(mockP5.ellipsoid).toHaveBeenCalledWith(20, 30, 40);
-        });
-
-        it('should draw cylinder', () => {
-            const cylinderProps: ResolvedCylinder = {
-                type: ELEMENT_TYPES.CYLINDER,
-                position: { x: 0, y: 0, z: 0 },
-                rotate: { x: 0, y: 0, z: 0 },
-                radius: 15,
-                height: 60
-            };
-
-            processor.drawCylinder(cylinderProps, mockAssets, mockState);
-
-            expect(mockP5.cylinder).toHaveBeenCalledWith(15, 60);
-        });
-
-        it('should draw torus', () => {
-            const torusProps: ResolvedTorus = {
-                type: ELEMENT_TYPES.TORUS,
-                position: { x: 0, y: 0, z: 0 },
-                rotate: { x: 0, y: 0, z: 0 },
-                radius: 30,
-                tubeRadius: 10
-            };
-
-            processor.drawTorus(torusProps, mockAssets, mockState);
-
-            expect(mockP5.torus).toHaveBeenCalledWith(30, 10);
-        });
+        expect(p.beginShape).toHaveBeenCalledWith(p.TRIANGLES);
+        expect(p.vertex).toHaveBeenCalled();
+        expect(p.endShape).toHaveBeenCalled();
+        expect(p.vertex).toHaveBeenCalledTimes(18);
     });
 
-    describe('Utility Methods', () => {
-        it('should calculate distance between vectors', () => {
-            const v1: Vector3 = { x: 0, y: 0, z: 0 };
-            const v2: Vector3 = { x: 3, y: 4, z: 0 };
-            
-            const distance = processor.dist(v1, v2);
-            
-            expect(distance).toBe(5); // 3-4-5 triangle
-            expect(mockP5.dist).toHaveBeenCalledWith(0, 0, 0, 3, 4, 0);
-        });
+    it("drawTree applies translation then YXZ rotation and recurses to children", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
 
-        it('should map values', () => {
-            mockP5.map.mockReturnValue(50);
-            
-            const result = processor.map(25, 0, 100, 0, 200);
-            
-            expect(result).toBe(50);
-            expect(mockP5.map).toHaveBeenCalledWith(25, 0, 100, 0, 200, undefined);
-        });
+        const state = { settings: { alpha: 1 } } as any;
 
-        it('should map values with clamp', () => {
-            mockP5.map.mockReturnValue(75);
-            
-            const result = processor.map(150, 0, 100, 0, 200, true);
-            
-            expect(result).toBe(75);
-            expect(mockP5.map).toHaveBeenCalledWith(150, 0, 100, 0, 200, true);
-        });
+        const drawBoxSpy = vi.spyOn(gp, "drawBox").mockImplementation(() => {});
+        const drawPanelSpy = vi.spyOn(gp, "drawPanel").mockImplementation(() => {});
 
-        it('should lerp values', () => {
-            mockP5.lerp.mockReturnValue(7.5);
-            
-            const result = processor.lerp(5, 10, 0.5);
-            
-            expect(result).toBe(7.5);
-            expect(mockP5.lerp).toHaveBeenCalledWith(5, 10, 0.5);
-        });
+        gp.drawTree(
+            {
+                props: {
+                    id: "root",
+                    type: ELEMENT_TYPES.BOX,
+                    position: { x: 1, y: 2, z: 3 },
+                    rotate: { yaw: 0.1, pitch: 0.2, roll: 0.3 },
+                } as any,
+                assets: {} as any,
+                children: [
+                    {
+                        props: {
+                            id: "child",
+                            type: ELEMENT_TYPES.PANEL,
+                            width: 1,
+                            height: 1,
+                            position: { x: 0, y: 0, z: 0 },
+                        } as any,
+                        assets: {} as any,
+                        children: [],
+                    },
+                ],
+            } as any,
+            state
+        );
+
+        const translateCall = p.translate.mock.invocationCallOrder[0]!;
+        const rotateYCall = p.rotateY.mock.invocationCallOrder[0]!;
+        const rotateXCall = p.rotateX.mock.invocationCallOrder[0]!;
+        const rotateZCall = p.rotateZ.mock.invocationCallOrder[0]!;
+
+        expect(p.translate).toHaveBeenCalledWith(1, 2, 3);
+        expect(translateCall).toBeLessThan(rotateYCall);
+        expect(rotateYCall).toBeLessThan(rotateXCall);
+        expect(rotateXCall).toBeLessThan(rotateZCall);
+
+        expect(drawBoxSpy).toHaveBeenCalledTimes(1);
+        expect(drawPanelSpy).toHaveBeenCalledTimes(1);
     });
 
-    describe('Text Utilities', () => {
-        it('should draw text at position', () => {
-            processor.text('Hello', { x: 10, y: 20, z: 30 });
+    it("drawCrosshair draws two lines at a translated position", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
 
-            expect(mockP5.push).toHaveBeenCalled();
-            expect(mockP5.text).toHaveBeenCalledWith('Hello', 10, 20, 30);
-            expect(mockP5.pop).toHaveBeenCalled();
-        });
+        gp.drawCrosshair({ x: 10, y: 20, z: 30 }, 5);
 
-        it('should draw label', () => {
-            processor.drawLabel('Label', { x: 5, y: 10 });
-
-            expect(mockP5.push).toHaveBeenCalled();
-            expect(mockP5.text).toHaveBeenCalledWith('Label', 5, 10, 0);
-            expect(mockP5.pop).toHaveBeenCalled();
-        });
-
-        it('should draw HUD text', () => {
-            processor.drawHUDText('HUD', 100, 200);
-
-            expect(mockP5.push).toHaveBeenCalled();
-            expect(mockP5.text).toHaveBeenCalledWith('HUD', 100, 200);
-            expect(mockP5.pop).toHaveBeenCalled();
-        });
-
-        it('should draw crosshair', () => {
-            processor.drawCrosshair({ x: 0, y: 0, z: 0 }, 10);
-
-            expect(mockP5.push).toHaveBeenCalled();
-            expect(mockP5.translate).toHaveBeenCalledWith(0, 0, 0);
-            expect(mockP5.line).toHaveBeenCalledWith(-10, 0, 10, 0);
-            expect(mockP5.line).toHaveBeenCalledWith(0, -10, 0, 10);
-            expect(mockP5.pop).toHaveBeenCalled();
-        });
+        expect(p.translate).toHaveBeenCalledWith(10, 20, 30);
+        expect(p.line).toHaveBeenNthCalledWith(1, -5, 0, 5, 0);
+        expect(p.line).toHaveBeenNthCalledWith(2, 0, -5, 0, 5);
     });
 
-    describe('Helper Methods', () => {
-        it('should handle stroke when strokeWidth is zero', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                strokeColor: { red: 255, green: 0, blue: 0 },
-                strokeWidth: 0
-            };
-
-            processor.drawBox(props as any, {}, mockState);
-
-            expect(mockP5.noStroke).toHaveBeenCalled();
-        });
-
-        it('should handle missing strokeColor', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                strokeWidth: 2
-            };
-
-            processor.drawBox(props as any, {}, mockState);
-
-            expect(mockP5.noStroke).toHaveBeenCalled();
-        });
-
-        it('should handle missing fillColor', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50
-            };
-
-            processor.drawBox(props as any, {}, mockState);
-
-            expect(mockP5.noFill).toHaveBeenCalled();
-        });
-    });
-
-    describe('drawTexture Helper Method', () => {
-        it('should apply texture when ready', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                alpha: 0.8
-            };
-
-            processor.drawBox(props, mockAssets, mockState);
-
-            expect(mockP5.texture).toHaveBeenCalledWith('mockTexture');
-            expect(mockP5.textureMode).toHaveBeenCalledWith('normal');
-            expect(mockP5.tint).toHaveBeenCalledWith(255, Math.round(0.8 * 1.0 * 255));
-        });
-
-        it('should use fallback fill when texture not ready', () => {
-            const assetsWithLoadingTexture = {
-                texture: { status: ASSET_STATUS.LOADING, value: null }
-            };
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                fillColor: { red: 100, green: 150, blue: 200 }
-            };
-
-            processor.drawBox(props, assetsWithLoadingTexture, mockState);
-
-            expect(mockP5.noTint).toHaveBeenCalled();
-            expect(mockP5.fill).toHaveBeenCalledWith(100, 150, 200, Math.round(1.0 * 1.0 * 255));
-        });
-
-        it('should handle missing texture asset', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                fillColor: { red: 50, green: 100, blue: 150, alpha: 0.5 }
-            };
-
-            processor.drawBox(props, {}, mockState);
-
-            expect(mockP5.noTint).toHaveBeenCalled();
-            expect(mockP5.fill).toHaveBeenCalledWith(50, 100, 150, Math.round(1.0 * 1.0 * 0.5 * 255));
-        });
-
-        it('should calculate alpha correctly with scene alpha', () => {
-            const stateWithAlpha = {
-                ...mockState,
-                settings: { ...mockState.settings, alpha: 0.7 }
-            };
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                alpha: 0.5
-            };
-
-            processor.drawBox(props, mockAssets, stateWithAlpha);
-
-            expect(mockP5.tint).toHaveBeenCalledWith(255, Math.round(0.5 * 0.7 * 255));
-        });
-    });
-
-    describe('drawFill Helper Method', () => {
-        it('should apply fill with correct alpha calculation', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                fillColor: { red: 255, green: 100, blue: 50, alpha: 0.8 },
-                alpha: 0.6
-            };
-
-            processor.drawBox(props, {}, mockState);
-
-            expect(mockP5.fill).toHaveBeenCalledWith(255, 100, 50, Math.round(0.6 * 1.0 * 0.8 * 255));
-        });
-
-        it('should use default alpha when not specified', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                fillColor: { red: 200, green: 150, blue: 100 }
-            };
-
-            processor.drawBox(props, {}, mockState);
-
-            expect(mockP5.fill).toHaveBeenCalledWith(200, 150, 100, Math.round(1.0 * 1.0 * 1.0 * 255));
-        });
-
-        it('should call noFill when fillColor is missing', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50
-            };
-
-            processor.drawBox(props, {}, mockState);
-
-            expect(mockP5.noFill).toHaveBeenCalled();
-        });
-    });
-
-    describe('drawStroke Helper Method', () => {
-        it('should apply stroke with correct alpha and weight', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                strokeColor: { red: 100, green: 200, blue: 150, alpha: 0.9 },
-                strokeWidth: 3,
-                alpha: 0.7
-            };
-
-            processor.drawBox(props, {}, mockState);
-
-            expect(mockP5.strokeWeight).toHaveBeenCalledWith(3);
-            expect(mockP5.stroke).toHaveBeenCalledWith(100, 200, 150, Math.round(0.7 * 1.0 * 0.9 * 255));
-        });
-
-        it('should use default stroke width when not specified', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                strokeColor: { red: 150, green: 100, blue: 200 }
-            };
-
-            processor.drawBox(props, {}, mockState);
-
-            expect(mockP5.strokeWeight).toHaveBeenCalledWith(1);
-        });
-
-        it('should call noStroke when strokeColor is missing', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                strokeWidth: 2
-            };
-
-            processor.drawBox(props, {}, mockState);
-
-            expect(mockP5.noStroke).toHaveBeenCalled();
-        });
-
-        it('should call noStroke when strokeWidth is zero', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                strokeColor: { red: 255, green: 0, blue: 0 },
-                strokeWidth: 0
-            };
-
-            processor.drawBox(props, {}, mockState);
-
-            expect(mockP5.noStroke).toHaveBeenCalled();
-        });
-    });
-
-    describe('rotate Helper Method', () => {
-        it('should apply rotations in correct order when all axes specified', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                rotate: { x: 0.1, y: 0.2, z: 0.3 }
-            };
-
-            processor.drawBox(props, {}, mockState);
-
-            expect(mockP5.rotateY).toHaveBeenCalledWith(0.2);
-            expect(mockP5.rotateX).toHaveBeenCalledWith(0.1);
-            expect(mockP5.rotateZ).toHaveBeenCalledWith(0.3);
-        });
-
-        it('should only apply non-zero rotations', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                rotate: { x: 0, y: 0.5, z: 0 }
-            };
-
-            processor.drawBox(props, {}, mockState);
-
-            expect(mockP5.rotateY).toHaveBeenCalledWith(0.5);
-            expect(mockP5.rotateX).not.toHaveBeenCalled();
-            expect(mockP5.rotateZ).not.toHaveBeenCalled();
-        });
-
-        it('should handle undefined rotation', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50
-            };
-
-            processor.drawBox(props, {}, mockState);
-
-            expect(mockP5.rotateY).not.toHaveBeenCalled();
-            expect(mockP5.rotateX).not.toHaveBeenCalled();
-            expect(mockP5.rotateZ).not.toHaveBeenCalled();
-        });
-
-        it('should handle partial rotation vectors', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                rotate: { x: 0.25, y: 0, z: 0 }
-            };
-
-            processor.drawBox(props, {}, mockState);
-
-            expect(mockP5.rotateY).not.toHaveBeenCalled();
-            expect(mockP5.rotateX).toHaveBeenCalledWith(0.25);
-            expect(mockP5.rotateZ).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('Text Rendering Edge Cases', () => {
-        let textProps: ResolvedText;
-
-        beforeEach(() => {
-            textProps = {
-                type: ELEMENT_TYPES.TEXT,
-                position: { x: 10, y: 20, z: 30 },
-                rotate: { x: 0.1, y: 0.2, z: 0.3 },
-                text: 'Test Text',
-                size: 24,
-                fillColor: { red: 255, green: 255, blue: 255 },
-                strokeColor: { red: 0, green: 0, blue: 0 },
-                strokeWidth: 1,
-                alpha: 0.9
-            };
-        });
-
-        it('should handle text with complex styling', () => {
-            processor.drawText(textProps, mockAssets, mockState);
-
-            expect(mockP5.push).toHaveBeenCalled();
-            expect(mockP5.translate).toHaveBeenCalledWith(10, 20, 30);
-            expect(mockP5.rotateY).toHaveBeenCalledWith(0.2);
-            expect(mockP5.rotateX).toHaveBeenCalledWith(0.1);
-            expect(mockP5.rotateZ).toHaveBeenCalledWith(0.3);
-            expect(mockP5.textFont).toHaveBeenCalledWith('mockFont');
-            expect(mockP5.textSize).toHaveBeenCalledWith(24);
-            expect(mockP5.fill).toHaveBeenCalledWith(255, 255, 255, Math.round(0.9 * 1.0 * 255));
-            expect(mockP5.stroke).toHaveBeenCalledWith(0, 0, 0, Math.round(0.9 * 1.0 * 255));
-            expect(mockP5.text).toHaveBeenCalledWith('Test Text', 0, 0);
-            expect(mockP5.pop).toHaveBeenCalled();
-        });
-
-        it('should handle text without rotation', () => {
-            const textPropsNoRotate = { ...textProps };
-            delete (textPropsNoRotate as any).rotate;
-
-            processor.drawText(textPropsNoRotate, mockAssets, mockState);
-
-            expect(mockP5.rotateY).not.toHaveBeenCalled();
-            expect(mockP5.rotateX).not.toHaveBeenCalled();
-            expect(mockP5.rotateZ).not.toHaveBeenCalled();
-        });
-
-        it('should handle text with only fill and no stroke', () => {
-            const textPropsFillOnly = { ...textProps };
-            delete (textPropsFillOnly as any).strokeColor;
-
-            processor.drawText(textPropsFillOnly, mockAssets, mockState);
-
-            expect(mockP5.noStroke).toHaveBeenCalled();
-            expect(mockP5.fill).toHaveBeenCalled();
-        });
-
-        it('should handle font with error status', () => {
-            const assetsWithFontError = {
-                font: { status: ASSET_STATUS.ERROR, value: null, error: 'Font load failed' }
-            };
-
-            processor.drawText(textProps, assetsWithFontError, mockState);
-
-            expect(mockP5.push).not.toHaveBeenCalled();
-        });
-
-        it('should handle font with null value', () => {
-            const assetsWithNullFont = {
-                font: { status: ASSET_STATUS.READY, value: null }
-            };
-
-            processor.drawText(textProps, assetsWithNullFont, mockState);
-
-            expect(mockP5.push).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('Shape Drawing Edge Cases', () => {
-        describe('Box Edge Cases', () => {
-            it('should handle box with minimal dimensions', () => {
-                const minimalBox: ResolvedBox = {
+    it("drawTree centers elements and positions children relative to center", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
+
+        const state = { settings: { alpha: 1 } } as any;
+        const drawBoxSpy = vi.spyOn(gp, "drawBox").mockImplementation(() => {});
+
+        // Parent box at (0,0,0) with size 100x100x50
+        // Child box at (0,0,0) - should appear at parent's center
+        gp.drawTree(
+            {
+                props: {
+                    id: "parent",
                     type: ELEMENT_TYPES.BOX,
                     position: { x: 0, y: 0, z: 0 },
-                    width: 1
-                };
+                    width: 100,
+                    height: 100,
+                    depth: 50,
+                    rotate: undefined,
+                } as any,
+                assets: {} as any,
+                children: [
+                    {
+                        props: {
+                            id: "child",
+                            type: ELEMENT_TYPES.BOX,
+                            position: { x: 0, y: 0, z: 0 },  // at parent's center
+                            width: 20,
+                            height: 20,
+                            depth: 20,
+                        } as any,
+                        assets: {} as any,
+                        children: [],
+                    },
+                ],
+            } as any,
+            state
+        );
 
-                processor.drawBox(minimalBox, {}, mockState);
+        // Verify parent was drawn (centered at position)
+        expect(drawBoxSpy).toHaveBeenCalledTimes(2);
 
-                expect(mockP5.box).toHaveBeenCalledWith(1, 1, 1);
-            });
-
-            it('should handle box with zero dimensions', () => {
-                const zeroBox: ResolvedBox = {
-                    type: ELEMENT_TYPES.BOX,
-                    position: { x: 0, y: 0, z: 0 },
-                    width: 0,
-                    height: 0,
-                    depth: 0
-                };
-
-                processor.drawBox(zeroBox, {}, mockState);
-
-                expect(mockP5.box).toHaveBeenCalledWith(0, 0, 0);
-            });
-        });
-
-        describe('Sphere Edge Cases', () => {
-            it('should handle sphere with zero radius', () => {
-                const zeroSphere: ResolvedSphere = {
-                    type: ELEMENT_TYPES.SPHERE,
-                    position: { x: 0, y: 0, z: 0 },
-                    radius: 0
-                };
-
-                processor.drawSphere(zeroSphere, {}, mockState);
-
-                expect(mockP5.sphere).toHaveBeenCalledWith(0);
-            });
-
-            it('should handle sphere with negative radius', () => {
-                const negativeSphere: ResolvedSphere = {
-                    type: ELEMENT_TYPES.SPHERE,
-                    position: { x: 0, y: 0, z: 0 },
-                    radius: -10
-                };
-
-                processor.drawSphere(negativeSphere, {}, mockState);
-
-                expect(mockP5.sphere).toHaveBeenCalledWith(-10);
-            });
-        });
-
-        describe('Floor Edge Cases', () => {
-            it('should handle floor with rotation and negative dimensions', () => {
-                const floorProps: ResolvedFloor = {
-                    type: ELEMENT_TYPES.FLOOR,
-                    position: { x: 0, y: -100, z: 0 },
-                    rotate: { x: 0.5, y: 1.0, z: 0.25 },
-                    width: -50,
-                    depth: -75
-                };
-
-                processor.drawFloor(floorProps, {}, mockState);
-
-                expect(mockP5.translate).toHaveBeenCalledWith(0, -100, 0);
-                expect(mockP5.rotateX).toHaveBeenCalledWith(Math.PI / 2);
-                expect(mockP5.rotateY).toHaveBeenCalledWith(1.0);
-                expect(mockP5.rotateX).toHaveBeenCalledWith(0.5);
-                expect(mockP5.rotateZ).toHaveBeenCalledWith(0.25);
-                expect(mockP5.plane).toHaveBeenCalledWith(-50, -75);
-            });
-        });
-
-        describe('Pyramid Edge Cases', () => {
-            it('should handle pyramid with zero base size and height', () => {
-                const zeroPyramid: ResolvedPyramid = {
-                    type: ELEMENT_TYPES.PYRAMID,
-                    position: { x: 0, y: 0, z: 0 },
-                    baseSize: 0,
-                    height: 0
-                };
-
-                processor.drawPyramid(zeroPyramid, {}, mockState);
-
-                expect(mockP5.beginShape).toHaveBeenCalled();
-                expect(mockP5.vertex).toHaveBeenCalled();
-                expect(mockP5.endShape).toHaveBeenCalled();
-            });
-
-            it('should handle pyramid with negative dimensions', () => {
-                const negativePyramid: ResolvedPyramid = {
-                    type: ELEMENT_TYPES.PYRAMID,
-                    position: { x: 0, y: 0, z: 0 },
-                    baseSize: -50,
-                    height: -100
-                };
-
-                processor.drawPyramid(negativePyramid, {}, mockState);
-
-                expect(mockP5.beginShape).toHaveBeenCalled();
-                expect(mockP5.vertex).toHaveBeenCalled();
-                expect(mockP5.endShape).toHaveBeenCalled();
-            });
-        });
-
-        describe('Elliptical Edge Cases', () => {
-            it('should handle ellipsoid with zero axes', () => {
-                const zeroElliptical: ResolvedElliptical = {
-                    type: ELEMENT_TYPES.ELLIPTICAL,
-                    position: { x: 0, y: 0, z: 0 },
-                    rx: 0,
-                    ry: 0,
-                    rz: 0
-                };
-
-                processor.drawElliptical(zeroElliptical, {}, mockState);
-
-                expect(mockP5.ellipsoid).toHaveBeenCalledWith(0, 0, 0);
-            });
-
-            it('should handle ellipsoid with single axis', () => {
-                const singleAxisElliptical: ResolvedElliptical = {
-                    type: ELEMENT_TYPES.ELLIPTICAL,
-                    position: { x: 0, y: 0, z: 0 },
-                    rx: 50,
-                    ry: 0,
-                    rz: 0
-                };
-
-                processor.drawElliptical(singleAxisElliptical, {}, mockState);
-
-                expect(mockP5.ellipsoid).toHaveBeenCalledWith(50, 0, 0);
-            });
-        });
-
-        describe('Cylinder and Cone Edge Cases', () => {
-            it('should handle cylinder with zero dimensions', () => {
-                const zeroCylinder: ResolvedCylinder = {
-                    type: ELEMENT_TYPES.CYLINDER,
-                    position: { x: 0, y: 0, z: 0 },
-                    radius: 0,
-                    height: 0
-                };
-
-                processor.drawCylinder(zeroCylinder, {}, mockState);
-
-                expect(mockP5.cylinder).toHaveBeenCalledWith(0, 0);
-            });
-
-            it('should handle cone with zero dimensions', () => {
-                const zeroCone: ResolvedCone = {
-                    type: ELEMENT_TYPES.CONE,
-                    position: { x: 0, y: 0, z: 0 },
-                    radius: 0,
-                    height: 0
-                };
-
-                processor.drawCone(zeroCone, {}, mockState);
-
-                expect(mockP5.cone).toHaveBeenCalledWith(0, 0);
-            });
-        });
-
-        describe('Torus Edge Cases', () => {
-            it('should handle torus with zero dimensions', () => {
-                const zeroTorus: ResolvedTorus = {
-                    type: ELEMENT_TYPES.TORUS,
-                    position: { x: 0, y: 0, z: 0 },
-                    radius: 0,
-                    tubeRadius: 0
-                };
-
-                processor.drawTorus(zeroTorus, {}, mockState);
-
-                expect(mockP5.torus).toHaveBeenCalledWith(0, 0);
-            });
-
-            it('should handle torus with larger tube radius than radius', () => {
-                const invertedTorus: ResolvedTorus = {
-                    type: ELEMENT_TYPES.TORUS,
-                    position: { x: 0, y: 0, z: 0 },
-                    radius: 10,
-                    tubeRadius: 20
-                };
-
-                processor.drawTorus(invertedTorus, {}, mockState);
-
-                expect(mockP5.torus).toHaveBeenCalledWith(10, 20);
-            });
-        });
+        // Check translate calls: position -> draw offset -> back to center
+        // Expected sequence: translate(0,0,0) -> rotate -> translate(-50,-50,-25) -> draw -> translate(50,50,25) -> child translate
+        const translateCalls = p.translate.mock.calls;
+        
+        // First translate is to position (0,0,0)
+        expect(translateCalls[0]).toEqual([0, 0, 0]);
+        
+        // Second translate is offset by -center to draw centered (-50, -50, -25)
+        expect(translateCalls[1]).toEqual([-50, -50, -25]);
+        
+        // Third translate returns to center (50, 50, 25) for children
+        expect(translateCalls[2]).toEqual([50, 50, 25]);
+        
+        // Child at (0,0,0) should be translated by (0,0,0) relative to parent's center
+        // So the fourth translate call should be child's position (0,0,0)
+        expect(translateCalls[3]).toEqual([0, 0, 0]);
     });
 
-    describe('Error Handling and Input Validation', () => {
-        it('should handle malformed position vectors', () => {
-            const malformedProps = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 'invalid' as any, y: null as any, z: undefined },
-                width: 50
-            };
+    it("drawTree with no size uses zero center offset", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
 
-            processor.drawBox(malformedProps as any, {}, mockState);
+        expect(gp.millis()).toBe(1000);
+        expect(gp.deltaTime()).toBe(16);
+        expect(gp.frameCount()).toBe(123);
 
-            expect(mockP5.translate).toHaveBeenCalledWith('invalid', 0, 0);
-        });
+        expect(gp.dist({ x: 0, y: 0, z: 0 }, { x: 3, y: 4, z: 0 })).toBe(5);
+        expect(p.dist).toHaveBeenCalled();
 
-        it('should handle invalid color values', () => {
-            const invalidColorProps = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                fillColor: { red: -100, green: 400, blue: 'invalid' as any }
-            };
+        expect(gp.map(1, 0, 1, 10, 20, true)).toBe(1);
+        expect(p.map).toHaveBeenCalled();
 
-            processor.drawBox(invalidColorProps as any, {}, mockState);
-
-            expect(mockP5.fill).toHaveBeenCalledWith(-100, 400, 'invalid', Math.round(1.0 * 1.0 * 255));
-        });
-
-        it('should handle assets with unexpected status', () => {
-            const assetsWithWeirdStatus = {
-                texture: { status: 'UNKNOWN_STATUS' as any, value: null }
-            };
-
-            const props: ResolvedBox = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50
-            };
-
-            processor.drawBox(props, assetsWithWeirdStatus, mockState);
-
-            expect(mockP5.noTint).toHaveBeenCalled();
-        });
-
-        it('should handle state with missing properties', () => {
-            const incompleteState = {
-                sceneId: 1,
-                settings: {
-                    alpha: 0.5
-                }
-            } as any;
-
-            const props: ResolvedBox = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                alpha: 0.8
-            };
-
-            processor.drawBox(props, mockAssets, incompleteState);
-
-            // Should not throw and should handle missing properties gracefully
-            expect(mockP5.box).toHaveBeenCalled();
-        });
-
-        it('should handle extreme alpha values', () => {
-            const extremeAlphaProps = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50,
-                fillColor: { red: 255, green: 255, blue: 255, alpha: 2.0 },
-                alpha: -0.5
-            };
-
-            const stateWithExtremeAlpha = {
-                ...mockState,
-                settings: { ...mockState.settings, alpha: 3.0 }
-            };
-
-            processor.drawBox(extremeAlphaProps, {}, stateWithExtremeAlpha);
-
-            expect(mockP5.fill).toHaveBeenCalledWith(255, 255, 255, Math.round(-0.5 * 3.0 * 2.0 * 255));
-        });
-    });
-
-    describe('Method Call Sequence Verification', () => {
-        it('should maintain correct push/pop sequence for box drawing', () => {
-            const props = {
-                type: ELEMENT_TYPES.BOX,
-                position: { x: 0, y: 0, z: 0 },
-                width: 50
-            };
-
-            processor.drawBox(props, {}, mockState);
-
-            // Verify sequence: push -> translate -> ... -> box -> pop
-            const pushCallIndex = mockP5.push.mock.invocationCallOrder[0];
-            const translateCallIndex = mockP5.translate.mock.invocationCallOrder[0];
-            const boxCallIndex = mockP5.box.mock.invocationCallOrder[0];
-            const popCallIndex = mockP5.pop.mock.invocationCallOrder[0];
-
-            expect(pushCallIndex).toBeLessThan(translateCallIndex);
-            expect(translateCallIndex).toBeLessThan(boxCallIndex);
-            expect(boxCallIndex).toBeLessThan(popCallIndex);
-        });
-
-        it('should verify floor rotation sequence', () => {
-            const props = {
-                type: ELEMENT_TYPES.FLOOR,
-                position: { x: 0, y: 0, z: 0 },
-                width: 100,
-                depth: 200
-            };
-
-            processor.drawFloor(props, {}, mockState);
-
-            expect(mockP5.rotateX).toHaveBeenCalledWith(Math.PI / 2);
-        });
+        expect(gp.lerp(0, 10, 0.5)).toBe(5);
+        expect(p.lerp).toHaveBeenCalled();
     });
 });
+

@@ -1,7 +1,7 @@
-import type {AssetLoader, GraphicsBundle, SceneState, Vector3} from "../types.ts";
+import type {AssetLoader, GraphicProcessor, GraphicsBundle, ResolvedSceneState, Vector3} from "../types.ts";
 import {vi} from "vitest";
 
-export const createMockGraphicProcessor = <TBundle extends GraphicsBundle>(_mockState: SceneState | null = null) => {
+export const createMockGraphicProcessor = <TBundle extends GraphicsBundle>(_mockState: ResolvedSceneState | null = null) => {
 
     return {
         text: vi.fn(),
@@ -38,16 +38,18 @@ export const createMockGraphicProcessor = <TBundle extends GraphicsBundle>(_mock
         drawCrosshair: vi.fn(),
         drawHUDText: vi.fn(),
         drawPlane: vi.fn(),
-drawSphere: vi.fn(),
+        drawSphere: vi.fn(),
         drawCone: vi.fn(),
         drawPyramid: vi.fn(),
         drawElliptical: vi.fn(),
         drawCylinder: vi.fn(),
         drawTorus: vi.fn(),
         drawFloor: vi.fn(),
-        drawBillboard: vi.fn(),
+        setProjectionMatrix: vi.fn(),
         millis: vi.fn(),
         deltaTime: vi.fn(),
-        frameCount: vi.fn()
-    }
+        frameCount: vi.fn(),
+        drawTree: vi.fn(),
+        setCameraTree: vi.fn(),
+    } as GraphicProcessor<TBundle>
 };

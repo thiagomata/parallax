@@ -48,6 +48,7 @@ export function createMockP5() {
         textFont: vi.fn(),
         textSize: vi.fn(),
         textColor: vi.fn(),
+        textAlign: vi.fn(),
         text: vi.fn(),
         tint: vi.fn(),
         cone: vi.fn(),
@@ -65,5 +66,6 @@ export function createMockP5() {
         draw: undefined as any,
         createCapture: vi.fn(),
         lerp: vi.fn(),
+        frustum: vi.fn(),
     };
 }

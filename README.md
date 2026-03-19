@@ -56,13 +56,16 @@ sequenceDiagram
 Elements are registered as **Blueprints**. These are reactive contracts supporting deep-tree branches. A property can be a static value, a nested object, or a function `(state) => T` at any node level.
 
 ```typescript
-world.addSphere('hero', {
+world.addSphere({
+    id: 'hero',
     type: ELEMENT_TYPES.SPHERE,
     radius: (s: SceneState) => 50 + Math.sin(s.playback.progress), // Dynamic node
     position: { x: 0, y: (s: SceneState) => s.camera.pitch * 10 } // Nested reactivity
 });
 
 ```
+
+**Available Element Types:** `addBox`, `addSphere`, `addCone`, `addPyramid`, `addCylinder`, `addTorus`, `addElliptical`, `addText`, `addFloor`, `addPanel`
 
 **2. Hydration: Asset Locking**
 High-memory assets (Textures/Fonts) are fetched and encapsulated into a renderer-specific **Graphics Bundle**. This ensures assets are locked to the element and ready in memory prior to the first frame.
@@ -121,6 +124,112 @@ The concrete implementation (e.g., `P5Processor`) converts the requests into a f
 
 ---
 
+## 🗝 Key Concepts
+
+### Projections (The Camera System)
+
+Parallax separates the **view** from the **projection**. A projection represents a virtual camera that can target another projection:
+
+```typescript
+const screen = {
+    id: 'screen',
+    type: PROJECTION_TYPES.SCREEN,
+    position: { x: 0, y: 0, z: 1000 },
+    targetId: undefined  // Root - no parent
+};
+
+const eye = {
+    id: 'eye',
+    type: PROJECTION_TYPES.EYE,
+    position: { x: 0, y: 0, z: 100 },
+    targetId: 'screen'  // Child of screen
+};
+```
+
+This hierarchy (`targetId`) creates a dependency graph where child projections inherit and transform relative to their parent.
+
+> **Note:** Head tracking is documented in detail at [`src/scene/head_tracking.md`](src/scene/head_tracking.md).
+
+### Projection Modifiers
+
+Each projection has its own modifier stack that transforms its position and rotation:
+
+| Modifier | Purpose | Example |
+|----------|---------|---------|
+| `CarModifier` | Base position (vehicle mount, rail) | Path following |
+| `NudgeModifier` | Position offset | Head tracking, vibration |
+| `StickModifier` | Rotation & distance | Camera rotation |
+
+Multiple modifiers of the same type are resolved by priority or voting.
+
+### Look Modes
+
+Projections support two look modes:
+
+- **`LOOK_AT`**: Direction computed from a target position (default)
+- **`ROTATION`**: Direction computed from yaw/pitch/roll angles + distance
+
+### Presets
+
+Presets are pre-configured projection hierarchies that can be loaded with `world.loadPreset()`:
+
+| Preset | Description | Use Case |
+|--------|-------------|----------|
+| `CenterOrbit` | Orbital camera that circles around the scene center | General 3D scenes, demos |
+| `HEAD_TRACKED_PRESET` | Nested eye/screen projections for head tracking | VR, face-following |
+| `VR_CABIN_PRESET` | VR-style with car/screen/head/eye hierarchy | Immersive experiences |
+| `SIMPLE_PRESET` | Minimal eye/screen setup | Basic views |
+
+**CenterOrbit Usage:**
+```typescript
+world.loadPreset(CenterOrbit(p, { radius: 800, verticalBaseline: -400 }));
+```
+
+**Head Tracking Usage:**
+```typescript
+world.loadPreset(HEAD_TRACKED_PRESET);
+```
+
+### Data Providers
+
+Modifiers can declare **explicit dependencies** on external data sources:
+
+```typescript
+class MyModifier implements NudgeModifier<TDataProviderLib> {
+    readonly requiredDataProviders: (keyof TDataProviderLib)[] = ['headTracker'];
+    
+    getNudge(pos, context) {
+        const faceData = context.dataProviders.headTracker; // Type-safe access
+        // ...
+    }
+}
+```
+
+This enables compile-time safety and explicit contracts.
+
+### Effect Bundles
+
+Both projections and elements support **effects** — reusable behaviors that transform the resolved state:
+
+```typescript
+interface EffectBundle<TID, TConfig, E, TDataProviderLib = DataProviderLib> {
+    readonly type: TID;
+    readonly targets: ReadonlyArray<E['type']>;
+    readonly defaults: TConfig;
+    apply(current: E, context: ResolutionContext<TDataProviderLib>, settings: TConfig, pool: Record<string, E>): E;
+}
+
+// Built-in effects include: LookAtEffect, TransformEffect
+```
+
+Effects run during the resolution phase, enabling:
+- Procedural animation
+- Constraints
+- Physics-like behaviors
+- Debug visualization
+
+---
+
 ## 🛠 Implementation Guardrails
 
 To maintain the integrity of this deterministic pipeline, all development must respect these constraints:
@@ -129,3 +238,13 @@ To maintain the integrity of this deterministic pipeline, all development must r
 * **No Redundant Data**: If a value can be computed from the `SceneState`, it must not be stored in the element. Follow the **Single Source of Truth** principle strictly.
 * **Priority-Based Chaining**: Higher priority modifiers in the **Orchestration** phase always layer over or override lower-priority results.
 * **Renderer Agnosticism**: The **Execution** phase must remain pure logic. Hardware-specific calls are strictly forbidden until the **Rasterization** phase.
+
+### Canvas Resizing & Fullscreen
+
+When the canvas size changes (e.g., fullscreen mode), update the world perspective:
+
+```typescript
+// When canvas is resized
+instance.resizeCanvas(newWidth, newHeight, true);
+world.enableDefaultPerspective(newWidth, newHeight);
+```

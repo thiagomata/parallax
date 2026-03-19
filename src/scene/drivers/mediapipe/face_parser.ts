@@ -1,45 +1,127 @@
-import type {Vector3, FaceGeometry} from "../../types.ts";
+import {DEFAULT_HEAD_PROPORTIONS, Face, type FaceData, type HeadProportions} from "./face.ts";
+import type {Vector3} from "../../types.ts";
+
+/**
+ * Maps MediaPipe landmark indices to semantic face landmarks.
+ */
+export const INDEX = {
+    NOSE: 1,
+    EYE_LEFT: 33,
+    EYE_RIGHT: 263,
+    MOUTH_LEFT: 61,
+    MOUTH_RIGHT: 291,
+    BROW_LEFT: 105,
+    BROW_RIGHT: 334,
+    EAR_LEFT: 234,
+    EAR_RIGHT: 454,
+    TEMPLE_LEFT: 127,
+    TEMPLE_RIGHT: 356,
+    TOP: 10,
+    BOTTOM: 152
+};
+
+/**
+ * Configuration for face parsing.
+ */
+export interface HeadParserConfig {
+    physicalHeadWidth: number;
+    focalLength: number;
+    mirror: boolean;
+    headProportions: HeadProportions
+}
+
+interface RawLandmark {
+    readonly position: Readonly<Vector3>;
+    readonly visibility: number | null;
+    readonly isUsable: boolean;
+}
 
 export class FaceParser {
-    /**
-     * MediaPipe Face Mesh Index Mapping
-     * @see https://storage.googleapis.com/mediapipe-assets/documentation/visualization/face_ad_mobile_full_2019_04_08.pdf
-     */
-    private static readonly INDEX = {
-        NOSE: 1,
-        EYE_L: 468,
-        EYE_R: 473,
-        FACE_L: 234,
-        FACE_R: 454,
-        CHIN: 152,
-        FOREHEAD: 10
-    };
+    private config: HeadParserConfig;
+
+    constructor(config: Partial<HeadParserConfig> = {}) {
+        this.config = {
+            physicalHeadWidth: config.physicalHeadWidth ?? 150,
+            focalLength: config.focalLength ?? 1.0,
+            mirror: config.mirror ?? false,
+            headProportions: config.headProportions ?? DEFAULT_HEAD_PROPORTIONS,
+        };
+    }
 
     /**
-     * Transforms a raw MediaPipe landmark array into a semantic FaceGeometry object.
-     * We normalize the coordinates here if necessary.
+     * Parses raw MediaPipe landmarks into semantic Face data.
+     * @param rawDataVector - array of landmarks from MediaPipe (indices 0-477)
+     * @returns Face with semantic landmarks, raw `visibility` scores, and `isUsable` quality flags
      */
-    static parse(raw: any[]): FaceGeometry {
-        if (!raw || raw.length < 478) {
-            throw new Error("Invalid landmark data: expected at least 478 points.");
-        }
+    public parse(rawDataVector: Array<Partial<Vector3> & { visibility?: number | null }>): Face {
+        const missing: RawLandmark = {
+            position: { x: -1, y: -1, z: -1 },
+            visibility: null,
+            isUsable: false,
+        };
 
-        const mapPoint = (idx: number): Vector3 => ({
-            x: raw[idx].x, // Normalized 0-1 from MediaPipe
-            y: raw[idx].y,
-            z: raw[idx].z
-        });
+        const createLandmark = (index: number): RawLandmark => {
+            const landmark = rawDataVector[index];
+            if (!landmark) {
+                return missing;
+            }
 
-        return {
-            nose: mapPoint(this.INDEX.NOSE),
-            leftEye: mapPoint(this.INDEX.EYE_L),
-            rightEye: mapPoint(this.INDEX.EYE_R),
+            const hasXY = landmark.x !== undefined && landmark.x !== null &&
+                landmark.y !== undefined && landmark.y !== null;
+
+            const rawX = landmark.x ?? 0;
+            const rawY = landmark.y ?? 0;
+            const rawZ = landmark.z ?? 0;
+
+            if (!Number.isFinite(rawX) || !Number.isFinite(rawY) || !Number.isFinite(rawZ)) {
+                return missing;
+            }
+
+            let x = rawX;
+
+            if (this.config.mirror) {
+                x = 1.0 - x;
+            }
+
+            const visibility = Number.isFinite(landmark.visibility as number) ? (landmark.visibility as number) : null;
+
+            return {
+                position: {
+                    x,
+                    y: rawY,
+                    z: rawZ
+                },
+                visibility,
+                isUsable: hasXY,
+            };
+        };
+
+        const faceData: FaceData = {
+            nose: createLandmark(INDEX.NOSE),
+            eyes: {
+                left: createLandmark(INDEX.EYE_LEFT),
+                right: createLandmark(INDEX.EYE_RIGHT),
+            },
+            brows: {
+                left: createLandmark(INDEX.BROW_LEFT),
+                right: createLandmark(INDEX.BROW_RIGHT),
+            },
+            mouth: {
+                left: createLandmark(INDEX.MOUTH_LEFT),
+                right: createLandmark(INDEX.MOUTH_RIGHT),
+            },
+            rig: {
+                leftEar: createLandmark(INDEX.EAR_LEFT),
+                rightEar: createLandmark(INDEX.EAR_RIGHT),
+                leftTemple: createLandmark(INDEX.TEMPLE_LEFT),
+                rightTemple: createLandmark(INDEX.TEMPLE_RIGHT),
+            },
             bounds: {
-                left: mapPoint(this.INDEX.FACE_L),
-                right: mapPoint(this.INDEX.FACE_R),
-                top: mapPoint(this.INDEX.FOREHEAD),
-                bottom: mapPoint(this.INDEX.CHIN)
+                middleTop: createLandmark(INDEX.TOP),
+                middleBottom: createLandmark(INDEX.BOTTOM),
             }
         };
+
+        return new Face(faceData, this.config.headProportions);
     }
 }

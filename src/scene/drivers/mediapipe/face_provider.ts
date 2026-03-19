@@ -1,24 +1,35 @@
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
+import type {TrackingStatus} from "../../types";
 import { FaceParser } from "./face_parser";
-import type {FaceGeometry, FaceProvider, TrackingStatus} from "../../types";
 import p5 from "p5";
+import type {Face} from "./face.ts";
+import type {FaceProvider} from "../../providers/face_provider.ts";
 
 export class MediaPipeFaceProvider implements FaceProvider {
     private landmarker: FaceLandmarker | null = null;
     private capture: any = null; // p5 Video Element
     private status: TrackingStatus = 'IDLE';
+    private parser: FaceParser;
     private readonly p: p5;
     private readonly wasmPath: string;
     private readonly modelPath: string;
+    private readonly mirror: boolean;
 
     constructor(
         p: p5,
         wasmPath: string = "/parallax/wasm",
-        modelPath: string = "/parallax/models/face_landmarker.task"
+        modelPath: string = "/parallax/models/face_landmarker.task",
+        mirror: boolean = false
     ) {
         this.p = p;
         this.wasmPath = wasmPath;
         this.modelPath = modelPath;
+        this.mirror = mirror;
+        this.parser = new FaceParser({mirror: this.mirror});
+    }
+
+    public setFaceParser(faceParser: FaceParser): void {
+        this.parser = faceParser;
     }
 
     /**
@@ -37,15 +48,21 @@ export class MediaPipeFaceProvider implements FaceProvider {
                 numFaces: 1
             });
 
-            // p5 creates the capture but we keep it hidden
+            // p5 creates the capture
             this.capture = this.p.createCapture(this.p.VIDEO);
             this.capture.size(640, 480);
             this.capture.hide();
+            this.capture.elt.onloadedmetadata = () => {
+                this.capture.play();
+            };
+            this.capture.elt.onerror = () => {
+                this.status = 'ERROR';
+            };
 
             this.status = 'READY';
         } catch (e) {
             this.status = 'ERROR';
-            throw e;
+            console.warn('Camera not available, face tracking disabled:', e);
         }
     }
 
@@ -54,7 +71,7 @@ export class MediaPipeFaceProvider implements FaceProvider {
      * Returns the cleaned FaceGeometry.
      * Synchronous and safe to call inside p5's draw loop.
      */
-    getFace(): FaceGeometry | null {
+    getFace(): Face | null {
         if (this.status !== 'READY' || !this.landmarker) return null;
 
         const videoElt = this.capture.elt as HTMLVideoElement;
@@ -66,7 +83,7 @@ export class MediaPipeFaceProvider implements FaceProvider {
 
         if (result.faceLandmarks && result.faceLandmarks.length > 0) {
             // We immediately use our FaceParser to turn indices into semantics
-            return FaceParser.parse(result.faceLandmarks[0]);
+            return this.parser.parse(result.faceLandmarks[0]);
         }
 
         return null;
@@ -74,5 +91,10 @@ export class MediaPipeFaceProvider implements FaceProvider {
 
     getStatus(): TrackingStatus {
         return this.status;
+    }
+
+    getVideo(): any {
+        if (this.status !== 'READY' || !this.capture) return null;
+        return this.capture;
     }
 }

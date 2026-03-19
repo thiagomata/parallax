@@ -1,237 +1,182 @@
-import p5 from "p5";
-import {
-    type CarModifier,
-    type FailableResult,
-    type NudgeModifier,
-    type StickModifier,
-    type StickResult,
-    type Vector3,
-    type CarResult,
-    type FaceProvider,
-    type TrackingStatus,
-    type ObserverConfig,
-    DEFAULT_OBSERVER_CONFIG,
-    type FaceGeometry,
+import type {
+    CarModifier,
+    CarResult,
+    DataProviderLib,
+    FailableResult,
+    ResolutionContext,
+    Vector3,
 } from "../types.ts";
-import { FaceFeatures } from "../drivers/mediapipe/face_features";
-import {MediaPipeFaceProvider} from "../drivers/mediapipe/face_provider.ts";
+import type { FaceWorldData, HeadTrackerDataProviderLib } from "../providers/head_tracking_data_provider.ts";
 
-export class HeadTrackingModifier implements CarModifier, NudgeModifier, StickModifier {
+/**
+ * Optional limits for head tracking values
+ */
+export interface HeadTrackingLimits {
+    minX?: number;
+    maxX?: number;
+    minY?: number;
+    maxY?: number;
+    minZ?: number;
+    maxZ?: number;
+    minPitch?: number;
+    maxPitch?: number;
+    minYaw?: number;
+    maxYaw?: number;
+    minRoll?: number;
+    maxRoll?: number;
+}
+
+/**
+ * Configuration for HeadTrackingModifier.
+ */
+export interface HeadTrackingModifierConfig {
+    /** Rotation intensity multiplier (0-1), higher values reduce head movement */
+    damping: number;
+    /** Smoothing factor (0-1), lower = more smoothing */
+    smoothing: number;
+    /** Smoothing factor for rotation (0-1), lower = more smoothing */
+    rotationSmoothing: number;
+    /** Threshold for position - changes below this value are ignored */
+    threshold: number;
+    /** Threshold for rotation (in radians) - changes below this value are ignored */
+    rotationThreshold: number;
+    /** Optional limits for position and rotation */
+    limits?: HeadTrackingLimits;
+    /** If true, adds head position to initial camera position instead of replacing */
+    offsetMode?: boolean;
+    /** If true, disables rotation entirely */
+    disableRotation?: boolean;
+}
+
+export const DEFAULT_HEAD_TRACKING_CONFIG: HeadTrackingModifierConfig = {
+    damping: 1,
+    smoothing: 0.1,
+    rotationSmoothing: 0.1,
+    threshold: 0.5,
+    rotationThreshold: 0.01,
+    offsetMode: false,
+    disableRotation: false,
+};
+
+export class HeadTrackingModifier<TDataProviderLib extends DataProviderLib = HeadTrackerDataProviderLib>
+    implements CarModifier<TDataProviderLib> {
+
     readonly name = "Head Tracker Camera";
     readonly priority = 10;
-    active = true;
-    private status: TrackingStatus = 'IDLE';
+    readonly active = true;
+    readonly requiredDataProviders: (keyof TDataProviderLib)[] = ['headTracker' as keyof TDataProviderLib];
 
-    // Calibration and Presence State
-    private neutralHeadSize: number | null = null;
-    private framesSinceLastSeen: number = 0;
-    readonly RESET_HEAD_THRESHOLD = 90; // ~3 seconds at 30fps
+    private readonly config: HeadTrackingModifierConfig;
+    private lastPosition: Vector3 = { x: 0, y: 0, z: 0 };
+    private lastRotation = { yaw: 0, pitch: 0, roll: 0 };
 
-    // The "Virtual Face" (Our Smoothed Source of Truth)
-    private smoothedFeatures: FaceFeatures | null = null;
-
-    // The Publicly Accessible Result Cache
-    private cache: {
-        carPos: Vector3;
-        nudgePos: Vector3;
-        stick: StickResult;
-    } | null = null;
-
-    private readonly p: p5;
-    private readonly provider: FaceProvider;
-    private readonly config: ObserverConfig;
-    private sceneId: number = -1;
-
-    constructor(
-        p: p5,
-        provider: FaceProvider | null = null,
-        customConfig: Partial<ObserverConfig> = {}
-    ) {
-        this.p = p;
-        this.provider = provider ?? new MediaPipeFaceProvider(p);
-        this.config = { ...DEFAULT_OBSERVER_CONFIG, ...customConfig };
+    constructor(config: Partial<HeadTrackingModifierConfig> = {}) {
+        this.config = { ...DEFAULT_HEAD_TRACKING_CONFIG, ...config };
     }
 
-    public getStatus(): TrackingStatus {
-        // return this.provider.getStatus();
-        return this.status;
+    tick(_sceneId: number): void {
+        // Data is provided via context, no need to do anything here
     }
 
-    public async init(): Promise<void> {
-        // Hydration: Delegate to the specific hardware driver
-        await this.provider.init();
-        this.status = this.provider.getStatus();
-    }
+    getCarPosition(initialCam: Vector3, context: ResolutionContext<TDataProviderLib>): FailableResult<CarResult> {
+        const headData = context.dataProviders.headTracker as FaceWorldData | null;
 
-    tick(sceneId: number): void {
-        if (this.sceneId === sceneId) return;
-        this.sceneId = sceneId;
-
-        const providerStatus = this.provider.getStatus();
-
-        switch (providerStatus) {
-            case 'IDLE':
-            case 'INITIALIZING':
-                this.status = providerStatus;
-                break;
-
-            case 'ERROR':
-            case 'DISCONNECTED':
-                this.status = providerStatus;
-                this.handleHardReset();
-                break;
-
-            default:
-                this.processFrame();
-                break;
-        }
-    }
-
-    /**
-     * Handles the logic for a functional provider.
-     * Separates presence detection from status orchestration.
-     */
-    private processFrame(): void {
-        const rawFace = this.provider.getFace();
-
-        if (!rawFace) {
-            this.handleSignalLoss();
-            return;
+        if (!headData) {
+            return { success: false, error: "No face detected" };
         }
 
-        const incoming = new FaceFeatures(rawFace);
-        this.updateFace(incoming);
-        this.status = 'READY';
-    }
-
-    private handleHardReset(): void {
-        this.neutralHeadSize = null;
-        this.smoothedFeatures = null;
-        this.cache = null;
-    }
-
-    private updateFace(incoming: FaceFeatures): void {
-        this.framesSinceLastSeen = 0;
-
-        // Auto-Calibration (First frame or after reset)
-        if (this.neutralHeadSize === null) {
-            this.neutralHeadSize = incoming.scale;
-            console.log("New calibration baseline set:", this.neutralHeadSize);
-        }
-
-        // Semantic Smoothing: Interpolate the whole "Face" state
-        if (!this.smoothedFeatures) {
-            this.smoothedFeatures = incoming;
-        } else {
-            this.smoothedFeatures = this.interpolateFeatures(this.smoothedFeatures, incoming);
-        }
-
-        // Map Smoothed Face to Engine Output
-        this.updateCache();
-    }
-
-    private handleSignalLoss(): void {
-        this.framesSinceLastSeen++;
-
-        // If face is missing, smoothly drift the virtual face back to "zero" state
-        if (this.smoothedFeatures) {
-            // We use a dummy "neutral" geometry to lerp back to center
-            const neutralFace = this.createNeutralGeometry();
-            this.smoothedFeatures = this.interpolateFeatures(this.smoothedFeatures, new FaceFeatures(neutralFace));
-        }
-
-        // After the threshold, clear calibration so next person resets it
-        if (this.framesSinceLastSeen > this.RESET_HEAD_THRESHOLD) {
-            this.status = 'DISCONNECTED';
-            this.neutralHeadSize = null;
-            this.smoothedFeatures = null;
-            this.cache = null;
-        } else {
-            this.status = 'DRIFTING';
-            this.updateCache();
-        }
-    }
-
-    private updateCache(): void {
-        if (!this.smoothedFeatures || this.neutralHeadSize === null) return;
-
-        const face = this.smoothedFeatures;
-
-        this.cache = {
-            carPos: face.midpoint,
-            nudgePos: {
-                x: face.nudge.x * (this.config.travelRange * 2),
-                y: face.nudge.y * (this.config.travelRange * 2),
-                z: -(face.scale - this.neutralHeadSize) * this.config.zTravelRange
-            },
-            stick: {
-                yaw: face.stick.yaw * this.config.damping,
-                pitch: face.stick.pitch * this.config.damping,
-                roll: face.stick.roll * this.config.damping,
-                distance: this.config.lookDistance,
-                priority: this.priority
-            }
-        };
-    }
-
-    private interpolateFeatures(current: FaceFeatures, target: FaceFeatures): FaceFeatures {
-        const s = this.config.smoothing;
-
-        // We create a new smoothed FaceGeometry by lerping the raw landmarks
-        const lerpedData: FaceGeometry = {
-            nose: this.lerpVec(current.face.nose, target.face.nose, s),
-            leftEye: this.lerpVec(current.face.leftEye, target.face.leftEye, s),
-            rightEye: this.lerpVec(current.face.rightEye, target.face.rightEye, s),
-            bounds: {
-                left: this.lerpVec(current.face.bounds.left, target.face.bounds.left, s),
-                right: this.lerpVec(current.face.bounds.right, target.face.bounds.right, s),
-                top: this.lerpVec(current.face.bounds.top, target.face.bounds.top, s),
-                bottom: this.lerpVec(current.face.bounds.bottom, target.face.bounds.bottom, s),
-            }
+        const targetPosition = {
+            x: headData.midpoint.x,
+            y: headData.midpoint.y,
+            z: -headData.midpoint.z,
         };
 
-        return new FaceFeatures(lerpedData);
-    }
+        const targetRotation = {
+            yaw: headData.stick.yaw * this.config.damping,
+            pitch: -headData.stick.pitch * this.config.damping,
+            roll: headData.stick.roll * this.config.damping,
+        };
 
-    private lerpVec(v1: Vector3, v2: Vector3, amt: number): Vector3 {
+        // Apply limits if configured
+        const limits = this.config.limits;
+        const clampedPosition = limits ? {
+            x: this.clamp(targetPosition.x, limits.minX, limits.maxX),
+            y: this.clamp(targetPosition.y, limits.minY, limits.maxY),
+            z: this.clamp(targetPosition.z, limits.minZ, limits.maxZ),
+        } : targetPosition;
+
+        const clampedRotation = limits ? {
+            yaw: this.clamp(targetRotation.yaw, limits.minYaw, limits.maxYaw),
+            pitch: this.clamp(targetRotation.pitch, limits.minPitch, limits.maxPitch),
+            roll: this.clamp(targetRotation.roll, limits.minRoll, limits.maxRoll),
+        } : targetRotation;
+
+        const smooth = this.config.smoothing;
+        const rotationSmooth = this.config.rotationSmoothing;
+        const threshold = this.config.threshold;
+        const rotationThreshold = this.config.rotationThreshold;
+
+        // Check if this is first call (lastPosition is at default 0,0,0)
+        const isFirstCall = this.lastPosition.x === 0 && this.lastPosition.y === 0 && this.lastPosition.z === 0;
+
+        // On first call, use full smoothing (lerp factor of 1 = instant)
+        const posSmooth = isFirstCall ? 1 : smooth;
+        const rotSmooth = isFirstCall ? 1 : rotationSmooth;
+
+        const shouldMoveX = Math.abs(targetPosition.x - this.lastPosition.x) > threshold;
+        const shouldMoveY = Math.abs(targetPosition.y - this.lastPosition.y) > threshold;
+        const shouldMoveZ = Math.abs(targetPosition.z - this.lastPosition.z) > threshold;
+
+        const shouldYaw = Math.abs(targetRotation.yaw - this.lastRotation.yaw) > rotationThreshold;
+        const shouldPitch = Math.abs(targetRotation.pitch - this.lastRotation.pitch) > rotationThreshold;
+        const shouldRoll = Math.abs(targetRotation.roll - this.lastRotation.roll) > rotationThreshold;
+
+        const smoothedPosition = {
+            x: shouldMoveX ? this.lerp(this.lastPosition.x, clampedPosition.x, posSmooth) : this.lastPosition.x,
+            y: shouldMoveY ? this.lerp(this.lastPosition.y, clampedPosition.y, posSmooth) : this.lastPosition.y,
+            z: shouldMoveZ ? this.lerp(this.lastPosition.z, clampedPosition.z, posSmooth) : this.lastPosition.z,
+        };
+
+        const smoothedRotation = {
+            yaw: shouldYaw ? this.lerp(this.lastRotation.yaw, clampedRotation.yaw, rotSmooth) : this.lastRotation.yaw,
+            pitch: shouldPitch ? this.lerp(this.lastRotation.pitch, clampedRotation.pitch, rotSmooth) : this.lastRotation.pitch,
+            roll: shouldRoll ? this.lerp(this.lastRotation.roll, clampedRotation.roll, rotSmooth) : this.lastRotation.roll,
+        };
+
+        this.lastPosition = smoothedPosition;
+        this.lastRotation = smoothedRotation;
+
+        // Disable rotation if configured
+        const finalRotation = this.config.disableRotation
+            ? { yaw: 0, pitch: 0, roll: 0 }
+            : smoothedRotation;
+
+        // In offsetMode, add head position to initial camera position instead of replacing
+        const finalPosition = this.config.offsetMode
+            ? {
+                x: initialCam.x + smoothedPosition.x,
+                y: initialCam.y + smoothedPosition.y,
+                z: initialCam.z + smoothedPosition.z,
+              }
+            : smoothedPosition;
+
         return {
-            x: this.p.lerp(v1.x, v2.x, amt),
-            y: this.p.lerp(v1.y, v2.y, amt),
-            z: this.p.lerp(v1.z, v2.z, amt)
-        };
-    }
-
-    /**
-     * Generates a "Zeroed" face at center (0.5, 0.5) for drifting back on lost tracking.
-     */
-    private createNeutralGeometry(): FaceGeometry {
-        const center: Vector3 = { x: 0.5, y: 0.5, z: 0 };
-        return {
-            nose: center,
-            leftEye: { x: 0.45, y: 0.45, z: 0 },
-            rightEye: { x: 0.55, y: 0.45, z: 0 },
-            bounds: {
-                left: { x: 0.4, y: 0.5, z: 0 },
-                right: { x: 0.6, y: 0.5, z: 0 },
-                top: { x: 0.5, y: 0.4, z: 0 },
-                bottom: { x: 0.5, y: 0.6, z: 0 }
+            success: true,
+            value: {
+                name: this.name,
+                position: finalPosition,
+                rotation: finalRotation
             }
         };
     }
 
-    // --- Public Accessors ---
-    getCarPosition(): FailableResult<CarResult> {
-        if (!this.cache) return { success: false, error: "Tracking lost" };
-        return { success: true, value: { name: this.name, position: this.cache.carPos } };
+    private lerp(a: number, b: number, t: number): number {
+        return a + (b - a) * t;
     }
 
-    getNudge(): FailableResult<Partial<Vector3>> {
-        if (!this.cache) return { success: false, error: "Tracking lost" };
-        return { success: true, value: this.cache.nudgePos };
-    }
-
-    getStick(): FailableResult<StickResult> {
-        if (!this.cache) return { success: false, error: "Tracking lost" };
-        return { success: true, value: this.cache.stick };
+    private clamp(value: number, min?: number, max?: number): number {
+        if (min !== undefined && value < min) return min;
+        if (max !== undefined && value > max) return max;
+        return value;
     }
 }

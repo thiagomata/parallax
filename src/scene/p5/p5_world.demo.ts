@@ -2,32 +2,31 @@ import p5 from 'p5';
 import {World} from '../world';
 import {P5GraphicProcessor} from './p5_graphic_processor';
 import {P5AssetLoader, type P5Bundler} from './p5_asset_loader';
-import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "../types.ts";
-import {SceneManager} from "../scene_manager.ts";
-import {OrbitModifier} from "../modifiers/orbit_modifier.ts";
-import {CenterFocusModifier} from "../modifiers/center_focus_modifier.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type ResolutionContext, type Vector3} from "../types.ts";
+import {SceneClock} from "../scene_clock.ts";
+import {WorldSettings} from "../world_settings.ts";
 
 new p5((p: p5) => {
-    let world: World<P5Bundler, any>;
+    let world: World<P5Bundler, any, any>;
     let gp: P5GraphicProcessor;
 
     p.setup = () => {
         p.createCanvas(window.innerWidth, window.innerHeight, p.WEBGL);
 
         // Scene Orchestration
-        const manager = new SceneManager({
-            ...DEFAULT_SETTINGS,
+        const clock = new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
             playback: {
-                ...DEFAULT_SETTINGS.playback,
+                ...DEFAULT_SCENE_SETTINGS.playback,
                 duration: 10000,
                 isLoop: true
             },
         });
 
-        manager.setDebug(true);
+        // clock.setDebug(true);
         // Using modifiers as per your design
-        manager.addCarModifier(new OrbitModifier(p, 1000));
-        manager.addStickModifier(new CenterFocusModifier());
+        // clock.addCarModifier(new OrbitModifier(p, 1000));
+        // clock.addStickModifier(new CenterFocusModifier());
 
         // Bridge & Loader
         const loader = new P5AssetLoader(p);
@@ -35,14 +34,17 @@ new p5((p: p5) => {
 
         // World & Stage initialization
         // Note: World creates its own internal Stage if one isn't passed
-        world = new World(manager, loader);
+        world = new World(
+            WorldSettings.fromLibs({clock, loader})
+        );
 
         // REGISTRATION (Adding Blueprints)
         // We use world.add (which delegates to stage.add)
         // No more manual 'toProps'—the Registry handles that!
 
-        world.addBox('back', {
+        world.addBox({
             type: ELEMENT_TYPES.BOX,
+            id: 'back',
             width: 200,
             position: {x: -100, y: 0, z: -200},
             fillColor: {red: 0, green: 255, blue: 0, alpha: 1.0},
@@ -50,17 +52,18 @@ new p5((p: p5) => {
             strokeWidth: 1,
         });
 
-        world.addBox('mid', {
+        world.addBox({
             type: ELEMENT_TYPES.BOX,
-            width: (state: SceneState) => (Math.cos(2 * Math.PI * state.playback.progress) * 50) + 100,
-            rotate: (state: SceneState) => ({
-                x: 0,
-                y: 0,
-                z: state.playback.progress * 2 * Math.PI
+            id: 'mid',
+            width: (ctx: ResolutionContext) => (Math.cos(2 * Math.PI * ctx.playback.progress) * 50) + 100,
+            rotate: (ctx: ResolutionContext) => ({
+                pitch: 0,
+                yaw: 0,
+                roll: ctx.playback.progress * 2 * Math.PI
             }),
-            position: (state: SceneState): Vector3 => ({
+            position: (ctx: ResolutionContext): Vector3 => ({
                 x: 0,
-                y: (Math.cos(2 * Math.PI * state.playback.progress) * 100) - 100,
+                y: (Math.cos(2 * Math.PI * ctx.playback.progress) * 100) - 100,
                 z: 0,
             }),
             fillColor: {red: 255, green: 0, blue: 0, alpha: 0.5},
@@ -68,8 +71,9 @@ new p5((p: p5) => {
             strokeWidth: 1,
         });
 
-        world.addBox('front', {
+        world.addBox({
             type: ELEMENT_TYPES.BOX,
+            id: 'front',
             width: 100,
             position: {x: 100, y: 0, z: 200},
             fillColor: {red: 0, green: 0, blue: 255, alpha: 1.0},
@@ -77,8 +81,9 @@ new p5((p: p5) => {
             strokeWidth: 1,
         });
 
-        world.addText('title-label', {
+        world.addText({
             type: ELEMENT_TYPES.TEXT,
+            id: 'title-label',
             text: "HELLO WORLD",
             size: 40,
             position: {x: 50, y: 0, z: 0},

@@ -8,6 +8,255 @@ export interface Vector3 {
 }
 
 /**
+ * Rotation angles in radians (0 to 2π for full rotation).
+ */
+export interface Rotation3 {
+    /** Rotation around X axis in radians (pitch). 0 = level, π = upside down. */
+    pitch: number;
+    /** Rotation around Y axis in radians (yaw). 0 = forward, π = behind. */
+    yaw: number;
+    /** Rotation around Z axis in radians (roll). 0 = level, π = sideways. */
+    roll: number;
+}
+
+/**
+ * Look mode determines how the projection's view direction is calculated.
+ * - 'lookAt': Direction is computed from lookAt position (default)
+ * - 'rotation': Direction is computed from rotation angles + distance
+ */
+export const LOOK_MODES = {
+    LOOK_AT: 'LOOK_AT',
+    ROTATION: 'ROTATION',
+} as const;
+export type LookMode = typeof LOOK_MODES[keyof typeof LOOK_MODES];
+
+/**
+ * Element look mode - how element rotation is determined.
+ * - 'ANGLE': Rotation is applied from rotate vector (pitch/yaw/roll)
+ * - 'LOOK_AT': Element rotates to face a target point
+ */
+export const ELEMENT_LOOK_MODES = {
+    ANGLE: 'ANGLE',
+    LOOK_AT: 'LOOK_AT',
+} as const;
+export type ElementLookMode = typeof ELEMENT_LOOK_MODES[keyof typeof ELEMENT_LOOK_MODES];
+
+export const STANDARD_PROJECTION_IDS = {
+    ROOT: 'root',
+    CAR: 'car',
+    SCREEN: 'screen',
+    HEAD: 'head',
+    EYE: 'eye',
+} as const;
+
+/**
+ * Modifiers are static refs in the blueprint
+ */
+export interface BaseProjection {
+    readonly type: ProjectionType;
+    readonly id: string;
+    readonly targetId?: string;
+}
+
+export function projectionIsType<T extends ProjectionType>(
+    resolvedProjection: ResolvedProjection,
+    type: T
+): resolvedProjection is ResolvedProjection & { type: T } {
+    return resolvedProjection.type === type;
+}
+
+export interface ResolvedProjection extends BaseProjection {
+    position: Vector3;
+    rotation: Rotation3;
+    lookAt: Vector3;
+    direction: Vector3;
+    distance: number;
+    readonly effects: readonly ProjectionEffectResolutionGroup[];
+}
+
+/**
+ * Projection Blueprint - Allows flexible specs for base pose properties.
+ * Uses discriminated union based on lookMode to enforce correct modifier usage.
+ */
+
+// Base interface with common properties
+interface BaseBlueprintProjection extends BaseProjection {
+    readonly position: FlexibleSpec<Vector3>;
+    readonly direction: FlexibleSpec<Vector3>;
+    readonly effects?: ProjectionEffectBlueprint[];
+}
+
+// lookAt mode: requires lookAt, forbids stick modifiers
+export interface BlueprintProjectionLookAt extends BaseBlueprintProjection {
+    readonly lookMode: typeof LOOK_MODES.LOOK_AT;
+    readonly lookAt?: FlexibleSpec<Vector3>;
+    readonly modifiers?: {
+        readonly carModifiers?: readonly CarModifier[];
+        readonly nudgeModifiers?: readonly NudgeModifier[];
+        readonly stickModifiers?: undefined;
+    }
+}
+
+// rotation mode: requires rotation, forbids lookAt, allows stick modifiers
+export interface BlueprintProjectionRotation extends BaseBlueprintProjection {
+    readonly lookMode: typeof LOOK_MODES.ROTATION;
+    readonly rotation: FlexibleSpec<Rotation3>;
+    readonly lookAt?: never;  // forbidden
+    readonly distance?: number;
+    readonly modifiers?: {
+        readonly carModifiers?: readonly CarModifier[];
+        readonly nudgeModifiers?: readonly NudgeModifier[];
+        readonly stickModifiers?: readonly StickModifier[];
+    }
+}
+
+export type BlueprintProjection = BlueprintProjectionLookAt | BlueprintProjectionRotation;
+export function blueprintIsType<T extends ProjectionType>(
+    blueprintProjection: Partial<BlueprintProjection>,
+    type: T
+): blueprintProjection is Partial<BlueprintProjection> & { type: T } {
+    return blueprintProjection.type === type;
+}
+export function blueprintLookModeIs<T extends LookMode>(
+    blueprintProjection: Partial<BlueprintProjection>,
+    lookMode: T
+): blueprintProjection is Partial<BlueprintProjection> & { lookMode: T } {
+    return blueprintProjection.lookMode === lookMode;
+}
+
+/**
+ * Projection Dynamic - The compiled version ready for the frame loop.
+ */
+export interface DynamicProjection extends BaseProjection {
+    readonly position: DynamicProperty<Vector3>;
+    readonly rotation: DynamicProperty<Rotation3>;
+    readonly lookAt: DynamicProperty<Vector3>;
+    readonly direction: DynamicProperty<Vector3>;
+    readonly distance: DynamicProperty<number>;
+    readonly effects: ProjectionEffectResolutionGroup[];
+    readonly lookMode?: LookMode;
+    readonly modifiers?: {
+        readonly carModifiers?: readonly CarModifier[];
+        readonly nudgeModifiers?: readonly NudgeModifier[];
+        readonly stickModifiers?: readonly StickModifier[];
+    }
+}
+
+
+export const DEFAULT_PROJECTION_ELEMENT = {
+    position: { x: 0, y: 0, z: 0 },
+    rotation: { pitch: 0, yaw: 0, roll: 0 },
+    direction: { x: 0, y: 0, z: 0 },
+    lookAt: { x: 0, y: 0, z: 0 },
+    distance: 0,
+    lookMode: LOOK_MODES.LOOK_AT,
+    modifiers: {
+        carModifiers: [],
+        nudgeModifiers: [],
+        stickModifiers: [],
+    },
+};
+
+export interface ProjectionEffectBundle<
+    TID extends string = string,
+    TConfig extends BaseModifierSettings = BaseModifierSettings,
+    TDataProviderLib extends DataProviderLib = DataProviderLib,
+    E extends ResolvedProjection = ResolvedProjection,
+> {
+    readonly type: TID;
+    readonly defaults: TConfig;
+    apply(current: E, context: ResolutionContext<TDataProviderLib>, settings: TConfig, resolutionPool: Record<string, E>): E;
+}
+
+export type ProjectionEffectLib<TDataProviderLib extends DataProviderLib = DataProviderLib> = Record<string, ProjectionEffectBundle<any, any, TDataProviderLib, any>>;
+
+export interface ProjectionEffectBlueprint<K extends string = string, TConfig = any> {
+    readonly type: K;
+    readonly settings?: Partial<TConfig>;
+}
+
+export interface ProjectionEffectResolutionGroup<
+    TID extends string = string,
+    TConfig extends BaseModifierSettings = any
+> {
+    readonly type: TID;
+    readonly bundle: ProjectionEffectBundle<TID, TConfig, any>;
+    readonly settings?: TConfig; // Hydrated/Merged settings
+}
+
+/**
+ * A component of the projection matrix containing 4 values.
+ */
+export type ProjectionMatrixComponent = {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+    readonly w: number;
+};
+
+/**
+ * A structured projection matrix with 4 components, each containing x, y, z, w values.
+ * Maps to a 4x4 column-major matrix for P5/WebGL compatibility.
+ */
+export type ProjectionMatrix = {
+    readonly xScale: ProjectionMatrixComponent;
+    readonly yScale: ProjectionMatrixComponent;
+    readonly projection: ProjectionMatrixComponent;
+    readonly translation: ProjectionMatrixComponent;
+};
+
+export const PROJECTION_TYPES = {
+    WORLD: 'WORLD',
+    PLAYER: 'PLAYER',
+    SCREEN: 'SCREEN',
+    HEAD: 'HEAD',
+    EYE: 'EYE'
+} as const;
+export type ProjectionType = typeof PROJECTION_TYPES[keyof typeof PROJECTION_TYPES];
+
+export const DEFAULT_EYE_LOOK_AT: BlueprintProjectionLookAt = {
+    type: PROJECTION_TYPES.EYE,
+    lookMode: LOOK_MODES.LOOK_AT,
+    id: STANDARD_PROJECTION_IDS.EYE,
+    targetId: STANDARD_PROJECTION_IDS.SCREEN,
+    position: {x: 0, y: 0, z: 100},
+    lookAt: {x: 0, y: 0, z: 0},
+    direction: {x: 0, y: 0, z: -1},
+    effects: [],
+};
+
+export const DEFAULT_EYE_ROTATION: BlueprintProjectionRotation = {
+    type: PROJECTION_TYPES.EYE,
+    lookMode: LOOK_MODES.ROTATION,
+    id: STANDARD_PROJECTION_IDS.EYE,
+    targetId: STANDARD_PROJECTION_IDS.SCREEN,
+    position: {x: 0, y: 0, z: 100},
+    rotation: {pitch: 0, yaw: 0, roll: 0},
+    direction: {x: 0, y: 0, z: -1},
+    effects: [],
+};
+
+export const DEFAULT_SCREEN_LOOK_AT: BlueprintProjectionLookAt = {
+    id: STANDARD_PROJECTION_IDS.SCREEN,
+    type: PROJECTION_TYPES.SCREEN,
+    lookMode: LOOK_MODES.LOOK_AT,
+    position: {x: 0, y: 0, z: 1000},
+    lookAt: {x: 0, y: 0, z: 0},
+    direction: {x: 0, y: 0, z: 1},
+    effects: [],
+};
+
+export const DEFAULT_SCREEN_ROTATION: BlueprintProjectionRotation = {
+    id: STANDARD_PROJECTION_IDS.SCREEN,
+    type: PROJECTION_TYPES.SCREEN,
+    lookMode: LOOK_MODES.ROTATION,
+    position: {x: 0, y: 0, z: 100},
+    rotation: {pitch: 0, yaw: 0, roll: 0},
+    direction: {x: 0, y: 0, z: 1},
+    effects: [],
+};
+
+/**
  * A container for operations that can fail.
  */
 export type FailableResult<T> =
@@ -22,29 +271,77 @@ export interface GraphicsBundle {
     readonly font: unknown;
 }
 
+interface WindowConfigInput {
+    width: number;
+    height: number;
+    z: number;
+    near: number;
+    far: number;
+    epsilon: number;
+}
+
 /**
- * SCENE DATA STRUCTURES
+ * Baseline portal dimensions (approx. 27-inch monitor in mm).
  */
-export interface SceneWindow {
-    readonly width: number;
-    readonly height: number;
-    readonly aspectRatio: number;
+export const DEFAULT_WINDOW_CONFIG = {
+    width: 600,
+    height: 337,
+    z: 0,
+    near: 10,
+    far: 10000,
+    epsilon: 0.001,
+};
+
+export class WindowConfig {
+    public readonly width: number;
+    public readonly height: number;
+    public readonly halfWidth: number;
+    public readonly halfHeight: number;
+    public readonly aspectRatio: number;
+    public readonly z: number;
+    public readonly near: number;
+    public readonly far: number;
+    public readonly epsilon: number;
+
+    private constructor(input: WindowConfigInput) {
+        this.width = input.width;
+        this.height = input.height;
+        this.z = input.z;
+        this.near = input.near;
+        this.far = input.far;
+        this.epsilon = input.epsilon;
+
+        this.halfWidth = input.width * 0.5;
+        this.halfHeight = input.height * 0.5;
+        this.aspectRatio = input.width / input.height;
+    }
+
+    /**
+     * Merges user overrides with the static default object.
+     */
+    static create(params: Partial<WindowConfigInput> = {}): WindowConfig {
+        const input = { ...DEFAULT_WINDOW_CONFIG, ...params };
+
+        // Validation logic migrated from the nuked ScreenConfig
+        if (input.width <= 0 || input.height <= 0) throw new Error("Portal width/height must be positive.");
+        if (input.near <= 0 || input.far <= input.near) throw new Error("Invalid clipping planes.");
+        if (input.epsilon <= 0) throw new Error("Invalid epsilon value.");
+
+        return new WindowConfig(input);
+    }
 }
 
-export interface SceneCameraSettings {
-    readonly position: Vector3;
-    readonly lookAt: Vector3;
-    readonly fov?: number;
-    readonly near?: number;
-    readonly far?: number;
+export interface StickRotationLimits {
+    yaw: { min: number; max: number };
+    pitch: { min: number; max: number };
+    roll: { min: number; max: number };
 }
 
-export interface SceneCameraState extends SceneCameraSettings {
-    readonly yaw: number;
-    readonly pitch: number;
-    readonly roll: number;
-    readonly direction: Vector3;
-}
+export const DEFAULT_ROTATION_LIMITS: StickRotationLimits = {
+    yaw: { min: -Math.PI/2, max: Math.PI/2 },      // ±90 degrees
+    pitch: { min: -Math.PI/3, max: Math.PI/3 },     // ±60 degrees
+    roll: { min: -Math.PI/6, max: Math.PI/6 },      // ±30 degrees
+};
 
 export interface PlaybackSettings {
     readonly duration?: number;
@@ -61,38 +358,45 @@ export interface ScenePlaybackState {
 }
 
 export interface SceneSettings {
-    window: SceneWindow;
-    camera: SceneCameraSettings;
+    window: WindowConfig;
     playback: PlaybackSettings;
     debug: boolean;
     alpha: number;
     startPaused: boolean;
 }
 
-export interface SceneState {
-    sceneId: number;
-    settings: SceneSettings;
-    playback: ScenePlaybackState;
-    camera: SceneCameraState;
+// type ScreeProjection = ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN};
+// type EyeProjection   = ResolvedProjection & {type: typeof PROJECTION_TYPES.EYE};
+
+export abstract class BaseSceneState {
+    abstract readonly sceneId: number;
+    abstract readonly settings: SceneSettings;
+    abstract readonly playback: ScenePlaybackState;
+}
+
+export interface BlueprintSceneState<TDataProviderLib extends DataProviderLib> extends BaseSceneState {
     debugStateLog?: SceneStateDebugLog;
-    elements?: Map<string, ResolvedElement>;
+    elements?: Map<string, BlueprintElement<TDataProviderLib>>;
+    projections?: Map<string, BlueprintProjection>;
+}
+
+export interface DynamicSceneState<TDataProviderLib extends DataProviderLib = DataProviderLib> extends BaseSceneState {
+    debugStateLog?: SceneStateDebugLog;
+    elements?: Map<string, DynamicElementUnion<TDataProviderLib>>;
+    projections: Map<string, DynamicProjection>;
+    previousResolved: ResolvedSceneState | null;
+}
+
+export interface ResolvedSceneState extends BaseSceneState {
+    debugStateLog?: SceneStateDebugLog;
+    elements: Map<string, ResolvedElement>;
+    projections: Map<string, ResolvedProjectionWithGlobals>;
 }
 
 export const DEFAULT_CAMERA_FAR = 5000;
 
-export const DEFAULT_SETTINGS: SceneSettings = {
-    window: {
-        width: 800,
-        height: 600,
-        aspectRatio: 800 / 600
-    },
-    camera: {
-        position: {x: 0, y: 0, z: 500} as Vector3,
-        lookAt: {x: 0, y: 0, z: 0} as Vector3,
-        fov: Math.PI / 3, // 60 degrees
-        near: 0.1,
-        far: DEFAULT_CAMERA_FAR
-    },
+export const DEFAULT_SCENE_SETTINGS: SceneSettings = {
+    window: WindowConfig.create(DEFAULT_WINDOW_CONFIG),
     playback: {
         duration: 5000,
         isLoop: true,
@@ -117,6 +421,7 @@ export interface SceneStateDebugLog {
 export interface CarResult {
     name: string;
     position: Vector3;
+    rotation?: Rotation3;
 }
 
 export interface StickResult {
@@ -136,18 +441,49 @@ export interface Modifier {
 
 }
 
-export interface CarModifier extends Modifier {
-    readonly priority: number;
-    getCarPosition(initialCam: Vector3, currentState: SceneState): FailableResult<CarResult>;
+export interface ResolutionContext<TDataProviderLib extends DataProviderLib = DataProviderLib> {
+    previousResolved: ResolvedSceneState | null;
+    playback: ScenePlaybackState;
+    settings: SceneSettings;
+    projectionPool: Record<string, ResolvedProjection>;
+    elementPool: Record<string, ResolvedElement>;
+    dataProviders: {
+        [K in keyof TDataProviderLib]: ReturnType<TDataProviderLib[K]['getData']>;
+    };
 }
 
-export interface NudgeModifier extends Modifier {
-    getNudge(currentCarPos: Vector3, currentState: SceneState): FailableResult<Partial<Vector3>>;
+export function createResolution<TDataProviderLib extends DataProviderLib = DataProviderLib>(state: ResolvedSceneState):  ResolutionContext<TDataProviderLib> {
+    return {
+        elementPool: {},
+        projectionPool: {},
+        playback: state.playback,
+        previousResolved: state,
+        settings: state.settings,
+        dataProviders: {} as any
+    }
 }
 
-export interface StickModifier extends Modifier {
+export interface ModifierContext {
+    previousResolved: ResolvedSceneState | null;
+    playback: ScenePlaybackState;
+    settings: SceneSettings;
+}
+
+export interface CarModifier<TDataProviderLib extends DataProviderLib = DataProviderLib> extends Modifier {
     readonly priority: number;
-    getStick(finalPos: Vector3, currentState: SceneState): FailableResult<StickResult>;
+    readonly requiredDataProviders?: (keyof TDataProviderLib)[];
+    getCarPosition(initialCam: Vector3, context: ResolutionContext<TDataProviderLib>): FailableResult<CarResult>;
+}
+
+export interface NudgeModifier<TDataProviderLib extends DataProviderLib = DataProviderLib> extends Modifier {
+    readonly requiredDataProviders?: (keyof TDataProviderLib)[];
+    getNudge(currentCarPos: Vector3, context: ResolutionContext<TDataProviderLib>): FailableResult<Partial<Vector3>>;
+}
+
+export interface StickModifier<TDataProviderLib extends DataProviderLib = DataProviderLib> extends Modifier {
+    readonly priority: number;
+    readonly requiredDataProviders?: (keyof TDataProviderLib)[];
+    getStick(finalPos: Vector3, context: ResolutionContext<TDataProviderLib>): FailableResult<StickResult>;
 }
 
 /**
@@ -193,6 +529,7 @@ export type FontAsset<TFont = unknown> =
 export interface ElementAssets<TBundle extends GraphicsBundle> {
     texture?: TextureAsset<TBundle['texture']>;
     font?: FontAsset<TBundle['font']>;
+    video?: any;
 }
 
 export interface AssetLoader<TBundle extends GraphicsBundle> {
@@ -206,73 +543,83 @@ export interface AssetLoader<TBundle extends GraphicsBundle> {
  */
 export type ColorRGBA = { red: number; green: number; blue: number; alpha?: number; }
 
+/**
+ * Tree node for hierarchical element rendering.
+ * Contains element data and its children.
+ */
+export interface RenderTreeNode {
+    props: ResolvedBaseVisual;
+    assets: ElementAssets<any>;
+    children: RenderTreeNode[];
+}
+
+/**
+ * Projection with computed global position/rotation.
+ * Computed once during tree building, used by calculator and camera.
+ */
+export interface ResolvedProjectionWithGlobals extends ResolvedProjection {
+    globalPosition: Vector3;
+    globalRotation: Rotation3;
+}
+
+/**
+ * Projection Tree Node - hierarchical structure for projections.
+ * Props contains local position/rotation + computed global transforms.
+ */
+export interface ProjectionTreeNode {
+    props: ResolvedProjectionWithGlobals;
+    children: ProjectionTreeNode[];
+}
+
 export interface GraphicProcessor<TBundle extends GraphicsBundle> {
     readonly loader: AssetLoader<TBundle>;
 
-    setCamera(pos: Vector3, lookAt: Vector3): void;
+    /* --- Camera + Projection (configure view) --- */
 
-    // push(): void;
+    /**
+     * Positions the hardware camera using a projection tree.
+     * Traverses tree to compute global transforms via translate/rotate.
+     */
+    setCameraTree(root: ProjectionTreeNode | null): void;
 
-    // pop(): void;
+    /**
+     * Positions the hardware camera.
+     */
+    setCamera(eye: ResolvedProjection): void;
 
-    translate(pos: Vector3): void;
+    /**
+     * Applies the off-axis frustum matrix.
+     */
+    setProjectionMatrix(projectionMatrix: ProjectionMatrix): void;
 
-    // rotateX(angle: number): void;
-    //
-    // rotateY(angle: number): void;
-    //
-    // rotateZ(angle: number): void;
+    /* --- Drawing Primitives (render resolved elements) --- */
+    drawBox(props: ResolvedBox, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawPanel(props: ResolvedPanel, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawSphere(resolved: ResolvedSphere, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawCone(resolved: ResolvedCone, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawPyramid(resolved: ResolvedPyramid, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawElliptical(resolved: ResolvedElliptical, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawCylinder(resolved: ResolvedCylinder, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawTorus(resolved: ResolvedTorus, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawFloor(resolved: ResolvedFloor, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
+    drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void;
 
-    fill(color: ColorRGBA, alpha?: number): void;
+    /* --- Tree Rendering (hierarchical draw) --- */
+    drawTree(node: RenderTreeNode | null, state: ResolvedSceneState): void;
 
-    noFill(): void;
-
-    stroke(color: ColorRGBA, weight: number, globalAlpha?: number): void;
-
-    noStroke(): void;
-
-    drawBox(props: ResolvedBox, assets: ElementAssets<TBundle>, state: SceneState): void;
-
-    drawPanel(props: ResolvedPanel, assets: ElementAssets<TBundle>, state: SceneState): void;
-
-    drawSphere(resolved: ResolvedSphere, assets: ElementAssets<TBundle>, state: SceneState): void;
-
-    drawCone(resolved: ResolvedCone, assets: ElementAssets<TBundle>, state: SceneState): void;
-
-    drawPyramid(resolved: ResolvedPyramid, assets: ElementAssets<TBundle>, state: SceneState): void;
-
-    drawElliptical(resolved: ResolvedElliptical, assets: ElementAssets<TBundle>, state: SceneState): void;
-
-    drawCylinder(resolved: ResolvedCylinder, assets: ElementAssets<TBundle>, state: SceneState): void;
-
-    drawTorus(resolved: ResolvedTorus, assets: ElementAssets<TBundle>, state: SceneState): void;
-
-    drawFloor(resolved: ResolvedFloor, assets: ElementAssets<TBundle>, state: SceneState): void;
-
-    drawText(props: ResolvedText, assets: ElementAssets<TBundle>, state: SceneState): void;
-
-    drawLabel(s: string, pos: Partial<Vector3>): void;
-
-    drawCrosshair(pos: Partial<Vector3>, size: number): void;
-
-    drawHUDText(s: string, x: number, y: number): void;
-
-    // plane(width: number, height: number): void;
-
+    /* --- Math + Timing (helpers used during render) --- */
     dist(v1: Vector3, v2: Vector3): number;
-
     map(val: number, s1: number, st1: number, s2: number, st2: number, clamp?: boolean): number;
-
     lerp(start: number, stop: number, amt: number): number;
-
-    text(s: string, pos: Partial<Vector3>): void;
-
     millis(): number;
-
     deltaTime(): number;
-
     frameCount(): number;
 
+    /* --- Debug Draw (optional overlays) --- */
+    drawLabel(s: string, pos: Partial<Vector3>): void;
+    drawCrosshair(pos: Partial<Vector3>, size: number): void;
+    drawHUDText(s: string, x: number, y: number): void;
+    text(s: string, pos: Partial<Vector3>): void;
 }
 
 /**
@@ -294,46 +641,114 @@ export const ALL_ELEMENT_TYPES = Object.values(ELEMENT_TYPES);
 
 export const SPEC_KINDS = {STATIC: 'static', COMPUTED: 'computed', BRANCH: 'branch'} as const;
 
-export type DynamicProperty<T> =
+export type DynamicProperty<T, TResolved = unknown, TDataProviderLib extends DataProviderLib = DataProviderLib> =
     | { kind: typeof SPEC_KINDS.STATIC; value: T }
-    | { kind: typeof SPEC_KINDS.COMPUTED; compute: (state: SceneState) => T | DynamicProperty<T> | DynamicTree<T> }
-    | { kind: typeof SPEC_KINDS.BRANCH; value: DynamicTree<T> };
+    | {
+    kind: typeof SPEC_KINDS.COMPUTED;
+    compute: (
+        context: ResolutionContext<TDataProviderLib>,
+        resolutionPool: Record<string, TResolved>
+    ) => T | DynamicProperty<T, TResolved, TDataProviderLib> | DynamicTree<T, TResolved, TDataProviderLib>
+}
+    | { kind: typeof SPEC_KINDS.BRANCH; value: DynamicTree<T, TResolved, TDataProviderLib> };
 
-export type DynamicTree<T> = { [K in keyof T]?: DynamicProperty<T[K]>; };
-export type FlexibleSpec<T> =
+export type DynamicTree<T, TResolved = unknown, TDataProviderLib extends DataProviderLib = DataProviderLib> = {
+    [K in keyof T]: T[K] | DynamicProperty<T[K], TResolved, TDataProviderLib> | DynamicTree<T[K], TResolved, TDataProviderLib>;
+};
+
+export type FlexibleSpec<T, TDataProviderLib extends DataProviderLib = DataProviderLib> =
     T
-    | ((state: SceneState) => T | DynamicProperty<T> | DynamicTree<T>)
-    | (T extends object ? BlueprintTree<T> : never);
-export type BlueprintTree<T> = { [K in keyof T]?: FlexibleSpec<T[K]>; };
+    | ((context: ResolutionContext<TDataProviderLib>) => T | DynamicProperty<T, any, TDataProviderLib> | DynamicTree<T, any, TDataProviderLib>)
+    | (T extends object ? BlueprintTree<T, TDataProviderLib> : never);
+export type BlueprintTree<T, TDataProviderLib extends DataProviderLib = DataProviderLib> = { [K in keyof T]?: FlexibleSpec<T[K], TDataProviderLib>; };
 
-export const IDENTITY_KEYS = ['type', 'texture', 'font', 'modifiers'] as const;
-type StaticKeys = typeof IDENTITY_KEYS[number];
-export type MapToBlueprint<T> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K]>; } & {
+export const STATIC_ELEMENT_KEYS = ['type', 'texture', 'font', 'id'] as const;
+type StaticKeys = typeof STATIC_ELEMENT_KEYS[number];
+export type MapToBlueprint<T, TDataProviderLib extends DataProviderLib = DataProviderLib> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K], TDataProviderLib>; } & {
     effects?: EffectBlueprint[];
 };
-export type MapToDynamic<T> = { [K in keyof T]: K extends StaticKeys ? T[K] : DynamicProperty<T[K]>; } & {
-    effects?: EffectResolutionGroup[];
+// export type MapToDynamic<T> = { [K in keyof T]: K extends StaticKeys ? T[K] : DynamicProperty<T[K]>; } & {
+//     effects?: EffectResolutionGroup[];
+// };
+/**
+ * MapToDynamic strictly transforms a blueprint into a dynamic tree
+ */
+export type MapToDynamic<T, TDataProviderLib extends DataProviderLib = DataProviderLib> = {
+    [K in keyof T]:                     // Iterate over every key K in the provided type T
+    K extends StaticKeys                // Check if the current key is one of our protected StaticKeys
+        ? T[K] extends { kind: any }    // If it is a StaticKey, check if its value T[K] contains a "kind" property
+            ? never                     // If a StaticKey has a "kind" property, resolve to never to trigger a type error
+            : T[K]                      // If it is a StaticKey and is a "clean" value, return the raw type T[K]
+        : T[K] extends { kind: any }    // If the key is NOT a StaticKey, check if its value already has a "kind"
+            ? never                     // If a dynamic key already has a "kind", resolve to never to prevent double-wrapping
+            : DynamicProperty<T[K], TDataProviderLib>;    // If the dynamic key is a "clean" value, wrap it in a DynamicProperty container
+} & {
+    effects?: EffectResolutionGroup[];  // Attach an optional group for visual effect resolution post-hydration
 };
 export type Unwrapped<T> = T extends DynamicProperty<infer U> ? Unwrapped<U> : T extends object ? { [K in keyof T]: Unwrapped<T[K]> } : T;
 
 /**
+ * These Ids should not be used to define new elements, as boxes since they are reference
+ * to world elements.
+ */
+export type ReservedElementId =
+    | 'camera'
+    | typeof STANDARD_PROJECTION_IDS.EYE
+    | typeof STANDARD_PROJECTION_IDS.SCREEN
+    | 'player'
+    | 'world'
+    | 'origin';
+
+export type ElementId<T extends string> = T extends ReservedElementId ? never : T;
+
+/**
+ * Rotation order for elements - controls the order of applying yaw/pitch/roll
+ */
+export const ROTATION_ORDERS = {
+    XYZ: 'XYZ',
+    YXZ: 'YXZ',
+    ZXY: 'ZXY',
+    XZY: 'XZY',
+    YZX: 'YZX',
+    ZYX: 'ZYX',
+} as const;
+export type RotationOrder = typeof ROTATION_ORDERS[keyof typeof ROTATION_ORDERS];
+
+/**
  * ELEMENT DEFINITIONS
  */
-export interface ResolvedBaseVisual {
-    readonly id?: string;
+export interface ResolvedBaseVisual<TID extends string = string> {
+    readonly id: ElementId<TID>;
     readonly type: typeof ELEMENT_TYPES[keyof typeof ELEMENT_TYPES];
+
+    /** Target element id for hierarchy. Child position/rotation becomes relative to parent element. */
+    readonly targetId?: string;
+
+    /** Local position - relative to parent (if targetId set) or world origin */
     readonly position: Vector3;
+
     readonly alpha?: number;
+
     readonly fillColor?: ColorRGBA;
     readonly strokeColor?: ColorRGBA;
     readonly strokeWidth?: number;
-    readonly rotate?: Vector3;
+
+    /** Rotation in radians (0 to 2π for full rotation). */
+    readonly rotate?: Rotation3;
+
+    /** Look mode - how rotation is determined (ANGLE or LOOK_AT) */
+    readonly lookMode?: ElementLookMode;
+
+    /** Target position to look at when lookMode is LOOK_AT */
+    readonly lookAt?: Vector3;
+
     readonly texture?: TextureRef;
+    readonly video?: unknown;
     readonly font?: FontRef;
     readonly effects?: EffectBlueprint[];
 }
 
-export type DynamicElement<T extends ResolvedElement> = MapToDynamic<T>;
+export type DynamicElement<T extends ResolvedElement, TDataProviderLib extends DataProviderLib = DataProviderLib> = MapToDynamic<T, TDataProviderLib>;
 
 // BOX
 
@@ -344,8 +759,8 @@ export interface ResolvedBox extends ResolvedBaseVisual {
     readonly depth?: number;
 }
 
-export type BlueprintBox = MapToBlueprint<ResolvedBox>;
-export type DynamicBox = DynamicElement<ResolvedBox>;
+export type BlueprintBox<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedBox, TDataProviderLib>;
+export type DynamicBox<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedBox, TDataProviderLib>;
 
 // PANEL
 
@@ -355,8 +770,8 @@ export interface ResolvedPanel extends ResolvedBaseVisual {
     readonly height: number;
 }
 
-export type BlueprintPanel = MapToBlueprint<ResolvedPanel>;
-export type DynamicPanel = DynamicElement<ResolvedPanel>;
+export type BlueprintPanel<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedPanel, TDataProviderLib>;
+export type DynamicPanel<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedPanel, TDataProviderLib>;
 
 //  SPHERE
 
@@ -366,8 +781,8 @@ export interface ResolvedSphere extends ResolvedBaseVisual {
     readonly detail?: number;
 }
 
-export type BlueprintSphere = MapToBlueprint<ResolvedSphere>;
-export type DynamicSphere = DynamicElement<ResolvedSphere>;
+export type BlueprintSphere<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedSphere, TDataProviderLib>;
+export type DynamicSphere<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedSphere, TDataProviderLib>;
 
 // CONE
 
@@ -379,8 +794,8 @@ export interface ResolvedCone extends ResolvedBaseVisual {
     readonly height: number;
 }
 
-export type BlueprintCone = MapToBlueprint<ResolvedCone>;
-export type DynamicCone = DynamicElement<ResolvedCone>;
+export type BlueprintCone<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedCone, TDataProviderLib>;
+export type DynamicCone<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedCone, TDataProviderLib>;
 
 // PYRAMID
 
@@ -390,8 +805,8 @@ export interface ResolvedPyramid extends ResolvedBaseVisual {
     readonly height: number;
 }
 
-export type BlueprintPyramid = MapToBlueprint<ResolvedPyramid>;
-export type DynamicPyramid = DynamicElement<ResolvedPyramid>;
+export type BlueprintPyramid<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedPyramid, TDataProviderLib>;
+export type DynamicPyramid<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedPyramid, TDataProviderLib>;
 
 // CYLINDER
 
@@ -403,8 +818,8 @@ export interface ResolvedCylinder extends ResolvedBaseVisual {
     readonly height: number;
 }
 
-export type BlueprintCylinder = MapToBlueprint<ResolvedCylinder>;
-export type DynamicCylinder = DynamicElement<ResolvedCylinder>;
+export type BlueprintCylinder<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedCylinder, TDataProviderLib>;
+export type DynamicCylinder<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedCylinder, TDataProviderLib>;
 
 // TORUS
 
@@ -416,8 +831,8 @@ export interface ResolvedTorus extends ResolvedBaseVisual {
     readonly tubeRadius: number;
 }
 
-export type BlueprintTorus = MapToBlueprint<ResolvedTorus>;
-export type DynamicTorus = DynamicElement<ResolvedTorus>;
+export type BlueprintTorus<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedTorus, TDataProviderLib>;
+export type DynamicTorus<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedTorus, TDataProviderLib>;
 
 // ELLIPTICAL
 
@@ -431,8 +846,8 @@ export interface ResolvedElliptical extends ResolvedBaseVisual {
     readonly rz: number;
 }
 
-export type BlueprintElliptical = MapToBlueprint<ResolvedElliptical>;
-export type DynamicElliptical = DynamicElement<ResolvedElliptical>;
+export type BlueprintElliptical<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedElliptical, TDataProviderLib>;
+export type DynamicElliptical<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedElliptical, TDataProviderLib>;
 
 // FLOOR
 
@@ -442,8 +857,8 @@ export interface ResolvedFloor extends ResolvedBaseVisual {
     readonly depth: number;
 }
 
-export type BlueprintFloor = MapToBlueprint<ResolvedFloor>;
-export type DynamicFloor = DynamicElement<ResolvedFloor>;
+export type BlueprintFloor<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedFloor, TDataProviderLib>;
+export type DynamicFloor<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedFloor, TDataProviderLib>;
 
 // TEXT
 
@@ -453,20 +868,32 @@ export interface ResolvedText extends ResolvedBaseVisual {
     readonly size: number;
 }
 
-export type BlueprintText = MapToBlueprint<ResolvedText>;
-export type DynamicText = DynamicElement<ResolvedText>;
+export type BlueprintText<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedText, TDataProviderLib>;
+export type DynamicText<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedText, TDataProviderLib>;
 
-export type BlueprintElement =
-    BlueprintBox        |
-    BlueprintPanel      |
-    BlueprintSphere     |
-    BlueprintCone       |
-    BlueprintPyramid    |
-    BlueprintElliptical |
-    BlueprintCylinder   |
-    BlueprintTorus      |
-    BlueprintFloor      |
-    BlueprintText       ;
+export type DynamicElementUnion<TDataProviderLib extends DataProviderLib> =
+    DynamicBox<TDataProviderLib>           |
+    DynamicPanel<TDataProviderLib>         |
+    DynamicSphere<TDataProviderLib>        |
+    DynamicCone<TDataProviderLib>          |
+    DynamicPyramid<TDataProviderLib>       |
+    DynamicElliptical<TDataProviderLib>    |
+    DynamicCylinder<TDataProviderLib>      |
+    DynamicTorus<TDataProviderLib>         |
+    DynamicFloor<TDataProviderLib>         |
+    DynamicText<TDataProviderLib>          ;
+
+export type BlueprintElement<TDataProviderLib extends DataProviderLib> =
+    BlueprintBox<TDataProviderLib>        |
+    BlueprintPanel<TDataProviderLib>      |
+    BlueprintSphere<TDataProviderLib>     |
+    BlueprintCone<TDataProviderLib>       |
+    BlueprintPyramid<TDataProviderLib>    |
+    BlueprintElliptical<TDataProviderLib> |
+    BlueprintCylinder<TDataProviderLib>   |
+    BlueprintTorus<TDataProviderLib>      |
+    BlueprintFloor<TDataProviderLib>      |
+    BlueprintText<TDataProviderLib>       ;
 
 
 export type ResolvedElement =
@@ -491,10 +918,11 @@ export type ResolvedElement =
  */
 export interface BundleDynamicElement<
     T extends ResolvedElement = ResolvedElement,
-    TBundle extends GraphicsBundle = GraphicsBundle
+    TBundle extends GraphicsBundle = GraphicsBundle,
+    TDataProviderLib extends DataProviderLib = DataProviderLib,
 > {
     readonly id: string;
-    readonly dynamic: DynamicElement<T>;
+    readonly dynamic: DynamicElement<T, TDataProviderLib>;
     readonly effects: ReadonlyArray<EffectResolutionGroup>;
     assets: ElementAssets<TBundle>;
 }
@@ -515,10 +943,6 @@ export interface BundleResolvedElement<
     assets: ElementAssets<TGraphicBundle>;
 }
 
-export function toBlueprint<T>(blueprint: MapToBlueprint<T>): MapToBlueprint<T> {
-    return blueprint;
-}
-
 export type TrackingStatus =
     | 'IDLE'           // Created but not yet initialized
     | 'INITIALIZING'   // Hardware/WASM is booting
@@ -527,23 +951,14 @@ export type TrackingStatus =
     | 'DISCONNECTED'   // Tracking source disconnected and threshold exceeded (calibration cleared)
     | 'ERROR';         // Fatal hardware/permission issue
 
-export interface FaceGeometry {
-    nose: Vector3;
-    leftEye: Vector3;
-    rightEye: Vector3;
-    bounds: {
-        left: Vector3;
-        right: Vector3;
-        top: Vector3;
-        bottom: Vector3;
-    };
+
+export interface DataProviderBundle<TID extends string, TData> {
+    readonly type: TID;
+    tick(sceneId: number): void;
+    getData(): TData | null;
 }
 
-export interface FaceProvider {
-    getFace(): FaceGeometry | null
-    getStatus(): TrackingStatus;
-    init(): Promise<void>;
-}
+export type DataProviderLib = Record<string, DataProviderBundle<any, any>>;
 
 export interface ObserverConfig {
     travelRange: number;   // X, Y limits
@@ -570,15 +985,16 @@ export interface BaseModifierSettings {
 export interface EffectBundle<
     TID extends string = string,
     TConfig extends BaseModifierSettings = BaseModifierSettings,
+    TDataProviderLib extends DataProviderLib = DataProviderLib,
     E extends ResolvedBaseVisual = ResolvedBaseVisual,
 > {
     readonly type: TID;
     readonly targets: ReadonlyArray<E['type']>;
     readonly defaults: TConfig;
-    apply(current: E, state: SceneState, settings: TConfig): E;
+    apply(current: E, context: ResolutionContext<TDataProviderLib>, settings: TConfig, resolutionPool: Record<string, E>): E;
 }
 
-export type EffectLib = Record<string, EffectBundle<any, any, any>>;
+export type EffectLib<TDataProviderLib extends DataProviderLib = DataProviderLib> = Record<string, EffectBundle<any, any, TDataProviderLib, any>>;
 
 export interface EffectBlueprint<K extends string = string, TConfig = any> {
     readonly type: K;
@@ -587,9 +1003,10 @@ export interface EffectBlueprint<K extends string = string, TConfig = any> {
 
 export interface EffectResolutionGroup<
     TID extends string = string,
-    TConfig extends BaseModifierSettings = any
+    TConfig extends BaseModifierSettings = any,
+    TDataProviderLib extends DataProviderLib = DataProviderLib
 > {
     readonly type: TID;
-    readonly bundle: EffectBundle<TID, TConfig, any>;
-    readonly settings?: TConfig; // Hydrated/Merged settings
+    readonly bundle: EffectBundle<TID, TConfig, TDataProviderLib, any>;
+    readonly settings?: TConfig;
 }

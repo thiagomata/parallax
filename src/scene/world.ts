@@ -1,80 +1,234 @@
-import type {SceneManager} from "./scene_manager.ts";
-import type {
-    AssetLoader,
-    BlueprintBox,
-    BlueprintCone,
-    BlueprintCylinder,
-    BlueprintElliptical,
-    BlueprintFloor,
-    BlueprintPanel,
-    BlueprintPyramid,
-    BlueprintSphere,
-    BlueprintText,
-    BlueprintTorus, EffectLib,
-    GraphicProcessor,
-    GraphicsBundle,
-    BundleDynamicElement,
-    SceneState
-} from "./types.ts";
+import {SceneClock} from "./scene_clock.ts";
+import {
+    type BlueprintBox,
+    type BlueprintCone,
+    type BlueprintCylinder,
+    type BlueprintElliptical,
+    type BlueprintFloor,
+    blueprintIsType,
+    blueprintLookModeIs,
+    type BlueprintPanel,
+    type BlueprintProjection,
+    type BlueprintProjectionLookAt,
+    type BlueprintProjectionRotation,
+    type BlueprintPyramid,
+    type BlueprintSphere,
+    type BlueprintText,
+    type BlueprintTorus,
+    type BundleDynamicElement,
+    type CarModifier,
+    type DataProviderLib,
+    type EffectLib,
+    type ElementId,
+    type GraphicProcessor,
+    type GraphicsBundle,
+    type LookMode,
+    type NudgeModifier,
+    type ProjectionEffectLib,
+    type ProjectionMatrix,
+    type ResolvedProjectionWithGlobals,
+    type ResolvedSceneState,
+    type StickModifier,
+    WindowConfig,
+    DEFAULT_EYE_LOOK_AT,
+    DEFAULT_EYE_ROTATION,
+    DEFAULT_SCREEN_LOOK_AT,
+ 	    DEFAULT_SCREEN_ROTATION,
+ 	    LOOK_MODES,
+ 	    STANDARD_PROJECTION_IDS,
+ 	    PROJECTION_TYPES,
+ 	} from "./types.ts";
 import {Stage} from "./stage.ts";
+import type {WorldSettings} from "./world_settings.ts";
+import {createPerspectiveMatrix, createOffAxisPerspectiveMatrix} from "./modifiers/projection_matrix_utils.ts";
+import type { WorldPreset } from "./presets.ts";
 
-export class World<TBundle extends GraphicsBundle, TEffectLib extends EffectLib> {
-    public readonly stage: Stage<TBundle, TEffectLib>;
-    private sceneManager: SceneManager;
-    private sceneState: SceneState;
+type ProjectionMatrixCalculator = (
+    eye: ResolvedProjectionWithGlobals,
+    screen: ResolvedProjectionWithGlobals,
+    window: WindowConfig
+) => ProjectionMatrix;
 
-    constructor(sceneManager: SceneManager, loader: AssetLoader<TBundle>, stage?: Stage<TBundle, TEffectLib>) {
-        this.sceneManager = sceneManager;
-        this.sceneState = sceneManager.initialState();
-        this.stage = stage ?? new Stage<TBundle, TEffectLib>(loader);
+export class World<
+    TBundle extends GraphicsBundle,
+    TElementEffectLib extends EffectLib,
+    TProjectionEffectLib extends ProjectionEffectLib,
+    TDataProviderLib extends DataProviderLib = {},
+> {
+    public readonly stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib, TDataProviderLib>;
+    public readonly sceneClock: SceneClock;
+    private projectionMatrixCalculator: ProjectionMatrixCalculator | null = null;
+
+    constructor(
+        worldSettings: WorldSettings<TBundle, TElementEffectLib, TProjectionEffectLib, TDataProviderLib>
+    ) {
+        this.sceneClock = worldSettings.clock
+        this.stage = worldSettings.stage;
     }
 
-    public getCurrentSceneState(): SceneState {
-        return this.sceneState;
+    public getCurrenState(): ResolvedSceneState | null {
+        return this.stage.getCurrentState()
     }
 
     public isPaused(): boolean {
-        return this.sceneManager.isPaused();
+        return this.sceneClock.isPaused();
     }
 
-    public addBox(id: string, blueprint: BlueprintBox): void {
-        this.stage.add(id, blueprint);
+	    public setEye<T extends Partial<BlueprintProjection>>(
+	        blueprintEye: T & {
+	            id: typeof STANDARD_PROJECTION_IDS.EYE,
+	            type: typeof PROJECTION_TYPES.EYE,
+	            lookMode: LookMode,
+	        }
+	    ): void {
+        if (blueprintLookModeIs(blueprintEye, LOOK_MODES.ROTATION)) {
+	            const rotateEye: BlueprintProjectionRotation = {
+	                ...DEFAULT_EYE_ROTATION,
+	                ...blueprintEye,
+	                id: STANDARD_PROJECTION_IDS.EYE,
+	                type: PROJECTION_TYPES.EYE,
+	                lookMode: LOOK_MODES.ROTATION,
+	            };
+            if (!blueprintIsType(rotateEye, PROJECTION_TYPES.EYE)) {
+                // impossible, only to make TS happy
+                throw new Error("invalid type");
+            }
+            return this.stage.setEye(rotateEye);
+        }
+        if (blueprintLookModeIs(blueprintEye, LOOK_MODES.LOOK_AT)) {
+	            const lookAtEye: BlueprintProjectionLookAt = {
+	                ...DEFAULT_EYE_LOOK_AT,
+	                ...blueprintEye,
+	                id: STANDARD_PROJECTION_IDS.EYE,
+	                type: PROJECTION_TYPES.EYE,
+	                lookMode: LOOK_MODES.LOOK_AT,
+	            };
+            if (!blueprintIsType(lookAtEye, PROJECTION_TYPES.EYE)) {
+                // impossible, only to make TS happy
+                throw new Error("invalid type");
+            }
+            return this.stage.setEye(lookAtEye);
+        }
+        throw new Error("invalid mode");
     }
 
-    public addSphere(id: string, blueprint: BlueprintSphere): void {
-        this.stage.add(id, blueprint);
+	    public setScreen<T extends Partial<BlueprintProjection>>(
+	        blueprintScreen: T & {
+	            id: typeof STANDARD_PROJECTION_IDS.SCREEN,
+	            type: typeof PROJECTION_TYPES.SCREEN,
+	            lookMode: LookMode,
+	        }
+	    ): void {
+        if (blueprintLookModeIs(blueprintScreen, LOOK_MODES.ROTATION)) {
+	            const rotateScreen: BlueprintProjectionRotation = {
+	                ...DEFAULT_SCREEN_ROTATION,
+	                ...blueprintScreen,
+	                id: STANDARD_PROJECTION_IDS.SCREEN,
+	                type: PROJECTION_TYPES.SCREEN,
+	                lookMode: LOOK_MODES.ROTATION,
+	            };
+            if (!blueprintIsType(rotateScreen, PROJECTION_TYPES.SCREEN)) {
+                // impossible, only to make TS happy
+                throw new Error("invalid type");
+            }
+            return this.stage.setScreen(rotateScreen);
+        }
+        if (blueprintLookModeIs(blueprintScreen, LOOK_MODES.LOOK_AT)) {
+	            const lookAtScreen: BlueprintProjectionLookAt = {
+	                ...DEFAULT_SCREEN_LOOK_AT,
+	                ...blueprintScreen,
+	                id: STANDARD_PROJECTION_IDS.SCREEN,
+	                type: PROJECTION_TYPES.SCREEN,
+	                lookMode: LOOK_MODES.LOOK_AT,
+	            };
+            if (!blueprintIsType(lookAtScreen, PROJECTION_TYPES.SCREEN)) {
+                // impossible, only to make TS happy
+                throw new Error("invalid type");
+            }
+            return this.stage.setScreen(lookAtScreen);
+        }
+        throw new Error("invalid mode");
     }
 
-    public addCone(id: string, blueprint: BlueprintCone): void {
-        this.stage.add(id, blueprint);
+    public addBox<TID extends string>(
+        blueprint: BlueprintBox<TDataProviderLib> & { id: ElementId<TID> }
+    ): void {
+        this.stage.addElement(blueprint);
     }
 
-    public addPyramid(id: string, blueprint: BlueprintPyramid): void {
-        this.stage.add(id, blueprint);
+    public addSphere<TID extends string>(
+        blueprint: BlueprintSphere<TDataProviderLib> & { id: ElementId<TID> }
+    ): void {
+        this.stage.addElement(blueprint);
     }
 
-    public addElliptical(id: string, blueprint: BlueprintElliptical): void {
-        this.stage.add(id, blueprint);
+    public addCone<TID extends string>(
+        blueprint: BlueprintCone<TDataProviderLib> & { id: ElementId<TID> }
+    ): void {
+        this.stage.addElement(blueprint);
     }
 
-    public addCylinder(id: string, blueprint: BlueprintCylinder): void {
-        this.stage.add(id, blueprint);
+    public addPyramid<TID extends string>(
+        blueprint: BlueprintPyramid<TDataProviderLib> & { id: ElementId<TID> }
+    ): void {
+        this.stage.addElement(blueprint);
     }
 
-    public addTorus(id: string, blueprint: BlueprintTorus): void {
-        this.stage.add(id, blueprint);
+    public addElliptical<TID extends string>(
+        blueprint: BlueprintElliptical<TDataProviderLib> & { id: ElementId<TID> }
+    ): void {
+        this.stage.addElement(blueprint);
     }
 
-    public addText(id: string, blueprint: BlueprintText): void {
-        this.stage.add(id, blueprint);
+    public addCylinder<TID extends string>(
+        blueprint: BlueprintCylinder<TDataProviderLib> & { id: ElementId<TID> }
+    ): void {
+        this.stage.addElement(blueprint);
     }
 
-    public addFloor(id: string, blueprint: BlueprintFloor): void {
-        this.stage.add(id, blueprint);
+    public addTorus<TID extends string>(
+        blueprint: BlueprintTorus<TDataProviderLib> & { id: ElementId<TID> }
+    ): void {
+        this.stage.addElement(blueprint);
     }
 
-    public addPanel(id: string, blueprint: BlueprintPanel): void {
-        this.stage.add(id, blueprint);
+    public addText<TID extends string>(
+        blueprint: BlueprintText<TDataProviderLib> & { id: ElementId<TID> }
+    ): void {
+        this.stage.addElement(blueprint);
+    }
+
+    public addFloor<TID extends string>(
+        blueprint: BlueprintFloor<TDataProviderLib> & { id: ElementId<TID> }
+    ): void {
+        this.stage.addElement(blueprint);
+    }
+
+    public addPanel<TID extends string>(
+        blueprint: BlueprintPanel<TDataProviderLib> & { id: ElementId<TID> }
+    ): void {
+        this.stage.addElement(blueprint);
+    }
+
+    public loadPreset(preset: WorldPreset): void {
+        // First, clear existing projections so preset values override defaults
+        for (const projector of preset.projectors) {
+            this.stage.removeProjection(projector.id);
+        }
+        for (const projector of preset.projectors) {
+            this.stage.addProjection(projector);
+        }
+        for (const element of preset.elements) {
+            this.stage.addElement(element as any);
+        }
+    }
+
+    public addModifierToProjection(
+        projectionId: string,
+        modifier: CarModifier | NudgeModifier | StickModifier,
+        modifierType: 'car' | 'nudge' | 'stick'
+    ): void {
+        this.stage.addModifierToProjection(projectionId, modifier, modifierType);
     }
 
     public getElement(id: string): BundleDynamicElement<any, TBundle> | undefined {
@@ -82,40 +236,102 @@ export class World<TBundle extends GraphicsBundle, TEffectLib extends EffectLib>
     }
 
     public removeElement(id: string): void {
-        this.stage.remove(id);
+        this.stage.removeElement(id);
+    }
+
+    /**
+     * Get the current WindowConfig (for creating projections, etc.)
+     */
+    public getWindowConfig(): WindowConfig {
+        return this.stage.getSettings().window;
+    }
+
+    /**
+     * Update the window configuration (width, height).
+     * Call this when the canvas is resized.
+     */
+    public updateWindowConfig(width: number, height: number): void {
+        this.stage.updateWindowConfig(WindowConfig.create({ width, height }));
+    }
+
+    /**
+     * Set a custom projection matrix calculator.
+     * When set, this function will be called each frame to compute the projection matrix.
+     * @param calculator - Function that takes (eye, screen, window) and returns a ProjectionMatrix
+     */
+    public setProjectionMatrixCalculator(calculator: ProjectionMatrixCalculator | null): void {
+        this.projectionMatrixCalculator = calculator;
+    }
+
+    /**
+     * Enable default perspective projection using p5-style perspective matrix.
+     * Uses createPerspectiveMatrix which matches p5's default perspective() behavior.
+     * This is simpler than off-axis and produces standard perspective projection.
+     * @param width - Canvas width (optional, uses WindowConfig from settings if not provided)
+     * @param height - Canvas height (optional, uses WindowConfig from settings if not provided)
+     * @param fov - Field of view in radians (default: PI/3 = 60 degrees)
+     * @param useOffAxis - If true, uses off-axis projection based on eye position (for VR head tracking)
+     */
+    public enableDefaultPerspective(
+        width?: number, 
+        height?: number, 
+        fov: number = Math.PI / 3,
+        useOffAxis: boolean = false
+    ): void {
+        if (width !== undefined && height !== undefined) {
+            this.stage.updateWindowConfig(WindowConfig.create({ width, height }));
+        }
+        
+        // Use createPerspectiveMatrix which matches p5's default perspective()
+        // FOV defaults to 60 degrees (PI/3), matching p5's default
+        // Near = 0.1, Far = 5000, matching p5's WEBGL defaults
+        this.projectionMatrixCalculator = (eye, screen, window) => {
+            const aspect = window.width / window.height;
+            
+            if (useOffAxis) {
+                return createOffAxisPerspectiveMatrix(
+                    eye.globalPosition,
+                    screen.globalPosition,
+                    fov,
+                    aspect,
+                    0.1,
+                    5000
+                );
+            }
+            
+            return createPerspectiveMatrix(
+                fov,
+                aspect,
+                0.1,     // near
+                5000      // far
+            );
+        };
     }
 
     public step(gp: GraphicProcessor<TBundle>): void {
-        const draftNewState = this.sceneManager.calculateScene(
-            gp.millis(),
-            gp.deltaTime(),
-            gp.frameCount(),
-            this.sceneState
-        );
-        gp.setCamera(draftNewState.camera.position, draftNewState.camera.lookAt);
-        this.sceneState = this.stage.render(gp, draftNewState);
-        if (this.sceneState.settings.debug) {
-            this.renderDebug(gp, this.sceneState);
-        }
-    }
+        // Tick the clock forward
+        this.sceneClock.tick(gp.millis(), gp.deltaTime(), gp.frameCount());
 
-    private renderDebug(gp: GraphicProcessor<TBundle>, state: SceneState) {
-        if (!state.debugStateLog) return;
-        const log = state.debugStateLog;
+        // Render with just frame params (clock playback + previous resolved state)
+        const previousResolved = this.stage.getCurrentState();
+        const finalState = this.stage.render(gp, {
+            playback: this.sceneClock.getPlayback(),
+            previousResolved,
+            sceneId: this.sceneClock.sceneId,
+        });
 
-        if (log.car.x !== undefined) {
-            gp.drawLabel(`CAR: ${log.car.name}`, {x: log.car.x, y: log.car.y, z: log.car.z});
-        }
+        const eye = finalState.projections?.get(STANDARD_PROJECTION_IDS.EYE);
+        const screen = finalState.projections?.get(STANDARD_PROJECTION_IDS.SCREEN);
 
-        log.nudges.forEach(nudge => {
-            if (nudge.x !== undefined) {
-                gp.drawCrosshair({x: nudge.x, y: nudge.y, z: nudge.z}, 5);
-                gp.text(`Nudge: ${nudge.name}`, {x: nudge.x, y: nudge.y, z: nudge.z});
+        if (eye && screen) {
+            // Apply custom projection matrix if calculator is set
+            if (this.projectionMatrixCalculator) {
+                const windowConfig = this.getWindowConfig();
+                const projectionMatrix = this.projectionMatrixCalculator(eye, screen, windowConfig);
+                gp.setProjectionMatrix(projectionMatrix);
             }
-        });
-
-        log.errors.forEach((err, i) => {
-            gp.drawHUDText(`Error: ${err.message}`, 20, 20 + (i * 20));
-        });
+        } else {
+            throw new Error("no screen or eye to render");
+        }
     }
 }

@@ -1,82 +1,30 @@
-import {World} from "../../scene/world.ts";
-import {SceneManager} from "../../scene/scene_manager.ts";
-import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
-import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
-import {type AssetLoader, DEFAULT_SETTINGS, ELEMENT_TYPES} from "../../scene/types.ts";
-
-// libs
-import p5 from 'p5';
 import Prism from 'prismjs';
-
-// Syntax Highlighting Support
 import 'prismjs/themes/prism-tomorrow.css';
-import '../../docs/style/style.css';
 import 'prismjs/components/prism-typescript';
 import 'prismjs/components/prism-javascript';
 import '@fortawesome/fontawesome-free/css/all.css';
-import {transform} from 'sucrase';
+import '../../docs/style/style.css';
+import '../../docs/style/tutorial.css';
 
-// Tutorial Steps
-import {heroExample1} from "./hero_example_1.ts";
+import {heroExample1, heroExample1_explanation} from "./hero_example_1.ts";
 import heroExample1Code from './hero_example_1.ts?raw';
-import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
-import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
+
+import { 
+    DEFAULT_SKETCH_CONFIG, 
+    type SketchConfig,
+    extractSketchFunction,
+    createSketchInstance,
+    type P5Sketch
+} from "../tutorial/sketch_engine.ts";
+
 import {tutorialStepTemplate} from "../tutorial/tutorial.template.ts";
-
-
-/**
- * We expose the engine to the window so the dynamic code can resolve types.
- */
-Object.assign(window, {
-    World,
-    SceneManager,
-    P5AssetLoader,
-    P5GraphicProcessor,
-    ELEMENT_TYPES,
-    DEFAULT_SETTINGS,
-    p5,
-    OrbitModifier,
-    CenterFocusModifier
-});
-export interface SketchConfig {
-    width: number;
-    height: number;
-    backgroundColor?: string;
-    manager?: SceneManager,
-    loader?: AssetLoader<P5Bundler>,
-    paused: boolean,
-}
-
-export const DEFAULT_SKETCH_CONFIG: SketchConfig = {
-    width: 500,
-    height: 400,
-    paused: false,
-};
-
-export type P5Sketch = (p: p5, config: SketchConfig) => void;
-
-function toggleFS(id: string) {
-    const element = document.getElementById(id);
-    if (!element) return;
-
-    const requestFullscreen =
-        element.requestFullscreen?.bind(element) ||
-        (element as HTMLElement & { webkitRequestFullscreen?: () => void }).webkitRequestFullscreen?.bind(element);
-
-    if (!requestFullscreen) return;
-
-    if (document.fullscreenElement === element) {
-        document.exitFullscreen?.();
-    } else {
-        requestFullscreen();
-    }
-}
 
 export function renderStep(
     containerId: string,
     title: string,
     initialSketch: P5Sketch,
     source: string,
+    explanation: string = '',
     config: Partial<SketchConfig> = {}
 ) {
     const root = document.getElementById('tutorial-root');
@@ -84,58 +32,87 @@ export function renderStep(
 
     let stepMain = document.getElementById(`step-${containerId}`);
     if (!stepMain) {
-        stepMain = tutorialStepTemplate({ containerId, title, source });
-        stepMain.id = `step-${containerId}`;
+        stepMain = tutorialStepTemplate({ containerId, title, source, explanation });
         root.appendChild(stepMain);
     } else {
-        stepMain.innerHTML = tutorialStepTemplate({ containerId, title, source }).innerHTML;
+        // Update existing content
+        const previewSection = stepMain.querySelector('[data-content="preview"]');
+        const codeSection = stepMain.querySelector('[data-content="code"]');
+        const learnSection = stepMain.querySelector('[data-content="learn"]');
+        
+        if (previewSection) {
+            const anchor = previewSection.querySelector('.step-anchor');
+            if (anchor) anchor.innerHTML = `<span>${title}</span>`;
+        }
+        if (codeSection) {
+            const anchor = codeSection.querySelector('.step-anchor');
+            if (anchor) anchor.innerHTML = `<div class="status-dot"></div><span>${title}</span>`;
+            const codeEl = codeSection.querySelector('.editor-box code');
+            if (codeEl) {
+                codeEl.innerHTML = Prism.highlight(source, Prism.languages.typescript, 'typescript');
+            }
+        }
+        if (learnSection) {
+            const learnContent = learnSection.querySelector('.learn-content');
+            if (learnContent) learnContent.innerHTML = explanation;
+        }
     }
 
-    const codeSide   = stepMain.querySelector('.code-side') as HTMLElement;
-    const canvasSide = stepMain.querySelector('.canvas-side') as HTMLElement;
+    const editorBox = stepMain.querySelector('.editor-box') as HTMLElement;
+    const canvasBox = stepMain.querySelector('.canvas-box') as HTMLElement;
+    const consolePanel = stepMain.querySelector('.console-panel') as HTMLElement;
 
-    const editorBox    = codeSide.querySelector('.editor-box') as HTMLElement;
-    const consolePanel = codeSide.querySelector('.console-panel') as HTMLElement;
+    const playBtn = stepMain.querySelector('.play-btn') as HTMLButtonElement;
+    const resetBtn = stepMain.querySelector('.reset-btn') as HTMLButtonElement;
+    const copyBtn = stepMain.querySelector('.copy-btn') as HTMLButtonElement;
+    const pauseBtn = stepMain.querySelector('.pause-btn') as HTMLButtonElement;
 
-    const playBtn   = codeSide.querySelector('.play-btn') as HTMLButtonElement;
-    const resetBtn  = codeSide.querySelector('.reset-btn') as HTMLButtonElement;
-    const copyBtn   = codeSide.querySelector('.copy-btn') as HTMLButtonElement;
-    const fsCodeBtn = codeSide.querySelector('.fullscreen-btn') as HTMLButtonElement;
-
-    const canvasBox = canvasSide.querySelector('.canvas-box') as HTMLElement;
-    const canvasWrapper = canvasSide.querySelector('.canvas-wrapper') as HTMLElement;
-
-    canvasWrapper.style.width = '100%';
-    canvasWrapper.style.height = '90%';
-    const { width, height } = canvasWrapper.getBoundingClientRect();
-
-    const pauseBtn    = canvasSide.querySelector('.pause-btn') as HTMLButtonElement;
-    const fsCanvasBtn = canvasSide.querySelector('.fullscreen-btn') as HTMLButtonElement;
-
-    const sketchConfig: SketchConfig = { ...DEFAULT_SKETCH_CONFIG, ...config, width, height, paused: false };
-    let currentP5: p5 | null = null;
-
-    const createSketch = (sketchFn: P5Sketch) => {
-        if (currentP5) currentP5.remove();
-        currentP5 = new p5((p: p5) => sketchFn(p, sketchConfig), canvasBox);
+    const sketchConfig: SketchConfig = { 
+        ...DEFAULT_SKETCH_CONFIG, 
+        ...config, 
+        width: canvasBox?.clientWidth || 500, 
+        height: canvasBox?.clientHeight || 400, 
+        paused: false 
     };
+    
+    let { currentP5 } = createSketchInstance(
+        initialSketch, 
+        sketchConfig, 
+        canvasBox, 
+        containerId,
+        null
+    );
+
+    // Tab switching
+    const tabBtns = stepMain.querySelectorAll('.tab-btn');
+    const contentSections = stepMain.querySelectorAll('.step-content');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.getAttribute('data-tab');
+            
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            contentSections.forEach(section => {
+                if (section.getAttribute('data-content') === tab) {
+                    section.classList.add('active');
+                } else {
+                    section.classList.remove('active');
+                }
+            });
+        });
+    });
 
     const executeUpdate = () => {
         consolePanel.style.display = 'block';
         consolePanel.innerHTML = '';
 
         try {
-            const compiledCode = transform(editorBox.innerText, { transforms: ['typescript', 'imports'] }).code;
-
-            const fnMatch = editorBox.innerText.match(/export\s+(?:const|function)\s+([a-zA-Z0-9_]+)/);
-            if (!fnMatch) throw new Error('No exported function found.');
-
-            const factory = new Function('require', 'exports', compiledCode);
-            const fakeExports: any = {};
-            const fakeRequire = () => window;
-
-            factory(fakeRequire, fakeExports);
-            createSketch(fakeExports[fnMatch[1]]);
+            const { fn } = extractSketchFunction(editorBox.innerText);
+            
+            const result = createSketchInstance(fn, sketchConfig, canvasBox, containerId, currentP5);
+            currentP5 = result.currentP5;
 
             sketchConfig.paused = false;
             pauseBtn.dataset.paused = 'false';
@@ -146,10 +123,13 @@ export function renderStep(
             log.textContent = `[Engine] Hydration successful.`;
             consolePanel.appendChild(log);
         } catch (e: any) {
+            console.error('executeUpdate error:', e);
             const log = document.createElement('div');
             log.className = 'log-entry info';
             log.style.color = 'var(--error)';
-            log.textContent = `⚠️ Error: ${e.message}`;
+            log.textContent = `Error: ${e.message}\n\nStack:\n${e.stack}`;
+            log.style.whiteSpace = 'pre-wrap';
+            log.style.fontSize = '11px';
             consolePanel.appendChild(log);
         }
     };
@@ -157,13 +137,28 @@ export function renderStep(
     playBtn.addEventListener('click', executeUpdate);
 
     resetBtn.addEventListener('click', () => {
-        editorBox.innerHTML = `<pre class="language-typescript"><code>${Prism.highlight(source, Prism.languages.typescript, 'typescript')}</code></pre>`;
+        const codeEl = stepMain.querySelector('.editor-box code');
+        if (codeEl) {
+            codeEl.innerHTML = Prism.highlight(source, Prism.languages.typescript, 'typescript');
+        }
         executeUpdate();
     });
 
     copyBtn.addEventListener('click', () => navigator.clipboard.writeText(editorBox.innerText));
-    fsCodeBtn.addEventListener('click', () => toggleFS(`step-${containerId}`));
-    fsCanvasBtn.addEventListener('click', () => toggleFS(`canv-${containerId}`));
+
+    // Fullscreen button
+    stepMain.querySelectorAll('.fullscreen-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const canvasBox = stepMain.querySelector('.canvas-box');
+            if (canvasBox) {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen?.();
+                } else {
+                    canvasBox.requestFullscreen?.();
+                }
+            }
+        });
+    });
 
     pauseBtn.addEventListener('click', () => {
         if (!currentP5) return;
@@ -181,8 +176,6 @@ export function renderStep(
             pauseBtn.innerHTML = '<i class="fas fa-play"></i>';
         }
     });
-
-    createSketch(initialSketch);
 }
 
-renderStep('hero-demo-1', 'Hero Demo', (p: p5, config: SketchConfig) => heroExample1(p, config), heroExample1Code);
+renderStep('hero-demo-1', 'Hero Demo', heroExample1, heroExample1Code, heroExample1_explanation);

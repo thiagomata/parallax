@@ -1,37 +1,62 @@
-import {DEFAULT_SETTINGS, ELEMENT_TYPES, type SceneState, type Vector3} from "../../scene/types.ts";
-import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
-import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
+import p5 from 'p5';
 import {World} from "../../scene/world.ts";
-import {CenterFocusModifier} from "../../scene/modifiers/center_focus_modifier.ts";
-import {OrbitModifier} from "../../scene/modifiers/orbit_modifier.ts";
-import {SceneManager} from "../../scene/scene_manager.ts";
-import p5 from "p5";
-import type {SketchConfig} from "./hero.demo.ts";
+import {P5GraphicProcessor} from "../../scene/p5/p5_graphic_processor.ts";
+import {SceneClock} from "../../scene/scene_clock.ts";
+import {P5AssetLoader, type P5Bundler} from "../../scene/p5/p5_asset_loader.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type ResolutionContext} from "../../scene/types.ts";
+import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "../tutorial/sketch_config.ts";
+import {WorldSettings} from "../../scene/world_settings.ts";
+import {CenterOrbit} from "../../scene/presets.ts";
 
-    export const heroExample1 = (p: p5, config: SketchConfig): World<P5Bundler, any> => {
-    let gp: P5GraphicProcessor;
+/**
+ * HERO EXAMPLE: First Steps
+ * 
+ * A tour of different element types with orbital camera.
+ */
+export const heroExample1_explanation = `
+<div class="concept">
+<p>This demo showcases various 3D element types available in the parallax engine, with a camera that orbits around the scene center.</p>
+</div>
 
-    const manager = new SceneManager({
-        ...DEFAULT_SETTINGS,
-        playback: { ...DEFAULT_SETTINGS.playback, duration: 10000, isLoop: true }
+<h3>Key Features</h3>
+<ul>
+<li><strong>Element Types</strong> - Pyramids, cylinders, cones, tori, elliptical, and text</li>
+<li><strong>Presets</strong> - Using <code>CenterOrbit</code> for automatic camera movement</li>
+<li><strong>Dynamic Properties</strong> - Rotation based on playback timeline</li>
+</ul>
+`;
+
+export function heroExample1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
+    let graphicProcessor: P5GraphicProcessor;
+
+    // Scene Orchestration
+    const clock = config.clock ?? new SceneClock({
+        ...DEFAULT_SCENE_SETTINGS,
+        startPaused: config.paused,
+        playback: {
+            ...DEFAULT_SCENE_SETTINGS.playback,
+            duration: 10000,
+            isLoop: true
+        }
     });
 
-    manager.setDebug(true);
-    manager.setStickDistance(1000);
-    manager.addCarModifier(new OrbitModifier(p, 1000));
-    manager.addStickModifier(new CenterFocusModifier());
+    // Asset Pipeline & World
+    const loader = config.loader ?? new P5AssetLoader(p);
+    const world = new World<P5Bundler, any, any>(
+        WorldSettings.fromLibs({clock, loader})
+    );
 
-    const loader = config?.loader ?? new P5AssetLoader(p);
-    const world = new World<P5Bundler, any>(manager, loader);
+    world.loadPreset(CenterOrbit(p, {radius: 500}));
+    world.enableDefaultPerspective(config.width, config.height);
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
-        gp = new P5GraphicProcessor(p, loader);
+        graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // ==== REGISTRATION WITH NEW SHAPES ====
-
-        world.addPyramid('back', {
-            type: 'pyramid',
+        // Shape Registration
+        world.addPyramid({
+            id: 'back-pyramid',
+            type: ELEMENT_TYPES.PYRAMID,
             baseSize: 200,
             height: 150,
             position: { x: -100, y: 0, z: -200 },
@@ -39,34 +64,39 @@ import type {SketchConfig} from "./hero.demo.ts";
             strokeColor: { red: 255, green: 255, blue: 255 }
         });
 
-        world.addCylinder('mid', {
+        world.addCylinder({
+            id: 'mid-cylinder',
             type: ELEMENT_TYPES.CYLINDER,
-            radius: (state: SceneState) => 50 + 50 * Math.cos(2 * Math.PI * state.playback.progress),
+            radius: 10,
             height: 100,
-            rotate: (state: SceneState) => ({
-                x: 0,
-                y: 0,
-                z: state.playback.progress * 2 * Math.PI
+            rotate: (ctx: ResolutionContext) => ({
+                pitch: 0,
+                yaw: ctx.playback.progress * 2 * Math.PI,
+                roll: ctx.playback.progress * 2 * Math.PI,
             }),
-            position: (state: SceneState): Vector3 => ({
-                x: 0,
-                y: (Math.cos(2 * Math.PI * state.playback.progress) * 100) - 100,
+            position: {
+                x: -100,
+                y: -100,
                 z: 0
-            }),
+            },
             fillColor: { red: 255, green: 0, blue: 0, alpha: 0.5 },
-            strokeColor: { red: 255, green: 255, blue: 255 }
+            strokeColor: { red: 255, green: 255, blue: 255 },
+            strokeWidth: 1,
         });
 
-        world.addCone('front', {
+        world.addCone({
+            id: 'front-cone',
             type: ELEMENT_TYPES.CONE,
             radius: 60,
             height: 120,
             position: { x: 100, y: 0, z: 200 },
             fillColor: { red: 0, green: 0, blue: 255, alpha: 1.0 },
-            strokeColor: { red: 255, green: 255, blue: 255 }
+            strokeColor: { red: 255, green: 255, blue: 255 },
+            strokeWidth: 1,
         });
 
-        world.addTorus('ring', {
+        world.addTorus({
+            id: 'ring-torus',
             type: ELEMENT_TYPES.TORUS,
             radius: 80,
             tubeRadius: 20,
@@ -75,7 +105,8 @@ import type {SketchConfig} from "./hero.demo.ts";
             strokeColor: { red: 0, green: 0, blue: 0 }
         });
 
-        world.addElliptical('egg', {
+        world.addElliptical({
+            id: 'egg-elliptical',
             type: ELEMENT_TYPES.ELLIPTICAL,
             rx: 50,
             ry: 30,
@@ -85,11 +116,12 @@ import type {SketchConfig} from "./hero.demo.ts";
             strokeColor: { red: 255, green: 255, blue: 255 }
         });
 
-        world.addText('title', {
+        world.addText({
+            id: 'title-text',
             type: ELEMENT_TYPES.TEXT,
             text: "PARALLAX",
             size: 40,
-            position: { x: 50, y: 0, z: 0 },
+            position: { x: 50, y: 100, z: 0 },
             font: {
                 name: 'Roboto',
                 path: '/parallax/fonts/Roboto-Regular.ttf'
@@ -100,9 +132,12 @@ import type {SketchConfig} from "./hero.demo.ts";
     };
 
     p.draw = () => {
+        if (config.paused && !clock.isPaused()) clock.pause();
+        if (!config.paused && clock.isPaused()) clock.resume();
+
         p.background(15);
-        world.step(gp);
+        world.step(graphicProcessor);
     };
 
     return world;
-};
+}

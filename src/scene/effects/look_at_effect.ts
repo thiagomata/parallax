@@ -1,11 +1,14 @@
 import {
-    ALL_ELEMENT_TYPES,
     type BaseModifierSettings,
     type EffectBundle,
     type ResolvedBaseVisual,
-    type SceneState,
-    type Vector3,
-} from "../types.ts";
+    type ResolvedProjectionWithGlobals,
+    type ResolutionContext,
+ 	    type Rotation3,
+ 	    ALL_ELEMENT_TYPES,
+ 	    STANDARD_PROJECTION_IDS,
+ 	} from "../types.ts";
+import { lookAtRotation } from "../utils/projection_utils.ts";
 
 export interface LookAtEffectConfig extends BaseModifierSettings {
     enabled?: boolean;
@@ -27,89 +30,101 @@ export const LookAtDefaultConfig: LookAtEffectConfig = {
     lookAt: 'CAMERA',
 }
 
-function lookAtCamera(state: SceneState, settings: LookAtEffectConfig, rotate: {
-    x: number;
-    y: number;
-    z: number
-}, current: ResolvedBaseVisual) {
-    const cam = state.camera;
-    const locks = settings.axis || {};
+function lookAtCamera(
+    context: ResolutionContext,
+    settings: LookAtEffectConfig,
+    rotate: Rotation3,
+    current: ResolvedBaseVisual
+): ResolvedBaseVisual {
+    // Look up camera (EYE) projection from pool
+    const camera = context.projectionPool[STANDARD_PROJECTION_IDS.EYE] || context.projectionPool[STANDARD_PROJECTION_IDS.SCREEN] as ResolvedProjectionWithGlobals | undefined;
+    if (!camera) {
+        return current;  // Graceful degradation - no camera found
+    }
 
-    if (locks.y) rotate.y -= cam.yaw;
-    if (locks.x) rotate.x += cam.pitch;
-    if (locks.z) rotate.z -= cam.roll;
+    // Use globalPosition for camera if available (computed from tree hierarchy)
+    const cameraPos = (camera as ResolvedProjectionWithGlobals).globalPosition ?? camera.position;
+
+    const rotationUpdate = computeLookAtRotation(
+        current.position,
+        cameraPos,
+        rotate,
+        settings,
+    );
 
     return {
         ...current,
-        rotate
+        ...rotationUpdate,
     };
 }
 
 function lookAtElement(
-    state: SceneState,
+    context: ResolutionContext,
     settings: LookAtEffectConfig,
-    rotate: Vector3,
+    rotate: Rotation3,
     current: ResolvedBaseVisual
-) {
-    if (!state.elements) {
+): ResolvedBaseVisual {
+    const previousResolved = context.previousResolved;
+    if (!previousResolved?.elements) {
         return current;
     }
-    const targetElement = state.elements.get(settings.lookAt)
+    const targetElement = previousResolved.elements.get(settings.lookAt)
+
     if (!targetElement) {
         return current;
     }
 
-    // Calculate Vector Difference
-    const dx = targetElement.position.x - current.position.x;
-    const dy = targetElement.position.y - current.position.y;
-    const dz = targetElement.position.z - current.position.z;
-
-    let rotateX = rotate.x;
-    let rotateY = rotate.y;
-    let rotateZ = rotate.z;
-
-    // Calculate Angles (Atan2 is your best friend here)
-    if (settings.axis?.y) {
-        // Yaw: Angle on the XZ plane
-        rotateY += Math.atan2(dx, dz);
-    }
-
-    if (settings.axis?.x) {
-        // Pitch: Angle towards the target height
-        const distanceXZ = Math.sqrt(dx * dx + dz * dz);
-        rotateX -= Math.atan2(dy, distanceXZ);
-    }
-
-    // Copy the target Z rotation
-    if (settings.axis?.z && targetElement.rotate) {
-        rotateZ += targetElement.rotate.z;
-    }
+    const rotationUpdate = computeLookAtRotation(
+        current.position,
+        targetElement.position,
+        rotate,
+        settings
+    );
 
     return {
         ...current,
+        ...rotationUpdate,
+    };
+}
+
+function computeLookAtRotation(
+    fromPosition: { x: number; y: number; z: number },
+    toPosition: { x: number; y: number; z: number },
+    rotate: Rotation3,
+    settings: LookAtEffectConfig,
+): Partial<ResolvedBaseVisual> {
+    // Use existing utility function
+    const computed = lookAtRotation(
+        fromPosition,
+        toPosition,
+        settings.axis,
+        rotate,
+    );
+
+    // Apply axis locks: use computed + initial (additive), or just initial
+    // Note: pitch uses subtraction to match old behavior (rotateX -= ...)
+    return {
         rotate: {
-            x: rotateX,
-            y: rotateY,
-            z: rotateZ,
+            ...computed,
         }
-    }
+    };
 }
 
 export const LookAtEffect: EffectBundle<'look_at', LookAtEffectConfig> = {
     type: 'look_at',
     targets: ALL_ELEMENT_TYPES,
     defaults: LookAtDefaultConfig,
-    apply(current: ResolvedBaseVisual, state: SceneState, settings: LookAtEffectConfig): ResolvedBaseVisual {
+    apply(current: ResolvedBaseVisual, context: ResolutionContext, settings: LookAtEffectConfig): ResolvedBaseVisual {
         const rotate = {
-            x: current.rotate?.x ?? 0,
-            y: current.rotate?.y ?? 0,
-            z: current.rotate?.z ?? 0,
+            pitch: current.rotate?.pitch ?? 0,
+            yaw: current.rotate?.yaw ?? 0,
+            roll: current.rotate?.roll ?? 0,
         };
 
         if (settings.lookAt == 'CAMERA') {
-            return lookAtCamera(state, settings, rotate, current);
-        } else {
-            return lookAtElement(state, settings, rotate, current);
+            return lookAtCamera(context, settings, rotate, current);
         }
+
+        return lookAtElement(context, settings, rotate, current);
     }
 };

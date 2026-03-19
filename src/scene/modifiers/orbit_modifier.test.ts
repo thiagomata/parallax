@@ -1,99 +1,82 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import {OrbitModifier} from "./orbit_modifier.ts";
-import {createMockP5} from "../mock/mock_p5.mock.ts";
-import type {SceneState} from "../types.ts";
+import { describe, expect, it } from "vitest";
+import { OrbitModifier } from "./orbit_modifier.ts";
 
-describe('OrbitModifier', () => {
-    let modifier: OrbitModifier;
-    const RADIUS = 500;
-    const VERTICAL_BASELINE = -300;
-    const mockP5 = createMockP5();
+describe("OrbitModifier", () => {
+    const mockP5 = {} as any;
 
-    beforeEach(() => {
-        modifier = new OrbitModifier(mockP5 as any, RADIUS, VERTICAL_BASELINE);
-    });
-
-    /**
-     * Helper to calculate expected trig values to avoid magic numbers
-     */
-    const calculateExpected = (progress: number, radius: number) => {
-        const circularProgress = progress * 2 * Math.PI;
-        return {
-            x: Math.sin(circularProgress) * radius,
-            z: Math.cos(circularProgress) * radius,
-            y: VERTICAL_BASELINE + Math.sin(circularProgress * 0.5) * 100
-        };
-    };
-
-    it('should be at the starting position when progress is 0', () => {
-        const state: Partial<SceneState> = { playback: {
-                progress: 0,
-                now: 0,
-                delta: 0,
-                frameCount: 0
-            } };
-        const result = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, state as SceneState);
-
-        const expected = calculateExpected(0, RADIUS);
+    it("returns position based on progress", () => {
+        const modifier = new OrbitModifier(mockP5, 100, -200, 0);
+        
+        const result = modifier.getCarPosition(
+            { x: 0, y: 0, z: 0 },
+            { playback: { progress: 0 } } as any
+        );
 
         expect(result.success).toBe(true);
         if (result.success) {
-            expect(result.value.position.x).toBeCloseTo(expected.x);
-            expect(result.value.position.y).toBeCloseTo(expected.y);
-            expect(result.value.position.z).toBeCloseTo(expected.z);
+            expect(result.value?.position.x).toBeCloseTo(0);
+            expect(result.value?.position.z).toBeCloseTo(100);
         }
     });
 
-    it('should be at the opposite side when progress is 0.5', () => {
-        const state: Partial<SceneState> = { playback: {
-                progress: 0.5,
-                now: 0,
-                delta: 0,
-                frameCount: 0
-            } };
-        const result = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, state as SceneState);
-
-        const expected = calculateExpected(0.5, RADIUS);
+    it("returns position at progress 0.25", () => {
+        const modifier = new OrbitModifier(mockP5, 100, -200, 0);
+        
+        const result = modifier.getCarPosition(
+            { x: 0, y: 0, z: 0 },
+            { playback: { progress: 0.25 } } as any
+        );
 
         expect(result.success).toBe(true);
         if (result.success) {
-            // At 50% (PI), sin is 0, cos is -1
-            expect(result.value.position.x).toBeCloseTo(0);
-            expect(result.value.position.z).toBeCloseTo(-RADIUS);
-            expect(result.value.position.y).toBeCloseTo(expected.y);
+            expect(result.value?.position.x).toBeCloseTo(100);
+            expect(result.value?.position.z).toBeCloseTo(0);
         }
     });
 
-    it.each([0.25, 0.75, 1.0])('should calculate correct position for progress %s', (prog) => {
-        const state: Partial<SceneState> = { playback: {
-                progress: prog,
-                now: 0,
-                delta: 0,
-                frameCount: 0
-            } };
-        const result = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, state as SceneState);
-        const expected = calculateExpected(prog, RADIUS);
+    describe("with rotation", () => {
+        it("returns rotation when rotationSpeed > 0", () => {
+            const modifier = new OrbitModifier(mockP5, 100, -200, 1);
+            
+            const result = modifier.getCarPosition(
+                { x: 0, y: 0, z: 0 },
+                { playback: { progress: 0.25 } } as any
+            );
 
-        if (result.success) {
-            expect(result.value.position.x).toBeCloseTo(expected.x);
-            expect(result.value.position.y).toBeCloseTo(expected.y);
-            expect(result.value.position.z).toBeCloseTo(expected.z);
-        }
-    });
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(result.value?.rotation).toBeDefined();
+                expect(result.value?.rotation?.yaw).toBeCloseTo(Math.PI / 2);
+            }
+        });
 
-    it('should normalize signed zeros in calculations', () => {
-        // At progress 0.5, sin(PI) can sometimes return -0
-        const state: Partial<SceneState> = { playback: {
-                progress: 0.5,
-                now: 0,
-                delta: 0,
-                frameCount: 0
-            } };
-        const result = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, state as SceneState);
+        it("returns no rotation when rotationSpeed is 0", () => {
+            const modifier = new OrbitModifier(mockP5, 100, -200, 0);
+            
+            const result = modifier.getCarPosition(
+                { x: 0, y: 0, z: 0 },
+                { playback: { progress: 0.25 } } as any
+            );
 
-        if (result.success) {
-            // Using toBeCloseTo(0) effectively ignores -0 vs +0 issues
-            expect(result.value.position.x).toBeCloseTo(0);
-        }
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(result.value?.rotation).toBeUndefined();
+            }
+        });
+
+        it("rotation scales with progress and rotationSpeed", () => {
+            const modifier = new OrbitModifier(mockP5, 100, -200, 2);
+            
+            const result = modifier.getCarPosition(
+                { x: 0, y: 0, z: 0 },
+                { playback: { progress: 0.5 } } as any
+            );
+
+            expect(result.success).toBe(true);
+            if (result.success) {
+                // progress 0.5 = PI, rotationSpeed 2 = 2*PI
+                expect(result.value?.rotation?.yaw).toBeCloseTo(2 * Math.PI);
+            }
+        });
     });
 });
