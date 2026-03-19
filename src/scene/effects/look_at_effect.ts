@@ -2,11 +2,12 @@ import {
     type BaseModifierSettings,
     type EffectBundle,
     type ResolvedBaseVisual,
+    type ResolvedProjectionWithGlobals,
     type ResolutionContext,
-	    type Rotation3,
-	    ALL_ELEMENT_TYPES,
-	    STANDARD_PROJECTION_IDS,
-	} from "../types.ts";
+ 	    type Rotation3,
+ 	    ALL_ELEMENT_TYPES,
+ 	    STANDARD_PROJECTION_IDS,
+ 	} from "../types.ts";
 import { lookAtRotation } from "../utils/projection_utils.ts";
 
 export interface LookAtEffectConfig extends BaseModifierSettings {
@@ -36,14 +37,17 @@ function lookAtCamera(
     current: ResolvedBaseVisual
 ): ResolvedBaseVisual {
     // Look up camera (EYE) projection from pool
-    const camera = context.projectionPool[STANDARD_PROJECTION_IDS.EYE] || context.projectionPool[STANDARD_PROJECTION_IDS.SCREEN];
+    const camera = context.projectionPool[STANDARD_PROJECTION_IDS.EYE] || context.projectionPool[STANDARD_PROJECTION_IDS.SCREEN] as ResolvedProjectionWithGlobals | undefined;
     if (!camera) {
         return current;  // Graceful degradation - no camera found
     }
 
+    // Use globalPosition for camera if available (computed from tree hierarchy)
+    const cameraPos = (camera as ResolvedProjectionWithGlobals).globalPosition ?? camera.position;
+
     const rotationUpdate = computeLookAtRotation(
         current.position,
-        camera.position,
+        cameraPos,
         rotate,
         settings,
     );

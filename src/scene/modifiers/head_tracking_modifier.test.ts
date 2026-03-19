@@ -42,11 +42,19 @@ function createMockFaceWorldData(overrides: Partial<FaceWorldData> = {}): FaceWo
 describe('HeadTrackingModifier', () => {
     let modifier: HeadTrackingModifier;
 
-    beforeEach(() => {
-        modifier = new HeadTrackingModifier();
+    // Helper to create modifier with no smoothing for testing raw values
+    const createUnlimitedModifier = () => new HeadTrackingModifier({
+        smoothing: 1,
+        rotationSmoothing: 1,
+        threshold: 0,
+        rotationThreshold: 0,
     });
 
-    describe('1. Configuration', () => {
+    beforeEach(() => {
+        modifier = createUnlimitedModifier();
+    });
+
+    describe('Configuration', () => {
         it('should use default config when no overrides provided', () => {
             const mod = new HeadTrackingModifier();
             expect(mod.name).toBe("Head Tracker Camera");
@@ -55,7 +63,7 @@ describe('HeadTrackingModifier', () => {
         });
 
         it('should accept custom config overrides', () => {
-            const mod = new HeadTrackingModifier({ travelRange: 200, damping: 0.8 });
+            const mod = new HeadTrackingModifier({ damping: 0.8 });
             expect(mod).toBeDefined();
         });
 
@@ -64,33 +72,7 @@ describe('HeadTrackingModifier', () => {
         });
     });
 
-    describe('2. Stick Output', () => {
-        it('should return error when no face detected', () => {
-            const context = createMockContext(null);
-            const result = modifier.getStick({ x: 0, y: 0, z: 0 }, context);
-            expect(result.success).toBe(false);
-            if (!result.success) {
-                expect(result.error).toBe("No face detected");
-            }
-        });
-
-        it('should return stick data when face is detected', () => {
-            const faceData = createMockFaceWorldData({
-                stick: { yaw: 0.5, pitch: 0.3, roll: 0.1 }
-            });
-            const context = createMockContext(faceData);
-            const result = modifier.getStick({ x: 0, y: 0, z: 0 }, context);
-
-            expect(result.success).toBe(true);
-            expect(result.success && result.value.yaw).toBeCloseTo(0.5 * DEFAULT_HEAD_TRACKING_CONFIG.damping);
-            expect(result.success && result.value.pitch).toBeCloseTo(0.3 * DEFAULT_HEAD_TRACKING_CONFIG.damping);
-            expect(result.success && result.value.roll).toBeCloseTo(0.1 * DEFAULT_HEAD_TRACKING_CONFIG.damping);
-            expect(result.success && result.value.distance).toBe(DEFAULT_HEAD_TRACKING_CONFIG.lookDistance);
-            expect(result.success && result.value.priority).toBe(10);
-        });
-    });
-
-    describe('3. Car Position Output', () => {
+    describe('Car Position Output', () => {
         it('should return error when no face detected', () => {
             const context = createMockContext(null);
             const result = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context);
@@ -106,32 +88,25 @@ describe('HeadTrackingModifier', () => {
 
             expect(result.success).toBe(true);
             expect(result.success && result.value.name).toBe("Head Tracker Camera");
-            expect(result.success && result.value.position).toEqual({ x: 50, y: -30, z: 100 });
-        });
-    });
-
-    describe('4. Nudge Output', () => {
-        it('should return error when no face detected', () => {
-            const context = createMockContext(null);
-            const result = modifier.getNudge({ x: 0, y: 0, z: 0 }, context);
-            expect(result.success).toBe(false);
+            expect(result.success && result.value.position).toEqual({ x: 50, y: -30, z: -100 });
         });
 
-        it('should return scaled nudge values when face is detected', () => {
+        it('should return rotation when face is detected', () => {
             const faceData = createMockFaceWorldData({
-                midpoint: { x: 0.5, y: 0.3, z: 0.2 }
+                stick: { yaw: 0.5, pitch: 0.3, roll: 0.1 }
             });
             const context = createMockContext(faceData);
-            const result = modifier.getNudge({ x: 0, y: 0, z: 0 }, context);
+            const result = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context);
 
             expect(result.success).toBe(true);
-            expect(result.success && result.value.x).toBeCloseTo(0.5 * DEFAULT_HEAD_TRACKING_CONFIG.travelRange);
-            expect(result.success && result.value.y).toBeCloseTo(0.3 * DEFAULT_HEAD_TRACKING_CONFIG.travelRange);
-            expect(result.success && result.value.z).toBeCloseTo(0.2 * DEFAULT_HEAD_TRACKING_CONFIG.zTravelRange);
+            expect(result.success && result.value.rotation).toBeDefined();
+            expect(result.success && result.value.rotation?.yaw).toBeCloseTo(0.5 * DEFAULT_HEAD_TRACKING_CONFIG.damping);
+            expect(result.success && result.value.rotation?.pitch).toBeCloseTo(-0.3 * DEFAULT_HEAD_TRACKING_CONFIG.damping);
+            expect(result.success && result.value.rotation?.roll).toBeCloseTo(0.1 * DEFAULT_HEAD_TRACKING_CONFIG.damping);
         });
     });
 
-    describe('5. Tick', () => {
+    describe('Tick', () => {
         it('should have a tick method that does nothing', () => {
             expect(() => modifier.tick(1)).not.toThrow();
             expect(() => modifier.tick(100)).not.toThrow();

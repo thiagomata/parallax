@@ -1,12 +1,12 @@
 import {describe, expect, it} from 'vitest';
-import {tutorial_3} from './tutorial_3';
+import {tutorial_orbital_motion} from './tutorial_orbital_motion';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {createPauseTests} from './pause_test_utils.ts';
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {DEFAULT_SCENE_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
 
-describe('Tutorial 3: Orbital Movement', () => {
+describe('Tutorial 3: Orbital Motion Orbital Movement', () => {
 
     it('should resolve orbiting box position using the actual tutorial logic', async () => {
         const mockP5 = createMockP5();
@@ -21,7 +21,7 @@ describe('Tutorial 3: Orbital Movement', () => {
             }
         });
 
-        const world = tutorial_3(mockP5 as unknown as p5, { 
+        const world = tutorial_orbital_motion(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400, 
             clock: clock,
@@ -110,5 +110,5 @@ describe('Tutorial 3: Orbital Movement', () => {
         expect(mockP5.fill).toHaveBeenCalled();
     });
 
-    createPauseTests('Tutorial 3', tutorial_3);
+    createPauseTests('Tutorial 3: Orbital Motion', tutorial_orbital_motion);
 });

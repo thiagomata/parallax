@@ -16,32 +16,36 @@ import {
     type BlueprintText,
     type BlueprintTorus,
     type BundleDynamicElement,
+    type CarModifier,
     type DataProviderLib,
     type EffectLib,
     type ElementId,
     type GraphicProcessor,
     type GraphicsBundle,
     type LookMode,
+    type NudgeModifier,
     type ProjectionEffectLib,
     type ProjectionMatrix,
-    type ResolvedProjection,
+    type ResolvedProjectionWithGlobals,
     type ResolvedSceneState,
+    type StickModifier,
     WindowConfig,
     DEFAULT_EYE_LOOK_AT,
     DEFAULT_EYE_ROTATION,
     DEFAULT_SCREEN_LOOK_AT,
-	    DEFAULT_SCREEN_ROTATION,
-	    LOOK_MODES,
-	    STANDARD_PROJECTION_IDS,
-	    PROJECTION_TYPES,
-	} from "./types.ts";
+ 	    DEFAULT_SCREEN_ROTATION,
+ 	    LOOK_MODES,
+ 	    STANDARD_PROJECTION_IDS,
+ 	    PROJECTION_TYPES,
+ 	} from "./types.ts";
 import {Stage} from "./stage.ts";
 import type {WorldSettings} from "./world_settings.ts";
-import {createPerspectiveMatrix} from "./modifiers/projection_matrix_utils.ts";
+import {createPerspectiveMatrix, createOffAxisPerspectiveMatrix} from "./modifiers/projection_matrix_utils.ts";
+import type { WorldPreset } from "./presets.ts";
 
 type ProjectionMatrixCalculator = (
-    eye: ResolvedProjection,
-    screen: ResolvedProjection,
+    eye: ResolvedProjectionWithGlobals,
+    screen: ResolvedProjectionWithGlobals,
     window: WindowConfig
 ) => ProjectionMatrix;
 
@@ -206,6 +210,27 @@ export class World<
         this.stage.addElement(blueprint);
     }
 
+    public loadPreset(preset: WorldPreset): void {
+        // First, clear existing projections so preset values override defaults
+        for (const projector of preset.projectors) {
+            this.stage.removeProjection(projector.id);
+        }
+        for (const projector of preset.projectors) {
+            this.stage.addProjection(projector);
+        }
+        for (const element of preset.elements) {
+            this.stage.addElement(element as any);
+        }
+    }
+
+    public addModifierToProjection(
+        projectionId: string,
+        modifier: CarModifier | NudgeModifier | StickModifier,
+        modifierType: 'car' | 'nudge' | 'stick'
+    ): void {
+        this.stage.addModifierToProjection(projectionId, modifier, modifierType);
+    }
+
     public getElement(id: string): BundleDynamicElement<any, TBundle> | undefined {
         return this.stage.getElement(id);
     }
@@ -219,6 +244,14 @@ export class World<
      */
     public getWindowConfig(): WindowConfig {
         return this.stage.getSettings().window;
+    }
+
+    /**
+     * Update the window configuration (width, height).
+     * Call this when the canvas is resized.
+     */
+    public updateWindowConfig(width: number, height: number): void {
+        this.stage.updateWindowConfig(WindowConfig.create({ width, height }));
     }
 
     /**
@@ -237,8 +270,14 @@ export class World<
      * @param width - Canvas width (optional, uses WindowConfig from settings if not provided)
      * @param height - Canvas height (optional, uses WindowConfig from settings if not provided)
      * @param fov - Field of view in radians (default: PI/3 = 60 degrees)
+     * @param useOffAxis - If true, uses off-axis projection based on eye position (for VR head tracking)
      */
-    public enableDefaultPerspective(width?: number, height?: number, fov: number = Math.PI / 3): void {
+    public enableDefaultPerspective(
+        width?: number, 
+        height?: number, 
+        fov: number = Math.PI / 3,
+        useOffAxis: boolean = false
+    ): void {
         if (width !== undefined && height !== undefined) {
             this.stage.updateWindowConfig(WindowConfig.create({ width, height }));
         }
@@ -246,8 +285,20 @@ export class World<
         // Use createPerspectiveMatrix which matches p5's default perspective()
         // FOV defaults to 60 degrees (PI/3), matching p5's default
         // Near = 0.1, Far = 5000, matching p5's WEBGL defaults
-        this.projectionMatrixCalculator = (_eye, _screen, window) => {
+        this.projectionMatrixCalculator = (eye, screen, window) => {
             const aspect = window.width / window.height;
+            
+            if (useOffAxis) {
+                return createOffAxisPerspectiveMatrix(
+                    eye.globalPosition,
+                    screen.globalPosition,
+                    fov,
+                    aspect,
+                    0.1,
+                    5000
+                );
+            }
+            
             return createPerspectiveMatrix(
                 fov,
                 aspect,
@@ -269,12 +320,10 @@ export class World<
             sceneId: this.sceneClock.sceneId,
         });
 
-	        const eye = finalState.projections?.get(STANDARD_PROJECTION_IDS.EYE);
-	        const screen = finalState.projections?.get(STANDARD_PROJECTION_IDS.SCREEN);
+        const eye = finalState.projections?.get(STANDARD_PROJECTION_IDS.EYE);
+        const screen = finalState.projections?.get(STANDARD_PROJECTION_IDS.SCREEN);
 
         if (eye && screen) {
-            gp.setCamera(eye);
-
             // Apply custom projection matrix if calculator is set
             if (this.projectionMatrixCalculator) {
                 const windowConfig = this.getWindowConfig();

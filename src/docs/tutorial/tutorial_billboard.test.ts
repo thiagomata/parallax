@@ -1,12 +1,12 @@
 import {describe, expect, it} from 'vitest';
-import {tutorial_8} from './tutorial_8';
+import {tutorial_billboard} from './tutorial_billboard';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {createPauseTests} from './pause_test_utils.ts';
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {DEFAULT_SCENE_SETTINGS, type ResolvedBox, type ResolvedPanel} from "../../scene/types.ts";
 
-describe('Tutorial 8: Billboard', () => {
+describe('Tutorial 8: Billboard Billboard', () => {
 
     it('should register reference and billboard elements', async () => {
         const mockP5 = createMockP5();
@@ -21,7 +21,7 @@ describe('Tutorial 8: Billboard', () => {
             }
         });
 
-        const world = tutorial_8(mockP5 as unknown as p5, { 
+        const world = tutorial_billboard(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400,
             clock: clock,
@@ -97,7 +97,7 @@ describe('Tutorial 8: Billboard', () => {
             }
         });
 
-        const world = tutorial_8(mockP5 as unknown as p5, { 
+        const world = tutorial_billboard(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400,
             clock: clock,
@@ -177,5 +177,5 @@ describe('Tutorial 8: Billboard', () => {
         expect(yawChanged || pitchChanged).toBe(true);
     });
 
-    createPauseTests('Tutorial 8', tutorial_8);
+    createPauseTests('Tutorial 8: Billboard', tutorial_billboard);
 });

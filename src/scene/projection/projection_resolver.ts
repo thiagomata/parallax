@@ -112,7 +112,8 @@ export class ProjectionResolver<
     resolve(
         dynamic: DynamicProjection,
         state: DynamicSceneState,
-        projectionPool: Record<string, ResolvedProjection> = {}
+        projectionPool: Record<string, ResolvedProjection> = {},
+        dataProviders: Record<string, unknown> = {}
     ): ResolvedProjection {
 
         const resolutionContext: ResolutionContext = {
@@ -121,7 +122,7 @@ export class ProjectionResolver<
             settings: state.settings,
             projectionPool,
             elementPool: {},
-            dataProviders: {},
+            dataProviders,
         };
 
         // Resolve Dynamic Properties (local space)
@@ -133,7 +134,7 @@ export class ProjectionResolver<
             settings: state.settings,
             projectionPool,
             elementPool: {},
-            dataProviders: {},
+            dataProviders,
         };
 
         // Apply Modifiers in Local Space
@@ -145,6 +146,9 @@ export class ProjectionResolver<
             const res = carModifier.getCarPosition(currentPosition, modifierContext);
             if (res.success) {
                 currentPosition = res.value.position;
+                if (res.value.rotation) {
+                    currentRotation = res.value.rotation;
+                }
                 break;
             }
         }
@@ -168,10 +172,29 @@ export class ProjectionResolver<
             z: currentPosition.z + avg(votes.z),
         };
 
+        // Compute global position for modifiers that need it (like CenterFocus)
+        let globalPosition = { ...currentPosition };
+
+        // Update global position after car/nudge modifiers
+        if (resolved.targetId) {
+            const parentResolved = projectionPool[resolved.targetId];
+            if (parentResolved) {
+                globalPosition = {
+                    x: parentResolved.position.x + currentPosition.x,
+                    y: parentResolved.position.y + currentPosition.y,
+                    z: parentResolved.position.z + currentPosition.z,
+                };
+            } else {
+                globalPosition = { ...currentPosition };
+            }
+        } else {
+            globalPosition = { ...currentPosition };
+        }
+
     // Stick Modifiers (rotation adjustments allowed, but lookAt remains authority)
         let stickRotation = { pitch: 0, yaw: 0, roll: 0 };
         for (const stickModifier of dynamic.modifiers?.stickModifiers ?? []) {
-            const res = stickModifier.getStick(currentPosition, modifierContext);
+            const res = stickModifier.getStick(globalPosition, modifierContext);
             if (res.success) {
                 stickRotation = {
                     pitch: res.value.pitch,
@@ -190,19 +213,20 @@ export class ProjectionResolver<
         let distance: number;
         let direction: Vector3;
         let finalLookAt: Vector3;
+        let finalRotation = currentRotation;
         
         if (lookMode === LOOK_MODES.ROTATION) {
             // rotation mode: compute lookAt from position + rotation + distance
             // Get distance from stick modifier or use default
             const stickDistance = dynamic.modifiers?.stickModifiers?.[0]?.getStick(currentPosition, modifierContext);
             distance = stickDistance?.success ? stickDistance.value.distance : 1000;
-            
+
             // Compute direction from rotation angles
             const cosY = Math.cos(currentRotation.yaw);
             const sinY = Math.sin(currentRotation.yaw);
             const cosP = Math.cos(currentRotation.pitch);
             const sinP = Math.sin(currentRotation.pitch);
-            
+
             // Default direction: -Z forward
             let dirX = 0;
             let dirY = 0;
@@ -230,8 +254,25 @@ export class ProjectionResolver<
                 y: currentPosition.y + direction.y * distance,
                 z: currentPosition.z + direction.z * distance,
             };
+        } else {
+            // lookAt mode (default): compute direction from lookAt position
+            const dx = resolved.lookAt.x - currentPosition.x;
+            const dy = resolved.lookAt.y - currentPosition.y;
+            const dz = resolved.lookAt.z - currentPosition.z;
             
-            // Apply stick rotation to direction (for head tracking)
+            distance = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0;
+            
+            const inv = distance !== 0 ? 1 / distance : 0;
+            
+            direction = {
+                x: dx * inv,
+                y: dy * inv,
+                z: dz * inv
+            };
+            
+            finalLookAt = resolved.lookAt;
+            
+            // Apply stick rotation in LOOK_AT mode too
             if (stickRotation.yaw !== 0 || stickRotation.pitch !== 0 || stickRotation.roll !== 0) {
                 const cosYS = Math.cos(stickRotation.yaw);
                 const sinYS = Math.sin(stickRotation.yaw);
@@ -257,37 +298,10 @@ export class ProjectionResolver<
                     z: currentPosition.z + direction.z * distance,
                 };
             }
-        } else {
-            // lookAt mode (default): compute direction from lookAt position
-            const dx = resolved.lookAt.x - currentPosition.x;
-            const dy = resolved.lookAt.y - currentPosition.y;
-            const dz = resolved.lookAt.z - currentPosition.z;
             
-            distance = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0;
-            
-            const inv = distance !== 0 ? 1 / distance : 0;
-            
-            direction = {
-                x: dx * inv,
-                y: dy * inv,
-                z: dz * inv
-            };
-            
-            finalLookAt = resolved.lookAt;
-            
-            // In lookAt mode, stick modifiers are ignored for direction
-            // (but roll could still be applied separately if needed)
+            // In lookAt mode, keep the original rotation for hierarchy transforms.
+            // Don't derive new rotation from direction - use what modifiers set.
         }
-
-        // Derive yaw/pitch from direction (−Z forward convention)
-        const yaw = Math.atan2(direction.x, -direction.z);
-        const pitch = Math.asin(-direction.y);
-
-        const finalRotation = {
-            ...currentRotation,
-            yaw,
-            pitch
-        };
 
         // Return LOCAL space resolved projection (hierarchy transform not applied)
         return {

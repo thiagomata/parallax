@@ -9,25 +9,32 @@ import {
     type EffectLib,
     type GraphicProcessor,
     type GraphicsBundle,
+    type CarModifier,
+    type NudgeModifier,
+    type StickModifier,
     type ProjectionEffectLib,
     type ResolutionContext,
     type ResolvedElement,
     type ResolvedProjection,
+    type ResolvedProjectionWithGlobals,
     type ResolvedSceneState,
+    type Rotation3,
     type ScenePlaybackState,
     type SceneSettings,
-    projectionIsType,
+    type Vector3,
     WindowConfig,
-	    DEFAULT_EYE_LOOK_AT,
-	    DEFAULT_SCREEN_ROTATION,
-	    STANDARD_PROJECTION_IDS,
-	    PROJECTION_TYPES,
-	} from "./types.ts";
+  	    DEFAULT_EYE_LOOK_AT,
+  	    DEFAULT_SCREEN_ROTATION,
+  	    LOOK_MODES,
+  	    STANDARD_PROJECTION_IDS,
+  	    PROJECTION_TYPES,
+  	} from "./types.ts";
 import {ElementResolver} from "./resolver/element_resolver.ts";
 import {ProjectionResolver} from "./projection/projection_resolver.ts";
 import {ProjectionAssetRegistry} from "./registry/projection_asset_registry.ts";
 import {ElementAssetRegistry} from "./registry/element_asset_registry.ts";
-import type { RenderTreeNode } from "./types.ts";
+import {computeGlobalTransform} from "./utils/projection_utils.ts";
+import type { RenderTreeNode, ProjectionTreeNode } from "./types.ts";
 
 export class Stage<
     TGraphicBundle extends GraphicsBundle,
@@ -119,6 +126,11 @@ export class Stage<
         this.cachedDynamicState = null; // invalidate cache
     }
 
+    public removeProjection(id: string): void {
+        this.projectionRegistry.delete(id);
+        this.cachedDynamicState = null; // invalidate cache
+    }
+
     public getElement(id: string): BundleDynamicElement<any, TGraphicBundle> | undefined {
         return this.elementRegistry.get(id);
     }
@@ -150,6 +162,57 @@ export class Stage<
         }
 
         this.projectionRegistry.register(blueprint);
+        this.cachedDynamicState = null; // invalidate cache
+    }
+
+    public addModifierToProjection(
+        projectionId: string,
+        modifier: CarModifier | NudgeModifier | StickModifier,
+        modifierType: 'car' | 'nudge' | 'stick'
+    ): void {
+        const projection = this.projectionRegistry.get(projectionId);
+        if (!projection) {
+            throw new Error(`Projection '${projectionId}' not found`);
+        }
+
+        // Validate modifier type based on lookMode
+        const lookMode = projection.lookMode;
+        
+        if (lookMode === LOOK_MODES.LOOK_AT) {
+            // LOOK_AT mode only allows carModifiers and nudgeModifiers
+            if (modifierType === 'stick') {
+                throw new Error(`Cannot add stickModifier to projection '${projectionId}' with lookMode LOOK_AT`);
+            }
+        }
+
+        // Create new modifiers object with the new modifier
+        const existingModifiers = projection.modifiers ?? {};
+        
+        let newModifiers: {
+            carModifiers?: readonly CarModifier[];
+            nudgeModifiers?: readonly NudgeModifier[];
+            stickModifiers?: readonly StickModifier[];
+        };
+
+        if (modifierType === 'car') {
+            const existing = existingModifiers.carModifiers ?? [];
+            newModifiers = { ...existingModifiers, carModifiers: [...existing, modifier as CarModifier] };
+        } else if (modifierType === 'nudge') {
+            const existing = existingModifiers.nudgeModifiers ?? [];
+            newModifiers = { ...existingModifiers, nudgeModifiers: [...existing, modifier as NudgeModifier] };
+        } else {
+            const existing = existingModifiers.stickModifiers ?? [];
+            newModifiers = { ...existingModifiers, stickModifiers: [...existing, modifier as StickModifier] };
+        }
+
+        // Create new projection with updated modifiers (immutable update)
+        const updatedProjection: DynamicProjection = {
+            ...projection,
+            modifiers: newModifiers,
+        };
+
+        // Update the registry
+        this.projectionRegistry.update(projectionId, updatedProjection);
         this.cachedDynamicState = null; // invalidate cache
     }
 
@@ -199,27 +262,7 @@ export class Stage<
             }
         }
 
-        // Resolve projections (local space)
-        const localProjectionPool: Record<string, ResolvedProjection> = {};
-
-        for (const dynamicProjection of this.projectionRegistry.all()) {
-            const resolved = this.projectionResolver.resolve(dynamicProjection, state, localProjectionPool);
-            localProjectionPool[resolved.id] = resolved;
-        }
-
-        // Apply projection hierarchy (global space)
-        const globalProjectionPool: Record<string, ResolvedProjection> = {};
-
-        for (const id in localProjectionPool) {
-            const local = localProjectionPool[id];
-            globalProjectionPool[id] = this.projectionResolver.applyHierarchyTransform(
-                local,
-                localProjectionPool,
-                state.previousResolved
-            );
-        }
-
-        // Tick providers and snapshot their data for this frame
+        // Tick providers and snapshot their data for this frame (needed for projection modifiers)
         const dataProvidersMap: {
             [K in keyof TDataProviderLib]: ReturnType<TDataProviderLib[K]['getData']>;
         } = {} as any;
@@ -230,15 +273,36 @@ export class Stage<
             dataProvidersMap[key] = provider.getData();
         }
 
+        // Resolve projections (local space) - with access to dataProviders for modifiers
+        const localProjectionPool: Record<string, ResolvedProjection> = {};
+
+        for (const dynamicProjection of this.projectionRegistry.all()) {
+            const resolved = this.projectionResolver.resolve(dynamicProjection, state, localProjectionPool, dataProvidersMap);
+            localProjectionPool[resolved.id] = resolved;
+        }
+
+        // Build projection tree with global positions computed
+        const { tree: projectionTree, flatMap: projectionLookup } = 
+            this.buildProjectionTree(localProjectionPool);
+
+        // Convert Map to Record for context (effects need Record with global positions)
+        const projectionLookupRecord: Record<string, ResolvedProjection> = {};
+        for (const [id, proj] of projectionLookup) {
+            projectionLookupRecord[id] = proj;
+        }
+
         // Resolve elements (distance-sorted, can see resolved projections)
-        const screenProjection = this.getScreenProjection(globalProjectionPool);
+        const screenProjection = projectionLookup.get(STANDARD_PROJECTION_IDS.SCREEN);
+        if (!screenProjection) {
+            throw new Error(`Screen projection '${STANDARD_PROJECTION_IDS.SCREEN}' not found`);
+        }
         
         // Uses GLOBAL projections
         const elementResolutionContext: ResolutionContext<TDataProviderLib> = {
             previousResolved: state.previousResolved,
             playback: state.playback,
             settings: state.settings,
-            projectionPool: globalProjectionPool,
+            projectionPool: projectionLookupRecord,
             elementPool: {},
             dataProviders: dataProvidersMap,
         };
@@ -274,7 +338,7 @@ export class Stage<
             previousResolved: state.previousResolved,
             playback: state.playback,
             settings: state.settings,
-            projectionPool: globalProjectionPool,
+            projectionPool: projectionLookupRecord,
             elementPool: Object.fromEntries(resolvedMapElements),
             dataProviders: dataProvidersMap,
         };
@@ -291,11 +355,14 @@ export class Stage<
             settings: state.settings,
             playback: state.playback,
             elements: finalMapElements,
-            projections: new Map(Object.entries(globalProjectionPool)),
+            projections: projectionLookup,
         };
 
         // Build render tree and draw
         const renderTree = this.buildRenderTree(finalElements);
+
+        // Build projection tree for camera
+        graphicProcessor.setCameraTree(projectionTree);
 
         graphicProcessor.drawTree(renderTree, finalState);
 
@@ -349,22 +416,92 @@ export class Stage<
         return null;
     }
 
-    private getScreenProjection(
-        resolutionPool: Record<string, ResolvedProjection>
-	    ): ResolvedProjection & {type: typeof PROJECTION_TYPES.SCREEN } {
-	        const resolvedProjectionsMap = new Map(Object.entries(resolutionPool));
-	        if (!resolvedProjectionsMap.has(STANDARD_PROJECTION_IDS.SCREEN)) {
-	            throw new Error(`Resolution '${STANDARD_PROJECTION_IDS.SCREEN}' not found.`);
-	        }
-	        const screenProjection = resolvedProjectionsMap.get(STANDARD_PROJECTION_IDS.SCREEN);
-	        if (!screenProjection) {
-	            throw new Error(`Projection '${STANDARD_PROJECTION_IDS.SCREEN}' for screen not found`);
-	        }
-	        if(!projectionIsType(screenProjection, PROJECTION_TYPES.SCREEN)) {
-	            throw new Error(`ScreenProjection '${STANDARD_PROJECTION_IDS.SCREEN}' is not type screen`);
-	        }
-	        return screenProjection;
-	    }
+    /**
+     * Builds a projection tree from flat pool based on targetId relationships.
+     * Computes global position/rotation for each node during tree traversal.
+     * Returns both the tree and a flat map for lookup.
+     */
+    private buildProjectionTree(
+        projectionPool: Record<string, ResolvedProjection>
+    ): { tree: ProjectionTreeNode | null; flatMap: Map<string, ResolvedProjectionWithGlobals> } {
+        const nodeMap = new Map<string, ProjectionTreeNode>();
+        const projections = Object.values(projectionPool);
+        const flatMap = new Map<string, ResolvedProjectionWithGlobals>();
+
+        for (const projection of projections) {
+            nodeMap.set(projection.id, {
+                props: projection as ResolvedProjectionWithGlobals,
+                children: []
+            });
+        }
+
+        const roots: ProjectionTreeNode[] = [];
+        for (const [_id, node] of nodeMap) {
+            const targetId = node.props.targetId;
+            if (targetId && nodeMap.has(targetId)) {
+                const parentNode = nodeMap.get(targetId);
+                if (parentNode) {
+                    parentNode.children.push(node);
+                }
+            } else {
+                roots.push(node);
+            }
+        }
+
+        const virtualRootPos = { x: 0, y: 0, z: 0 };
+        const virtualRootRot = { yaw: 0, pitch: 0, roll: 0 };
+
+        if (roots.length === 1) {
+            this.computeGlobals(roots[0], virtualRootPos, virtualRootRot, flatMap);
+            return { tree: roots[0], flatMap };
+        } else if (roots.length > 1) {
+            const virtualRoot: ProjectionTreeNode = {
+                props: {
+                    id: '__root__',
+                    type: PROJECTION_TYPES.SCREEN,
+                    position: { x: 0, y: 0, z: 0 },
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                    lookAt: { x: 0, y: 0, z: 0 },
+                    direction: { x: 0, y: 0, z: 0 },
+                    distance: 0,
+                    effects: [],
+                    targetId: undefined,
+                    globalPosition: { x: 0, y: 0, z: 0 },
+                    globalRotation: { yaw: 0, pitch: 0, roll: 0 },
+                },
+                children: roots
+            };
+
+            for (const root of roots) {
+                this.computeGlobals(root, virtualRootPos, virtualRootRot, flatMap);
+            }
+            return { tree: virtualRoot, flatMap };
+        }
+
+        return { tree: null, flatMap };
+    }
+
+    private computeGlobals(
+        node: ProjectionTreeNode,
+        parentGlobalPos: Vector3,
+        parentGlobalRot: Rotation3,
+        flatMap: Map<string, ResolvedProjectionWithGlobals>
+    ): void {
+        const { globalPosition, globalRotation } = computeGlobalTransform(
+            node.props.position,
+            node.props.rotation,
+            parentGlobalPos,
+            parentGlobalRot
+        );
+
+        node.props.globalPosition = globalPosition;
+        node.props.globalRotation = globalRotation;
+        flatMap.set(node.props.id, node.props);
+
+        for (const child of node.children) {
+            this.computeGlobals(child, globalPosition, globalRotation, flatMap);
+        }
+    }
 
     getCurrentState(): ResolvedSceneState | null {
         return this.lastFrameState;

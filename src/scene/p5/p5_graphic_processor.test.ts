@@ -61,6 +61,9 @@ const createMockP5 = () => {
 
         // time helpers
         millis: vi.fn(() => 1000),
+
+        // video
+        blendMode: vi.fn(),
     };
 
     return p;
@@ -304,7 +307,67 @@ describe("P5GraphicProcessor", () => {
         expect(p.line).toHaveBeenNthCalledWith(2, 0, -5, 0, 5);
     });
 
-    it("exposes p5 helpers (millis/deltaTime/frameCount/dist/map/lerp)", () => {
+    it("drawTree centers elements and positions children relative to center", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
+
+        const state = { settings: { alpha: 1 } } as any;
+        const drawBoxSpy = vi.spyOn(gp, "drawBox").mockImplementation(() => {});
+
+        // Parent box at (0,0,0) with size 100x100x50
+        // Child box at (0,0,0) - should appear at parent's center
+        gp.drawTree(
+            {
+                props: {
+                    id: "parent",
+                    type: ELEMENT_TYPES.BOX,
+                    position: { x: 0, y: 0, z: 0 },
+                    width: 100,
+                    height: 100,
+                    depth: 50,
+                    rotate: undefined,
+                } as any,
+                assets: {} as any,
+                children: [
+                    {
+                        props: {
+                            id: "child",
+                            type: ELEMENT_TYPES.BOX,
+                            position: { x: 0, y: 0, z: 0 },  // at parent's center
+                            width: 20,
+                            height: 20,
+                            depth: 20,
+                        } as any,
+                        assets: {} as any,
+                        children: [],
+                    },
+                ],
+            } as any,
+            state
+        );
+
+        // Verify parent was drawn (centered at position)
+        expect(drawBoxSpy).toHaveBeenCalledTimes(2);
+
+        // Check translate calls: position -> draw offset -> back to center
+        // Expected sequence: translate(0,0,0) -> rotate -> translate(-50,-50,-25) -> draw -> translate(50,50,25) -> child translate
+        const translateCalls = p.translate.mock.calls;
+        
+        // First translate is to position (0,0,0)
+        expect(translateCalls[0]).toEqual([0, 0, 0]);
+        
+        // Second translate is offset by -center to draw centered (-50, -50, -25)
+        expect(translateCalls[1]).toEqual([-50, -50, -25]);
+        
+        // Third translate returns to center (50, 50, 25) for children
+        expect(translateCalls[2]).toEqual([50, 50, 25]);
+        
+        // Child at (0,0,0) should be translated by (0,0,0) relative to parent's center
+        // So the fourth translate call should be child's position (0,0,0)
+        expect(translateCalls[3]).toEqual([0, 0, 0]);
+    });
+
+    it("drawTree with no size uses zero center offset", () => {
         const p = createMockP5();
         const gp = new P5GraphicProcessor(p as any, {} as any);
 

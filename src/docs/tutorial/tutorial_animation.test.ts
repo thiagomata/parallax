@@ -1,12 +1,12 @@
 import {describe, expect, it} from 'vitest';
-import {tutorial_2} from './tutorial_2';
+import {tutorial_animation} from './tutorial_animation';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {createPauseTests} from './pause_test_utils.ts';
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {DEFAULT_SCENE_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
 
-describe('Tutorial 2: Progression Integration', () => {
+describe('Tutorial 2: Animation Progression Integration', () => {
 
     it('should resolve pulsing size and color using the actual tutorial logic', async () => {
         const mockP5 = createMockP5();
@@ -23,7 +23,7 @@ describe('Tutorial 2: Progression Integration', () => {
         });
 
         // Execute the actual tutorial function
-        const world = tutorial_2(mockP5 as unknown as p5, { 
+        const world = tutorial_animation(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400, 
             clock: clock,
@@ -79,5 +79,5 @@ describe('Tutorial 2: Progression Integration', () => {
     });
 
     // Use the shared pause test utility
-    createPauseTests('Tutorial 2', tutorial_2);
+    createPauseTests('Tutorial 2: Animation', tutorial_animation);
 });

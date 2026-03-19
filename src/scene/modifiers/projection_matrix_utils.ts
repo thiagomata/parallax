@@ -138,6 +138,69 @@ export function createPerspectiveMatrix(
 }
 
 /**
+ * Creates an off-axis perspective projection matrix for VR head tracking.
+ * The frustum is shifted based on eye position relative to screen center,
+ * creating correct perspective when looking around.
+ * 
+ * @param eyePosition - Eye position in world coordinates
+ * @param screenPosition - Screen center position in world coordinates
+ * @param fov - Field of view in radians
+ * @param aspect - Aspect ratio (width / height)
+ * @param near - Near clipping plane
+ * @param far - Far clipping plane
+ */
+export function createOffAxisPerspectiveMatrix(
+    eyePosition: Vector3,
+    screenPosition: Vector3,
+    fov: number = Math.PI / 3,
+    aspect: number,
+    near: number = 0.1,
+    far: number = 5000
+): ProjectionMatrix {
+    // Eye offset from screen center in world units
+    const eyeOffsetX = eyePosition.x - screenPosition.x;
+    const eyeOffsetY = eyePosition.y - screenPosition.y;
+    
+    // Distance from eye to screen (always positive)
+    const distToScreen = Math.abs(screenPosition.z - eyePosition.z);
+    
+    // If screen is behind eye, fall back to symmetric projection
+    if (distToScreen <= 0) {
+        return createPerspectiveMatrix(fov, aspect, near, far);
+    }
+    
+    // Calculate frustum dimensions at screen distance
+    const frustumHeightAtScreen = distToScreen * Math.tan(fov / 2);
+    const frustumWidthAtScreen = frustumHeightAtScreen * aspect;
+    
+    // Normalized offset (proportion of frustum at screen)
+    const normalizedOffsetX = eyeOffsetX / frustumWidthAtScreen;
+    const normalizedOffsetY = eyeOffsetY / frustumHeightAtScreen;
+    
+    // Calculate frustum at near plane
+    const nearHeight = near * Math.tan(fov / 2);
+    const nearWidth = nearHeight * aspect;
+    
+    // Apply offset to frustum at near plane
+    const left = -nearWidth * (1 + normalizedOffsetX);
+    const right = nearWidth * (1 - normalizedOffsetX);
+    const top = nearHeight * (1 - normalizedOffsetY);
+    const bottom = -nearHeight * (1 + normalizedOffsetY);
+    
+    const matrix = projectionMatrixFromFrustum(
+        left, right, bottom, top, near, far
+    );
+    
+    // Flip Y axis to match p5's default coordinate system
+    return {
+        xScale: matrix.xScale,
+        yScale: { ...matrix.yScale, y: -matrix.yScale.y },
+        projection: { ...matrix.projection, y: -matrix.projection.y },
+        translation: matrix.translation,
+    };
+}
+
+/**
  * Create an identity projection matrix (useful for testing).
  */
 export function createIdentityProjectionMatrix(): ProjectionMatrix {

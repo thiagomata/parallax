@@ -42,8 +42,11 @@ export const ELEMENT_LOOK_MODES = {
 export type ElementLookMode = typeof ELEMENT_LOOK_MODES[keyof typeof ELEMENT_LOOK_MODES];
 
 export const STANDARD_PROJECTION_IDS = {
-    EYE: 'eye',
+    ROOT: 'root',
+    CAR: 'car',
     SCREEN: 'screen',
+    HEAD: 'head',
+    EYE: 'eye',
 } as const;
 
 /**
@@ -387,7 +390,7 @@ export interface DynamicSceneState<TDataProviderLib extends DataProviderLib = Da
 export interface ResolvedSceneState extends BaseSceneState {
     debugStateLog?: SceneStateDebugLog;
     elements: Map<string, ResolvedElement>;
-    projections: Map<string, ResolvedProjection>;
+    projections: Map<string, ResolvedProjectionWithGlobals>;
 }
 
 export const DEFAULT_CAMERA_FAR = 5000;
@@ -418,6 +421,7 @@ export interface SceneStateDebugLog {
 export interface CarResult {
     name: string;
     position: Vector3;
+    rotation?: Rotation3;
 }
 
 export interface StickResult {
@@ -549,10 +553,34 @@ export interface RenderTreeNode {
     children: RenderTreeNode[];
 }
 
+/**
+ * Projection with computed global position/rotation.
+ * Computed once during tree building, used by calculator and camera.
+ */
+export interface ResolvedProjectionWithGlobals extends ResolvedProjection {
+    globalPosition: Vector3;
+    globalRotation: Rotation3;
+}
+
+/**
+ * Projection Tree Node - hierarchical structure for projections.
+ * Props contains local position/rotation + computed global transforms.
+ */
+export interface ProjectionTreeNode {
+    props: ResolvedProjectionWithGlobals;
+    children: ProjectionTreeNode[];
+}
+
 export interface GraphicProcessor<TBundle extends GraphicsBundle> {
     readonly loader: AssetLoader<TBundle>;
 
     /* --- Camera + Projection (configure view) --- */
+
+    /**
+     * Positions the hardware camera using a projection tree.
+     * Traverses tree to compute global transforms via translate/rotate.
+     */
+    setCameraTree(root: ProjectionTreeNode | null): void;
 
     /**
      * Positions the hardware camera.

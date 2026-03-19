@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
-import type {SketchConfig} from './tutorial_main_page.demo.ts';
-import {DEFAULT_SKETCH_CONFIG} from './tutorial_main_page.demo.ts';
+import type {SketchConfig} from './sketch_config.ts';
+import {DEFAULT_SKETCH_CONFIG} from './sketch_config.ts';
 import {createMockP5} from '../../scene/mock/mock_p5.mock.ts';
 import p5 from 'p5';
 import type {World} from "../../scene/world.ts";

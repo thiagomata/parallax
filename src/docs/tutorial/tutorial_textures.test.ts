@@ -1,12 +1,12 @@
 import {describe, expect, it} from 'vitest';
-import {tutorial_5} from './tutorial_5';
+import {tutorial_textures} from './tutorial_textures';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {createPauseTests} from './pause_test_utils.ts';
 import {SceneClock} from "../../scene/scene_clock.ts";
 import {DEFAULT_SCENE_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
 
-describe('Tutorial 5: Textures', () => {
+describe('Tutorial 5: Textures Textures', () => {
 
     it('should register textured box and 3D text', async () => {
         const mockP5 = createMockP5();
@@ -21,7 +21,7 @@ describe('Tutorial 5: Textures', () => {
             }
         });
 
-        const world = tutorial_5(mockP5 as unknown as p5, { 
+        const world = tutorial_textures(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400,
             clock: clock,
@@ -74,7 +74,7 @@ describe('Tutorial 5: Textures', () => {
             }
         });
 
-        const world = tutorial_5(mockP5 as unknown as p5, { 
+        const world = tutorial_textures(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400,
             clock: clock,
@@ -107,5 +107,5 @@ describe('Tutorial 5: Textures', () => {
         expect(box50.rotate?.yaw).toBeCloseTo(Math.PI, 5);
     });
 
-    createPauseTests('Tutorial 5', tutorial_5);
+    createPauseTests('Tutorial 5: Textures', tutorial_textures);
 });
