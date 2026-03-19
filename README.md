@@ -65,6 +65,8 @@ world.addSphere({
 
 ```
 
+**Available Element Types:** `addBox`, `addSphere`, `addCone`, `addPyramid`, `addCylinder`, `addTorus`, `addElliptical`, `addText`, `addFloor`, `addPanel`
+
 **2. Hydration: Asset Locking**
 High-memory assets (Textures/Fonts) are fetched and encapsulated into a renderer-specific **Graphics Bundle**. This ensures assets are locked to the element and ready in memory prior to the first frame.
 
@@ -167,6 +169,27 @@ Projections support two look modes:
 - **`LOOK_AT`**: Direction computed from a target position (default)
 - **`ROTATION`**: Direction computed from yaw/pitch/roll angles + distance
 
+### Presets
+
+Presets are pre-configured projection hierarchies that can be loaded with `world.loadPreset()`:
+
+| Preset | Description | Use Case |
+|--------|-------------|----------|
+| `CenterOrbit` | Orbital camera that circles around the scene center | General 3D scenes, demos |
+| `HEAD_TRACKED_PRESET` | Nested eye/screen projections for head tracking | VR, face-following |
+| `VR_CABIN_PRESET` | VR-style with car/screen/head/eye hierarchy | Immersive experiences |
+| `SIMPLE_PRESET` | Minimal eye/screen setup | Basic views |
+
+**CenterOrbit Usage:**
+```typescript
+world.loadPreset(CenterOrbit(p, { radius: 800, verticalBaseline: -400 }));
+```
+
+**Head Tracking Usage:**
+```typescript
+world.loadPreset(HEAD_TRACKED_PRESET);
+```
+
 ### Data Providers
 
 Modifiers can declare **explicit dependencies** on external data sources:
@@ -189,14 +212,14 @@ This enables compile-time safety and explicit contracts.
 Both projections and elements support **effects** — reusable behaviors that transform the resolved state:
 
 ```typescript
-const myEffect = {
-    type: 'myEffect',
-    defaults: { strength: 1.0 },
-    apply(current, context, settings, pool) {
-        // Transform current state
-        return { ...current, position: { ...current.position } };
-    }
-};
+interface EffectBundle<TID, TConfig, E, TDataProviderLib = DataProviderLib> {
+    readonly type: TID;
+    readonly targets: ReadonlyArray<E['type']>;
+    readonly defaults: TConfig;
+    apply(current: E, context: ResolutionContext<TDataProviderLib>, settings: TConfig, pool: Record<string, E>): E;
+}
+
+// Built-in effects include: LookAtEffect, TransformEffect
 ```
 
 Effects run during the resolution phase, enabling:
@@ -215,3 +238,13 @@ To maintain the integrity of this deterministic pipeline, all development must r
 * **No Redundant Data**: If a value can be computed from the `SceneState`, it must not be stored in the element. Follow the **Single Source of Truth** principle strictly.
 * **Priority-Based Chaining**: Higher priority modifiers in the **Orchestration** phase always layer over or override lower-priority results.
 * **Renderer Agnosticism**: The **Execution** phase must remain pure logic. Hardware-specific calls are strictly forbidden until the **Rasterization** phase.
+
+### Canvas Resizing & Fullscreen
+
+When the canvas size changes (e.g., fullscreen mode), update the world perspective:
+
+```typescript
+// When canvas is resized
+instance.resizeCanvas(newWidth, newHeight, true);
+world.enableDefaultPerspective(newWidth, newHeight);
+```
