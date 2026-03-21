@@ -352,7 +352,9 @@ export function createSketchInstance(
             if (typeof tutorialDraw !== 'function') return;
             
             p.draw = function(this: any, ...args: unknown[]) {
-                if (!worldReady) return;
+                if (!worldReady) {
+                    return;
+                }
                 try {
                     return tutorialDraw.call(this, ...args as []);
                 } catch (e) {

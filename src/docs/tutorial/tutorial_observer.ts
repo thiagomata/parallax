@@ -8,7 +8,7 @@ import {
     DEFAULT_SCENE_SETTINGS,
     ELEMENT_TYPES, LOOK_MODES,
     STANDARD_PROJECTION_IDS,
-    PROJECTION_TYPES, type ResolutionContext,
+    PROJECTION_TYPES,
 } from "../../scene/types.ts";
 import {
     DEFAULT_SKETCH_CONFIG,
@@ -16,7 +16,6 @@ import {
 } from "./sketch_config.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
 import {COLORS} from "../../scene/colors.ts";
-import {vi} from "vitest";
 
 /**
  * TUTORIAL: The Observer
@@ -309,10 +308,17 @@ export async function tutorial_observer(
         world.step(gp);
     };
 
-    // Initialize face tracking and add video panel
     await faceDataProvider.init();
 
-    const videoEl = faceDataProvider.getVideo();
+    // Wait for video to be ready
+    let videoEl = faceDataProvider.getVideo();
+    let waitCount = 0;
+    while (!videoEl.success && waitCount < 100) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        videoEl = faceDataProvider.getVideo();
+        waitCount++;
+    }
+
     world.addPanel({
         type: ELEMENT_TYPES.PANEL,
         targetId: 'bigBox',
@@ -324,6 +330,5 @@ export async function tutorial_observer(
         alpha: 0.5,
         fillColor: videoEl.success ? undefined : { red: 50, green: 50, blue: 50 },
     });
-
     return world;
 }

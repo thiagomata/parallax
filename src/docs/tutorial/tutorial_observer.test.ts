@@ -25,14 +25,14 @@ describe('Tutorial 8: The Observer', () => {
         const getDataMock = vi.fn();
         getDataMock.mockReturnValue(face1);
 
+        const mockTracker = createMockHeadTrackingProvider(getDataMock);
         const world = await tutorial_observer(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400,
             clock: clock,
             paused: false
-        }, createMockHeadTrackingProvider(getDataMock) as any);
+        }, { faceDataProvider: mockTracker } as any);
         await mockP5.setup();
-        mockP5.draw();
 
         const faceBox = world.getElement('faceBox');
         expect(faceBox).toBeDefined();

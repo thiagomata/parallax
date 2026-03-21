@@ -52,7 +52,7 @@ export class MediaPipeFaceProvider implements FaceProvider {
             this.capture.play();
         };
         this.capture.elt.onerror = () => {
-            this.status = 'ERROR';
+                this.status = 'ERROR';
         };
     }
 
@@ -88,16 +88,24 @@ export class MediaPipeFaceProvider implements FaceProvider {
      * Returns the cleaned FaceGeometry.
      * Synchronous and safe to call inside p5's draw loop.
      */
-    getFace(): Face | null {
-        if (this.status !== 'READY' || !this.landmarker) return null;
+    getFace(): FailableResult<Face> {
+        if (this.status !== 'READY' || !this.landmarker) {
+            this.consecutiveNoFaceFrames = 0;
+            return { success: false, error: 'Face tracking not ready [' + this.status + ']' };
+        }
 
-        const videoElt = this.capture.elt as HTMLVideoElement;
+        const videoElt = this.capture?.elt as HTMLVideoElement | undefined;
+        const videoReady = videoElt && videoElt.readyState >= 2;
 
-        if (videoElt.readyState < 2) return null;
+        if (!videoReady) {
+            this.consecutiveNoFaceFrames = 0;
+            return { success: false, error: 'Video element not ready' };
+        }
 
-        // Throttle detection when no face detected (skip after threshold frames)
-        if (this.throttleThreshold > 0 && this.consecutiveNoFaceFrames >= this.throttleThreshold) {
-            return this.lastFaceResult;
+        if (this.throttleThreshold > 0 && 
+            this.consecutiveNoFaceFrames >= this.throttleThreshold &&
+            this.lastFaceResult !== null) {
+            return { success: true, value: this.lastFaceResult };
         }
 
         const result = this.landmarker.detectForVideo(videoElt, performance.now());
@@ -105,11 +113,11 @@ export class MediaPipeFaceProvider implements FaceProvider {
         if (result.faceLandmarks && result.faceLandmarks.length > 0) {
             this.consecutiveNoFaceFrames = 0;
             this.lastFaceResult = this.parser.parse(result.faceLandmarks[0]);
-            return this.lastFaceResult;
+            return { success: true, value: this.lastFaceResult };
         }
 
         this.consecutiveNoFaceFrames++;
-        return this.lastFaceResult;
+        return { success: false, error: 'No face detected in frame' };
     }
 
     getStatus(): TrackingStatus {
@@ -120,6 +128,15 @@ export class MediaPipeFaceProvider implements FaceProvider {
         if (this.status !== 'READY' || !this.capture) return {
             success: false,
             error: "Video is not ready [" + this.status + "]",
+        };
+        const videoElt = this.capture.elt as HTMLVideoElement;
+        if( !videoElt ) return {
+            success: false,
+            error: "Video element not ready [readyState:undefined]",
+        };
+        if (videoElt.readyState < 2) return {
+            success: false,
+            error: "Video element not ready [readyState: " + videoElt.readyState + "]",
         };
         return {
             success: true,

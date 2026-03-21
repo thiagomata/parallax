@@ -173,30 +173,42 @@ describe('MediaPipeFaceProvider', () => {
 
             await provider.init();
 
-            expect(provider.getFace()).toBeNull();
-            expect(provider.getFace()).toBeNull();
-            const face = provider.getFace();
-            expect(face).not.toBeNull();
+            expect(provider.getFace().success).toBe(false);
+            expect(provider.getFace().success).toBe(false);
+            const faceResult = provider.getFace();
+            expect(faceResult.success).toBe(true);
+            if (faceResult.success) {
+                expect(faceResult.value).not.toBeNull();
+            }
             expect(mockLandmarker.detectForVideo).toHaveBeenCalledTimes(1);
         });
 
-        it('should return null if face is missing in the frame', async () => {
+        it('should return failure if face is missing in the frame', async () => {
             await provider.init();
 
             mockLandmarker.detectForVideo.mockReturnValue({ faceLandmarks: [] });
 
-            expect(provider.getFace()).toBeNull();
+            const result = provider.getFace();
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error).toBe('No face detected in frame');
+            }
         });
 
-        it('should handle camera "glitches" by returning null without crashing', async () => {
+        it('should handle camera "glitches" by returning failure when video drops below readyState 2', async () => {
             const glitchyElt = createDynamicVideoElt([4, 1, 4]);
             mockCapture.elt = glitchyElt;
 
             await provider.init();
 
-            expect(provider.getFace()).not.toBeNull();
-            expect(provider.getFace()).toBeNull();
-            expect(provider.getFace()).not.toBeNull();
+            const result1 = provider.getFace();
+            expect(result1.success).toBe(true);
+            if (result1.success) {
+                expect(result1.value).not.toBeNull();
+            }
+
+            const result2 = provider.getFace();
+            expect(result2.success).toBe(false);
         });
     });
 });

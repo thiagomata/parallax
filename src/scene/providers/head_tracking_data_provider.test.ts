@@ -14,7 +14,7 @@ const createMockP5WithCapture = () => ({
 
 function MockFaceProvider(mockFace: Face | null, status: string = 'READY', mockVideo: any = { mock: 'capture' }): FaceProvider {
     return {
-        getFace: vi.fn().mockReturnValue(mockFace),
+        getFace: vi.fn().mockReturnValue(mockFace ? { success: true, value: mockFace } : { success: false, error: 'No face' }),
         getStatus: vi.fn().mockReturnValue(status),
         getVideo: vi.fn().mockReturnValue({ success: true, value: mockVideo }),
         init: vi.fn().mockResolvedValue(undefined),

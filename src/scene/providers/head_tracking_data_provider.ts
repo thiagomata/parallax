@@ -170,10 +170,11 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     }
 
     getData(): FaceWorldData | null {
-        const face = this.provider.getFace();
-        if (!face) return this.lastFace;
+        const faceResult = this.provider.getFace();
+        if (!faceResult.success) return this.lastFace;
 
-        const faceScreeWidth = face.width * this.sceneScreenWidth; // measured width in world units
+        const face = faceResult.value;
+        const faceScreeWidth = face.width * this.sceneScreenWidth;
         const cameraToPanelZ = this.panelPosition.z - this.cameraPosition.z;
         const diff = ((this.sceneHeadWidth / faceScreeWidth) - 1);
         const midPointZ = cameraToPanelZ * diff;
