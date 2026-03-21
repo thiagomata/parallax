@@ -124,7 +124,12 @@ export function createMockHeadTrackingProvider(getDataMock: ReturnType<typeof vi
     return {
         type: 'headTracker' as const,
         getData: getDataMock,
-        getVideo: () => undefined,
+        getVideo: () => {
+            return {
+                success: false,
+                error: "mock",
+            }
+        },
         init: async () => {},
         tick: () => {},
         cameraPosition: { x: 0, y: 0, z: 300 },

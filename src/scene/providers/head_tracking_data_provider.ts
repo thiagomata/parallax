@@ -1,5 +1,5 @@
 import p5 from "p5";
-import type { DataProviderBundle, Vector3 } from "../types.ts";
+import type {DataProviderBundle, FailableResult, TrackingStatus, Vector3} from "../types.ts";
 import { MediaPipeFaceProvider, type FaceProviderConfig } from "../drivers/mediapipe/face_provider.ts";
 import type {FaceProvider} from "./face_provider.ts";
 import type {Face} from "../drivers/mediapipe/face.ts";
@@ -161,7 +161,11 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         this.provider.getStatus();
     }
 
-    getVideo(): any {
+    getStatus(): TrackingStatus {
+        return this.provider.getStatus();
+    }
+
+    getVideo(): FailableResult<any> {
         return this.provider.getVideo();
     }
 

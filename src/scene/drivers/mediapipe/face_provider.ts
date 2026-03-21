@@ -1,5 +1,5 @@
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
-import type {TrackingStatus} from "../../types";
+import type {FailableResult, TrackingStatus} from "../../types";
 import { FaceParser } from "./face_parser";
 import p5 from "p5";
 import type {Face} from "./face.ts";
@@ -116,8 +116,14 @@ export class MediaPipeFaceProvider implements FaceProvider {
         return this.status;
     }
 
-    getVideo(): any {
-        if (this.status !== 'READY' || !this.capture) return null;
-        return this.capture;
+    getVideo(): FailableResult<any> {
+        if (this.status !== 'READY' || !this.capture) return {
+            success: false,
+            error: "Video is not ready [" + this.status + "]",
+        };
+        return {
+            success: true,
+            value: this.capture
+        };
     }
 }

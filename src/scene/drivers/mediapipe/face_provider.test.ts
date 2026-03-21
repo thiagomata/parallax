@@ -134,27 +134,29 @@ describe('MediaPipeFaceProvider', () => {
             (FaceLandmarker.createFromOptions as any).mockResolvedValue(mockLandmarker);
         });
 
-        it('should return capture when status is READY', async () => {
+        it('should return success true and value capture when status is READY', async () => {
             await provider.init();
 
             const video = provider.getVideo();
-            expect(video).toBe(mockCapture);
+            expect(video.success).toBe(true);
+            if (!video.success) return;
+            expect(video.value).toBe(mockCapture);
         });
 
-        it('should return null when status is not READY', async () => {
+        it('should return success false when status is not READY', async () => {
             await provider.init();
             (provider as any).status = 'INITIALIZING';
 
-            expect(provider.getVideo()).toBeNull();
+            expect(provider.getVideo().success).toBe(false);
         });
 
-        it('should return null when capture is not created', async () => {
+        it('should return success false when capture is not created', async () => {
             const { FilesetResolver } = await import('@mediapipe/tasks-vision');
             (FilesetResolver.forVisionTasks as any).mockRejectedValue(new Error("Init Failed"));
             
             await provider.init();
 
-            expect(provider.getVideo()).toBeNull();
+            expect(provider.getVideo().success).toBe(false);
         });
     });
 

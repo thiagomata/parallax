@@ -12,11 +12,11 @@ const createMockP5WithCapture = () => ({
     }),
 });
 
-function MockFaceProvider(mockFace: Face | null, status: string = 'READY'): FaceProvider {
+function MockFaceProvider(mockFace: Face | null, status: string = 'READY', mockVideo: any = { mock: 'capture' }): FaceProvider {
     return {
         getFace: vi.fn().mockReturnValue(mockFace),
         getStatus: vi.fn().mockReturnValue(status),
-        getVideo: vi.fn().mockReturnValue({}),
+        getVideo: vi.fn().mockReturnValue({ success: true, value: mockVideo }),
         init: vi.fn().mockResolvedValue(undefined),
     };
 }

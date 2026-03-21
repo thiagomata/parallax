@@ -8,7 +8,7 @@ import {
     DEFAULT_SCENE_SETTINGS,
     ELEMENT_TYPES, LOOK_MODES,
     STANDARD_PROJECTION_IDS,
-    PROJECTION_TYPES,
+    PROJECTION_TYPES, type ResolutionContext,
 } from "../../scene/types.ts";
 import {
     DEFAULT_SKETCH_CONFIG,
@@ -16,6 +16,7 @@ import {
 } from "./sketch_config.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
 import {COLORS} from "../../scene/colors.ts";
+import {vi} from "vitest";
 
 /**
  * TUTORIAL: The Observer
@@ -319,9 +320,9 @@ export async function tutorial_observer(
         width: 640,
         height: 480,
         position: { x: 0, y: 0, z: 0 },
-        video: videoEl,
+        video: videoEl.success ? videoEl.value : undefined,
         alpha: 0.5,
-        fillColor: videoEl ? undefined : { red: 50, green: 50, blue: 50 },
+        fillColor: videoEl.success ? undefined : { red: 50, green: 50, blue: 50 },
     });
 
     return world;
