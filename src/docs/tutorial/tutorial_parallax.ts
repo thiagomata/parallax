@@ -98,6 +98,9 @@ export async function tutorial_parallax(
 
     var counter = 0;
     function createTarget(pos: Vector3) {
+
+        const targetSize = 10;
+
         counter++;
         world.addBox({
             id: `target-${counter}`,
@@ -109,7 +112,7 @@ export async function tutorial_parallax(
             id: `target-circle-${counter}`,
             targetId: `target-${counter}`,
             type: ELEMENT_TYPES.CYLINDER,
-            radius: 10,
+            radius: targetSize / 10,
             height: 1,
             position: {x: 0, y: 50, z: -50},
             fillColor: COLORS.red,
@@ -119,7 +122,7 @@ export async function tutorial_parallax(
             id: `target-circle-1-${counter}`,
             targetId: `target-${counter}`,
             type: ELEMENT_TYPES.CYLINDER,
-            radius: 8,
+            radius: 8 * targetSize / 10,
             height: 1,
             position: {x: 0, y: 50, z: -49.9},
             fillColor: COLORS.white,
@@ -129,7 +132,7 @@ export async function tutorial_parallax(
             id: `target-circle-2-${counter}`,
             targetId: `target-${counter}`,
             type: ELEMENT_TYPES.CYLINDER,
-            radius: 6,
+            radius: 6 * targetSize / 10,
             height: 1,
             position: {x: 0, y: 50, z: -49.8},
             fillColor: COLORS.red,
@@ -139,7 +142,7 @@ export async function tutorial_parallax(
             id: `target-circle-3-${counter}`,
             targetId: `target-${counter}`,
             type: ELEMENT_TYPES.CYLINDER,
-            radius: 4,
+            radius: 4 * targetSize / 10,
             height: 1,
             position: {x: 0, y: 50, z: -49.7},
             fillColor: COLORS.white,
@@ -149,7 +152,7 @@ export async function tutorial_parallax(
             id: `target-circle-4-${counter}`,
             targetId: `target-${counter}`,
             type: ELEMENT_TYPES.CYLINDER,
-            radius: 2,
+            radius: 2 * targetSize / 10,
             height: 1,
             position: {x: 0, y: 50, z: -49.6},
             fillColor: COLORS.red,
@@ -160,7 +163,7 @@ export async function tutorial_parallax(
             targetId: `target-${counter}`,
             type: ELEMENT_TYPES.CYLINDER,
             height: 100,
-            radius: 2,
+            radius: 2 * targetSize / 10,
             position: {x: 0, y: 50, z: -100.1},
             fillColor: {red: 100, green: 0, blue: 0},
             rotate: {pitch: Math.PI / 2, yaw: 0, roll: 0}
