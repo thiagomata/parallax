@@ -1,9 +1,9 @@
 import {describe, expect, it} from 'vitest';
-import {tutorial_look_at} from './tutorial_look_at';
-import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
+import {tutorial_look_at} from './tutorial_look_at.ts';
+import {createMockP5} from "../../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
-import {SceneClock} from "../../scene/scene_clock.ts";
-import {DEFAULT_SCENE_SETTINGS} from "../../scene/types.ts";
+import {SceneClock} from "../../../scene/scene_clock.ts";
+import {DEFAULT_SCENE_SETTINGS} from "../../../scene/types.ts";
 
 describe('Tutorial 7: Look At Objects Looking at Each Other', () => {
 

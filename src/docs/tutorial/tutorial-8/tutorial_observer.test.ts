@@ -1,10 +1,10 @@
 import {describe, expect, it, vi} from 'vitest';
-import {tutorial_observer} from './tutorial_observer';
-import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
+import {tutorial_observer} from './tutorial_observer.ts';
+import {createMockP5} from "../../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
-import {SceneClock} from "../../scene/scene_clock.ts";
-import {DEFAULT_SCENE_SETTINGS} from "../../scene/types.ts";
-import {createFaceWorldData, createMockHeadTrackingProvider} from "../../scene/mock/face.mock.ts";
+import {SceneClock} from "../../../scene/scene_clock.ts";
+import {DEFAULT_SCENE_SETTINGS} from "../../../scene/types.ts";
+import {createFaceWorldData, createMockHeadTrackingProvider} from "../../../scene/mock/face.mock.ts";
 
 describe('Tutorial 8: The Observer', () => {
 

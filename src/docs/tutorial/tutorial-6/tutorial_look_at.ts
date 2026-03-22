@@ -1,17 +1,17 @@
 import p5 from 'p5';
-import { World } from "../../scene/world.ts";
-import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
-import { SceneClock } from "../../scene/scene_clock.ts";
-import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
+import { World } from "../../../scene/world.ts";
+import { P5GraphicProcessor } from "../../../scene/p5/p5_graphic_processor.ts";
+import { SceneClock } from "../../../scene/scene_clock.ts";
+import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
 import {
     DEFAULT_SCENE_SETTINGS,
     ELEMENT_TYPES,
-} from "../../scene/types.ts";
-import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "./sketch_config.ts";
-import { WorldSettings } from "../../scene/world_settings.ts";
-import { LookAtEffect } from "../../scene/effects/look_at_effect.ts";
-import {COLORS} from "../../scene/colors.ts";
-import {CenterOrbit} from "../../scene/presets.ts";
+} from "../../../scene/types.ts";
+import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "../sketch_config.ts";
+import { WorldSettings } from "../../../scene/world_settings.ts";
+import { LookAtEffect } from "../../../scene/effects/look_at_effect.ts";
+import {COLORS} from "../../../scene/colors.ts";
+import {CenterOrbit} from "../../../scene/presets.ts";
 
 /**
  * TUTORIAL: Objects Looking at Each Other

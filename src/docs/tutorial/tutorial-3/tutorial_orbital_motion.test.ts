@@ -1,10 +1,10 @@
 import {describe, expect, it} from 'vitest';
-import {tutorial_orbital_motion} from './tutorial_orbital_motion';
-import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
+import {tutorial_orbital_motion} from './tutorial_orbital_motion.ts';
+import {createMockP5} from "../../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
-import {createPauseTests} from './pause_test_utils.ts';
-import {SceneClock} from "../../scene/scene_clock.ts";
-import {DEFAULT_SCENE_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
+import {createPauseTests} from '../pause_test_utils.ts';
+import {SceneClock} from "../../../scene/scene_clock.ts";
+import {DEFAULT_SCENE_SETTINGS, type ResolvedBox} from "../../../scene/types.ts";
 
 describe('Tutorial 3: Orbital Motion Orbital Movement', () => {
 

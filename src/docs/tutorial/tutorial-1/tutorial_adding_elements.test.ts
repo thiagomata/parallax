@@ -1,10 +1,10 @@
 import {describe, expect, it} from 'vitest';
 import {tutorial_adding_elements} from './tutorial_adding_elements';
-import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
+import {createMockP5} from "../../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
-import {createPauseTests} from './pause_test_utils.ts';
-import {SceneClock} from "../../scene/scene_clock.ts";
-import {DEFAULT_SCENE_SETTINGS, type ResolvedBox} from "../../scene/types.ts";
+import {createPauseTests} from './../pause_test_utils.ts';
+import {SceneClock} from "../../../scene/scene_clock.ts";
+import {DEFAULT_SCENE_SETTINGS, type ResolvedBox} from "../../../scene/types.ts";
 
 describe('Tutorial 1: Adding Elements Basic Box with Rotation', () => {
 
