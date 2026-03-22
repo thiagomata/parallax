@@ -93,7 +93,7 @@ export function tutorial_textures(p: p5, config: SketchConfig = DEFAULT_SKETCH_C
             id: 'title',
             text: "TEXTURES",
             size: 30,
-            position: {x: -30, y: 0, z: 50},
+            position: {x: 0, y: 0, z: 50},
             font: {
                 name: 'Roboto',
                 path: '/parallax/fonts/Roboto-Regular.ttf'
