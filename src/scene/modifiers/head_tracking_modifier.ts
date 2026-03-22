@@ -69,6 +69,8 @@ export class HeadTrackingModifier<TDataProviderLib extends DataProviderLib = Hea
     private readonly config: HeadTrackingModifierConfig;
     private lastPosition: Vector3 = { x: 0, y: 0, z: 0 };
     private lastRotation = { yaw: 0, pitch: 0, roll: 0 };
+    private referencePosition: Vector3 | null = null;
+    private referenceRotation: { yaw: number; pitch: number; roll: number } | null = null;
 
     constructor(config: Partial<HeadTrackingModifierConfig> = {}) {
         this.config = { ...DEFAULT_HEAD_TRACKING_CONFIG, ...config };
@@ -111,36 +113,56 @@ export class HeadTrackingModifier<TDataProviderLib extends DataProviderLib = Hea
             roll: this.clamp(targetRotation.roll, limits.minRoll, limits.maxRoll),
         } : targetRotation;
 
+        // Calibration: on first face detection, store reference and return zero movement
+        if (this.referencePosition === null) {
+            this.referencePosition = clampedPosition;
+            this.referenceRotation = clampedRotation;
+            return {
+                success: true,
+                value: {
+                    name: this.name,
+                    position: { x: 0, y: 0, z: 0 },
+                    rotation: { yaw: 0, pitch: 0, roll: 0 }
+                }
+            };
+        }
+
+        // Calculate relative position/rotation from reference
+        const relativePosition = {
+            x: clampedPosition.x - this.referencePosition.x,
+            y: clampedPosition.y - this.referencePosition.y,
+            z: clampedPosition.z - this.referencePosition.z,
+        };
+
+        const relativeRotation = {
+            yaw: clampedRotation.yaw - this.referenceRotation!.yaw,
+            pitch: clampedRotation.pitch - this.referenceRotation!.pitch,
+            roll: clampedRotation.roll - this.referenceRotation!.roll,
+        };
+
         const smooth = this.config.smoothing;
         const rotationSmooth = this.config.rotationSmoothing;
         const threshold = this.config.threshold;
         const rotationThreshold = this.config.rotationThreshold;
 
-        // Check if this is first call (lastPosition is at default 0,0,0)
-        const isFirstCall = this.lastPosition.x === 0 && this.lastPosition.y === 0 && this.lastPosition.z === 0;
+        const shouldMoveX = Math.abs(relativePosition.x - this.lastPosition.x) > threshold;
+        const shouldMoveY = Math.abs(relativePosition.y - this.lastPosition.y) > threshold;
+        const shouldMoveZ = Math.abs(relativePosition.z - this.lastPosition.z) > threshold;
 
-        // On first call, use full smoothing (lerp factor of 1 = instant)
-        const posSmooth = isFirstCall ? 1 : smooth;
-        const rotSmooth = isFirstCall ? 1 : rotationSmooth;
-
-        const shouldMoveX = Math.abs(targetPosition.x - this.lastPosition.x) > threshold;
-        const shouldMoveY = Math.abs(targetPosition.y - this.lastPosition.y) > threshold;
-        const shouldMoveZ = Math.abs(targetPosition.z - this.lastPosition.z) > threshold;
-
-        const shouldYaw = Math.abs(targetRotation.yaw - this.lastRotation.yaw) > rotationThreshold;
-        const shouldPitch = Math.abs(targetRotation.pitch - this.lastRotation.pitch) > rotationThreshold;
-        const shouldRoll = Math.abs(targetRotation.roll - this.lastRotation.roll) > rotationThreshold;
+        const shouldYaw = Math.abs(relativeRotation.yaw - this.lastRotation.yaw) > rotationThreshold;
+        const shouldPitch = Math.abs(relativeRotation.pitch - this.lastRotation.pitch) > rotationThreshold;
+        const shouldRoll = Math.abs(relativeRotation.roll - this.lastRotation.roll) > rotationThreshold;
 
         const smoothedPosition = {
-            x: shouldMoveX ? this.lerp(this.lastPosition.x, clampedPosition.x, posSmooth) : this.lastPosition.x,
-            y: shouldMoveY ? this.lerp(this.lastPosition.y, clampedPosition.y, posSmooth) : this.lastPosition.y,
-            z: shouldMoveZ ? this.lerp(this.lastPosition.z, clampedPosition.z, posSmooth) : this.lastPosition.z,
+            x: shouldMoveX ? this.lerp(this.lastPosition.x, relativePosition.x, smooth) : this.lastPosition.x,
+            y: shouldMoveY ? this.lerp(this.lastPosition.y, relativePosition.y, smooth) : this.lastPosition.y,
+            z: shouldMoveZ ? this.lerp(this.lastPosition.z, relativePosition.z, smooth) : this.lastPosition.z,
         };
 
         const smoothedRotation = {
-            yaw: shouldYaw ? this.lerp(this.lastRotation.yaw, clampedRotation.yaw, rotSmooth) : this.lastRotation.yaw,
-            pitch: shouldPitch ? this.lerp(this.lastRotation.pitch, clampedRotation.pitch, rotSmooth) : this.lastRotation.pitch,
-            roll: shouldRoll ? this.lerp(this.lastRotation.roll, clampedRotation.roll, rotSmooth) : this.lastRotation.roll,
+            yaw: shouldYaw ? this.lerp(this.lastRotation.yaw, relativeRotation.yaw, rotationSmooth) : this.lastRotation.yaw,
+            pitch: shouldPitch ? this.lerp(this.lastRotation.pitch, relativeRotation.pitch, rotationSmooth) : this.lastRotation.pitch,
+            roll: shouldRoll ? this.lerp(this.lastRotation.roll, relativeRotation.roll, rotationSmooth) : this.lastRotation.roll,
         };
 
         this.lastPosition = smoothedPosition;
