@@ -959,6 +959,7 @@ export interface DataProviderBundle<TID extends string, TData> {
     readonly parentId?: string;
     tick(sceneId: number, context?: DataProviderTickContext): void;
     getData(): TData | null;
+    getDataResult(): FailableResult<TData>;
 }
 
 export interface DataProviderTickContext {

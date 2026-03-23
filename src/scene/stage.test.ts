@@ -609,6 +609,7 @@ describe("Stage", () => {
             type: "foo",
             tick: vi.fn(),
             getData: vi.fn().mockReturnValue({ offsetX: 42 }),
+            getDataResult: vi.fn().mockReturnValue({ success: true, value: { offsetX: 42 } }),
         };
 
         const settings = structuredClone(DEFAULT_SCENE_SETTINGS);
@@ -653,6 +654,7 @@ describe("Stage", () => {
             type: "parent",
             tick: () => calls.push("parent"),
             getData: () => null,
+            getDataResult: () => ({ success: false as const, error: "no data" }),
         };
 
         const childProvider = {
@@ -664,6 +666,7 @@ describe("Stage", () => {
                 seenAncestorKeys.push(Array.from(context?.ancestorsById.keys() ?? []));
             },
             getData: () => null,
+            getDataResult: () => ({ success: false as const, error: "no data" }),
         };
 
         const settings = structuredClone(DEFAULT_SCENE_SETTINGS);
@@ -700,6 +703,47 @@ describe("Stage", () => {
         expect(calls).toEqual(["parent", "child"]);
         expect(seenParents).toEqual(["parent"]);
         expect(seenAncestorKeys[0]).toEqual(["parent"]);
+    });
+
+    it("render throws a friendly error when a provider is missing its parent", () => {
+        const headTracker = {
+            type: "headTracker",
+            parentId: "webCam",
+            tick: vi.fn(),
+            getData: () => null,
+            getDataResult: () => ({ success: false as const, error: "No face" }),
+        };
+
+        const settings = structuredClone(DEFAULT_SCENE_SETTINGS);
+        settings.window = WindowConfig.create(DEFAULT_WINDOW_CONFIG);
+        const stageWithProviders = new Stage<MockGraphicBundle, {}, {}, { headTracker: typeof headTracker }>(
+            settings,
+            loader,
+            {},
+            {},
+            { headTracker }
+        );
+
+        stageWithProviders.addElement({
+            id: "box",
+            type: ELEMENT_TYPES.BOX,
+            width: 1,
+            position: { x: 0, y: 0, z: 0 },
+        } as any);
+
+        const gp = {
+            dist: () => 0,
+            drawTree: vi.fn(),
+            setCameraTree: vi.fn(),
+        } as any;
+
+        expect(() => {
+            stageWithProviders.render(gp, {
+                playback: { now: 0, delta: 0, frameCount: 0, progress: 0 },
+                previousResolved: null,
+                sceneId: 12,
+            });
+        }).toThrow("headTracker requires parent provider webCam, but it was not registered.");
     });
 
 	    it("setEye replaces the eye projection", () => {

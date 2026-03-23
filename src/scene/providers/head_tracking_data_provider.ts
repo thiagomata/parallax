@@ -1,8 +1,9 @@
 import p5 from "p5";
-import type {DataProviderBundle, FailableResult, TrackingStatus, Vector3} from "../types.ts";
+import type {DataProviderBundle, DataProviderTickContext, FailableResult, TrackingStatus, Vector3} from "../types.ts";
 import { MediaPipeFaceProvider, type FaceProviderConfig } from "../drivers/mediapipe/face_provider.ts";
 import type {FaceProvider} from "./face_provider.ts";
 import type {Face} from "../drivers/mediapipe/face.ts";
+import type { WebCamDataProvider } from "./web_cam_data_provider.ts";
 
 /**
  * Data provider library type for head tracking.
@@ -10,6 +11,11 @@ import type {Face} from "../drivers/mediapipe/face.ts";
  */
 export type HeadTrackerDataProviderLib = {
     headTracker: DataProviderBundle<"headTracker", FaceWorldData>
+};
+
+export type ObserverDataProviderLib = {
+    webCam: DataProviderBundle<"webCam", any>,
+    headTracker: DataProviderBundle<"headTracker", FaceWorldData>,
 };
 
 /**
@@ -96,8 +102,10 @@ export const DEFAULT_CAMERA_PANEL_POSITION: Vector3 = { x: 0, y: 0, z: 0 };
 
 export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker", FaceWorldData> {
     readonly type = "headTracker";
+    readonly parentId = "webCam";
 
     private provider: FaceProvider;
+    private webCamProvider: WebCamDataProvider | null = null;
 
     /**
      * Expected width of the head projected in the screen to the zero Z level.
@@ -148,16 +156,23 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         this.panelPosition  = panelPosition;
         this.cameraPosition = cameraPosition;
 
-        this.provider = new MediaPipeFaceProvider(p, "/parallax/wasm", "/parallax/models/face_landmarker.task", mirror, faceConfig);
+        this.provider = new MediaPipeFaceProvider(p, "/parallax/wasm", "/parallax/models/face_landmarker.task", mirror, faceConfig, null);
     }
 
     async init(): Promise<void> {
         await this.provider.init();
     }
 
-    tick(sceneId: number): void {
+    tick(sceneId: number, context?: DataProviderTickContext): void {
         if (this.sceneId === sceneId) return;
         this.sceneId = sceneId;
+
+        this.webCamProvider = (context?.parent as WebCamDataProvider | null) ?? null;
+        const capture = this.webCamProvider?.getData() ?? null;
+        if (this.provider instanceof MediaPipeFaceProvider) {
+            this.provider.setCapture(capture);
+        }
+
         this.provider.getStatus();
     }
 
@@ -166,12 +181,30 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     }
 
     getVideo(): FailableResult<any> {
+        if (this.webCamProvider) {
+            return this.webCamProvider.getVideo();
+        }
         return this.provider.getVideo();
     }
 
     getData(): FaceWorldData | null {
+        const result = this.getDataResult();
+        return result.success ? result.value : null;
+    }
+
+    getDataResult(): FailableResult<FaceWorldData> {
+        const capture = this.webCamProvider?.getData() ?? null;
+        if (this.provider instanceof MediaPipeFaceProvider) {
+            this.provider.setCapture(capture);
+        }
+
         const faceResult = this.provider.getFace();
-        if (!faceResult.success) return this.lastFace;
+        if (!faceResult.success) {
+            if (this.lastFace) {
+                return { success: true, value: this.lastFace };
+            }
+            return { success: false, error: faceResult.error };
+        }
 
         const face = faceResult.value;
         const faceScreeWidth = face.width * this.sceneScreenWidth;
@@ -191,6 +224,6 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
             midpoint
         )
 
-        return this.lastFace;
+        return { success: true, value: this.lastFace };
     }
 }

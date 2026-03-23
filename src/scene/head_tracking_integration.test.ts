@@ -32,6 +32,7 @@ const createMockHeadTracker = (): HeadTrackingDataProvider => {
     const mockProvider = {
         tick: vi.fn(),
         getData: vi.fn().mockReturnValue(createMockFaceData()),
+        getDataResult: vi.fn().mockReturnValue({ success: true, value: createMockFaceData() }),
         getVideo: vi.fn().mockReturnValue(null),
         init: vi.fn().mockResolvedValue(undefined),
         requiredElementIds: [],

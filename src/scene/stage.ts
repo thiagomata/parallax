@@ -436,7 +436,17 @@ export class Stage<
             },
         });
 
-        hierarchy.validateAll();
+        try {
+            hierarchy.validateAll();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+
+            if (message.includes('Parent "webCam" not found') && nodes.length === 1 && nodes[0]?.parentId) {
+                throw new Error(`${String(nodes[0].key)} requires parent provider ${nodes[0].parentId}, but it was not registered.`);
+            }
+
+            throw error;
+        }
 
         const dataProvidersMap = {} as {
             [K in keyof TDataProviderLib]: ReturnType<TDataProviderLib[K]['getData']>;

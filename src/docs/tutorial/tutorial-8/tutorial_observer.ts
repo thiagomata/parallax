@@ -2,7 +2,8 @@ import p5 from 'p5';
 import { World } from "../../../scene/world.ts";
 import { P5GraphicProcessor } from "../../../scene/p5/p5_graphic_processor.ts";
 import { SceneClock } from "../../../scene/scene_clock.ts";
-import { HeadTrackingDataProvider } from "../../../scene/providers/head_tracking_data_provider.ts";
+import { HeadTrackingDataProvider, type ObserverDataProviderLib } from "../../../scene/providers/head_tracking_data_provider.ts";
+import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
 import {
     DEFAULT_SCENE_SETTINGS,
@@ -53,8 +54,8 @@ export const observer_explanation = `
 export async function tutorial_observer(
     p: p5,
     config: SketchConfig = DEFAULT_SKETCH_CONFIG,
-    extraArgs?: { faceConfig?: any; faceDataProvider?: HeadTrackingDataProvider },
-): Promise<World<P5Bundler, any, any, { headTracker: HeadTrackingDataProvider }>> {
+    extraArgs?: { faceConfig?: any; faceDataProvider?: HeadTrackingDataProvider; webCamProvider?: WebCamDataProvider },
+): Promise<World<P5Bundler, any, any, ObserverDataProviderLib>> {
     const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
@@ -67,6 +68,9 @@ export async function tutorial_observer(
     });
 
     const faceConfig = extraArgs?.faceConfig;
+    let webCamProvider = extraArgs?.webCamProvider;
+    webCamProvider = webCamProvider ?? new WebCamDataProvider(p, 640, 480);
+
     let faceDataProvider = extraArgs?.faceDataProvider;
     faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(p, 120, 650, false, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 300 }, faceConfig);
 
@@ -77,8 +81,8 @@ export async function tutorial_observer(
         p.createCanvas(config.width, config.height, p5.WEBGL);
         gp = new P5GraphicProcessor(p, loader);
     };
-    const dataProviderLib: { headTracker: HeadTrackingDataProvider } = { headTracker: faceDataProvider };
-    const world = new World<P5Bundler, any, any, { headTracker: HeadTrackingDataProvider }>(
+    const dataProviderLib: ObserverDataProviderLib = { webCam: webCamProvider, headTracker: faceDataProvider };
+    const world = new World<P5Bundler, any, any, ObserverDataProviderLib>(
         WorldSettings.fromLibs({clock, loader, dataProviderLib})
     );
     
@@ -330,9 +334,9 @@ export async function tutorial_observer(
                 position: { x: 0, y: 0, z: 0 },
                 video: (_) => {
                     console.log('[DEBUG] Inside VideoEl:', videoEl);
-                    return faceDataProvider.getVideo()
+                    return webCamProvider.getVideo()
                 },
-                fillColor: faceDataProvider?.getVideo() ? undefined : { red: 50, green: 50, blue: 50 },
+                fillColor: webCamProvider?.getVideo() ? undefined : { red: 50, green: 50, blue: 50 },
                 alpha: 0.5,
             });
             

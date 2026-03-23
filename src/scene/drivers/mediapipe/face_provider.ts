@@ -32,7 +32,8 @@ export class MediaPipeFaceProvider implements FaceProvider {
         wasmPath: string = "/parallax/wasm",
         modelPath: string = "/parallax/models/face_landmarker.task",
         mirror: boolean = false,
-        config: FaceProviderConfig = {}
+        config: FaceProviderConfig = {},
+        capture: any | null | undefined = undefined
     ) {
         this.p = p;
         this.wasmPath = wasmPath;
@@ -44,16 +45,24 @@ export class MediaPipeFaceProvider implements FaceProvider {
         this.videoWidth = config.videoWidth ?? 640;
         this.videoHeight = config.videoHeight ?? 480;
 
-        // Create video capture SYNCHRONOUSLY to trigger camera permission
-        this.capture = this.p.createCapture(this.p.VIDEO);
-        this.capture.size(this.videoWidth, this.videoHeight);
-        this.capture.hide();
-        this.capture.elt.onloadedmetadata = () => {
-            this.capture.play();
-        };
-        this.capture.elt.onerror = () => {
-                this.status = 'ERROR';
-        };
+        if (capture === undefined) {
+            // Create video capture SYNCHRONOUSLY to trigger camera permission
+            this.capture = this.p.createCapture(this.p.VIDEO);
+            this.capture.size(this.videoWidth, this.videoHeight);
+            this.capture.hide();
+            this.capture.elt.onloadedmetadata = () => {
+                this.capture.play();
+            };
+            this.capture.elt.onerror = () => {
+                    this.status = 'ERROR';
+            };
+        } else {
+            this.capture = capture;
+        }
+    }
+
+    public setCapture(capture: any | null): void {
+        this.capture = capture;
     }
 
     public setFaceParser(faceParser: FaceParser): void {

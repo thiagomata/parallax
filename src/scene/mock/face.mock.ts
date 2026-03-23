@@ -140,6 +140,7 @@ export function createMockHeadTrackingProvider(getDataMock: ReturnType<typeof vi
         type: 'headTracker' as const,
         provider: mockFaceProvider,
         getData: getDataMock,
+        getDataResult: () => ({ success: true as const, value: (getDataMock as any)() }),
         getVideo: () => ({ success: true, value: mockVideoElement }),
         init: async () => {
             await mockFaceProvider.init();
