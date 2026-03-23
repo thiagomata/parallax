@@ -88,7 +88,7 @@ describe("Stage", () => {
             id: "p2",
             type: PROJECTION_TYPES.WORLD,
             lookMode: LOOK_MODES.LOOK_AT,
-            targetId: "missing",
+            parentId: "missing",
             position: { x: 0, y: 0, z: 0 },
             direction: { x: 0, y: 0, z: 1 },
             lookAt: { x: 0, y: 0, z: 0 },
@@ -104,7 +104,7 @@ describe("Stage", () => {
             id: STANDARD_PROJECTION_IDS.SCREEN,
             type: PROJECTION_TYPES.SCREEN,
             lookMode: LOOK_MODES.ROTATION,
-            targetId: STANDARD_PROJECTION_IDS.EYE,
+            parentId: STANDARD_PROJECTION_IDS.EYE,
             position: { x: 0, y: 0, z: 0 },
             direction: { x: 0, y: 0, z: 1 },
             rotation: { pitch: 0, yaw: 0, roll: 0 },
@@ -209,7 +209,7 @@ describe("Stage", () => {
                 eye: {
                     id: "eye",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "screen",
+                    parentId: "screen",
                     position: { x: 0, y: 5, z: -10 },
                     rotation: { yaw: 0, pitch: 0, roll: 0 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -242,7 +242,7 @@ describe("Stage", () => {
                 eye: {
                     id: "eye",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "screen",
+                    parentId: "screen",
                     position: { x: 0, y: 5, z: -10 },
                     rotation: { yaw: 0.5, pitch: 0.2, roll: 0.1 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -282,7 +282,7 @@ describe("Stage", () => {
                 eye: {
                     id: "eye",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "screen",
+                    parentId: "screen",
                     position: { x: 0, y: 0, z: -5 }, // 5 units "forward" in local space
                     rotation: { yaw: 0, pitch: 0, roll: 0 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -353,7 +353,7 @@ describe("Stage", () => {
                 child1: {
                     id: "child1",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "root",
+                    parentId: "root",
                     position: { x: 0, y: 0, z: -10 },
                     rotation: { yaw: 0, pitch: 0, roll: 0 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -364,7 +364,7 @@ describe("Stage", () => {
                 child2: {
                     id: "child2",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "child1",
+                    parentId: "child1",
                     position: { x: 5, y: 0, z: 0 },
                     rotation: { yaw: 0.1, pitch: 0, roll: 0 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -404,7 +404,7 @@ describe("Stage", () => {
                 child: {
                     id: "child",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "root",
+                    parentId: "root",
                     position: { x: 0, y: 0, z: 0 },
                     rotation: { yaw: 0.5, pitch: 0.6, roll: 0.7 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -465,7 +465,7 @@ describe("Stage", () => {
                 eye: {
                     id: "eye",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "screen",
+                    parentId: "screen",
                     position: { x: 0, y: 5, z: -10 },
                     rotation: { yaw: 0.5, pitch: 0, roll: 0 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -476,7 +476,7 @@ describe("Stage", () => {
                 child: {
                     id: "child",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "eye",
+                    parentId: "eye",
                     position: { x: 3, y: 0, z: 0 },
                     rotation: { yaw: 0, pitch: 0, roll: 0 },
                     lookAt: { x: 0, y: 0, z: 0 },

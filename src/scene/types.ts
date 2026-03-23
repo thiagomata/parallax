@@ -55,7 +55,7 @@ export const STANDARD_PROJECTION_IDS = {
 export interface BaseProjection {
     readonly type: ProjectionType;
     readonly id: string;
-    readonly targetId?: string;
+    readonly parentId?: string;
 }
 
 export function projectionIsType<T extends ProjectionType>(
@@ -218,7 +218,7 @@ export const DEFAULT_EYE_LOOK_AT: BlueprintProjectionLookAt = {
     type: PROJECTION_TYPES.EYE,
     lookMode: LOOK_MODES.LOOK_AT,
     id: STANDARD_PROJECTION_IDS.EYE,
-    targetId: STANDARD_PROJECTION_IDS.SCREEN,
+    parentId: STANDARD_PROJECTION_IDS.SCREEN,
     position: {x: 0, y: 0, z: 100},
     lookAt: {x: 0, y: 0, z: 0},
     direction: {x: 0, y: 0, z: -1},
@@ -229,7 +229,7 @@ export const DEFAULT_EYE_ROTATION: BlueprintProjectionRotation = {
     type: PROJECTION_TYPES.EYE,
     lookMode: LOOK_MODES.ROTATION,
     id: STANDARD_PROJECTION_IDS.EYE,
-    targetId: STANDARD_PROJECTION_IDS.SCREEN,
+    parentId: STANDARD_PROJECTION_IDS.SCREEN,
     position: {x: 0, y: 0, z: 100},
     rotation: {pitch: 0, yaw: 0, roll: 0},
     direction: {x: 0, y: 0, z: -1},
@@ -529,7 +529,6 @@ export type FontAsset<TFont = unknown> =
 export interface ElementAssets<TBundle extends GraphicsBundle> {
     texture?: TextureAsset<TBundle['texture']>;
     font?: FontAsset<TBundle['font']>;
-    video?: FailableResult<any> | (() => FailableResult<any>);
 }
 
 export interface AssetLoader<TBundle extends GraphicsBundle> {
@@ -746,6 +745,9 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     readonly video?: FailableResult<any>;
     readonly font?: FontRef;
     readonly effects?: EffectBlueprint[];
+
+    readonly mirrorTextureVertical?: boolean;
+    readonly mirrorTextureHorizontal?: boolean;
 }
 
 export type DynamicElement<T extends ResolvedElement, TDataProviderLib extends DataProviderLib = DataProviderLib> = MapToDynamic<T, TDataProviderLib>;
@@ -954,6 +956,7 @@ export type TrackingStatus =
 
 export interface DataProviderBundle<TID extends string, TData> {
     readonly type: TID;
+    readonly parentId?: string;
     tick(sceneId: number): void;
     getData(): TData | null;
 }

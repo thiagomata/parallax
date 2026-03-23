@@ -66,24 +66,24 @@ export class ProjectionResolver<
         },
         registry: ProjectionAssetRegistry<TProjectionEffectLib>
     ) {
-        if (!blueprint.targetId) return;
+        if (!blueprint.parentId) return;
 
-        if (blueprint.targetId === blueprint.id) {
+        if (blueprint.parentId === blueprint.id) {
             throw new Error(`Self-Reference: Projection "${blueprint.id}" cannot target itself.`);
         }
 
-        const target = registry.get(blueprint.targetId);
+        const target = registry.get(blueprint.parentId);
 
         if (!target) {
             throw new Error(
-                `Hierarchy Violation: Target "${blueprint.targetId}" not found. ` +
+                `Hierarchy Violation: Target "${blueprint.parentId}" not found. ` +
                 `Targets must be registered before their followers.`
             );
         }
 
-        if (!this.validateHierarchy(blueprint.id, blueprint.targetId, registry)){
+        if (!this.validateHierarchy(blueprint.id, blueprint.parentId, registry)){
             throw new Error(
-                `Hierarchy Violation: Target "${blueprint.targetId}" has recursive reference.`
+                `Hierarchy Violation: Target "${blueprint.parentId}" has recursive reference.`
             )
         }
     }
@@ -101,7 +101,7 @@ export class ProjectionResolver<
             visited.add(currentId);
 
             const next = registry.get(currentId);
-            currentId = next?.targetId;
+            currentId = next?.parentId;
         }
         return true;
     }
@@ -176,8 +176,8 @@ export class ProjectionResolver<
         let globalPosition = { ...currentPosition };
 
         // Update global position after car/nudge modifiers
-        if (resolved.targetId) {
-            const parentResolved = projectionPool[resolved.targetId];
+        if (resolved.parentId) {
+            const parentResolved = projectionPool[resolved.parentId];
             if (parentResolved) {
                 globalPosition = {
                     x: parentResolved.position.x + currentPosition.x,
@@ -324,15 +324,15 @@ export class ProjectionResolver<
         projectionPool: Record<string, ResolvedProjection>,
         previousResolved: ResolvedSceneState | null
     ): ResolvedProjection {
-        if (!resolved.targetId) {
+        if (!resolved.parentId) {
             return resolved; // No parent, already in global space
         }
 
         // Find parent in current frame pool or previous frame
-        let target: ResolvedProjection | undefined = projectionPool[resolved.targetId];
+        let target: ResolvedProjection | undefined = projectionPool[resolved.parentId];
         
         if (!target && previousResolved?.projections) {
-            target = previousResolved.projections.get(resolved.targetId);
+            target = previousResolved.projections.get(resolved.parentId);
         }
 
         if (!target) {

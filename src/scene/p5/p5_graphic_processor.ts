@@ -110,17 +110,7 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     public drawPanel(props: ResolvedPanel, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.p.push();
         this.applyContext(props, assets, state);
-        
-        let videoResult = assets.video;
-        if (typeof videoResult === 'function') {
-            videoResult = videoResult();
-        }
-        
-        // Mirror video texture horizontally
-        if (videoResult) {
-            this.p.scale(-1, 1);
-        }
-        
+
         this.p.plane(props.width, props.height);
         this.p.pop();
     }
@@ -230,6 +220,16 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         const videoEl = videoResult?.success ? videoResult.value : null;
         const videoElInner = videoEl ? (videoEl as any).elt || videoEl : null;
         const videoReady = videoElInner && (videoElInner as HTMLVideoElement).readyState >= 2;
+
+        if (props.mirrorTextureHorizontal ?? false) {
+            // Mirror video texture horizontally
+            this.p.scale(-1, 1);
+        }
+        if (props.mirrorTextureVertical ?? false) {
+            // Mirror video texture horizontally
+            this.p.scale(1, -1);
+        }
+
 
         if (videoReady) {
             this.p.blendMode(this.p.BLEND);

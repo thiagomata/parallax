@@ -148,23 +148,23 @@ export class Stage<
             throw new Error(`ID collision: Cannot add projection '${blueprint.id}' - an element with the same ID already exists.`);
         }
 
-        const targetId = blueprint.targetId;
+        const parentId = blueprint.parentId;
 
-        if (targetId) {
-            // Existence: The target must already exist in the projection registry
-            const target = this.projectionRegistry.get(targetId);
-            if (!target) {
-                throw new Error(`Target ${targetId} not found for projection ${blueprint.id}`);
+        if (parentId) {
+            // Existence: The parent must already exist in the projection registry
+            const parent = this.projectionRegistry.get(parentId);
+            if (!parent) {
+                throw new Error(`Target ${parentId} not found for projection ${blueprint.id}`);
             }
 
             // Recursion Check: Trace back to ensure no loops
-            let current: DynamicProjection | undefined = target;
+            let current: DynamicProjection | undefined = parent;
             while (current) {
                 if (current.id === blueprint.id) {
                     throw new Error(`Circular dependency: ${blueprint.id} targets its own descendant.`);
                 }
-                // Use the dynamic property to find the next targetId in the chain
-                const nextTargetId: string | null = current.targetId ?? null;
+                // Use the dynamic property to find the next parentId in the chain
+                const nextTargetId: string | null = current.parentId ?? null;
                 current = nextTargetId ? this.projectionRegistry.get(nextTargetId) : undefined;
             }
         }
@@ -457,7 +457,7 @@ export class Stage<
 
         const roots: ProjectionTreeNode[] = [];
         for (const [_id, node] of nodeMap) {
-            const targetId = node.props.targetId;
+            const targetId = node.props.parentId;
             if (targetId && nodeMap.has(targetId)) {
                 const parentNode = nodeMap.get(targetId);
                 if (parentNode) {
@@ -485,7 +485,7 @@ export class Stage<
                     direction: { x: 0, y: 0, z: 0 },
                     distance: 0,
                     effects: [],
-                    targetId: undefined,
+                    parentId: undefined,
                     globalPosition: { x: 0, y: 0, z: 0 },
                     globalRotation: { yaw: 0, pitch: 0, roll: 0 },
                 },

@@ -94,7 +94,7 @@ describe("World Presets", () => {
             const presetWithElements: WorldPreset = {
                 projectors: [
                     { id: 'screen', type: PROJECTION_TYPES.SCREEN, position: {x:0,y:0,z:0}, direction: {x:0,y:0,z:1}, lookMode: LOOK_MODES.ROTATION, rotation: {yaw:0,pitch:0,roll:0} },
-                    { id: 'eye', type: PROJECTION_TYPES.EYE, targetId: 'screen', position: {x:0,y:0,z:0}, direction: {x:0,y:0,z:1}, lookMode: LOOK_MODES.ROTATION, rotation: {yaw:0,pitch:0,roll:0} }
+                    { id: 'eye', type: PROJECTION_TYPES.EYE, parentId: 'screen', position: {x:0,y:0,z:0}, direction: {x:0,y:0,z:1}, lookMode: LOOK_MODES.ROTATION, rotation: {yaw:0,pitch:0,roll:0} }
                 ],
                 elements: [
                     { id: 'box1', type: 'box', width: 1, position: {x:0,y:0,z:0} }
@@ -123,16 +123,16 @@ describe("VR_CABIN_PRESET structure", () => {
         const eye = VR_CABIN_PRESET.projectors.find(p => p.id === 'eye');
 
         // car has no targetId (root of tree)
-        expect(car?.targetId).toBeUndefined();
+        expect(car?.parentId).toBeUndefined();
         
         // screen targets car
-        expect(screen?.targetId).toBe('car');
+        expect(screen?.parentId).toBe('car');
         
         // head targets screen
-        expect(head?.targetId).toBe('screen');
+        expect(head?.parentId).toBe('screen');
         
         // eye targets head
-        expect(eye?.targetId).toBe('head');
+        expect(eye?.parentId).toBe('head');
     });
 
     it("has correct types", () => {
@@ -150,10 +150,10 @@ describe("SIMPLE_PRESET structure", () => {
         const eye = SIMPLE_PRESET.projectors.find(p => p.id === 'eye');
 
         // screen has no targetId (root)
-        expect(screen?.targetId).toBeUndefined();
+        expect(screen?.parentId).toBeUndefined();
         
         // eye targets screen
-        expect(eye?.targetId).toBe('screen');
+        expect(eye?.parentId).toBe('screen');
     });
 });
 
@@ -164,12 +164,12 @@ describe("HEAD_TRACKED_PRESET structure", () => {
         const eye = HEAD_TRACKED_PRESET.projectors.find(p => p.id === 'eye');
 
         // head has no targetId (root)
-        expect(head?.targetId).toBeUndefined();
+        expect(head?.parentId).toBeUndefined();
         
         // screen targets head
-        expect(screen?.targetId).toBe('head');
+        expect(screen?.parentId).toBe('head');
         
         // eye targets head
-        expect(eye?.targetId).toBe('head');
+        expect(eye?.parentId).toBe('head');
     });
 });
