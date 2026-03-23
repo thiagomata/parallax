@@ -21,7 +21,7 @@ describe('Tutorial 4: Camera Control Camera Orbit', () => {
             }
         });
 
-        const world = tutorial_camera_control(mockP5 as unknown as p5, { 
+        const world = await tutorial_camera_control(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400,
             clock: clock,
@@ -29,6 +29,7 @@ describe('Tutorial 4: Camera Control Camera Orbit', () => {
         });
         mockP5.setup();
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         // Verify grid of boxes registered (5x5 = 25 boxes)
         for (let i = 0; i < 5; i++) {
@@ -39,6 +40,7 @@ describe('Tutorial 4: Camera Control Camera Orbit', () => {
         }
 
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         // Verify first box properties
         const box00 = world.getCurrenState()?.elements.get('box-0-0') as ResolvedBox;

@@ -21,7 +21,7 @@ describe('Tutorial 8: Billboard Billboard', () => {
             }
         });
 
-        const world = tutorial_billboard(mockP5 as unknown as p5, { 
+        const world = await tutorial_billboard(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400,
             clock: clock,
@@ -97,13 +97,14 @@ describe('Tutorial 8: Billboard Billboard', () => {
             }
         });
 
-        const world = tutorial_billboard(mockP5 as unknown as p5, { 
+        const world = await tutorial_billboard(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400,
             clock: clock,
             paused: false
         });
         mockP5.setup();
+        mockP5.draw();
 
         // Progress 0 (T = 0) - camera at starting position
         mockP5.millis.mockReturnValue(0);

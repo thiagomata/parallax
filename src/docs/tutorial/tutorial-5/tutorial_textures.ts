@@ -35,15 +35,14 @@ export const textures_explanation = `
 
 <div class="related">
 <h3>Related Tutorials</h3>
-<a href="#tutorial-1">Adding Elements</a>
+<a href="#tutorial-1"> Adding Elements</a>
 <a href="#tutorial-5">Loading Textures</a>
 </div>
 `;
 
-export function tutorial_textures(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
+export async function tutorial_textures(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): Promise<World<P5Bundler, any, any>> {
     let graphicProcessor: P5GraphicProcessor;
 
-    // Scene Orchestration
     const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
@@ -54,21 +53,22 @@ export function tutorial_textures(p: p5, config: SketchConfig = DEFAULT_SKETCH_C
         }
     });
 
-    // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
     const world = new World<P5Bundler, any, any>(
         WorldSettings.fromLibs({clock, loader})
     );
+    
+    world.startLoading();
     world.enableDefaultPerspective(config.width, config.height);
+
+    if (config.paused) {
+        world.pause();
+    }
 
     p.setup = async () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // REGISTRATION
-        // Hydration starts automatically when the element is added
-
-        // Textured Box
         world.addBox({
             type: ELEMENT_TYPES.BOX,
             id: 'textured-box',
@@ -87,7 +87,6 @@ export function tutorial_textures(p: p5, config: SketchConfig = DEFAULT_SKETCH_C
             },
         });
 
-        // 3D Text with Custom Font
         world.addText({
             type: ELEMENT_TYPES.TEXT,
             id: 'title',
@@ -101,17 +100,21 @@ export function tutorial_textures(p: p5, config: SketchConfig = DEFAULT_SKETCH_C
             fillColor: {red: 0, green: 229, blue: 255}
         });
 
-        // HYDRATION (Optional Wait)
-        // By awaiting this, we ensure the first frame isn't "blank"
         await loader.waitForAllAssets();
     };
 
-    p.draw = () => {
-        if (config.paused && !clock.isPaused()) clock.pause();
-        if (!config.paused && clock.isPaused()) clock.resume();
-
+    world.complete();
+    
+    p.draw = async () => {
+        if (config.paused && !world.isPaused()) {
+            world.pause();
+        } else if (!config.paused && world.isPaused()) {
+            world.resume();
+        }
+        
         p.background(15);
-        world.step(graphicProcessor);
+        const result = await world.step(graphicProcessor);
+        if (!result.running) return;
     };
 
     return world;

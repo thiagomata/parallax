@@ -21,7 +21,7 @@ describe('Tutorial 5: Textures Textures', () => {
             }
         });
 
-        const world = tutorial_textures(mockP5 as unknown as p5, { 
+        const world = await tutorial_textures(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400,
             clock: clock,
@@ -74,13 +74,14 @@ describe('Tutorial 5: Textures Textures', () => {
             }
         });
 
-        const world = tutorial_textures(mockP5 as unknown as p5, { 
+        const world = await tutorial_textures(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400,
             clock: clock,
             paused: false
         });
         mockP5.setup();
+        mockP5.draw();
 
         // Progress 0.25 (T = 1250ms)
         mockP5.millis.mockReturnValue(1250);
@@ -98,6 +99,7 @@ describe('Tutorial 5: Textures Textures', () => {
         // Progress 0.5 (T = 2500ms)
         mockP5.millis.mockReturnValue(2500);
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const box50 = world.getCurrenState()?.elements.get('textured-box') as ResolvedBox;
         expect(box50).toBeDefined();

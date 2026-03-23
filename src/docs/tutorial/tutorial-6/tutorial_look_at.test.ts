@@ -5,7 +5,7 @@ import p5 from "p5";
 import {SceneClock} from "../../../scene/scene_clock.ts";
 import {DEFAULT_SCENE_SETTINGS} from "../../../scene/types.ts";
 
-describe('Tutorial 7: Look At Objects Looking at Each Other', () => {
+describe('Tutorial 6: Look At Objects Looking at Each Other', () => {
 
     it('should register elements with look_at effect', async () => {
         const mockP5 = createMockP5();
@@ -20,7 +20,7 @@ describe('Tutorial 7: Look At Objects Looking at Each Other', () => {
             }
         });
 
-        const world = tutorial_look_at(mockP5 as unknown as p5, { 
+        const world = await tutorial_look_at(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400,
             clock: clock,

@@ -73,7 +73,9 @@ describe('Head Tracking Integration', () => {
         world.loadPreset(HEAD_TRACKED_PRESET);
 
         world.addModifierToProjection('head', new HeadTrackingModifier(), 'car');
-
+        
+        world.complete();
+        
         mockGraphicProcessor = {
             millis: vi.fn().mockReturnValue(16),
             deltaTime: vi.fn().mockReturnValue(16),
@@ -104,7 +106,7 @@ describe('Head Tracking Integration', () => {
         };
     });
 
-    it('should propagate head position through hierarchy to eye', () => {
+    it('should propagate head position through hierarchy to eye', async () => {
         mockGraphicProcessor.setCameraTree = vi.fn().mockImplementation((root: any) => {
             if (!root) return;
             const findNode = (node: any, id: string): any => {
@@ -132,7 +134,7 @@ describe('Head Tracking Integration', () => {
         });
         
         // First step - calibration (first face detected returns zero)
-        world.step(mockGraphicProcessor);
+        await world.step(mockGraphicProcessor);
         console.log('After first step (calibration):', cameraCallArgs?.eye);
 
         expect(cameraCallArgs).not.toBeNull();

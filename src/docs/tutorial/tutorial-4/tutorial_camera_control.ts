@@ -43,36 +43,36 @@ export const camera_control_explanation = `
 
 <div class="related">
 <h3>Related Tutorials</h3>
-<a href="#tutorial-1">Adding Elements</a>
+<a href="#tutorial-1"> Adding Elements</a>
 <a href="#tutorial-9">Real-Time Camera Control</a>
 </div>
 `;
 
-export function tutorial_camera_control(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
+export async function tutorial_camera_control(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): Promise<World<P5Bundler, any, any>> {
     let graphicProcessor: P5GraphicProcessor;
 
-    // Scene Orchestration
     const clock = config.clock ?? new SceneClock({
             ...DEFAULT_SCENE_SETTINGS,
             startPaused: config.paused
         });
 
-    // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
     const world = new World<P5Bundler, any, any>(
         WorldSettings.fromLibs({clock, loader})
     );
-
+    
+    world.startLoading();
     world.loadPreset(CenterOrbit(p,{radius: 500}))
-    // world.loadPreset(CenterOrbit(p,{radius: 500, eyeScreenDistance: 10}))
     world.enableDefaultPerspective(config.width, config.height);
+
+    if (config.paused) {
+        world.pause();
+    }
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // REGISTRATION
-        // Creating a "Gallery" of boxes to visualize the camera orbit
         for (let i = 0; i < 5; i++) {
             for (let j = 0; j < 5; j++) {
                 world.addBox({
@@ -90,12 +90,18 @@ export function tutorial_camera_control(p: p5, config: SketchConfig = DEFAULT_SK
         }
     };
 
-    p.draw = () => {
-        if (config.paused && !clock.isPaused()) clock.pause();
-        if (!config.paused && clock.isPaused()) clock.resume();
-
+    world.complete();
+    
+    p.draw = async () => {
+        if (config.paused && !world.isPaused()) {
+            world.pause();
+        } else if (!config.paused && world.isPaused()) {
+            world.resume();
+        }
+        
         p.background(20);
-        world.step(graphicProcessor);
+        const result = await world.step(graphicProcessor);
+        if (!result.running) return;
     };
 
     return world;

@@ -48,7 +48,7 @@ export const billboard_explanation = `
 </div>
 `;
 
-export function tutorial_billboard(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
+export async function tutorial_billboard(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): Promise<World<P5Bundler, any, any>> {
     let graphicProcessor: P5GraphicProcessor;
 
     const clock = config.clock ?? new SceneClock({
@@ -70,16 +70,19 @@ export function tutorial_billboard(p: p5, config: SketchConfig = DEFAULT_SKETCH_
             elementEffectLib: effects
         })
     );
-
+    
+    world.startLoading();
     world.enableDefaultPerspective(config.width, config.height);
     world.loadPreset(CenterOrbit(p, {radius: 300, verticalBaseline: 100}));
 
+    if (config.paused) {
+        world.pause();
+    }
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
         graphicProcessor = new P5GraphicProcessor(p, loader);
 
-        // Reference objects to show camera movement
         world.addBox({
             id: 'reference-cube',
             type: ELEMENT_TYPES.BOX,
@@ -101,7 +104,6 @@ export function tutorial_billboard(p: p5, config: SketchConfig = DEFAULT_SKETCH_
             strokeWidth: 3,
         });
 
-        // Billboard box - always faces camera
         world.addBox({
             id: 'billboard-cube',
             type: ELEMENT_TYPES.BOX,
@@ -119,7 +121,6 @@ export function tutorial_billboard(p: p5, config: SketchConfig = DEFAULT_SKETCH_
             strokeWidth: 3,
         });
 
-        // Billboard panel - always faces camera
         world.addPanel({
             id: 'billboard-panel',
             type: ELEMENT_TYPES.PANEL,
@@ -135,12 +136,18 @@ export function tutorial_billboard(p: p5, config: SketchConfig = DEFAULT_SKETCH_
         });
     };
 
-    p.draw = () => {
-        if (config.paused && !clock.isPaused()) clock.pause();
-        if (!config.paused && clock.isPaused()) clock.resume();
-
+    world.complete();
+    
+    p.draw = async () => {
+        if (config.paused && !world.isPaused()) {
+            world.pause();
+        } else if (!config.paused && world.isPaused()) {
+            world.resume();
+        }
+        
         p.background(20);
-        world.step(graphicProcessor);
+        const result = await world.step(graphicProcessor);
+        if (!result.running) return;
     };
 
     return world;

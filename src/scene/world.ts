@@ -49,6 +49,15 @@ type ProjectionMatrixCalculator = (
     window: WindowConfig
 ) => ProjectionMatrix;
 
+export type WorldStatus = 'uninitialized' | 'loading' | 'ready' | 'error';
+
+export type WorldStepResult = {
+    running: boolean;
+    error: Error | null;
+    status: WorldStatus;
+    errorCount: number;
+};
+
 export class World<
     TBundle extends GraphicsBundle,
     TElementEffectLib extends EffectLib,
@@ -58,6 +67,10 @@ export class World<
     public readonly stage: Stage<TBundle, TElementEffectLib, TProjectionEffectLib, TDataProviderLib>;
     public readonly sceneClock: SceneClock;
     private projectionMatrixCalculator: ProjectionMatrixCalculator | null = null;
+    private _paused: boolean = false;
+    private _status: WorldStatus = 'uninitialized';
+    private _error: Error | null = null;
+    private _errorCount: number = 0;
 
     constructor(
         worldSettings: WorldSettings<TBundle, TElementEffectLib, TProjectionEffectLib, TDataProviderLib>
@@ -66,12 +79,41 @@ export class World<
         this.stage = worldSettings.stage;
     }
 
+    get status(): WorldStatus { return this._status; }
+    get error(): Error | null { return this._error; }
+    isReady(): boolean { return this._status === 'ready'; }
+    isLoading(): boolean { return this._status === 'loading'; }
+
+    startLoading(): void {
+        this._status = 'loading';
+    }
+
+    complete(): void {
+        this._paused = false;
+        this._status = 'ready';
+    }
+
+    fail(error: Error): void {
+        this._error = error;
+        this._status = 'error';
+    }
+
     public getCurrenState(): ResolvedSceneState | null {
         return this.stage.getCurrentState()
     }
 
+    public pause(): void {
+        this._paused = true;
+        this.sceneClock.pause();
+    }
+
+    public resume(): void {
+        this._paused = false;
+        this.sceneClock.resume();
+    }
+
     public isPaused(): boolean {
-        return this.sceneClock.isPaused();
+        return this._paused;
     }
 
 	    public setEye<T extends Partial<BlueprintProjection>>(
@@ -308,30 +350,47 @@ export class World<
         };
     }
 
-    public step(gp: GraphicProcessor<TBundle>): void {
-        // Tick the clock forward
-        this.sceneClock.tick(gp.millis(), gp.deltaTime(), gp.frameCount());
+    public async step(gp: GraphicProcessor<TBundle>): Promise<WorldStepResult> {
+        if (this._status !== 'ready' && this._status !== 'error') {
+            return { running: false, error: null, status: this._status, errorCount: this._errorCount };
+        }
 
-        // Render with just frame params (clock playback + previous resolved state)
-        const previousResolved = this.stage.getCurrentState();
-        const finalState = this.stage.render(gp, {
-            playback: this.sceneClock.getPlayback(),
-            previousResolved,
-            sceneId: this.sceneClock.sceneId,
-        });
+        if (this._paused) {
+            return { running: false, error: null, status: this._status, errorCount: this._errorCount };
+        }
 
-        const eye = finalState.projections?.get(STANDARD_PROJECTION_IDS.EYE);
-        const screen = finalState.projections?.get(STANDARD_PROJECTION_IDS.SCREEN);
+        try {
+            // Tick the clock forward
+            this.sceneClock.tick(gp.millis(), gp.deltaTime(), gp.frameCount());
 
-        if (eye && screen) {
-            // Apply custom projection matrix if calculator is set
-            if (this.projectionMatrixCalculator) {
-                const windowConfig = this.getWindowConfig();
-                const projectionMatrix = this.projectionMatrixCalculator(eye, screen, windowConfig);
-                gp.setProjectionMatrix(projectionMatrix);
+            // Render with just frame params (clock playback + previous resolved state)
+            const previousResolved = this.stage.getCurrentState();
+            const finalState = this.stage.render(gp, {
+                playback: this.sceneClock.getPlayback(),
+                previousResolved,
+                sceneId: this.sceneClock.sceneId,
+            });
+
+            const eye = finalState.projections?.get(STANDARD_PROJECTION_IDS.EYE);
+            const screen = finalState.projections?.get(STANDARD_PROJECTION_IDS.SCREEN);
+
+            if (eye && screen) {
+                // Apply custom projection matrix if calculator is set
+                if (this.projectionMatrixCalculator) {
+                    const windowConfig = this.getWindowConfig();
+                    const projectionMatrix = this.projectionMatrixCalculator(eye, screen, windowConfig);
+                    gp.setProjectionMatrix(projectionMatrix);
+                }
+            } else {
+                throw new Error("no screen or eye to render");
             }
-        } else {
-            throw new Error("no screen or eye to render");
+
+            return { running: true, error: null, status: this._status, errorCount: this._errorCount };
+        } catch (e) {
+            this._errorCount++;
+            const error = e instanceof Error ? e : new Error(String(e));
+            this.fail(error);
+            return { running: true, error, status: this._status, errorCount: this._errorCount };
         }
     }
 }

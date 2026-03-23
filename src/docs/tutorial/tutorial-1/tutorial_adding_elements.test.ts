@@ -21,7 +21,7 @@ describe('Tutorial 1: Adding Elements Basic Box with Rotation', () => {
             }
         });
 
-        const world = tutorial_adding_elements(mockP5 as unknown as p5, { 
+        const world = await tutorial_adding_elements(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400, 
             clock: clock,
@@ -30,11 +30,13 @@ describe('Tutorial 1: Adding Elements Basic Box with Rotation', () => {
         mockP5.setup();
 
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const element = world.getElement('box');
         if (!element) throw new Error("Box not registered");
 
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const box1 = world.getCurrenState()?.elements.get('box') as ResolvedBox;
         expect(box1).toBeDefined();
@@ -49,45 +51,38 @@ describe('Tutorial 1: Adding Elements Basic Box with Rotation', () => {
         expect(box1.strokeColor?.blue).toBe(255);
         expect(box1.strokeWidth).toBe(1);
 
-        // Pitch: -0.25 * PI = -45 degrees
         expect(box1.rotate?.pitch).toBeCloseTo(-Math.PI * 0.25, 5);
-        // Yaw: 0.25 * PI + 2 * PI * 0 = 0.25 * PI = 45 degrees
         expect(box1.rotate?.yaw).toBeCloseTo(Math.PI * 0.25, 5);
         expect(box1.rotate?.roll).toBe(0);
 
-        // TEST POINT B: Progress 0.2 (T = 1000ms / 5000ms) ---
         mockP5.millis.mockReturnValue(1000);
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const box20 = world.getCurrenState()?.elements.get('box') as ResolvedBox;
         expect(box20).toBeDefined();
         if(!box20) return;
-        // Pitch stays constant at -0.25 * PI
         expect(box20.rotate?.pitch).toBeCloseTo(-Math.PI * 0.25, 5);
-        // Yaw: 0.25 * PI + 2 * PI * 0.2 = 0.25*PI + 0.4*PI = 0.65*PI
         expect(box20.rotate?.yaw).toBeCloseTo(Math.PI * 0.25 + Math.PI * 2 * 0.2, 5);
 
-        // TEST POINT C: Progress 0.5 (T = 2500ms) ---
         mockP5.millis.mockReturnValue(2500);
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const box50 = world.getCurrenState()?.elements.get('box') as ResolvedBox;
         expect(box50).toBeDefined();
         if(!box50) return;
-        // Yaw: 0.25 * PI + 2 * PI * 0.5 = 0.25*PI + PI = 1.25*PI
         expect(box50.rotate?.yaw).toBeCloseTo(Math.PI * 0.25 + Math.PI, 5);
 
-        // TEST POINT D: Progress 1.0 (T = 5000ms) ---
         mockP5.millis.mockReturnValue(5000);
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const box100 = world.getCurrenState()?.elements.get('box') as ResolvedBox;
         expect(box100).toBeDefined();
         if(!box100) return;
-        // Yaw: 0.25 * PI + 2 * PI * 1.0 = 0.25*PI + 2*PI = 2.25*PI = 0.25*PI (due to loop)
         expect(box100.rotate?.yaw).toBeCloseTo(Math.PI * 0.25, 5);
 
-        // Verify side effect: The Bridge called p5
         expect(mockP5.box).toHaveBeenCalled();
         expect(mockP5.stroke).toHaveBeenCalled();
         expect(mockP5.fill).toHaveBeenCalled();

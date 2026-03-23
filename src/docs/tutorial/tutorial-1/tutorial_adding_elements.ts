@@ -41,11 +41,10 @@ export const adding_elements_explanation = `
 </div>
 `;
 
-export function tutorial_adding_elements(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
+export async function tutorial_adding_elements(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): Promise<World<P5Bundler, any, any>> {
     let graphicProcessor: P5GraphicProcessor;
     let world: World<P5Bundler, any, any>;
 
-    // Scene Orchestration (5s rotating loop)
     const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
@@ -56,27 +55,25 @@ export function tutorial_adding_elements(p: p5, config: SketchConfig = DEFAULT_S
         }
     });
 
-    // Asset Pipeline
-    // We create the loader here to pass it to the World/Stage
     const loader = new P5AssetLoader(p);
-
-    // Graphic Processor Initialization
     graphicProcessor = new P5GraphicProcessor(p, loader);
 
-    // World Initialization
     world = new World<P5Bundler, any, any>(
         WorldSettings.fromLibs({clock, loader})
     );
 
-    // Enable default off-axis perspective projection
+    world.startLoading();
     world.enableDefaultPerspective(config.width, config.height);
+
+    if (config.paused) {
+        world.pause();
+    }
 
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'box',
         width: 100,
 
-        // Dynamic Rotation: Continuous rotation
         rotate: (context: ResolutionContext) => ({
             pitch: -0.25 * Math.PI,
             yaw: 0.25 * Math.PI + Math.PI * 2 * context.playback.progress,
@@ -89,16 +86,23 @@ export function tutorial_adding_elements(p: p5, config: SketchConfig = DEFAULT_S
         strokeWidth: 1,
     });
 
+    world.complete();
+    
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
     };
 
-    p.draw = () => {
-        if (config.paused && !clock.isPaused()) clock.pause();
-        if (!config.paused && clock.isPaused()) clock.resume();
-
+    p.draw = async () => {
+        if (config.paused && !world.isPaused()) {
+            world.pause();
+        } else if (!config.paused && world.isPaused()) {
+            world.resume();
+        }
+        
         p.background(20);
-        world.step(graphicProcessor);
+        const result = await world.step(graphicProcessor);
+        if (!result.running) return;
     };
+
     return world;
 }

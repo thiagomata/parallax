@@ -38,15 +38,14 @@ export const orbital_motion_explanation = `
 
 <div class="related">
 <h3>Related Tutorials</h3>
-<a href="#tutorial-1">Adding Elements</a>
+<a href="#tutorial-1"> Adding Elements</a>
 <a href="#tutorial-2">Animation Over Time</a>
 </div>
 `;
 
-export function tutorial_orbital_motion(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
+export async function tutorial_orbital_motion(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): Promise<World<P5Bundler, any, any>> {
     let graphicProcessor: P5GraphicProcessor;
 
-    // Scene Orchestration (5s circular loop)
     const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
@@ -57,26 +56,28 @@ export function tutorial_orbital_motion(p: p5, config: SketchConfig = DEFAULT_SK
         }
     });
 
-    // Asset Pipeline & World
     const loader = new P5AssetLoader(p);
     const world = new World<P5Bundler, any, any>(
         WorldSettings.fromLibs({clock, loader})
     );
+    
+    world.startLoading();
     world.enableDefaultPerspective(config.width, config.height);
-    // REGISTRATION
-    // Defining the Orbit as a function of the Engine Progress
+
+    if (config.paused) {
+        world.pause();
+    }
+
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'orbit-box',
         width: 50,
-        // Orbital Position Logic: x = cos(t), y = sin(t)
         position: (context: ResolutionContext): Vector3 => ({
             x: Math.cos(context.playback.progress * Math.PI * 2) * 50,
             y: Math.sin(context.playback.progress * Math.PI * 2) * 50,
             z: -100
         }),
 
-        // Rotation can also follow the orbit path
         rotate: (context: ResolutionContext): Rotation3 => ({
             pitch: context.playback.progress * Math.PI,
             yaw: context.playback.progress * Math.PI * 2,
@@ -93,12 +94,18 @@ export function tutorial_orbital_motion(p: p5, config: SketchConfig = DEFAULT_SK
         graphicProcessor = new P5GraphicProcessor(p, loader);
     };
 
-    p.draw = () => {
-        if (config.paused && !clock.isPaused()) clock.pause();
-        if (!config.paused && clock.isPaused()) clock.resume();
-
+    world.complete();
+    
+    p.draw = async () => {
+        if (config.paused && !world.isPaused()) {
+            world.pause();
+        } else if (!config.paused && world.isPaused()) {
+            world.resume();
+        }
+        
         p.background(20);
-        world.step(graphicProcessor);
+        const result = await world.step(graphicProcessor);
+        if (!result.running) return;
     };
 
     return world;

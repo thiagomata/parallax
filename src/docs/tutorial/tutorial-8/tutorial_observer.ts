@@ -71,13 +71,23 @@ export async function tutorial_observer(
     faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(p, 120, 650, false, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 300 }, faceConfig);
 
     const loader = new P5AssetLoader(p);
-    const gp = new P5GraphicProcessor(p, loader);
+    let gp: P5GraphicProcessor;
+    
+    p.setup = () => {
+        p.createCanvas(config.width, config.height, p5.WEBGL);
+        gp = new P5GraphicProcessor(p, loader);
+    };
     const dataProviderLib: { headTracker: HeadTrackingDataProvider } = { headTracker: faceDataProvider };
     const world = new World<P5Bundler, any, any, { headTracker: HeadTrackingDataProvider }>(
         WorldSettings.fromLibs({clock, loader, dataProviderLib})
     );
-
+    
+    world.startLoading();
     world.enableDefaultPerspective(config.width, config.height, Math.PI / 2);
+
+    if (config.paused) {
+        world.pause();
+    }
 
     world.addBox({
         type: ELEMENT_TYPES.BOX,
@@ -298,37 +308,52 @@ export async function tutorial_observer(
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
+        gp = new P5GraphicProcessor(p, loader);
     };
 
-    p.draw = () => {
-        if (config.paused && !clock.isPaused()) clock.pause();
-        if (!config.paused && clock.isPaused()) clock.resume();
-
+    let initialized = false;
+    p.draw = async () => {
+        if (!gp) return;
+        
+        if (!initialized) {
+            await faceDataProvider.init();
+            
+            const videoEl = faceDataProvider.getVideo();
+            console.log('[DEBUG] VideoEl:', videoEl);
+            
+            world.addPanel({
+                type: ELEMENT_TYPES.PANEL,
+                targetId: 'bigBox',
+                id: 'videoPanel',
+                width: 640,
+                height: 480,
+                position: { x: 0, y: 0, z: 0 },
+                video: (_) => {
+                    console.log('[DEBUG] Inside VideoEl:', videoEl);
+                    return faceDataProvider.getVideo()
+                },
+                fillColor: faceDataProvider?.getVideo() ? undefined : { red: 50, green: 50, blue: 50 },
+                alpha: 0.5,
+            });
+            
+            console.log('[DEBUG] Panel added, videoEl:', videoEl);
+            
+            world.complete();
+            initialized = true;
+            return;
+        }
+        
+        if (config.paused && !world.isPaused()) {
+            world.pause();
+        } else if (!config.paused && world.isPaused()) {
+            world.resume();
+        }
+        
         p.background(20);
-        world.step(gp);
+        const result = await world.step(gp);
+        
+        if (!result.running) return;
     };
 
-    await faceDataProvider.init();
-
-    // Wait for video to be ready
-    let videoEl = faceDataProvider.getVideo();
-    let waitCount = 0;
-    while (!videoEl.success && waitCount < 100) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-        videoEl = faceDataProvider.getVideo();
-        waitCount++;
-    }
-
-    world.addPanel({
-        type: ELEMENT_TYPES.PANEL,
-        targetId: 'bigBox',
-        id: 'videoPanel',
-        width: 640,
-        height: 480,
-        position: { x: 0, y: 0, z: 0 },
-        video: videoEl.success ? videoEl.value : undefined,
-        alpha: 0.5,
-        fillColor: videoEl.success ? undefined : { red: 50, green: 50, blue: 50 },
-    });
     return world;
 }

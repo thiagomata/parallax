@@ -21,7 +21,7 @@ describe('Tutorial 3: Orbital Motion Orbital Movement', () => {
             }
         });
 
-        const world = tutorial_orbital_motion(mockP5 as unknown as p5, { 
+        const world = await tutorial_orbital_motion(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400, 
             clock: clock,
@@ -29,11 +29,13 @@ describe('Tutorial 3: Orbital Motion Orbital Movement', () => {
         });
         mockP5.setup();
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const element = world.getElement('orbit-box');
         if (!element) throw new Error("Orbit box not registered");
 
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const box1 = world.getCurrenState()?.elements.get('orbit-box') as ResolvedBox;
         expect(box1).toBeDefined();
@@ -59,6 +61,7 @@ describe('Tutorial 3: Orbital Motion Orbital Movement', () => {
         // TEST POINT B: Progress 0.25 (T = 1250ms)
         mockP5.millis.mockReturnValue(1250);
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const box25 = world.getCurrenState()?.elements.get('orbit-box') as ResolvedBox;
         expect(box25).toBeDefined();
@@ -75,6 +78,7 @@ describe('Tutorial 3: Orbital Motion Orbital Movement', () => {
         // TEST POINT C: Progress 0.5 (T = 2500ms)
         mockP5.millis.mockReturnValue(2500);
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const box50 = world.getCurrenState()?.elements.get('orbit-box') as ResolvedBox;
         expect(box50).toBeDefined();
@@ -91,6 +95,7 @@ describe('Tutorial 3: Orbital Motion Orbital Movement', () => {
         // TEST POINT D: Progress 1.0 (T = 5000ms)
         mockP5.millis.mockReturnValue(5000);
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const box100 = world.getCurrenState()?.elements.get('orbit-box') as ResolvedBox;
         expect(box100).toBeDefined();

@@ -58,7 +58,6 @@ export class ElementResolver<
                 status: ASSET_STATUS.READY,
                 value: null
             },
-            video: blueprint.video
         };
 
         // Side-effects (Async Loading) are explicitly handled during preparation

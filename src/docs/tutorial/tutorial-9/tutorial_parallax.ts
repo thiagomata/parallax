@@ -68,19 +68,21 @@ export async function tutorial_parallax(
     const world = new World<P5Bundler, any, any, { headTracker: HeadTrackingDataProvider }>(
         WorldSettings.fromLibs({ clock, loader, dataProviderLib })
     );
-
+    
+    world.startLoading();
     world.enableDefaultPerspective(config.width, config.height, Math.PI / 4, true);
 
-    // Load HEAD_TRACKED preset: SCREEN → HEAD → EYE
+    if (config.paused) {
+        world.pause();
+    }
+
     world.loadPreset(HEAD_TRACKED_PRESET);
 
-    // Add head tracking modifier to HEAD projection
     world.addModifierToProjection('head', new HeadTrackingModifier({
         disableRotation: false,
         damping: 0.1,
     }), 'car');
 
-    // Add some cubes on a floor
     const floorY = 200;
 
     for (let i = 0; i < 25; i++) {
@@ -182,7 +184,6 @@ export async function tutorial_parallax(
     createTarget({x: 200, y: 200, z: 400});
     createTarget({x: -200, y: -200, z: 500});
     
-    // Additional targets spread across the region
     createTarget({x: -150, y: 0, z: 100});
     createTarget({x: 150, y: 0, z: 120});
     createTarget({x: 0, y: 150, z: 150});
@@ -202,7 +203,7 @@ export async function tutorial_parallax(
     createTarget({x: 80, y: -50, z: -40});
     createTarget({x: 0, y: -100, z: -20});
     createTarget({x: 0, y: 100, z: -10});
-    // Center cube
+
     world.addBox({
         id: 'center-cube',
         type: ELEMENT_TYPES.BOX,
@@ -213,7 +214,6 @@ export async function tutorial_parallax(
         fillColor: COLORS.red,
     });
 
-    // // Left cube
     world.addBox({
         id: 'left-cube',
         type: ELEMENT_TYPES.BOX,
@@ -224,7 +224,6 @@ export async function tutorial_parallax(
         fillColor: COLORS.blue,
     });
 
-    // Right cube
     world.addBox({
         id: 'right-cube',
         type: ELEMENT_TYPES.BOX,
@@ -235,7 +234,6 @@ export async function tutorial_parallax(
         fillColor: COLORS.orange,
     });
 
-    // Far cube
     world.addBox({
         id: 'far-cube',
         type: ELEMENT_TYPES.BOX,
@@ -246,8 +244,6 @@ export async function tutorial_parallax(
         fillColor: COLORS.cyan,
     });
 
-
-    // Front (towards negative Z - in front of camera)
     world.addBox({
         id: 'front-cube',
         type: ELEMENT_TYPES.BOX,
@@ -264,19 +260,24 @@ export async function tutorial_parallax(
         p.createCanvas(config.width, config.height, p.WEBGL);
     };
 
-    p.draw = () => {
+    world.complete();
+    
+    p.draw = async () => {
+        if (config.paused && !world.isPaused()) {
+            world.pause();
+        } else if (!config.paused && world.isPaused()) {
+            world.resume();
+        }
+        
         p.background(20);
         if (gp) {
-            world.step(gp);
+            const result = await world.step(gp);
+            if (!result.running) return;
         }
     };
 
     await faceDataProvider.init();
     gp = new P5GraphicProcessor(p, loader);
-
-    if (!config.paused) {
-        p.loop();
-    }
 
     return world;
 }

@@ -111,8 +111,13 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.push();
         this.applyContext(props, assets, state);
         
+        let videoResult = assets.video;
+        if (typeof videoResult === 'function') {
+            videoResult = videoResult();
+        }
+        
         // Mirror video texture horizontally
-        if (assets.video) {
+        if (videoResult) {
             this.p.scale(-1, 1);
         }
         
@@ -221,12 +226,18 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     private applyVisuals(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         const combinedAlpha = (props.alpha ?? 1) * state.settings.alpha;
 
-        const videoReady = assets.video?.elt && 
-            (assets.video.elt as HTMLVideoElement).readyState >= 2;
+        let videoResult = assets.video;
+        if (typeof videoResult === 'function') {
+            videoResult = videoResult();
+        }
+        
+        const videoEl = videoResult?.success ? videoResult.value : null;
+        const videoElInner = videoEl ? (videoEl as any).elt || videoEl : null;
+        const videoReady = videoElInner && (videoElInner as HTMLVideoElement).readyState >= 2;
 
         if (videoReady) {
             this.p.blendMode(this.p.BLEND);
-            this.p.texture(assets.video);
+            this.p.texture(videoEl);
             this.p.tint(255, this.to8Bit(combinedAlpha));
         } else if (assets.texture?.status === ASSET_STATUS.READY && assets.texture.value) {
             this.p.blendMode(this.p.BLEND);

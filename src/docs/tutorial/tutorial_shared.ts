@@ -5,10 +5,11 @@ import 'prismjs/components/prism-javascript';
 import { 
     DEFAULT_SKETCH_CONFIG, 
     type SketchConfig,
-    extractSketchFunction,
-    createSketchInstance,
-    type P5Sketch
+    sketchEngine,
+    type P5Sketch,
+    type FaceConfig,
 } from "./sketch_engine.ts";
+import { extractSketchFunction } from "./sketch_engine.live.ts";
 import {tutorialStepTemplate} from "./tutorial.template.ts";
 
 function toggleFS(id: string) {
@@ -31,7 +32,7 @@ export function initTutorial(
     source: string,
     explanation: string,
     config: Partial<SketchConfig> = {},
-    faceConfig?: any
+    faceConfig?: FaceConfig
 ) {
     const root = document.getElementById('tutorial-root');
     if (!root) return;
@@ -48,7 +49,7 @@ export function initTutorial(
     const pauseBtn = stepMain.querySelector('.pause-btn') as HTMLButtonElement;
     const canvasSide = stepMain.querySelector('.canvas-side') as HTMLElement;
     
-    requestAnimationFrame(() => {
+    requestAnimationFrame(async () => {
         const sketchConfig: SketchConfig = { 
             ...DEFAULT_SKETCH_CONFIG, 
             ...config, 
@@ -57,13 +58,12 @@ export function initTutorial(
             paused: false 
         };
         
-        let { currentP5 } = createSketchInstance(
+        let { currentP5 } = await sketchEngine.createSketchInstance(
             initialSketch, 
             sketchConfig, 
             canvasBox, 
             containerId, 
-            null,
-            faceConfig
+            { faceConfig }
         );
 
         // Tab switching
@@ -85,12 +85,12 @@ export function initTutorial(
         });
 
         // Execute/update code
-        const executeUpdate = () => {
+        const executeUpdate = async () => {
             consolePanel.style.display = 'block';
             consolePanel.innerHTML = '';
             try {
                 const { fn } = extractSketchFunction(editorBox.innerText);
-                const result = createSketchInstance(fn, sketchConfig, canvasBox, containerId, currentP5);
+                const result = await sketchEngine.createSketchInstance(fn, sketchConfig, canvasBox, containerId);
                 currentP5 = result.currentP5;
                 sketchConfig.paused = false;
                 pauseBtn.dataset.paused = 'false';
@@ -99,11 +99,11 @@ export function initTutorial(
                 log.className = 'log-entry info';
                 log.textContent = `[Engine] Hydration successful.`;
                 consolePanel.appendChild(log);
-            } catch (e: any) {
+            } catch (e: unknown) {
                 const log = document.createElement('div');
                 log.className = 'log-entry info';
                 log.style.color = 'var(--error)';
-                log.textContent = `Error: ${e.message}`;
+                log.textContent = e instanceof Error ? e.message : String(e);
                 consolePanel.appendChild(log);
             }
         };

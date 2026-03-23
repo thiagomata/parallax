@@ -36,16 +36,15 @@ export const animation_explanation = `
 
 <div class="related">
 <h3>Related Tutorials</h3>
-<a href="#tutorial-1">Adding Elements</a>
+<a href="#tutorial-1"> Adding Elements</a>
 <a href="#tutorial-3">Orbital Motion</a>
 <a href="#tutorial-6">Dynamic Properties</a>
 </div>
 `;
 
-export function tutorial_animation(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
+export async function tutorial_animation(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): Promise<World<P5Bundler, any, any>> {
     let graphicProcessor: P5GraphicProcessor;
 
-    // Scene Orchestration with a custom 5s loop
     const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
@@ -56,7 +55,6 @@ export function tutorial_animation(p: p5, config: SketchConfig = DEFAULT_SKETCH_
         }
     });
 
-    // Asset Pipeline & World
     const loader = config.loader ?? new P5AssetLoader(p);
     graphicProcessor = new P5GraphicProcessor(p, loader);
 
@@ -65,31 +63,32 @@ export function tutorial_animation(p: p5, config: SketchConfig = DEFAULT_SKETCH_
                 [TransformEffect.type]: TransformEffect
         }})
     );
+    
+    world.startLoading();
     world.enableDefaultPerspective(config.width, config.height);
+
+    if (config.paused) {
+        world.pause();
+    }
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
 
-        // Registration
-        // We use the blueprint functions to define effect over time
         world.addBox({
             type: ELEMENT_TYPES.BOX,
             id: 'pulsing-box',
             position: {x: 0, y: 0, z: 0},
 
-            // Dynamic Size: Pulse between 50 and 150
             width: (context: ResolutionContext) => {
                 return 100 + Math.sin(context.playback.progress * Math.PI * 2) * 50;
             },
 
-            // Dynamic Rotation: Full 360 degree spin per loop
             rotate: (context: ResolutionContext) => ({
                 pitch: 0,
                 yaw: Math.PI * 2 * context.playback.progress,
                 roll: Math.PI * 2 * context.playback.progress,
             }),
 
-            // Dynamic Color: Shift blue channel based on progress
             fillColor: {
                 red: 255,
                 green: 100,
@@ -99,13 +98,11 @@ export function tutorial_animation(p: p5, config: SketchConfig = DEFAULT_SKETCH_
                 alpha: 1.0
             },
             strokeWidth: 5,
-            // effects run after all transformations just before the rendering, allowing us to interact with computed info
             effects: [
                 {
                     type: TransformEffect.type,
                     settings: {
                         transform: (element, _) => {
-                            // in this case, we are using the computed fill color to define the stroke color
                             return {
                                 ...element,
                                 strokeColor: {
@@ -122,12 +119,18 @@ export function tutorial_animation(p: p5, config: SketchConfig = DEFAULT_SKETCH_
         });
     };
 
-    p.draw = () => {
-        if (config.paused && !clock.isPaused()) clock.pause();
-        if (!config.paused && clock.isPaused()) clock.resume();
-
+    world.complete();
+    
+    p.draw = async () => {
+        if (config.paused && !world.isPaused()) {
+            world.pause();
+        } else if (!config.paused && world.isPaused()) {
+            world.resume();
+        }
+        
         p.background(20);
-        world.step(graphicProcessor);
+        const result = await world.step(graphicProcessor);
+        if (!result.running) return;
     };
 
     return world;

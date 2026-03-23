@@ -1,4 +1,4 @@
-import {tutorial_adding_elements} from "./tutorial_adding_elements.ts";
+import {tutorial_adding_elements} from "./tutorial-1/tutorial_adding_elements.ts";
 import {tutorial_animation} from "./tutorial-2/tutorial_animation.ts";
 import {tutorial_orbital_motion} from "./tutorial-3/tutorial_orbital_motion.ts";
 import {tutorial_camera_control} from "./tutorial-4/tutorial_camera_control.ts";

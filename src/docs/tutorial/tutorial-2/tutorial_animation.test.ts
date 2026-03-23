@@ -23,21 +23,21 @@ describe('Tutorial 2: Animation Progression Integration', () => {
         });
 
         // Execute the actual tutorial function
-        const world = tutorial_animation(mockP5 as unknown as p5, { 
+        const world = await tutorial_animation(mockP5 as unknown as p5, { 
             width: 500, 
             height: 400, 
             clock: clock,
             paused: false
         });
-        mockP5.setup(); // Triggers registration
-
-        // TEST POINT A: Progress 0.0 (T = 0ms) ---
-        mockP5.draw(); // Calculates state and steps world
+        mockP5.setup();
+        mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const element = world.getElement('pulsing-box');
         if (!element) throw new Error("Pulsing box not registered");
 
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const box1 = world.getCurrenState()?.elements.get('pulsing-box') as ResolvedBox;
         expect(box1).toBeDefined();
@@ -54,6 +54,7 @@ describe('Tutorial 2: Animation Progression Integration', () => {
         // TEST POINT B: Progress 0.25 (T = 1000ms / 4000ms) ---
         mockP5.millis.mockReturnValue(1000);
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const box25 = world.getCurrenState()?.elements.get('pulsing-box') as ResolvedBox;
         expect(box25).toBeDefined();
@@ -65,6 +66,7 @@ describe('Tutorial 2: Animation Progression Integration', () => {
         // TEST POINT C: Progress 0.5 (T = 2000ms) ---
         mockP5.millis.mockReturnValue(2000);
         mockP5.draw();
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         const box50 = world.getCurrenState()?.elements.get('pulsing-box') as ResolvedBox;
         // Size: 100 + sin(PI) * 50 = 100

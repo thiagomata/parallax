@@ -45,7 +45,7 @@ export const look_at_explanation = `
 </div>
 `;
 
-export function tutorial_look_at(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): World<P5Bundler, any, any> {
+export async function tutorial_look_at(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): Promise<World<P5Bundler, any, any>> {
     let graphicProcessor: P5GraphicProcessor;
 
     const clock = config.clock ?? new SceneClock({
@@ -67,9 +67,14 @@ export function tutorial_look_at(p: p5, config: SketchConfig = DEFAULT_SKETCH_CO
             elementEffectLib: effects
         })
     );
-
+    
+    world.startLoading();
     world.enableDefaultPerspective(config.width, config.height);
     world.loadPreset(CenterOrbit(p, {radius: 300, verticalBaseline: 100}));
+
+    if (config.paused) {
+        world.pause();
+    }
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
@@ -113,11 +118,18 @@ export function tutorial_look_at(p: p5, config: SketchConfig = DEFAULT_SKETCH_CO
         });
     };
 
-    p.draw = () => {
-        if (config.paused && !clock.isPaused()) clock.pause();
-        if (!config.paused && clock.isPaused()) clock.resume();
+    world.complete();
+    
+    p.draw = async () => {
+        if (config.paused && !world.isPaused()) {
+            world.pause();
+        } else if (!config.paused && world.isPaused()) {
+            world.resume();
+        }
+        
         p.background(20);
-        world.step(graphicProcessor);
+        const result = await world.step(graphicProcessor);
+        if (!result.running) return;
     };
 
     return world;

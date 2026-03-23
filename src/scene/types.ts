@@ -529,7 +529,7 @@ export type FontAsset<TFont = unknown> =
 export interface ElementAssets<TBundle extends GraphicsBundle> {
     texture?: TextureAsset<TBundle['texture']>;
     font?: FontAsset<TBundle['font']>;
-    video?: any;
+    // video?: FailableResult<any> | (() => FailableResult<any>);
 }
 
 export interface AssetLoader<TBundle extends GraphicsBundle> {
@@ -743,7 +743,7 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     readonly lookAt?: Vector3;
 
     readonly texture?: TextureRef;
-    readonly video?: unknown;
+    readonly video?: FailableResult<any>;
     readonly font?: FontRef;
     readonly effects?: EffectBlueprint[];
 }

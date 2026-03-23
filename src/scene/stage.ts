@@ -428,7 +428,7 @@ export class Stage<
             // Multiple roots - create a virtual root
             return {
                 props: { id: '__root__', type: 'box' as any, position: { x: 0, y: 0, z: 0 } },
-                assets: { texture: { status: 'READY', value: null }, video: null },
+                assets: { texture: { status: 'READY', value: null } },
                 children: roots
             };
         }
