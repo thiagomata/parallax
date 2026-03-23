@@ -390,7 +390,8 @@ export class Stage<
         };
 
         // Build render tree and draw
-        const renderTree = this.buildRenderTree(finalElements);
+        let renderTree: RenderTreeNode | null;
+        renderTree = this.buildRenderTree(finalElements);
 
         // Build projection tree for camera
         graphicProcessor.setCameraTree(projectionTree);

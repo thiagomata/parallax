@@ -742,7 +742,7 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     readonly lookAt?: Vector3;
 
     readonly texture?: TextureRef;
-    readonly video?: FailableResult<any>;
+    readonly video?: unknown;
     readonly font?: FontRef;
     readonly effects?: EffectBlueprint[];
 

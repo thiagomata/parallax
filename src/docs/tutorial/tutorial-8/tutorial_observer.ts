@@ -322,26 +322,21 @@ export async function tutorial_observer(
         if (!initialized) {
             await faceDataProvider.init();
             
-            const videoEl = faceDataProvider.getVideo();
-            console.log('[DEBUG] VideoEl:', videoEl);
-            
             world.addPanel({
                 type: ELEMENT_TYPES.PANEL,
                 parentId: 'bigBox',
                 id: 'videoPanel',
                 width: 640,
+                mirrorTextureHorizontal: true,
                 height: 480,
                 position: { x: 0, y: 0, z: 0 },
-                video: (_) => {
-                    console.log('[DEBUG] Inside VideoEl:', videoEl);
-                    return webCamProvider.getVideo()
+                video: (_ctx: any) => {
+                    return webCamProvider.getData();
                 },
-                fillColor: webCamProvider?.getVideo() ? undefined : { red: 50, green: 50, blue: 50 },
+                fillColor: webCamProvider?.getData() ? undefined : { red: 50, green: 50, blue: 50 },
                 alpha: 0.5,
             });
-            
-            console.log('[DEBUG] Panel added, videoEl:', videoEl);
-            
+
             world.complete();
             initialized = true;
             return;

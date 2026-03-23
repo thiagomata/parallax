@@ -23,7 +23,8 @@ describe("WebCamDataProvider", () => {
 
         const provider = new WebCamDataProvider(p, 320, 240);
 
-        expect(provider.getData()).toBeNull();
-        expect(provider.getVideo().success).toBe(false);
+        expect(provider.getStatus()).toBe("INITIALIZING");
+        expect(provider.getData()).toBe(p._mockCapture);
+        expect(provider.getVideo().success).toBe(true);
     });
 });

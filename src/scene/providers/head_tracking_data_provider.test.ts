@@ -315,6 +315,10 @@ describe("HeadTrackingDataProvider", () => {
     describe("getVideo", () => {
         it("should return video from provider", () => {
             const mockVideo = { foo: "bar" };
+            const mockWebCam = {
+                getVideo: vi.fn().mockReturnValue(mockVideo),
+                getData: vi.fn().mockReturnValue(mockVideo),
+            };
             const mockProvider = MockFaceProvider(mockFace);
             (mockProvider as any).getVideo = vi.fn().mockReturnValue(mockVideo);
             const mockP5 = createMockP5WithCapture();
@@ -324,6 +328,7 @@ describe("HeadTrackingDataProvider", () => {
                 sceneScreenWidth
             );
             (tracker as any).provider = mockProvider;
+            (tracker as any).webCamProvider = mockWebCam;
 
             const video = tracker.getVideo();
 

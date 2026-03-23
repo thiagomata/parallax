@@ -184,7 +184,10 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         if (this.webCamProvider) {
             return this.webCamProvider.getVideo();
         }
-        return this.provider.getVideo();
+        return {
+            success: false,
+            error: "webCam parent provider not wired yet",
+        };
     }
 
     getData(): FaceWorldData | null {

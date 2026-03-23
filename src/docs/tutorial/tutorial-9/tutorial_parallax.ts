@@ -3,6 +3,7 @@ import { World } from "../../../scene/world.ts";
 import { P5GraphicProcessor } from "../../../scene/p5/p5_graphic_processor.ts";
 import { SceneClock } from "../../../scene/scene_clock.ts";
 import { HeadTrackingDataProvider } from "../../../scene/providers/head_tracking_data_provider.ts";
+import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type Vector3} from "../../../scene/types.ts";
 import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "../sketch_config.ts";
@@ -46,8 +47,8 @@ export const parallax_explanation = `
 export async function tutorial_parallax(
     p: p5,
     config: SketchConfig = DEFAULT_SKETCH_CONFIG,
-    extraArgs?: { faceConfig?: any; faceDataProvider?: HeadTrackingDataProvider },
-): Promise<World<P5Bundler, any, any, { headTracker: HeadTrackingDataProvider }>> {
+    extraArgs?: { faceConfig?: any; faceDataProvider?: HeadTrackingDataProvider; webCamProvider?: WebCamDataProvider },
+): Promise<World<P5Bundler, any, any, { webCam: WebCamDataProvider; headTracker: HeadTrackingDataProvider }>> {
     const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
@@ -60,12 +61,18 @@ export async function tutorial_parallax(
     });
 
     const faceConfig = extraArgs?.faceConfig;
+    let webCamProvider = extraArgs?.webCamProvider;
+    webCamProvider = webCamProvider ?? new WebCamDataProvider(p, 640, 480);
+
     let faceDataProvider = extraArgs?.faceDataProvider;
     faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(p, 120, 650, false, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 300 }, faceConfig);
 
     const loader = new P5AssetLoader(p);
-    const dataProviderLib: { headTracker: HeadTrackingDataProvider } = { headTracker: faceDataProvider };
-    const world = new World<P5Bundler, any, any, { headTracker: HeadTrackingDataProvider }>(
+    const dataProviderLib: { webCam: WebCamDataProvider; headTracker: HeadTrackingDataProvider } = {
+        webCam: webCamProvider,
+        headTracker: faceDataProvider,
+    };
+    const world = new World<P5Bundler, any, any, { webCam: WebCamDataProvider; headTracker: HeadTrackingDataProvider }>(
         WorldSettings.fromLibs({ clock, loader, dataProviderLib })
     );
     

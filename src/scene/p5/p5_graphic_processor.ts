@@ -216,8 +216,10 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     private applyVisuals(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         const combinedAlpha = (props.alpha ?? 1) * state.settings.alpha;
 
-        const videoResult = props.video;
-        const videoEl = videoResult?.success ? videoResult.value : null;
+        const videoCandidate = props.video as any;
+        const videoEl = videoCandidate && typeof videoCandidate === "object" && "success" in videoCandidate
+            ? (videoCandidate.success ? videoCandidate.value : null)
+            : videoCandidate;
         const videoElInner = videoEl ? (videoEl as any).elt || videoEl : null;
         const videoReady = videoElInner && (videoElInner as HTMLVideoElement).readyState >= 2;
 
@@ -329,7 +331,6 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
 
     public drawTree(node: RenderTreeNode | null, state: ResolvedSceneState): void {
         if (!node) return;
-
         let rotation = node.props.rotate;
         const centerOffset = this.getCenterOffset(node.props);
         const drawOffset = { x: -centerOffset.x, y: -centerOffset.y, z: -centerOffset.z };

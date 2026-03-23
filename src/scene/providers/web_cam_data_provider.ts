@@ -54,18 +54,12 @@ export class WebCamDataProvider implements DataProviderBundle<"webCam", any> {
         if (!videoElt) {
             return { success: false, error: "Video is not ready [ERROR]" };
         }
-        if (this.getStatus() !== "READY") {
-            return { success: false, error: `Video is not ready [${this.status}]` };
-        }
-        if (videoElt.readyState < 2) {
-            return { success: false, error: `Video element not ready [readyState: ${videoElt.readyState}]` };
-        }
         return { success: true, value: this.capture };
     }
 
     getData(): any | null {
-        const result = this.getVideo();
-        return result.success ? result.value : null;
+        const videoElt = this.capture?.elt as HTMLVideoElement | undefined;
+        return this.capture && videoElt ? this.capture : null;
     }
 
     getDataResult(): FailableResult<any> {
