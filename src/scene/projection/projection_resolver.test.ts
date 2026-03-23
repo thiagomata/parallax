@@ -235,6 +235,24 @@ describe("ProjectionResolver", () => {
             expect(result.distance).toBeDefined();
         });
 
+        it("keeps local space when a hierarchy parent is missing", () => {
+            const resolved = {
+                id: "child",
+                type: PROJECTION_TYPES.EYE,
+                parentId: "missing",
+                position: { x: 1, y: 2, z: 3 },
+                rotation: { yaw: 0.1, pitch: 0.2, roll: 0.3 },
+                lookAt: { x: 0, y: 0, z: 0 },
+                direction: { x: 0, y: 0, z: 1 },
+                distance: 3,
+                effects: [],
+            } as ResolvedProjection;
+
+            const result = (resolver as any).applyHierarchyTransform(resolved, {}, null);
+
+            expect(result).toBe(resolved);
+        });
+
         it("should apply car modifier that succeeds", () => {
             const mockCarModifier: CarModifier = {
                 name: "testCar",

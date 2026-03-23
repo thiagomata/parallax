@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { BaseResolver } from "./base_resolver.ts";
 import { SPEC_KINDS, WindowConfig, type ResolutionContext } from "../types.ts";
 
@@ -93,5 +93,25 @@ describe("BaseResolver", () => {
         const result = resolver.applyEffectsPublic({ base: true }, effects, context);
         expect(result).toEqual({ base: true, applied: true });
         expect((result as any).skipped).toBeUndefined();
+    });
+
+    it("keeps failable results and media objects opaque during resolution", () => {
+        const resolver = new TestResolver({});
+        const context = createContext();
+
+        const rawMedia = {
+            elt: { readyState: 4 },
+            play: vi.fn(),
+            hide: vi.fn(),
+            size: vi.fn(),
+        };
+
+        const wrappedResult = {
+            success: true,
+            value: { nested: { answer: 42 } },
+        };
+
+        expect(resolver.loopResolve(rawMedia, context)).toBe(rawMedia);
+        expect(resolver.loopResolve(wrappedResult, context)).toBe(wrappedResult);
     });
 });

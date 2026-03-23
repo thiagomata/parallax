@@ -141,12 +141,30 @@ describe("Stage", () => {
         expect(buildRenderTree([])).toBeNull();
     });
 
+    it("toRenderTreeNode throws when the lookup map is missing a node", () => {
+        const toRenderTreeNode = (stage as any).toRenderTreeNode.bind(stage) as (node: any, nodeMap: Map<string, any>) => any;
+
+        expect(() => toRenderTreeNode(
+            { value: { id: "missing" }, children: [] },
+            new Map()
+        )).toThrow("Render tree node 'missing' missing from lookup map");
+    });
+
     describe("buildProjectionTree", () => {
         it("returns null when there are no projections", () => {
             const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
             const result = buildProjectionTree({});
             expect(result.tree).toBeNull();
             expect(result.flatMap.size).toBe(0);
+        });
+
+        it("toProjectionTreeNode throws when the lookup map is missing a node", () => {
+            const toProjectionTreeNode = (stage as any).toProjectionTreeNode.bind(stage) as (node: any, nodeMap: Map<string, any>) => any;
+
+            expect(() => toProjectionTreeNode(
+                { value: { id: "missing" }, children: [] },
+                new Map()
+            )).toThrow("Projection tree node 'missing' missing from lookup map");
         });
 
         it("builds tree with single root projection", () => {
@@ -500,6 +518,36 @@ describe("Stage", () => {
                 expect(proj.id).toBe(id);
             }
         });
+    });
+
+    it("clears the distance cache when the cache interval expires", () => {
+        const gp = {
+            dist: vi.fn(() => 42),
+            drawTree: vi.fn(),
+            setCameraTree: vi.fn(),
+        } as any;
+
+        stage.addElement({
+            id: "box",
+            type: ELEMENT_TYPES.BOX,
+            width: 1,
+            position: { x: 0, y: 0, z: 0 },
+        } as any);
+
+        (stage as any).lastCacheUpdate = 0;
+        const nowSpy = vi.spyOn(performance, "now").mockReturnValue(9999);
+
+        stage.render(gp, {
+            playback: { now: 0, delta: 0, frameCount: 0, progress: 0 },
+            previousResolved: null,
+            sceneId: 1,
+        });
+
+        expect((stage as any).distanceCache.size).toBe(0);
+        expect(gp.setCameraTree).toHaveBeenCalled();
+        expect(gp.drawTree).toHaveBeenCalled();
+
+        nowSpy.mockRestore();
     });
 
     it("removeElement does not remove children; children become roots when parent is removed", () => {

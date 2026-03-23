@@ -166,6 +166,28 @@ describe("P5GraphicProcessor", () => {
         expect(p.tint).toHaveBeenCalledWith(255, 64);
     });
 
+    it("accepts a raw video capture object without a failable wrapper", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
+
+        const state = { settings: { alpha: 1 } } as any;
+        const rawVideo = { elt: { readyState: 2 } };
+
+        gp.drawBox(
+            {
+                id: "b",
+                type: ELEMENT_TYPES.BOX,
+                width: 10,
+                position: { x: 0, y: 0, z: 0 },
+                video: rawVideo,
+            } as any,
+            {} as any,
+            state
+        );
+
+        expect(p.texture).toHaveBeenCalledWith(rawVideo);
+    });
+
     it("applies image texture when ready and video is not ready", () => {
         const p = createMockP5();
         const gp = new P5GraphicProcessor(p as any, {} as any);
@@ -381,4 +403,3 @@ describe("P5GraphicProcessor", () => {
         expect(p.lerp).toHaveBeenCalled();
     });
 });
-

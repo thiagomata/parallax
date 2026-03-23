@@ -5,6 +5,7 @@ import p5 from "p5";
 import {SceneClock} from "../../../scene/scene_clock.ts";
 import {DEFAULT_SCENE_SETTINGS} from "../../../scene/types.ts";
 import {createFaceWorldData, createMockHeadTrackingProvider} from "../../../scene/mock/face.mock.ts";
+import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
 
 describe('Tutorial 8: The Observer', () => {
     
@@ -222,5 +223,47 @@ describe('Tutorial 8: The Observer', () => {
 
         // Should initialize world
         expect(world).toBeDefined();
+    });
+
+    it('should build and step the video panel with a webcam parent', async () => {
+        const mockP5 = createMockP5();
+        mockP5.millis.mockReturnValue(0);
+
+        const clock = new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
+            playback: {
+                ...DEFAULT_SCENE_SETTINGS.playback,
+                duration: 10000,
+                isLoop: true
+            }
+        });
+
+        const face1 = createFaceWorldData();
+        const getDataMock = vi.fn().mockReturnValue(face1);
+        const mockTracker = createMockHeadTrackingProvider(getDataMock);
+        const mockWebCam = {
+            type: "webCam",
+            parentId: undefined,
+            tick: vi.fn(),
+            getData: vi.fn().mockReturnValue(null),
+            getDataResult: vi.fn().mockReturnValue({ success: false as const, error: "no video" }),
+            getVideo: vi.fn().mockReturnValue({ success: false as const, error: "no video" }),
+        } as unknown as WebCamDataProvider;
+
+        const world = await tutorial_observer(mockP5 as unknown as p5, {
+            width: 500,
+            height: 400,
+            clock,
+            paused: false
+        }, { faceDataProvider: mockTracker, webCamProvider: mockWebCam } as any);
+
+        await mockP5.setup();
+        await mockP5.draw();
+        expect(world.getElement('videoPanel')).toBeDefined();
+
+        await mockP5.draw();
+
+        expect(mockP5.background).toHaveBeenCalled();
+        expect(mockP5.box).toHaveBeenCalled();
     });
 });

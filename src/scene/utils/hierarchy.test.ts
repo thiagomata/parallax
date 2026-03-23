@@ -125,4 +125,48 @@ describe("HierarchyTools", () => {
         expect(leafContext.ancestorsById.get("child-a")?.id).toBe("child-a");
         expect(leafContext.ancestorsById.has("leaf")).toBe(false);
     });
+
+    it("returns ancestors from nearest parent to root", () => {
+        const source = new MemoryHierarchySource<TestNode>([
+            { id: "root", label: "root" },
+            { id: "child", parentId: "root", label: "child" },
+            { id: "leaf", parentId: "child", label: "leaf" },
+        ]);
+
+        const tools = new HierarchyTools(source);
+
+        expect(tools.getAncestors("leaf").map(node => node.id)).toEqual(["child", "root"]);
+        expect(tools.getAncestors("root")).toEqual([]);
+    });
+
+    it("detects recursive ancestor lookup", () => {
+        const source = new MemoryHierarchySource<TestNode>([
+            { id: "a", parentId: "b", label: "a" },
+            { id: "b", parentId: "a", label: "b" },
+        ]);
+        const tools = new HierarchyTools(source);
+
+        expect(() => tools.getAncestors("a")).toThrow(
+            'Hierarchy Violation: Node "a" has recursive reference.'
+        );
+    });
+
+    it("stops ancestor lookup when the chain ends early", () => {
+        const source = new MemoryHierarchySource<TestNode>([
+            { id: "orphan", parentId: "ghost", label: "orphan" },
+        ]);
+        const tools = new HierarchyTools(source);
+
+        expect(tools.getAncestors("orphan").map(node => node.id)).toEqual([]);
+    });
+
+    it("can allow missing parents in recursive validation chains", () => {
+        const source = new MemoryHierarchySource<TestNode>([
+            { id: "root", parentId: "missing", label: "root" },
+            { id: "child", parentId: "root", label: "child" },
+        ]);
+        const tools = new HierarchyTools(source);
+
+        expect(() => tools.validate({ id: "child", parentId: "root", label: "child" }, { requireParentExists: false })).not.toThrow();
+    });
 });

@@ -118,4 +118,34 @@ describe('Tutorial 10: Parallax Head-Tracked VR View', () => {
         // Verify world was created with the mock provider
         expect(world).toBeDefined();
     });
+
+    it('should step the parallax scene after setup', async () => {
+        const mockP5 = createMockP5();
+        mockP5.millis.mockReturnValue(0);
+
+        const clock = new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
+            playback: {
+                ...DEFAULT_SCENE_SETTINGS.playback,
+                duration: 10000,
+                isLoop: true
+            }
+        });
+
+        const getDataMock = vi.fn();
+        getDataMock.mockReturnValue(createFaceWorldData());
+
+        await tutorial_parallax(mockP5 as unknown as p5, {
+            width: 640,
+            height: 480,
+            clock,
+            paused: false
+        }, createMockHeadTrackingProvider(getDataMock) as any);
+
+        await mockP5.setup();
+        await mockP5.draw();
+
+        expect(mockP5.background).toHaveBeenCalled();
+        expect(mockP5.box).toHaveBeenCalled();
+    });
 });
