@@ -83,7 +83,7 @@ describe("Stage", () => {
         );
     });
 
-    it("addProjection throws when targetId does not exist", () => {
+    it("addProjection throws when parentId does not exist", () => {
         const projection: BlueprintProjection = {
             id: "p2",
             type: PROJECTION_TYPES.WORLD,
@@ -95,7 +95,7 @@ describe("Stage", () => {
         };
 
         expect(() => stage.addProjection(projection)).toThrow(
-            "Target missing not found for projection p2"
+            "Parent missing not found for projection p2"
         );
     });
 
@@ -193,7 +193,7 @@ describe("Stage", () => {
             expect(result.tree!.props.globalRotation).toEqual({ yaw: 0.1, pitch: 0.2, roll: 0.3 });
         });
 
-        it("links child projection to parent via targetId", () => {
+        it("links child projection to parent via parentId", () => {
             const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
             const pool: Record<string, ResolvedProjection> = {
                 screen: {
@@ -514,7 +514,7 @@ describe("Stage", () => {
             id: "child",
             type: ELEMENT_TYPES.BOX,
             width: 1,
-            targetId: "parent",
+            parentId: "parent",
             position: { x: 1, y: 0, z: 0 },
         });
 
@@ -702,7 +702,7 @@ describe("Stage", () => {
                 modifiers: {},
             };
             
-            (stage as any).projectionRegistry.update('testLookAt', lookAtProjection as any);
+            (stage as any).projectionRegistry.update(lookAtProjection);
 
             const mockStickModifier = {
                 name: 'stickTest',

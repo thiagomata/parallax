@@ -116,13 +116,13 @@ describe("World Presets", () => {
 });
 
 describe("VR_CABIN_PRESET structure", () => {
-    it("has correct hierarchy (targetId references)", () => {
+    it("has correct hierarchy (parentId references)", () => {
         const car = VR_CABIN_PRESET.projectors.find(p => p.id === 'car');
         const screen = VR_CABIN_PRESET.projectors.find(p => p.id === 'screen');
         const head = VR_CABIN_PRESET.projectors.find(p => p.id === 'head');
         const eye = VR_CABIN_PRESET.projectors.find(p => p.id === 'eye');
 
-        // car has no targetId (root of tree)
+        // car has no parentId (root of tree)
         expect(car?.parentId).toBeUndefined();
         
         // screen targets car
@@ -149,7 +149,7 @@ describe("SIMPLE_PRESET structure", () => {
         const screen = SIMPLE_PRESET.projectors.find(p => p.id === 'screen');
         const eye = SIMPLE_PRESET.projectors.find(p => p.id === 'eye');
 
-        // screen has no targetId (root)
+        // screen has no parentId (root)
         expect(screen?.parentId).toBeUndefined();
         
         // eye targets screen
@@ -163,7 +163,7 @@ describe("HEAD_TRACKED_PRESET structure", () => {
         const head = HEAD_TRACKED_PRESET.projectors.find(p => p.id === 'head');
         const eye = HEAD_TRACKED_PRESET.projectors.find(p => p.id === 'eye');
 
-        // head has no targetId (root)
+        // head has no parentId (root)
         expect(head?.parentId).toBeUndefined();
         
         // screen targets head

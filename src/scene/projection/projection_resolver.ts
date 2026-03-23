@@ -24,7 +24,7 @@ export class ProjectionResolver<
      * We protect IDs and the Modifier lists from being wrapped as dynamic.
      */
     protected readonly staticKeys = [
-        "id", "type", "targetId", "effects", "modifiers"
+        "id", "type", "parentId", "effects", "modifiers"
     ];
 
     constructor(effectLib: TProjectionEffectLib) {
@@ -72,28 +72,28 @@ export class ProjectionResolver<
             throw new Error(`Self-Reference: Projection "${blueprint.id}" cannot target itself.`);
         }
 
-        const target = registry.get(blueprint.parentId);
+        const parent = registry.get(blueprint.parentId);
 
-        if (!target) {
+        if (!parent) {
             throw new Error(
-                `Hierarchy Violation: Target "${blueprint.parentId}" not found. ` +
-                `Targets must be registered before their followers.`
+                `Hierarchy Violation: Parent "${blueprint.parentId}" not found. ` +
+                `Parent must be registered before their followers.`
             );
         }
 
         if (!this.validateHierarchy(blueprint.id, blueprint.parentId, registry)){
             throw new Error(
-                `Hierarchy Violation: Target "${blueprint.parentId}" has recursive reference.`
+                `Hierarchy Violation: Parent "${blueprint.parentId}" has recursive reference.`
             )
         }
     }
 
     private validateHierarchy(
         id: string,
-        targetId: string,
+        parentId: string,
         registry: ProjectionAssetRegistry<TProjectionEffectLib>
     ): boolean {
-        let currentId: string | undefined = targetId;
+        let currentId: string | undefined = parentId;
         const visited = new Set<string>([id]);
 
         while (currentId) {

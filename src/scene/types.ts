@@ -720,10 +720,10 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     readonly id: ElementId<TID>;
     readonly type: typeof ELEMENT_TYPES[keyof typeof ELEMENT_TYPES];
 
-    /** Target element id for hierarchy. Child position/rotation becomes relative to parent element. */
-    readonly targetId?: string;
+    /** Parent  element id for hierarchy. Child position/rotation becomes relative to parent element. */
+    readonly parentId?: string;
 
-    /** Local position - relative to parent (if targetId set) or world origin */
+    /** Local position - relative to parent (if parentId set) or world origin */
     readonly position: Vector3;
 
     readonly alpha?: number;
@@ -738,7 +738,7 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     /** Look mode - how rotation is determined (ANGLE or LOOK_AT) */
     readonly lookMode?: ElementLookMode;
 
-    /** Target position to look at when lookMode is LOOK_AT */
+    /** Parent  position to look at when lookMode is LOOK_AT */
     readonly lookAt?: Vector3;
 
     readonly texture?: TextureRef;

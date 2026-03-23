@@ -71,7 +71,7 @@ describe("ProjectionResolver", () => {
             };
 
             expect(() => resolver.prepare(blueprint, registry)).toThrow(
-                'Hierarchy Violation: Target "nonexistent" not found.'
+                'Hierarchy Violation: Parent "nonexistent" not found.'
             );
         });
 
@@ -95,7 +95,9 @@ describe("ProjectionResolver", () => {
                 direction: {x: 0, y: 0, z: 1},
             });
 
+
             expect(() =>
+
                 resolver.prepare(
                     {
                         id: "b",
@@ -108,7 +110,7 @@ describe("ProjectionResolver", () => {
                     },
                     registry
                 )
-            ).toThrow('Hierarchy Violation: Target "a" has recursive reference.');
+            ).toThrow('Hierarchy Violation: Parent "a" has recursive reference.');
         });
 
         it("should throw error for invalid projection effect type", () => {

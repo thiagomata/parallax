@@ -57,7 +57,7 @@ export class ProjectionAssetRegistry<
         return this.projections.delete(id);
     }
 
-    public update(id: string, projection: DynamicProjection): void {
-        this.projections.set(id, projection);
+    public update(projection: DynamicProjection): void {
+        this.projections.set(projection.id, projection);
     }
 }

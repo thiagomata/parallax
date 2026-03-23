@@ -111,7 +111,7 @@ describe('LookAtEffect', () => {
             const result = LookAtEffect.apply(element, context, settings, resolutionPool);
 
             expect(result.rotate).toBeDefined();
-            // Target is at (100, 0, 0) - to the right
+            // Parent is at (100, 0, 0) - to the right
             // Yaw should be positive (turning right)
             expect(result.rotate?.yaw).toBeGreaterThan(0);
         });

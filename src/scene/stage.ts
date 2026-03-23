@@ -23,12 +23,12 @@ import {
     type SceneSettings,
     type Vector3,
     WindowConfig,
-  	    DEFAULT_EYE_LOOK_AT,
-  	    DEFAULT_SCREEN_ROTATION,
-  	    LOOK_MODES,
-  	    STANDARD_PROJECTION_IDS,
-  	    PROJECTION_TYPES,
-  	} from "./types.ts";
+    DEFAULT_EYE_LOOK_AT,
+    DEFAULT_SCREEN_ROTATION,
+    LOOK_MODES,
+    STANDARD_PROJECTION_IDS,
+    PROJECTION_TYPES,
+} from "./types.ts";
 import {ElementResolver} from "./resolver/element_resolver.ts";
 import {ProjectionResolver} from "./projection/projection_resolver.ts";
 import {ProjectionAssetRegistry} from "./registry/projection_asset_registry.ts";
@@ -154,7 +154,7 @@ export class Stage<
             // Existence: The parent must already exist in the projection registry
             const parent = this.projectionRegistry.get(parentId);
             if (!parent) {
-                throw new Error(`Target ${parentId} not found for projection ${blueprint.id}`);
+                throw new Error(`Parent ${parentId} not found for projection ${blueprint.id}`);
             }
 
             // Recursion Check: Trace back to ensure no loops
@@ -220,7 +220,7 @@ export class Stage<
         };
 
         // Update the registry
-        this.projectionRegistry.update(projectionId, updatedProjection);
+        this.projectionRegistry.update(updatedProjection);
         this.cachedDynamicState = null; // invalidate cache
     }
 
@@ -392,7 +392,7 @@ export class Stage<
     }
 
     /**
-     * Builds a render tree from flat list based on targetId relationships.
+     * Builds a render tree from flat list based on parentId relationships.
      */
     private buildRenderTree(elements: Array<{ id: string; bundle: BundleResolvedElement<ResolvedElement, TGraphicBundle> }>): RenderTreeNode | null {
         const nodeMap = new Map<string, RenderTreeNode>();
@@ -409,9 +409,9 @@ export class Stage<
         // Second pass: link children to parents, collect roots
         const roots: RenderTreeNode[] = [];
         for (const [_id, node] of nodeMap) {
-            const targetId = (node.props as any).targetId;
-            if (targetId && nodeMap.has(targetId)) {
-                const parentNode = nodeMap.get(targetId);
+            const parentId = node.props.parentId;
+            if (parentId && nodeMap.has(parentId)) {
+                const parentNode = nodeMap.get(parentId);
                 if (parentNode) {
                     parentNode.children.push(node);
                 }
@@ -437,7 +437,7 @@ export class Stage<
     }
 
     /**
-     * Builds a projection tree from flat pool based on targetId relationships.
+     * Builds a projection tree from flat pool based on parentId relationships.
      * Computes global position/rotation for each node during tree traversal.
      * Returns both the tree and a flat map for lookup.
      */
@@ -457,9 +457,9 @@ export class Stage<
 
         const roots: ProjectionTreeNode[] = [];
         for (const [_id, node] of nodeMap) {
-            const targetId = node.props.parentId;
-            if (targetId && nodeMap.has(targetId)) {
-                const parentNode = nodeMap.get(targetId);
+            const parentId = node.props.parentId;
+            if (parentId && nodeMap.has(parentId)) {
+                const parentNode = nodeMap.get(parentId);
                 if (parentNode) {
                     parentNode.children.push(node);
                 }

@@ -101,7 +101,7 @@ export async function tutorial_observer(
     world.addCylinder({
         id: 'camera-front',
         type: ELEMENT_TYPES.CYLINDER,
-        targetId: 'camera-square',
+        parentId: 'camera-square',
         radius: 10,
         rotate: {pitch: Math.PI/2, roll: 0, yaw: 0},
         height: 20,
@@ -134,7 +134,7 @@ export async function tutorial_observer(
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'faceBox',
-        targetId: 'bigBox',
+        parentId: 'bigBox',
         width: 150,
         height: 180,
         depth: 100,
@@ -163,7 +163,7 @@ export async function tutorial_observer(
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'debug_nose',
-        targetId: 'faceBox',
+        parentId: 'faceBox',
         width: boxSize,
         height: boxSize,
         depth: boxSize,
@@ -179,7 +179,7 @@ export async function tutorial_observer(
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'debug_leftEye',
-        targetId: 'faceBox',
+        parentId: 'faceBox',
         width: boxSize,
         height: boxSize,
         depth: boxSize,
@@ -199,7 +199,7 @@ export async function tutorial_observer(
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'debug_rightEye',
-        targetId: 'faceBox',
+        parentId: 'faceBox',
         width: boxSize,
         height: boxSize,
         depth: boxSize,
@@ -215,7 +215,7 @@ export async function tutorial_observer(
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'debug_boundsLeft',
-        targetId: 'faceBox',
+        parentId: 'faceBox',
         width: boxSize,
         height: boxSize,
         depth: boxSize,
@@ -231,7 +231,7 @@ export async function tutorial_observer(
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'debug_boundsRight',
-        targetId: 'faceBox',
+        parentId: 'faceBox',
         width: boxSize,
         height: boxSize,
         depth: boxSize,
@@ -247,7 +247,7 @@ export async function tutorial_observer(
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'debug_boundsTop',
-        targetId: 'faceBox',
+        parentId: 'faceBox',
         width: boxSize,
         height: boxSize,
         depth: boxSize,
@@ -263,7 +263,7 @@ export async function tutorial_observer(
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'debug_boundsBottom',
-        targetId: 'faceBox',
+        parentId: 'faceBox',
         width: boxSize,
         height: boxSize,
         depth: boxSize,
@@ -279,7 +279,7 @@ export async function tutorial_observer(
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'nose',
-        targetId: 'faceBox',
+        parentId: 'faceBox',
         width: 50,
         position: { x: 0, y: 0, z: 50 },
         strokeWidth: 4,
@@ -289,7 +289,7 @@ export async function tutorial_observer(
     world.addSphere({
         type: ELEMENT_TYPES.SPHERE,
         id: 'left-eye',
-        targetId: 'faceBox',
+        parentId: 'faceBox',
         radius: 20,
         position: { x: -25, y: -25, z: 25 },
         alpha: 0.5,
@@ -299,7 +299,7 @@ export async function tutorial_observer(
     world.addSphere({
         type: ELEMENT_TYPES.SPHERE,
         id: 'right-eye',
-        targetId: 'faceBox',
+        parentId: 'faceBox',
         radius: 20,
         position: { x: 25, y: -25, z: 25 },
         alpha: 0.5,
@@ -323,7 +323,7 @@ export async function tutorial_observer(
             
             world.addPanel({
                 type: ELEMENT_TYPES.PANEL,
-                targetId: 'bigBox',
+                parentId: 'bigBox',
                 id: 'videoPanel',
                 width: 640,
                 height: 480,
