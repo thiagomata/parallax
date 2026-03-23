@@ -100,6 +100,6 @@ describe("Sketch bootstrap modules", () => {
         `);
 
         expect(fnName).toBe("demoSketch");
-        await expect(fn({} as any, {} as any)).resolves.toEqual({ value: 42 });
+        expect(fn({} as any, {} as any)).resolves.toEqual({value: 42});
     });
 });
