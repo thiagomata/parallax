@@ -9,6 +9,8 @@ Parallax is a **Deterministic Scene Orchestrator** designed for high-fidelity 3D
 
 By enforcing its pipeline, Parallax enables complex cinematography—such as real-time head-tracking and reactive environments—within a predictable, traceable, and testable lifecycle.
 
+The tutorial docs are now split into numbered walkthroughs, including a new observer view for webcam/head-tracking debugging and a parallax depth demo built on the same pipeline.
+
 ## 🏗 The Parallax Manifest
 
 The journey of a frame is divided into two distinct life-stages: **Structural Setup** and the **Temporal Loop**.
@@ -19,7 +21,6 @@ sequenceDiagram
     participant U as User / App
     participant W as World / Registry
     participant L as AssetLoader (Hydration)
-    participant SM as SceneManager (Orchestration)
     participant S as Stage (Integration)
     participant R as Resolver
     participant GP as GraphicProcessor (Execution)
@@ -32,11 +33,9 @@ sequenceDiagram
 
     loop Every Frame
         U->>W: step(processor)
-        W->>SM: processModifiers(timeData, inputs)
-        Note right of SM: Graceful Degradation & Priority Ranking
-        SM-->>W: SceneState
-
         W->>S: render(registry, state, processor)
+
+        Note right of W: Scene state remains deterministic
 
         loop For each RenderableElement
             S->>R: resolve(blueprint, state)
@@ -94,7 +93,7 @@ This phase manages **Graceful Degradation**:
 if a tracking source disconnects, modifiers transition through states like `READY` to `DRIFTING` (returning to neutral) to maintain stability.
 
 **4. Orchestration: The Modifier Chain**
-The `SceneManager` executes the **Modifier Chain**, ranking entries by `priority`.
+The `World` coordinates the **Modifier Chain**, ranking entries by `priority`.
 Multiple inputs (e.g., a path-following `Car` and a head-tracking `Nudge`) are aggregated and collapsed into a single, unified, and immutable **SceneState**.
 
 **5. Resolution: Single Source of Truth**
@@ -135,20 +134,20 @@ const screen = {
     id: 'screen',
     type: PROJECTION_TYPES.SCREEN,
     position: { x: 0, y: 0, z: 1000 },
-    targetId: undefined  // Root - no parent
+    parentId: undefined  // Root - no parent
 };
 
 const eye = {
     id: 'eye',
     type: PROJECTION_TYPES.EYE,
     position: { x: 0, y: 0, z: 100 },
-    targetId: 'screen'  // Child of screen
+    parentId: 'screen'  // Child of screen
 };
 ```
 
-This hierarchy (`targetId`) creates a dependency graph where child projections inherit and transform relative to their parent.
+This hierarchy (`parentId`) creates a dependency graph where child projections inherit and transform relative to their parent.
 
-> **Note:** Head tracking is documented in detail at [`src/scene/head_tracking.md`](src/scene/head_tracking.md).
+> **Note:** Head tracking is documented in detail at [`src/scene/head_tracking.md`](src/scene/head_tracking.md), and the live tutorial walkthroughs are [`8. The Observer`](https://thiagomata.github.io/parallax/docs/tutorial/tutorial-8/) and [`9. 3D Parallax Depth`](https://thiagomata.github.io/parallax/docs/tutorial/tutorial-9/).
 
 ### Projection Modifiers
 
@@ -206,6 +205,17 @@ class MyModifier implements NudgeModifier<TDataProviderLib> {
 ```
 
 This enables compile-time safety and explicit contracts.
+
+### Built-in Data Providers
+
+Parallax ships with a small set of native providers for webcam and head-tracking workflows:
+
+| Provider | Type | Purpose | Depends On |
+|----------|------|---------|------------|
+| `webCam` | `webCam` | Captures browser video input | - |
+| `headTracker` | `headTracker` | Converts webcam frames into face-world data | `webCam` |
+
+Custom providers are still supported through `DataProviderLib`.
 
 ### Effect Bundles
 

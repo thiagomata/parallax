@@ -22,7 +22,7 @@ vi.mock("p5", () => {
         public canvas: HTMLCanvasElement;
         public _setupDone = true;
 
-        constructor(sketchFn: (p: MockP5) => void, canvasBox?: HTMLElement) {
+        constructor(sketchFn: (p: MockP5) => void, _canvasBox?: HTMLElement) {
             this.canvas = document.createElement("canvas");
             this.canvas.getContext = vi.fn().mockReturnValue(null) as any;
             sketchFn(this);
