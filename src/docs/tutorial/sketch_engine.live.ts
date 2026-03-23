@@ -99,9 +99,6 @@ const moduleExports: Record<string, Record<string, unknown>> = {
     'center_focus_modifier': {
         CenterFocusModifier: (window as Window & typeof globalThis & { CenterFocusModifier: typeof CenterFocusModifier }).CenterFocusModifier,
     },
-    'center_foucs_modifier': {
-        CenterFocusModifier: (window as Window & typeof globalThis & { CenterFocusModifier: typeof CenterFocusModifier }).CenterFocusModifier,
-    },
     'look_at_effect': {
         LookAtEffect: (window as Window & typeof globalThis & { LookAtEffect: typeof LookAtEffect }).LookAtEffect,
     },

@@ -74,14 +74,6 @@ export class SketchEngine {
         return this.p5Instances.get(containerId);
     }
 
-    setP5Instance(containerId: string, instance: p5 | undefined): void {
-        if (instance) {
-            this.p5Instances.set(containerId, instance);
-        } else {
-            this.p5Instances.delete(containerId);
-        }
-    }
-
     private cleanup(containerId: string): void {
         const instance = this.p5Instances.get(containerId);
         if (!instance) return;
