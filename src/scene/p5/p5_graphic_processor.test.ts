@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { P5GraphicProcessor } from "./p5_graphic_processor.ts";
-import { ASSET_STATUS, ELEMENT_TYPES, type ProjectionMatrix } from "../types.ts";
+import {
+    ASSET_STATUS,
+    ELEMENT_TYPES,
+    type ProjectionMatrix,
+    type ResolvedBox
+} from "../types.ts";
 
 const createMockP5 = () => {
     const p = {
@@ -116,24 +121,6 @@ describe("P5GraphicProcessor", () => {
         expect(() => gp.setProjectionMatrix({} as any)).not.toThrow();
     });
 
-    // @fixme video don't use asset anymore
-    // it("drawPanel mirrors video textures horizontally", () => {
-    //     const p = createMockP5();
-    //     const gp = new P5GraphicProcessor(p as any, {} as any);
-    //
-    //     const state = { settings: { alpha: 1 } } as any;
-    //     const assets = { video: { elt: { readyState: 1 } } } as any;
-    //
-    //     gp.drawPanel(
-    //         { id: "p", type: ELEMENT_TYPES.PANEL, width: 10, height: 20, position: { x: 0, y: 0, z: 0 } } as any,
-    //         assets,
-    //         state
-    //     );
-    //
-    //     expect(p.scale).toHaveBeenCalledWith(-1, 1);
-    //     expect(p.plane).toHaveBeenCalledWith(10, 20);
-    // });
-
     it("drawText returns early when font is not ready", () => {
         const p = createMockP5();
         const gp = new P5GraphicProcessor(p as any, {} as any);
@@ -153,25 +140,31 @@ describe("P5GraphicProcessor", () => {
         expect(p.text).not.toHaveBeenCalled();
     });
 
-    // @fixme video don't use asset anymore
-    // it("applies video texture and tint when a video is ready", () => {
-    //     const p = createMockP5();
-    //     const gp = new P5GraphicProcessor(p as any, {} as any);
-    //
-    //     const state = { settings: { alpha: 0.5 } } as any;
-    //     const videoEl = { elt: { readyState: 2 } };
-    //     const assets = { video: { success: true, value: videoEl } } as any;
-    //
-    //     gp.drawBox(
-    //         { id: "b", type: ELEMENT_TYPES.BOX, width: 10, position: { x: 0, y: 0, z: 0 }, alpha: 0.5 } as any,
-    //         assets,
-    //         state
-    //     );
-    //
-    //     expect(p.texture).toHaveBeenCalledWith(videoEl);
-    //     // combinedAlpha = 0.5 * 0.5 = 0.25 => 64
-    //     expect(p.tint).toHaveBeenCalledWith(255, 64);
-    // });
+    it("applies video texture and tint when a video is ready", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
+
+        const state = { settings: { alpha: 0.5 } } as any;
+        const videoEl = { elt: { readyState: 2 } };
+        const assets = {} as any;
+
+        gp.drawBox(
+            {
+                id: "b",
+                type: ELEMENT_TYPES.BOX,
+                width: 10,
+                position: { x: 0, y: 0, z: 0 },
+                alpha: 0.5,
+                video: { success: true, value: videoEl },
+            } as ResolvedBox,
+            assets,
+            state
+        );
+
+        expect(p.texture).toHaveBeenCalledWith(videoEl);
+        // combinedAlpha = 0.5 * 0.5 = 0.25 => 64
+        expect(p.tint).toHaveBeenCalledWith(255, 64);
+    });
 
     it("applies image texture when ready and video is not ready", () => {
         const p = createMockP5();

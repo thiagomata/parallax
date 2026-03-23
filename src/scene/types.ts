@@ -529,7 +529,7 @@ export type FontAsset<TFont = unknown> =
 export interface ElementAssets<TBundle extends GraphicsBundle> {
     texture?: TextureAsset<TBundle['texture']>;
     font?: FontAsset<TBundle['font']>;
-    // video?: FailableResult<any> | (() => FailableResult<any>);
+    video?: FailableResult<any> | (() => FailableResult<any>);
 }
 
 export interface AssetLoader<TBundle extends GraphicsBundle> {

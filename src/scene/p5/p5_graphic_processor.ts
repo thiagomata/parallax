@@ -226,11 +226,7 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     private applyVisuals(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         const combinedAlpha = (props.alpha ?? 1) * state.settings.alpha;
 
-        let videoResult = assets.video;
-        if (typeof videoResult === 'function') {
-            videoResult = videoResult();
-        }
-        
+        const videoResult = props.video;
         const videoEl = videoResult?.success ? videoResult.value : null;
         const videoElInner = videoEl ? (videoEl as any).elt || videoEl : null;
         const videoReady = videoElInner && (videoElInner as HTMLVideoElement).readyState >= 2;
