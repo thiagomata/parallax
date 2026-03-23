@@ -13,6 +13,7 @@ import {
 } from "../types.ts";
 import {BaseResolver} from "../resolver/base_resolver.ts";
 import {ProjectionAssetRegistry} from "../registry/projection_asset_registry.ts";
+import {HierarchyTools, type HierarchySource} from "../utils/hierarchy.ts";
 import {rotateVector} from "../utils/projection_utils.ts";
 
 export class ProjectionResolver<
@@ -66,44 +67,48 @@ export class ProjectionResolver<
         },
         registry: ProjectionAssetRegistry<TProjectionEffectLib>
     ) {
-        if (!blueprint.parentId) return;
+        const source: HierarchySource<{ id: string; parentId?: string }> = {
+            get: (id: string) => {
+                if (id === blueprint.id) {
+                    return { id: blueprint.id, parentId: blueprint.parentId };
+                }
 
-        if (blueprint.parentId === blueprint.id) {
-            throw new Error(`Self-Reference: Projection "${blueprint.id}" cannot target itself.`);
+                const parent = registry.get(id);
+                return parent ? { id: parent.id, parentId: parent.parentId } : undefined;
+            },
+            all: function* () {
+                yield { id: blueprint.id, parentId: blueprint.parentId };
+                for (const parent of registry.all()) {
+                    yield { id: parent.id, parentId: parent.parentId };
+                }
+            },
+        };
+
+        const hierarchy = new HierarchyTools(source);
+        try {
+            hierarchy.validate(blueprint);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+
+            if (message.includes('Self-Reference: Node')) {
+                throw new Error(`Self-Reference: Projection "${blueprint.id}" cannot target itself.`);
+            }
+
+            if (message.includes('not found')) {
+                throw new Error(
+                    `Hierarchy Violation: Parent "${blueprint.parentId}" not found. ` +
+                    `Parent must be registered before their followers.`
+                );
+            }
+
+            if (message.includes('recursive reference')) {
+                throw new Error(
+                    `Hierarchy Violation: Parent "${blueprint.parentId}" has recursive reference.`
+                );
+            }
+
+            throw error;
         }
-
-        const parent = registry.get(blueprint.parentId);
-
-        if (!parent) {
-            throw new Error(
-                `Hierarchy Violation: Parent "${blueprint.parentId}" not found. ` +
-                `Parent must be registered before their followers.`
-            );
-        }
-
-        if (!this.validateHierarchy(blueprint.id, blueprint.parentId, registry)){
-            throw new Error(
-                `Hierarchy Violation: Parent "${blueprint.parentId}" has recursive reference.`
-            )
-        }
-    }
-
-    private validateHierarchy(
-        id: string,
-        parentId: string,
-        registry: ProjectionAssetRegistry<TProjectionEffectLib>
-    ): boolean {
-        let currentId: string | undefined = parentId;
-        const visited = new Set<string>([id]);
-
-        while (currentId) {
-            if (visited.has(currentId)) return false; // Loop detected
-            visited.add(currentId);
-
-            const next = registry.get(currentId);
-            currentId = next?.parentId;
-        }
-        return true;
     }
 
     /**

@@ -635,10 +635,71 @@ describe("Stage", () => {
             sceneId: 7,
         });
 
-        expect(provider.tick).toHaveBeenCalledWith(7);
+        expect(provider.tick).toHaveBeenCalledWith(7, expect.objectContaining({
+            parent: null,
+            ancestorsById: expect.any(Map),
+        }));
         expect(provider.getData).toHaveBeenCalled();
         expect(dist).toHaveBeenCalled();
         expect(dist.mock.calls[0][1]).toEqual({ x: 42, y: 0, z: 0 });
+    });
+
+    it("render ticks data providers in hierarchy order", () => {
+        const calls: string[] = [];
+        const seenParents: Array<string | null> = [];
+        const seenAncestorKeys: string[][] = [];
+
+        const parentProvider = {
+            type: "parent",
+            tick: () => calls.push("parent"),
+            getData: () => null,
+        };
+
+        const childProvider = {
+            type: "child",
+            parentId: "parent",
+            tick: (_sceneId: number, context?: { parent: typeof parentProvider | null; ancestorsById: ReadonlyMap<string, any> }) => {
+                calls.push("child");
+                seenParents.push(context?.parent?.type ?? null);
+                seenAncestorKeys.push(Array.from(context?.ancestorsById.keys() ?? []));
+            },
+            getData: () => null,
+        };
+
+        const settings = structuredClone(DEFAULT_SCENE_SETTINGS);
+        settings.window = WindowConfig.create(DEFAULT_WINDOW_CONFIG);
+        const stageWithProviders = new Stage<
+            MockGraphicBundle,
+            {},
+            {},
+            {
+                child: typeof childProvider;
+                parent: typeof parentProvider;
+            }
+        >(settings, loader, {}, {}, { child: childProvider, parent: parentProvider });
+
+        stageWithProviders.addElement({
+            id: "box",
+            type: ELEMENT_TYPES.BOX,
+            width: 1,
+            position: { x: 0, y: 0, z: 0 },
+        } as any);
+
+        const gp = {
+            dist: () => 0,
+            drawTree: vi.fn(),
+            setCameraTree: vi.fn(),
+        } as any;
+
+        stageWithProviders.render(gp, {
+            playback: { now: 0, delta: 0, frameCount: 0, progress: 0 },
+            previousResolved: null,
+            sceneId: 11,
+        });
+
+        expect(calls).toEqual(["parent", "child"]);
+        expect(seenParents).toEqual(["parent"]);
+        expect(seenAncestorKeys[0]).toEqual(["parent"]);
     });
 
 	    it("setEye replaces the eye projection", () => {

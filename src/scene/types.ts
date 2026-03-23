@@ -957,8 +957,13 @@ export type TrackingStatus =
 export interface DataProviderBundle<TID extends string, TData> {
     readonly type: TID;
     readonly parentId?: string;
-    tick(sceneId: number): void;
+    tick(sceneId: number, context?: DataProviderTickContext): void;
     getData(): TData | null;
+}
+
+export interface DataProviderTickContext {
+    readonly parent: DataProviderBundle<any, any> | null;
+    readonly ancestorsById: ReadonlyMap<string, DataProviderBundle<any, any>>;
 }
 
 export type DataProviderLib = Record<string, DataProviderBundle<any, any>>;

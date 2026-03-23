@@ -3,6 +3,7 @@ import {
     type BlueprintProjection,
     type BundleDynamicElement,
     type BundleResolvedElement,
+    type DataProviderTickContext,
     type DataProviderLib,
     type DynamicProjection,
     type DynamicSceneState,
@@ -34,6 +35,7 @@ import {ProjectionResolver} from "./projection/projection_resolver.ts";
 import {ProjectionAssetRegistry} from "./registry/projection_asset_registry.ts";
 import {ElementAssetRegistry} from "./registry/element_asset_registry.ts";
 import {computeGlobalTransform} from "./utils/projection_utils.ts";
+import {HierarchyTools, type HierarchySource, type HierarchyTreeNode} from "./utils/hierarchy.ts";
 import type { RenderTreeNode, ProjectionTreeNode } from "./types.ts";
 
 export class Stage<
@@ -148,25 +150,42 @@ export class Stage<
             throw new Error(`ID collision: Cannot add projection '${blueprint.id}' - an element with the same ID already exists.`);
         }
 
-        const parentId = blueprint.parentId;
+        const registry = this.projectionRegistry;
+        const hierarchy = new HierarchyTools<{ id: string; parentId?: string }>({
+            get: (id: string) => {
+                if (id === blueprint.id) {
+                    return { id: blueprint.id, parentId: blueprint.parentId };
+                }
+                const projection = registry.get(id);
+                return projection ? { id: projection.id, parentId: projection.parentId } : undefined;
+            },
+            all: function* () {
+                yield { id: blueprint.id, parentId: blueprint.parentId };
+                for (const projection of registry.all()) {
+                    yield { id: projection.id, parentId: projection.parentId };
+                }
+            },
+        });
 
-        if (parentId) {
-            // Existence: The parent must already exist in the projection registry
-            const parent = this.projectionRegistry.get(parentId);
-            if (!parent) {
+        try {
+            hierarchy.validate(blueprint);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+
+            if (message.includes('Self-Reference: Node')) {
+                throw new Error(`Circular dependency: ${blueprint.id} targets its own descendant.`);
+            }
+
+            if (message.includes('not found')) {
+                const parentId = blueprint.parentId ?? 'unknown';
                 throw new Error(`Parent ${parentId} not found for projection ${blueprint.id}`);
             }
 
-            // Recursion Check: Trace back to ensure no loops
-            let current: DynamicProjection | undefined = parent;
-            while (current) {
-                if (current.id === blueprint.id) {
-                    throw new Error(`Circular dependency: ${blueprint.id} targets its own descendant.`);
-                }
-                // Use the dynamic property to find the next parentId in the chain
-                const nextTargetId: string | null = current.parentId ?? null;
-                current = nextTargetId ? this.projectionRegistry.get(nextTargetId) : undefined;
+            if (message.includes('recursive reference')) {
+                throw new Error(`Circular dependency: ${blueprint.id} targets its own descendant.`);
             }
+
+            throw error;
         }
 
         this.projectionRegistry.register(blueprint);
@@ -270,16 +289,8 @@ export class Stage<
             }
         }
 
-        // Tick providers and snapshot their data for this frame (needed for projection modifiers)
-        const dataProvidersMap: {
-            [K in keyof TDataProviderLib]: ReturnType<TDataProviderLib[K]['getData']>;
-        } = {} as any;
-        const keys = Object.keys(this.dataProviderLib) as Array<keyof TDataProviderLib>;
-        for (const key of keys) {
-            const provider = this.dataProviderLib[key];
-            provider.tick(state.sceneId);
-            dataProvidersMap[key] = provider.getData();
-        }
+        // Tick providers in hierarchy order and snapshot their data for this frame
+        const dataProvidersMap = this.tickDataProviders(state.sceneId);
 
         // Resolve projections (local space) - with access to dataProviders for modifiers
         const localProjectionPool: Record<string, ResolvedProjection> = {};
@@ -391,35 +402,86 @@ export class Stage<
         return finalState;
     }
 
+    private tickDataProviders(sceneId: number): {
+        [K in keyof TDataProviderLib]: ReturnType<TDataProviderLib[K]['getData']>;
+    } {
+        type ProviderNode = {
+            readonly id: string;
+            readonly parentId?: string;
+            readonly key: keyof TDataProviderLib;
+            readonly provider: TDataProviderLib[keyof TDataProviderLib];
+        };
+
+        const nodes: ProviderNode[] = [];
+        const keys = Object.keys(this.dataProviderLib) as Array<keyof TDataProviderLib>;
+        for (const key of keys) {
+            const provider = this.dataProviderLib[key];
+            nodes.push({
+                id: String(key),
+                parentId: provider.parentId,
+                key,
+                provider,
+            });
+        }
+
+        const nodeMap = new Map<string, ProviderNode>();
+        for (const node of nodes) {
+            nodeMap.set(node.id, node);
+        }
+
+        const hierarchy = new HierarchyTools<ProviderNode>({
+            get: (id: string) => nodeMap.get(id),
+            all: function* () {
+                yield* nodes;
+            },
+        });
+
+        hierarchy.validateAll();
+
+        const dataProvidersMap = {} as {
+            [K in keyof TDataProviderLib]: ReturnType<TDataProviderLib[K]['getData']>;
+        };
+
+        hierarchy.walk((node, context) => {
+            const tickContext: DataProviderTickContext = {
+                parent: context.parent?.provider ?? null,
+                ancestorsById: new Map(
+                    Array.from(context.ancestorsById.entries()).map(([id, ancestor]) => [id, ancestor.provider])
+                ),
+            };
+
+            node.provider.tick(sceneId, tickContext);
+            dataProvidersMap[node.key] = node.provider.getData() as ReturnType<TDataProviderLib[typeof node.key]['getData']>;
+        });
+
+        return dataProvidersMap;
+    }
+
     /**
      * Builds a render tree from flat list based on parentId relationships.
      */
     private buildRenderTree(elements: Array<{ id: string; bundle: BundleResolvedElement<ResolvedElement, TGraphicBundle> }>): RenderTreeNode | null {
-        const nodeMap = new Map<string, RenderTreeNode>();
-
-        // First pass: create nodes for all elements
+        const nodeMap = new Map<string, { props: ResolvedElement; assets: BundleResolvedElement<ResolvedElement, TGraphicBundle>["assets"] }>();
         for (const pair of elements) {
-            nodeMap.set(pair.id, { 
+            nodeMap.set(pair.id, {
                 props: pair.bundle.resolved,
                 assets: pair.bundle.assets,
-                children: [] 
             });
         }
 
-        // Second pass: link children to parents, collect roots
-        const roots: RenderTreeNode[] = [];
-        for (const [_id, node] of nodeMap) {
-            const parentId = node.props.parentId;
-            if (parentId && nodeMap.has(parentId)) {
-                const parentNode = nodeMap.get(parentId);
-                if (parentNode) {
-                    parentNode.children.push(node);
+        const source: HierarchySource<ResolvedElement> = {
+            get: (id: string) => nodeMap.get(id)?.props,
+            all: function* () {
+                for (const pair of elements) {
+                    yield pair.bundle.resolved;
                 }
-            } else {
-                // No parent or parent not found - it's a root
-                roots.push(node);
-            }
-        }
+            },
+        };
+
+        const hierarchy = new HierarchyTools(source);
+        hierarchy.validateAll({ requireParentExists: false });
+        const forest = hierarchy.buildForest();
+        const roots = forest.map(node => this.toRenderTreeNode(node, nodeMap));
 
         // If only one root, return it; otherwise wrap in a container
         if (roots.length === 1) {
@@ -436,6 +498,23 @@ export class Stage<
         return null;
     }
 
+    private toRenderTreeNode(
+        node: HierarchyTreeNode<ResolvedElement>,
+        nodeMap: Map<string, { props: ResolvedElement; assets: BundleResolvedElement<ResolvedElement, TGraphicBundle>["assets"] }>
+    ): RenderTreeNode {
+        const entry = nodeMap.get(node.value.id);
+
+        if (!entry) {
+            throw new Error(`Render tree node '${node.value.id}' missing from lookup map`);
+        }
+
+        return {
+            props: entry.props,
+            assets: entry.assets,
+            children: node.children.map(child => this.toRenderTreeNode(child, nodeMap)),
+        };
+    }
+
     /**
      * Builds a projection tree from flat pool based on parentId relationships.
      * Computes global position/rotation for each node during tree traversal.
@@ -444,32 +523,27 @@ export class Stage<
     private buildProjectionTree(
         projectionPool: Record<string, ResolvedProjection>
     ): { tree: ProjectionTreeNode | null; flatMap: Map<string, ResolvedProjectionWithGlobals> } {
-        const nodeMap = new Map<string, ProjectionTreeNode>();
+        const nodeMap = new Map<string, ResolvedProjectionWithGlobals>();
         const projections = Object.values(projectionPool);
         const flatMap = new Map<string, ResolvedProjectionWithGlobals>();
 
         for (const projection of projections) {
-            nodeMap.set(projection.id, {
-                props: projection as ResolvedProjectionWithGlobals,
-                children: []
-            });
+            nodeMap.set(projection.id, projection as ResolvedProjectionWithGlobals);
         }
 
-        const roots: ProjectionTreeNode[] = [];
-        for (const [_id, node] of nodeMap) {
-            const parentId = node.props.parentId;
-            if (parentId && nodeMap.has(parentId)) {
-                const parentNode = nodeMap.get(parentId);
-                if (parentNode) {
-                    parentNode.children.push(node);
-                }
-            } else {
-                roots.push(node);
-            }
-        }
+        const source: HierarchySource<ResolvedProjection> = {
+            get: (id: string) => projectionPool[id],
+            all: function* () {
+                yield* projections;
+            },
+        };
+
+        const hierarchy = new HierarchyTools(source);
+        const forest = hierarchy.buildForest();
 
         const virtualRootPos = { x: 0, y: 0, z: 0 };
         const virtualRootRot = { yaw: 0, pitch: 0, roll: 0 };
+        const roots = forest.map(node => this.toProjectionTreeNode(node, nodeMap));
 
         if (roots.length === 1) {
             this.computeGlobals(roots[0], virtualRootPos, virtualRootRot, flatMap);
@@ -499,6 +573,22 @@ export class Stage<
         }
 
         return { tree: null, flatMap };
+    }
+
+    private toProjectionTreeNode(
+        node: HierarchyTreeNode<ResolvedProjection>,
+        nodeMap: Map<string, ResolvedProjectionWithGlobals>
+    ): ProjectionTreeNode {
+        const props = nodeMap.get(node.value.id);
+
+        if (!props) {
+            throw new Error(`Projection tree node '${node.value.id}' missing from lookup map`);
+        }
+
+        return {
+            props,
+            children: node.children.map(child => this.toProjectionTreeNode(child, nodeMap)),
+        };
     }
 
     private computeGlobals(
