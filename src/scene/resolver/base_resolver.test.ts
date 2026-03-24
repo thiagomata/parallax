@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { BaseResolver } from "./base_resolver.ts";
 import { SPEC_KINDS, WindowConfig, type ResolutionContext } from "../types.ts";
 
@@ -100,10 +100,8 @@ describe("BaseResolver", () => {
         const context = createContext();
 
         const rawMedia = {
-            elt: { readyState: 4 },
-            play: vi.fn(),
-            hide: vi.fn(),
-            size: vi.fn(),
+            kind: "video",
+            node: { readyState: 4 },
         };
 
         const wrappedResult = {

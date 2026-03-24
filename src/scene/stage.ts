@@ -36,6 +36,7 @@ import {ProjectionAssetRegistry} from "./registry/projection_asset_registry.ts";
 import {ElementAssetRegistry} from "./registry/element_asset_registry.ts";
 import {computeGlobalTransform} from "./utils/projection_utils.ts";
 import {HierarchyTools, type HierarchySource, type HierarchyTreeNode} from "./utils/hierarchy.ts";
+import {DependencyGraphTools} from "./utils/dependency_graph.ts";
 import type { RenderTreeNode, ProjectionTreeNode } from "./types.ts";
 
 export class Stage<
@@ -409,6 +410,7 @@ export class Stage<
         type ProviderNode = {
             readonly id: string;
             readonly parentId?: string;
+            readonly dependencies?: readonly string[];
             readonly key: keyof TDataProviderLib;
             readonly provider: TDataProviderLib[keyof TDataProviderLib];
         };
@@ -420,6 +422,7 @@ export class Stage<
             nodes.push({
                 id: String(key),
                 parentId: provider.parentId,
+                dependencies: provider.dependencies ?? (provider.parentId ? [provider.parentId] : []),
                 key,
                 provider,
             });
@@ -430,7 +433,7 @@ export class Stage<
             nodeMap.set(node.id, node);
         }
 
-        const hierarchy = new HierarchyTools<ProviderNode>({
+        const graph = new DependencyGraphTools<ProviderNode>({
             get: (id: string) => nodeMap.get(id),
             all: function* () {
                 yield* nodes;
@@ -438,12 +441,16 @@ export class Stage<
         });
 
         try {
-            hierarchy.validateAll();
+            graph.validateAll();
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
 
-            if (message.includes('Parent "webCam" not found') && nodes.length === 1 && nodes[0]?.parentId) {
-                throw new Error(`${String(nodes[0].key)} requires parent provider ${nodes[0].parentId}, but it was not registered.`);
+            if (message.includes('Dependency Graph Violation: Dependency') && nodes.length === 1) {
+                const node = nodes[0];
+                const dependencyId = node?.dependencies?.[0] ?? node?.parentId;
+                if (dependencyId) {
+                    throw new Error(`${String(node.key)} requires dependency provider ${dependencyId}, but it was not registered.`);
+                }
             }
 
             throw error;
@@ -453,11 +460,15 @@ export class Stage<
             [K in keyof TDataProviderLib]: ReturnType<TDataProviderLib[K]['getData']>;
         };
 
-        hierarchy.walk((node, context) => {
+        graph.walk((node, context) => {
+            const dependencies = context.dependencies.map((dependency) => dependency.provider);
+            const upstream = graph.getUpstream(node.id);
             const tickContext: DataProviderTickContext = {
-                parent: context.parent?.provider ?? null,
+                parent: dependencies[0] ?? null,
+                dependencies,
                 ancestorsById: new Map(
-                    Array.from(context.ancestorsById.entries()).map(([id, ancestor]) => [id, ancestor.provider])
+                    upstream.map((ancestor) => [ancestor.id, nodeMap.get(ancestor.id)?.provider] as const)
+                        .filter((entry): entry is readonly [string, TDataProviderLib[keyof TDataProviderLib]] => !!entry[1])
                 ),
             };
 

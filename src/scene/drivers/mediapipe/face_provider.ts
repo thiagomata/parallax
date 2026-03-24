@@ -1,11 +1,11 @@
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import type {FailableResult, TrackingStatus} from "../../types";
-import { FaceParser } from "./face_parser";
+import { FaceParser, type HeadParserConfig } from "./face_parser";
 import p5 from "p5";
 import type {Face} from "./face.ts";
 import type {FaceProvider} from "../../providers/face_provider.ts";
 
-export interface FaceProviderConfig {
+export interface FaceProviderConfig extends Partial<HeadParserConfig> {
     throttleThreshold?: number;
     videoWidth?: number;
     videoHeight?: number;
@@ -26,6 +26,13 @@ export class MediaPipeFaceProvider implements FaceProvider {
     private readonly throttleThreshold: number;
     private readonly videoWidth: number;
     private readonly videoHeight: number;
+    private initPromise: Promise<void> | null = null;
+    private initAttempt = 0;
+
+    private debug(message: string, details?: Record<string, unknown>): void {
+        void message;
+        void details;
+    }
 
     constructor(
         p: p5,
@@ -39,7 +46,12 @@ export class MediaPipeFaceProvider implements FaceProvider {
         this.wasmPath = wasmPath;
         this.modelPath = modelPath;
         this.mirror = mirror;
-        this.parser = new FaceParser({mirror: this.mirror});
+        this.parser = new FaceParser({
+            physicalHeadWidth: config.physicalHeadWidth,
+            focalLength: config.focalLength,
+            mirror: config.mirror ?? this.mirror,
+            headProportions: config.headProportions,
+        });
         
         this.throttleThreshold = config.throttleThreshold ?? 3;
         this.videoWidth = config.videoWidth ?? 640;
@@ -65,6 +77,19 @@ export class MediaPipeFaceProvider implements FaceProvider {
         this.capture = capture;
     }
 
+    private getVideoElt(source: any): HTMLVideoElement | null {
+        if (!source) return null;
+        if (typeof source !== "object") return null;
+        const candidate = source as { elt?: unknown; node?: unknown };
+        if (candidate.elt && typeof candidate.elt === "object") {
+            return candidate.elt as HTMLVideoElement;
+        }
+        if (candidate.node && typeof candidate.node === "object" && "elt" in (candidate.node as Record<string, unknown>)) {
+            return (candidate.node as { elt?: HTMLVideoElement }).elt ?? null;
+        }
+        return null;
+    }
+
     public setFaceParser(faceParser: FaceParser): void {
         this.parser = faceParser;
     }
@@ -75,21 +100,7 @@ export class MediaPipeFaceProvider implements FaceProvider {
      * engine's Registration/Hydration.
      */
     async init(): Promise<void> {
-        this.status = 'INITIALIZING';
-
-        try {
-            const vision = await FilesetResolver.forVisionTasks(this.wasmPath);
-            this.landmarker = await FaceLandmarker.createFromOptions(vision, {
-                baseOptions: { modelAssetPath: this.modelPath },
-                runningMode: "VIDEO",
-                numFaces: 1
-            });
-
-            this.status = 'READY';
-        } catch (e) {
-            this.status = 'ERROR';
-            console.warn('Camera not available, face tracking disabled:', e);
-        }
+        await this.ensureInit();
     }
 
     /**
@@ -98,34 +109,66 @@ export class MediaPipeFaceProvider implements FaceProvider {
      * Synchronous and safe to call inside p5's draw loop.
      */
     getFace(): FailableResult<Face> {
+        void this.ensureInit();
+
         if (this.status !== 'READY' || !this.landmarker) {
             this.consecutiveNoFaceFrames = 0;
+            this.debug("not ready", {
+                status: this.status,
+                hasLandmarker: this.landmarker !== null,
+            });
             return { success: false, error: 'Face tracking not ready [' + this.status + ']' };
         }
 
-        const videoElt = this.capture?.elt as HTMLVideoElement | undefined;
-        const videoReady = videoElt && videoElt.readyState >= 2;
+        const videoElt = this.getVideoElt(this.capture);
+        const videoSnapshot = videoElt ? {
+            readyState: videoElt.readyState,
+            currentTime: videoElt.currentTime,
+            paused: videoElt.paused,
+            ended: videoElt.ended,
+            videoWidth: videoElt.videoWidth,
+            videoHeight: videoElt.videoHeight,
+        } : null;
+        const videoReady = !!videoElt && (videoSnapshot?.readyState ?? 0) >= 2;
 
         if (!videoReady) {
             this.consecutiveNoFaceFrames = 0;
+            this.debug("video not ready", {
+                ...videoSnapshot,
+            });
             return { success: false, error: 'Video element not ready' };
         }
 
         if (this.throttleThreshold > 0 && 
             this.consecutiveNoFaceFrames >= this.throttleThreshold &&
             this.lastFaceResult !== null) {
+            this.debug("reusing last face result", {
+                consecutiveNoFaceFrames: this.consecutiveNoFaceFrames,
+                throttleThreshold: this.throttleThreshold,
+            });
             return { success: true, value: this.lastFaceResult };
         }
 
+        this.debug("detecting frame", {
+            ...videoSnapshot,
+            consecutiveNoFaceFrames: this.consecutiveNoFaceFrames,
+        });
         const result = this.landmarker.detectForVideo(videoElt, performance.now());
 
         if (result.faceLandmarks && result.faceLandmarks.length > 0) {
             this.consecutiveNoFaceFrames = 0;
             this.lastFaceResult = this.parser.parse(result.faceLandmarks[0]);
+            this.debug("face detected", {
+                faces: result.faceLandmarks.length,
+                landmarks: result.faceLandmarks[0].length,
+            });
             return { success: true, value: this.lastFaceResult };
         }
 
         this.consecutiveNoFaceFrames++;
+        this.debug("no face detected", {
+            consecutiveNoFaceFrames: this.consecutiveNoFaceFrames,
+        });
         return { success: false, error: 'No face detected in frame' };
     }
 
@@ -134,11 +177,13 @@ export class MediaPipeFaceProvider implements FaceProvider {
     }
 
     getVideo(): FailableResult<any> {
+        void this.ensureInit();
+
         if (this.status !== 'READY' || !this.capture) return {
             success: false,
             error: "Video is not ready [" + this.status + "]",
         };
-        const videoElt = this.capture.elt as HTMLVideoElement;
+        const videoElt = this.getVideoElt(this.capture);
         if( !videoElt ) return {
             success: false,
             error: "Video element not ready [readyState:undefined]",
@@ -151,5 +196,55 @@ export class MediaPipeFaceProvider implements FaceProvider {
             success: true,
             value: this.capture
         };
+    }
+
+    private async ensureInit(): Promise<void> {
+        if (this.landmarker && this.status === 'READY') {
+            return;
+        }
+        if (this.initPromise) {
+            return this.initPromise;
+        }
+
+        const attempt = ++this.initAttempt;
+        this.status = 'INITIALIZING';
+        this.debug("initializing", {
+            wasmPath: this.wasmPath,
+            modelPath: this.modelPath,
+            mirror: this.mirror,
+            videoWidth: this.videoWidth,
+            videoHeight: this.videoHeight,
+        });
+
+        this.initPromise = (async () => {
+            try {
+                const vision = await FilesetResolver.forVisionTasks(this.wasmPath);
+                const landmarker = await FaceLandmarker.createFromOptions(vision, {
+                    baseOptions: { modelAssetPath: this.modelPath },
+                    runningMode: "VIDEO",
+                    numFaces: 1
+                });
+
+                if (this.initAttempt === attempt) {
+                    this.landmarker = landmarker;
+                    this.status = 'READY';
+                    this.debug("ready");
+                }
+            } catch (e) {
+                if (this.initAttempt === attempt) {
+                    this.status = 'ERROR';
+                }
+                this.debug("error while initializing", {
+                    error: e instanceof Error ? e.message : String(e),
+                });
+                console.warn('Camera not available, face tracking disabled:', e);
+            } finally {
+                if (this.initAttempt === attempt) {
+                    this.initPromise = null;
+                }
+            }
+        })();
+
+        return this.initPromise;
     }
 }

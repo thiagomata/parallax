@@ -157,6 +157,8 @@ export abstract class BaseResolver<
      */
     protected isStaticData(val: any): boolean {
         if (typeof val === 'function') return false;
+        if (this.isFailableResult(val)) return true;
+        if (this.isOpaqueMediaObject(val)) return true;
         if (val && typeof val === 'object' && !Array.isArray(val)) {
             return Object.values(val).every((v) => this.isStaticData(v));
         }
@@ -196,8 +198,30 @@ export abstract class BaseResolver<
      */
     protected isOpaqueMediaObject(obj: unknown): boolean {
         if (typeof obj !== 'object' || obj === null) return false;
+        if (typeof HTMLVideoElement !== "undefined" && obj instanceof HTMLVideoElement) {
+            return true;
+        }
 
         const candidate = obj as Record<string, unknown>;
+        if (
+            (candidate.kind === "webCam" || candidate.kind === "video") &&
+            "node" in candidate &&
+            typeof candidate.node === "object"
+        ) {
+            return true;
+        }
+        if (
+            candidate.type === "video" &&
+            "video" in candidate
+        ) {
+            return true;
+        }
+        if (
+            candidate.type === "elt" &&
+            "elt" in candidate
+        ) {
+            return true;
+        }
         return (
             'elt' in candidate &&
             (

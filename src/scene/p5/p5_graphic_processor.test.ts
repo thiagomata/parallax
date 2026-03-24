@@ -140,12 +140,12 @@ describe("P5GraphicProcessor", () => {
         expect(p.text).not.toHaveBeenCalled();
     });
 
-    it("applies video texture and tint when a video is ready", () => {
+    it("applies video texture when a video is ready", () => {
         const p = createMockP5();
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
         const state = { settings: { alpha: 0.5 } } as any;
-        const videoEl = { elt: { readyState: 2 } };
+        const videoEl = { kind: "video", node: { elt: { readyState: 2 } } };
         const assets = {} as any;
 
         gp.drawBox(
@@ -155,23 +155,22 @@ describe("P5GraphicProcessor", () => {
                 width: 10,
                 position: { x: 0, y: 0, z: 0 },
                 alpha: 0.5,
-                video: { success: true, value: videoEl },
+                video: videoEl,
             } as ResolvedBox,
             assets,
             state
         );
 
-        expect(p.texture).toHaveBeenCalledWith(videoEl);
-        // combinedAlpha = 0.5 * 0.5 = 0.25 => 64
-        expect(p.tint).toHaveBeenCalledWith(255, 64);
+        expect(p.texture).toHaveBeenCalledWith(videoEl.node);
+        expect(p.blendMode).toHaveBeenCalled();
     });
 
-    it("accepts a raw video capture object without a failable wrapper", () => {
+    it("accepts a plain media source object", () => {
         const p = createMockP5();
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
         const state = { settings: { alpha: 1 } } as any;
-        const rawVideo = { elt: { readyState: 2 } };
+        const rawVideo = { kind: "webCam", node: { elt: { readyState: 2 } } };
 
         gp.drawBox(
             {
@@ -185,7 +184,7 @@ describe("P5GraphicProcessor", () => {
             state
         );
 
-        expect(p.texture).toHaveBeenCalledWith(rawVideo);
+        expect(p.texture).toHaveBeenCalledWith(rawVideo.node);
     });
 
     it("applies image texture when ready and video is not ready", () => {

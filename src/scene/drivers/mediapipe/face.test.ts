@@ -204,7 +204,7 @@ describe('Face - yaw', () => {
         }
         
         const avgError = totalError / (2 * slices + 1);
-        console.log("Yaw detection avg error:", avgError.toFixed(4));
+        // console.log("Yaw detection avg error:", avgError.toFixed(4));
         expect(avgError).toBeLessThan(0.2);
     });
 });
@@ -231,7 +231,7 @@ describe('Face - pitch', () => {
             const rotated = face.rotateX(angle);
             const pitch = rotated.pitch;
             const match = 100 * (1 + pitch)/(1 + angle);
-            console.log("pitch input =",angle,", output =",pitch, match,"%");
+            // console.log("pitch input =",angle,", output =",pitch, match,"%");
             expect(match).toBeCloseTo(100, 5);
         }
     });
@@ -261,12 +261,12 @@ describe('Face - roll', () => {
             const rotated = face.rotateZ(angle);
             const roll = rotated.roll;
             const match = 100 * (1 + roll)/(1 + angle);
-            console.log("roll input =",angle,", output =",roll, ".", match,"%");
+            // console.log("roll input =",angle,", output =",roll, ".", match,"%");
             totalError += Math.abs(match - 100);
             // expect(match).toBeCloseTo(100, 5);
         }
         const errorAvg = totalError / (2 * slices);
-        console.log("error avg = ", errorAvg);
+        // console.log("error avg = ", errorAvg);
         expect(errorAvg).toBeLessThan(20);
     });
 });
@@ -579,17 +579,17 @@ describe('Face - rotation comparison with known rotations', () => {
             }
         }
         
-        console.log("=== 6 ROTATION STRATEGIES COMPARISON ===");
-        console.log("Test cases:", count);
+        // console.log("=== 6 ROTATION STRATEGIES COMPARISON ===");
+        // console.log("Test cases:", count);
         
         const results = strategies.map((s, i) => ({ name: s.name, avg: totals[i] / count }));
         results.sort((a, b) => a.avg - b.avg);
         
-        for (const r of results) {
-            console.log(`Avg angle error ${r.name}: ${r.avg.toFixed(4)}`);
-        }
+        // for (const r of results) {
+        //     console.log(`Avg angle error ${r.name}: ${r.avg.toFixed(4)}`);
+        // }
         
-        console.log("Best strategy:", results[0].name);
+        // console.log("Best strategy:", results[0].name);
         
         expect(results[0].avg).toBeLessThan(0.5);
     });

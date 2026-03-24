@@ -4,19 +4,34 @@ import { P5GraphicProcessor } from "../../../scene/p5/p5_graphic_processor.ts";
 import { SceneClock } from "../../../scene/scene_clock.ts";
 import { HeadTrackingDataProvider, type ObserverDataProviderLib } from "../../../scene/providers/head_tracking_data_provider.ts";
 import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
+import { VideoDataProvider } from "../../../scene/providers/video_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
 import {
     DEFAULT_SCENE_SETTINGS,
-    ELEMENT_TYPES, LOOK_MODES,
-    STANDARD_PROJECTION_IDS,
-    PROJECTION_TYPES,
+    ELEMENT_TYPES,
+    type ResolutionContext,
 } from "../../../scene/types.ts";
 import {
     DEFAULT_SKETCH_CONFIG,
     type SketchConfig
 } from "../sketch_config.ts";
+import type { FaceConfig } from "../sketch_engine.types.ts";
 import {WorldSettings} from "../../../scene/world_settings.ts";
 import {COLORS} from "../../../scene/colors.ts";
+
+const FALLBACK_VIDEO_URL = "/parallax/video/heads.mp4";
+const VIDEO_SOURCE_ORDER = ["webCam", "video"] as const;
+
+function resolvePreferredSource<T>(
+    dataProviders: Record<string, T | null | undefined>,
+    preferredIds: readonly string[],
+): T | null {
+    for (const id of preferredIds) {
+        const value = dataProviders[id];
+        if (value) return value;
+    }
+    return null;
+}
 
 /**
  * TUTORIAL: The Observer
@@ -25,12 +40,13 @@ import {COLORS} from "../../../scene/colors.ts";
  */
 export const observer_explanation = `
 <div class="concept">
-<p>The parallax engine uses <strong>MediaPipe Face Mesh</strong> to detect 468 facial landmarks in real-time from your webcam. This tutorial visualizes all the tracked data including the face bounding box, nose position, eye positions, and face orientation (yaw, pitch, roll).</p>
+<p>The parallax engine uses <strong>MediaPipe Face Mesh</strong> to detect 468 facial landmarks in real-time from your webcam. This tutorial visualizes all the tracked data including the face bounding box, nose position, eye positions, and face orientation (yaw, pitch, roll). If camera access is blocked, it can fall back to a prerecorded demo clip so the panel and face-following behavior still make sense.</p>
 </div>
 
 <h3>How It Works</h3>
 <ol>
 <li><strong>HeadTrackingDataProvider</strong> - Initializes MediaPipe and processes video frames to extract face landmarks.</li>
+<li><strong>Fallback Video</strong> - If the webcam is unavailable, the tutorial can switch to a looping MP4 demo source instead of leaving a blank panel.</li>
 <li><strong>Face Position</strong> - The face midpoint (between eyes) is tracked as x, y, z coordinates. Use <code>ctx.dataProviders['headTracker']</code> to access face data.</li>
 <li><strong>Face Rotation</strong> - Head orientation is calculated as yaw (turning left/right), pitch (nodding up/down), and roll (tilting sideways).</li>
 <li><strong>Debug Visualization</strong> - Colored boxes show nose (red), left eye (green), right eye (blue), and face bounds (yellow, cyan, magenta, orange).</li>
@@ -51,10 +67,15 @@ export const observer_explanation = `
 </div>
 `;
 
+
 export async function tutorial_observer(
     p: p5,
     config: SketchConfig = DEFAULT_SKETCH_CONFIG,
-    extraArgs?: { faceConfig?: any; faceDataProvider?: HeadTrackingDataProvider; webCamProvider?: WebCamDataProvider },
+    extraArgs?: {
+        faceConfig?: FaceConfig;
+        faceDataProvider?: HeadTrackingDataProvider;
+        webCamProvider?: WebCamDataProvider
+    },
 ): Promise<World<P5Bundler, any, any, ObserverDataProviderLib>> {
     const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
@@ -62,17 +83,41 @@ export async function tutorial_observer(
         debug: false,
         playback: {
             ...DEFAULT_SCENE_SETTINGS.playback,
-            duration: 10000,
+            duration: 100000,
             isLoop: true
         },
     });
 
-    const faceConfig = extraArgs?.faceConfig;
+    // const faceConfig = {
+    //     throttleThreshold: 0,
+    //     videoWidth: 640,
+    //     videoHeight: 480,
+    //     physicalHeadWidth: 180,
+    //     focalLength: 0.5,
+    //     mirror: false,
+    // };
+    var faceConfig =extraArgs?.faceConfig;
+
     let webCamProvider = extraArgs?.webCamProvider;
-    webCamProvider = webCamProvider ?? new WebCamDataProvider(p, 640, 480);
+    webCamProvider = webCamProvider ?? new WebCamDataProvider(p, 1920, 1080);
+    const fallbackVideoProvider = new VideoDataProvider(p, FALLBACK_VIDEO_URL, {
+        loop: true,
+        autoplay: true,
+        muted: true,
+        playsInline: true,
+    });
 
     let faceDataProvider = extraArgs?.faceDataProvider;
-    faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(p, 120, 650, false, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 300 }, faceConfig);
+    faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(
+        p,
+        180,
+        650,
+        false,
+        { x: 0, y: 0, z: 0 },
+        { x: 0, y: -100, z: 200 },
+        faceConfig,
+        VIDEO_SOURCE_ORDER,
+    );
 
     const loader = new P5AssetLoader(p);
     let gp: P5GraphicProcessor;
@@ -81,11 +126,14 @@ export async function tutorial_observer(
         p.createCanvas(config.width, config.height, p5.WEBGL);
         gp = new P5GraphicProcessor(p, loader);
     };
-    const dataProviderLib: ObserverDataProviderLib = { webCam: webCamProvider, headTracker: faceDataProvider };
+    const dataProviderLib: ObserverDataProviderLib = {
+        webCam: webCamProvider,
+        video: fallbackVideoProvider,
+        headTracker: faceDataProvider,
+    };
     const world = new World<P5Bundler, any, any, ObserverDataProviderLib>(
         WorldSettings.fromLibs({clock, loader, dataProviderLib})
     );
-    
     world.startLoading();
     world.enableDefaultPerspective(config.width, config.height, Math.PI / 2);
 
@@ -115,15 +163,15 @@ export async function tutorial_observer(
         strokeWidth: 1
     });
 
-    world.setScreen({
-        id: STANDARD_PROJECTION_IDS.SCREEN,
-        type: PROJECTION_TYPES.SCREEN,
-        lookMode: LOOK_MODES.ROTATION,
-        modifiers: {
-            carModifiers: [],
-            stickModifiers: []
-        }
-    });
+    // world.setScreen({
+    //     id: STANDARD_PROJECTION_IDS.SCREEN,
+    //     type: PROJECTION_TYPES.SCREEN,
+    //     lookMode: LOOK_MODES.ROTATION,
+    //     modifiers: {
+    //         carModifiers: [],
+    //         stickModifiers: []
+    //     }
+    // });
 
     const boxSize = 15;
 
@@ -131,8 +179,8 @@ export async function tutorial_observer(
         type: ELEMENT_TYPES.BOX,
         id: 'bigBox',
         width: 500,
-        position: { x:0, y:0, z: -200},
-        rotate: {pitch: 0, roll: 0, yaw: Math.PI/4},
+        position: { x:0, y:0, z: -10},
+        // rotate: {pitch: 0, roll: 0, yaw: Math.PI/4},
     });
 
     world.addBox({
@@ -280,13 +328,16 @@ export async function tutorial_observer(
         strokeWidth: 1,
     });
 
-    world.addBox({
-        type: ELEMENT_TYPES.BOX,
+    world.addPyramid({
+        type: ELEMENT_TYPES.PYRAMID,
         id: 'nose',
         parentId: 'faceBox',
-        width: 50,
+        baseSize: 20,
+        height: 20,
         position: { x: 0, y: 0, z: 50 },
+        rotate: {roll: 0, pitch: - Math.PI / 2, yaw: 0,},
         strokeWidth: 4,
+        fillColor: COLORS.pink,
         strokeColor: { red: 255, green: 0, blue: 255 },
     });
 
@@ -321,20 +372,16 @@ export async function tutorial_observer(
         
         if (!initialized) {
             await faceDataProvider.init();
-            
             world.addPanel({
                 type: ELEMENT_TYPES.PANEL,
                 parentId: 'bigBox',
                 id: 'videoPanel',
-                width: 640,
+                width: 1920  * 2,
                 mirrorTextureHorizontal: true,
-                height: 480,
-                position: { x: 0, y: 0, z: 0 },
-                video: (_ctx: any) => {
-                    return webCamProvider.getData();
-                },
-                fillColor: webCamProvider?.getData() ? undefined : { red: 50, green: 50, blue: 50 },
-                alpha: 0.5,
+                height: 1080 * 2,
+                position: { x: 0, y: -50, z: -500 * 2 },
+                video: (ctx: ResolutionContext<ObserverDataProviderLib>) => resolvePreferredSource(ctx.dataProviders, VIDEO_SOURCE_ORDER),
+                fillColor:  COLORS.blue,
             });
 
             world.complete();

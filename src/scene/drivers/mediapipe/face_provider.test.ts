@@ -91,6 +91,20 @@ describe('MediaPipeFaceProvider', () => {
             expect(provider.getStatus()).toBe('ERROR');
         });
 
+        it('should retry initialization after a failure on the next attempt', async () => {
+            const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
+            (FilesetResolver.forVisionTasks as any)
+                .mockRejectedValueOnce(new Error("Init Failed"))
+                .mockResolvedValueOnce({});
+            (FaceLandmarker.createFromOptions as any).mockResolvedValue(mockLandmarker);
+
+            await provider.init();
+            expect(provider.getStatus()).toBe('ERROR');
+
+            await provider.init();
+            expect(provider.getStatus()).toBe('READY');
+        });
+
         it('should set up onloadedmetadata to play video', async () => {
             const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
             (FilesetResolver.forVisionTasks as any).mockResolvedValue({});
