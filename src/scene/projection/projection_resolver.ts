@@ -13,6 +13,7 @@ import {
 } from "../types.ts";
 import {BaseResolver} from "../resolver/base_resolver.ts";
 import {ProjectionAssetRegistry} from "../registry/projection_asset_registry.ts";
+import {HierarchyTools, type HierarchySource} from "../utils/hierarchy.ts";
 import {rotateVector} from "../utils/projection_utils.ts";
 
 export class ProjectionResolver<
@@ -24,7 +25,7 @@ export class ProjectionResolver<
      * We protect IDs and the Modifier lists from being wrapped as dynamic.
      */
     protected readonly staticKeys = [
-        "id", "type", "targetId", "effects", "modifiers"
+        "id", "type", "parentId", "effects", "modifiers"
     ];
 
     constructor(effectLib: TProjectionEffectLib) {
@@ -66,44 +67,48 @@ export class ProjectionResolver<
         },
         registry: ProjectionAssetRegistry<TProjectionEffectLib>
     ) {
-        if (!blueprint.targetId) return;
+        const source: HierarchySource<{ id: string; parentId?: string }> = {
+            get: (id: string) => {
+                if (id === blueprint.id) {
+                    return { id: blueprint.id, parentId: blueprint.parentId };
+                }
 
-        if (blueprint.targetId === blueprint.id) {
-            throw new Error(`Self-Reference: Projection "${blueprint.id}" cannot target itself.`);
+                const parent = registry.get(id);
+                return parent ? { id: parent.id, parentId: parent.parentId } : undefined;
+            },
+            all: function* () {
+                yield { id: blueprint.id, parentId: blueprint.parentId };
+                for (const parent of registry.all()) {
+                    yield { id: parent.id, parentId: parent.parentId };
+                }
+            },
+        };
+
+        const hierarchy = new HierarchyTools(source);
+        try {
+            hierarchy.validate(blueprint);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+
+            if (message.includes('Self-Reference: Node')) {
+                throw new Error(`Self-Reference: Projection "${blueprint.id}" cannot target itself.`);
+            }
+
+            if (message.includes('not found')) {
+                throw new Error(
+                    `Hierarchy Violation: Parent "${blueprint.parentId}" not found. ` +
+                    `Parent must be registered before their followers.`
+                );
+            }
+
+            if (message.includes('recursive reference')) {
+                throw new Error(
+                    `Hierarchy Violation: Parent "${blueprint.parentId}" has recursive reference.`
+                );
+            }
+
+            throw error;
         }
-
-        const target = registry.get(blueprint.targetId);
-
-        if (!target) {
-            throw new Error(
-                `Hierarchy Violation: Target "${blueprint.targetId}" not found. ` +
-                `Targets must be registered before their followers.`
-            );
-        }
-
-        if (!this.validateHierarchy(blueprint.id, blueprint.targetId, registry)){
-            throw new Error(
-                `Hierarchy Violation: Target "${blueprint.targetId}" has recursive reference.`
-            )
-        }
-    }
-
-    private validateHierarchy(
-        id: string,
-        targetId: string,
-        registry: ProjectionAssetRegistry<TProjectionEffectLib>
-    ): boolean {
-        let currentId: string | undefined = targetId;
-        const visited = new Set<string>([id]);
-
-        while (currentId) {
-            if (visited.has(currentId)) return false; // Loop detected
-            visited.add(currentId);
-
-            const next = registry.get(currentId);
-            currentId = next?.targetId;
-        }
-        return true;
     }
 
     /**
@@ -176,8 +181,8 @@ export class ProjectionResolver<
         let globalPosition = { ...currentPosition };
 
         // Update global position after car/nudge modifiers
-        if (resolved.targetId) {
-            const parentResolved = projectionPool[resolved.targetId];
+        if (resolved.parentId) {
+            const parentResolved = projectionPool[resolved.parentId];
             if (parentResolved) {
                 globalPosition = {
                     x: parentResolved.position.x + currentPosition.x,
@@ -324,15 +329,15 @@ export class ProjectionResolver<
         projectionPool: Record<string, ResolvedProjection>,
         previousResolved: ResolvedSceneState | null
     ): ResolvedProjection {
-        if (!resolved.targetId) {
+        if (!resolved.parentId) {
             return resolved; // No parent, already in global space
         }
 
         // Find parent in current frame pool or previous frame
-        let target: ResolvedProjection | undefined = projectionPool[resolved.targetId];
+        let target: ResolvedProjection | undefined = projectionPool[resolved.parentId];
         
         if (!target && previousResolved?.projections) {
-            target = previousResolved.projections.get(resolved.targetId);
+            target = previousResolved.projections.get(resolved.parentId);
         }
 
         if (!target) {

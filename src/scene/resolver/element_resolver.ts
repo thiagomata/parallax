@@ -30,7 +30,7 @@ export class ElementResolver<
      * Properties protected from the Dynamic Engine.
      * These remain static IDs or metadata used by the Loader/Processor.
      */
-    readonly staticKeys: string[] = ["texture", "video", "font", "id", "type", "effects"];
+    readonly staticKeys: string[] = ["texture", "font", "id", "type", "effects"];
 
     constructor(effectLib: TEffectLib= {} as TEffectLib) {
         super(effectLib);
@@ -58,7 +58,6 @@ export class ElementResolver<
                 status: ASSET_STATUS.READY,
                 value: null
             },
-            video: blueprint.video
         };
 
         // Side-effects (Async Loading) are explicitly handled during preparation

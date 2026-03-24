@@ -79,7 +79,7 @@ describe('HeadTrackingModifier', () => {
             expect(result.success).toBe(false);
         });
 
-        it('should return midpoint position when face is detected', () => {
+        it('should calibrate (return zero) on first face detection', () => {
             const faceData = createMockFaceWorldData({
                 midpoint: { x: 50, y: -30, z: 100 }
             });
@@ -88,20 +88,49 @@ describe('HeadTrackingModifier', () => {
 
             expect(result.success).toBe(true);
             expect(result.success && result.value.name).toBe("Head Tracker Camera");
-            expect(result.success && result.value.position).toEqual({ x: 50, y: -30, z: -100 });
+            // First call returns zero (calibration)
+            expect(result.success && result.value.position).toEqual({ x: 0, y: 0, z: 0 });
+        });
+
+        it('should return relative position on subsequent calls', () => {
+            const faceData1 = createMockFaceWorldData({
+                midpoint: { x: 50, y: -30, z: 100 }
+            });
+            const context = createMockContext(faceData1);
+            // First call - calibration
+            modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context);
+
+            // Second call - same position should return zero
+            const faceData2 = createMockFaceWorldData({
+                midpoint: { x: 50, y: -30, z: 100 }
+            });
+            const context2 = createMockContext(faceData2);
+            const result = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context2);
+
+            expect(result.success).toBe(true);
+            expect(result.success && result.value.position).toEqual({ x: 0, y: 0, z: 0 });
         });
 
         it('should return rotation when face is detected', () => {
-            const faceData = createMockFaceWorldData({
+            // First call - calibration with initial rotation
+            const faceData1 = createMockFaceWorldData({
                 stick: { yaw: 0.5, pitch: 0.3, roll: 0.1 }
             });
-            const context = createMockContext(faceData);
-            const result = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context);
+            const context1 = createMockContext(faceData1);
+            modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context1);
+
+            // Second call - different rotation to see relative movement
+            const faceData2 = createMockFaceWorldData({
+                stick: { yaw: 0.7, pitch: 0.5, roll: 0.2 }
+            });
+            const context2 = createMockContext(faceData2);
+            const result = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context2);
 
             expect(result.success).toBe(true);
             expect(result.success && result.value.rotation).toBeDefined();
-            expect(result.success && result.value.rotation?.yaw).toBeCloseTo(0.5 * DEFAULT_HEAD_TRACKING_CONFIG.damping);
-            expect(result.success && result.value.rotation?.pitch).toBeCloseTo(-0.3 * DEFAULT_HEAD_TRACKING_CONFIG.damping);
+            // Should be relative to reference (0.7 - 0.5 = 0.2)
+            expect(result.success && result.value.rotation?.yaw).toBeCloseTo(0.2 * DEFAULT_HEAD_TRACKING_CONFIG.damping);
+            expect(result.success && result.value.rotation?.pitch).toBeCloseTo(-0.2 * DEFAULT_HEAD_TRACKING_CONFIG.damping);
             expect(result.success && result.value.rotation?.roll).toBeCloseTo(0.1 * DEFAULT_HEAD_TRACKING_CONFIG.damping);
         });
     });

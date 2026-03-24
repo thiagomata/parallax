@@ -47,7 +47,7 @@ describe("ProjectionResolver", () => {
             const blueprint: BlueprintProjection = {
                 id: "self",
                 type: PROJECTION_TYPES.SCREEN,
-                targetId: "self",
+                parentId: "self",
                 lookMode: LOOK_MODES.LOOK_AT,
                 position: {x: 0, y: 0, z: 100},
                 lookAt: {x: 0, y: 0, z: 0},
@@ -63,7 +63,7 @@ describe("ProjectionResolver", () => {
             const blueprint: BlueprintProjection = {
                 id: "child",
                 type: PROJECTION_TYPES.SCREEN,
-                targetId: "nonexistent",
+                parentId: "nonexistent",
                 lookMode: LOOK_MODES.LOOK_AT,
                 position: {x: 0, y: 0, z: 100},
                 lookAt: {x: 0, y: 0, z: 0},
@@ -71,7 +71,7 @@ describe("ProjectionResolver", () => {
             };
 
             expect(() => resolver.prepare(blueprint, registry)).toThrow(
-                'Hierarchy Violation: Target "nonexistent" not found.'
+                'Hierarchy Violation: Parent "nonexistent" not found.'
             );
         });
 
@@ -89,26 +89,28 @@ describe("ProjectionResolver", () => {
                 id: "a",
                 type: PROJECTION_TYPES.SCREEN,
                 lookMode: LOOK_MODES.LOOK_AT,
-                targetId: "b",
+                parentId: "b",
                 position: {x: 0, y: 0, z: 0},
                 lookAt: {x: 0, y: 0, z: 0},
                 direction: {x: 0, y: 0, z: 1},
             });
 
+
             expect(() =>
+
                 resolver.prepare(
                     {
                         id: "b",
                         type: PROJECTION_TYPES.SCREEN,
                         lookMode: LOOK_MODES.LOOK_AT,
-                        targetId: "a",
+                        parentId: "a",
                         position: {x: 0, y: 0, z: 0},
                         lookAt: {x: 0, y: 0, z: 0},
                         direction: {x: 0, y: 0, z: 1},
                     },
                     registry
                 )
-            ).toThrow('Hierarchy Violation: Target "a" has recursive reference.');
+            ).toThrow('Hierarchy Violation: Parent "a" has recursive reference.');
         });
 
         it("should throw error for invalid projection effect type", () => {
@@ -231,6 +233,24 @@ describe("ProjectionResolver", () => {
 
             expect(result.direction).toBeDefined();
             expect(result.distance).toBeDefined();
+        });
+
+        it("keeps local space when a hierarchy parent is missing", () => {
+            const resolved = {
+                id: "child",
+                type: PROJECTION_TYPES.EYE,
+                parentId: "missing",
+                position: { x: 1, y: 2, z: 3 },
+                rotation: { yaw: 0.1, pitch: 0.2, roll: 0.3 },
+                lookAt: { x: 0, y: 0, z: 0 },
+                direction: { x: 0, y: 0, z: 1 },
+                distance: 3,
+                effects: [],
+            } as ResolvedProjection;
+
+            const result = (resolver as any).applyHierarchyTransform(resolved, {}, null);
+
+            expect(result).toBe(resolved);
         });
 
         it("should apply car modifier that succeeds", () => {
@@ -372,7 +392,7 @@ describe("ProjectionResolver", () => {
             const resolved: ResolvedProjection = {
                 id: "child",
                 type: PROJECTION_TYPES.SCREEN,
-                targetId: "parent",
+                parentId: "parent",
                 position: {x: 10, y: 20, z: 30},
                 rotation: {pitch: 0.1, yaw: 0.2, roll: 0.05},
                 direction: {x: 0, y: 0, z: 1},
@@ -404,7 +424,7 @@ describe("ProjectionResolver", () => {
             const child: ResolvedProjection = {
                 id: "child",
                 type: PROJECTION_TYPES.SCREEN,
-                targetId: "parent",
+                parentId: "parent",
                 position: {x: 10, y: 20, z: 30},
                 rotation: {pitch: 0, yaw: 0, roll: 0},
                 direction: {x: 0, y: 0, z: 1},

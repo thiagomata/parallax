@@ -65,6 +65,7 @@ describe("World", () => {
         } as any;
 
         world = new World(mockSettings);
+        world.complete();
     });
 
     describe("constructor", () => {
@@ -336,12 +337,35 @@ describe("World", () => {
             expect(mockGp.setProjectionMatrix).toHaveBeenCalled();
         });
 
-        it("should throw error when eye or screen is missing", () => {
+        it("should return error status when eye or screen is missing", async () => {
             (mockStage.render as ReturnType<typeof vi.fn>).mockReturnValue({
                 projections: new Map(),
             });
 
-            expect(() => world.step(mockGp)).toThrow("no screen or eye to render");
+            const result = await world.step(mockGp);
+            expect(result.status).toBe('error');
+            expect(result.running).toBe(true);
+            expect(result.error).toBeDefined();
+        });
+
+        it("should return error status when stage.render throws", async () => {
+            (mockStage.render as ReturnType<typeof vi.fn>).mockImplementation(() => {
+                throw new Error("Renderer crash");
+            });
+
+            const result = await world.step(mockGp);
+            expect(result.status).toBe('error');
+            expect(result.running).toBe(true);
+            expect(result.error).toBeDefined();
+        });
+
+        it("should return error status when stage.render returns invalid state", async () => {
+            (mockStage.render as ReturnType<typeof vi.fn>).mockReturnValue(null);
+
+            const result = await world.step(mockGp);
+            expect(result.status).toBe('error');
+            expect(result.running).toBe(true);
+            expect(result.error).toBeDefined();
         });
     });
 });

@@ -30,6 +30,11 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     public readonly loader: AssetLoader<P5Bundler>;
     private p: p5;
 
+    // Cache for center offsets to avoid recalculation
+    private centerOffsetCache = new Map<string, Vector3>();
+    private lastWidth = 0;
+    private lastHeight = 0;
+
     constructor(p: p5, loader: AssetLoader<P5Bundler>) {
         this.p = p;
         this.loader = loader;
@@ -105,12 +110,7 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     public drawPanel(props: ResolvedPanel, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         this.p.push();
         this.applyContext(props, assets, state);
-        
-        // Mirror video texture horizontally
-        if (assets.video) {
-            this.p.scale(-1, 1);
-        }
-        
+
         this.p.plane(props.width, props.height);
         this.p.pop();
     }
@@ -216,12 +216,26 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     private applyVisuals(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         const combinedAlpha = (props.alpha ?? 1) * state.settings.alpha;
 
-        const videoReady = assets.video?.elt && 
-            (assets.video.elt as HTMLVideoElement).readyState >= 1;
+        const videoCandidate = props.video as any;
+        const videoEl = videoCandidate && typeof videoCandidate === "object" && "success" in videoCandidate
+            ? (videoCandidate.success ? videoCandidate.value : null)
+            : videoCandidate;
+        const videoElInner = videoEl ? (videoEl as any).elt || videoEl : null;
+        const videoReady = videoElInner && (videoElInner as HTMLVideoElement).readyState >= 2;
+
+        if (props.mirrorTextureHorizontal ?? false) {
+            // Mirror video texture horizontally
+            this.p.scale(-1, 1);
+        }
+        if (props.mirrorTextureVertical ?? false) {
+            // Mirror video texture horizontally
+            this.p.scale(1, -1);
+        }
+
 
         if (videoReady) {
             this.p.blendMode(this.p.BLEND);
-            this.p.texture(assets.video);
+            this.p.texture(videoEl);
             this.p.tint(255, this.to8Bit(combinedAlpha));
         } else if (assets.texture?.status === ASSET_STATUS.READY && assets.texture.value) {
             this.p.blendMode(this.p.BLEND);
@@ -280,40 +294,43 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     }
 
     private getCenterOffset(props: ResolvedBaseVisual): Vector3 {
+        // Cache key based on dimensions
         const p = props as any;
+        const cacheKey = `${props.type}-${p.width ?? 0}-${p.height ?? 0}-${p.depth ?? 0}`;
+        
+        const cached = this.centerOffsetCache.get(cacheKey);
+        if (cached) return cached;
+        
+        let result: Vector3;
         switch (props.type) {
             case ELEMENT_TYPES.BOX:
                 const width = p.width ?? 0;
                 const height = p.height ?? width;
                 const depth = p.depth ?? width;
-                return {
-                    x: (width) / 2,
-                    y: (height) / 2,
-                    z: (depth) / 2
-                };
+                result = { x: width / 2, y: height / 2, z: depth / 2 };
+                break;
             case ELEMENT_TYPES.PANEL:
-                return {
-                    x: (p.width || 0) / 2,
-                    y: (p.height || 0) / 2,
-                    z: 0
-                };
-            case ELEMENT_TYPES.SPHERE:
-            case ELEMENT_TYPES.CONE:
-            case ELEMENT_TYPES.CYLINDER:
-            case ELEMENT_TYPES.TORUS:
-            case ELEMENT_TYPES.ELLIPTICAL:
-            case ELEMENT_TYPES.PYRAMID:
-            case ELEMENT_TYPES.FLOOR:
-            case ELEMENT_TYPES.TEXT:
+                result = { x: (p.width || 0) / 2, y: (p.height || 0) / 2, z: 0 };
+                break;
             default:
-                return { x: 0, y: 0, z: 0 };
+                result = { x: 0, y: 0, z: 0 };
+        }
+        
+        this.centerOffsetCache.set(cacheKey, result);
+        return result;
+    }
+
+    public resize(w: number, h: number): void {
+        if (w !== this.lastWidth || h !== this.lastHeight) {
+            this.centerOffsetCache.clear();
+            this.lastWidth = w;
+            this.lastHeight = h;
         }
     }
 
 
     public drawTree(node: RenderTreeNode | null, state: ResolvedSceneState): void {
         if (!node) return;
-
         let rotation = node.props.rotate;
         const centerOffset = this.getCenterOffset(node.props);
         const drawOffset = { x: -centerOffset.x, y: -centerOffset.y, z: -centerOffset.z };

@@ -93,6 +93,14 @@ export abstract class BaseResolver<
 
         // Handle Objects (Branches in the tree)
         if (src && typeof src === 'object' && !Array.isArray(src)) {
+            if (this.isFailableResult(src)) {
+                return src as Unwrapped<T>;
+            }
+
+            if (this.isOpaqueMediaObject(src)) {
+                return src as Unwrapped<T>;
+            }
+
             const result: any = {};
             for (const key in src) {
                 if (Object.prototype.hasOwnProperty.call(src, key)) {
@@ -164,6 +172,39 @@ export abstract class BaseResolver<
             obj !== null &&
             'kind' in obj &&
             Object.values(SPEC_KINDS).includes((obj as any).kind)
+        );
+    }
+
+    /**
+     * Keeps result wrappers opaque so their payload is not recursively resolved.
+     * This is important for values like video captures that are intentionally
+     * returned as live objects inside a success/error wrapper.
+     */
+    protected isFailableResult(obj: unknown): obj is { success: boolean; value?: unknown; error?: string } {
+        return (
+            typeof obj === 'object' &&
+            obj !== null &&
+            'success' in obj &&
+            typeof (obj as any).success === 'boolean' &&
+            ('value' in obj || 'error' in obj)
+        );
+    }
+
+    /**
+     * Treats live media/capture objects as opaque leaves so they are not
+     * recursively walked like scene data.
+     */
+    protected isOpaqueMediaObject(obj: unknown): boolean {
+        if (typeof obj !== 'object' || obj === null) return false;
+
+        const candidate = obj as Record<string, unknown>;
+        return (
+            'elt' in candidate &&
+            (
+                typeof candidate.play === 'function' ||
+                typeof candidate.hide === 'function' ||
+                typeof candidate.size === 'function'
+            )
         );
     }
 

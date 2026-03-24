@@ -12,14 +12,14 @@ import heroExample1Code from './hero_example_1.ts?raw';
 import { 
     DEFAULT_SKETCH_CONFIG, 
     type SketchConfig,
-    extractSketchFunction,
-    createSketchInstance,
-    type P5Sketch
+    sketchEngine,
+    type P5Sketch,
 } from "../tutorial/sketch_engine.ts";
+import { extractSketchFunction } from "../tutorial/sketch_engine.live.ts";
 
 import {tutorialStepTemplate} from "../tutorial/tutorial.template.ts";
 
-export function renderStep(
+export async function renderStep(
     containerId: string,
     title: string,
     initialSketch: P5Sketch,
@@ -75,12 +75,11 @@ export function renderStep(
         paused: false 
     };
     
-    let { currentP5 } = createSketchInstance(
+    let { currentP5 } = await sketchEngine.createSketchInstance(
         initialSketch, 
         sketchConfig, 
         canvasBox, 
-        containerId,
-        null
+        containerId
     );
 
     // Tab switching
@@ -104,14 +103,14 @@ export function renderStep(
         });
     });
 
-    const executeUpdate = () => {
+    const executeUpdate = async () => {
         consolePanel.style.display = 'block';
         consolePanel.innerHTML = '';
 
         try {
             const { fn } = extractSketchFunction(editorBox.innerText);
             
-            const result = createSketchInstance(fn, sketchConfig, canvasBox, containerId, currentP5);
+            const result = await sketchEngine.createSketchInstance(fn, sketchConfig, canvasBox, containerId);
             currentP5 = result.currentP5;
 
             sketchConfig.paused = false;
@@ -122,12 +121,12 @@ export function renderStep(
             log.className = 'log-entry info';
             log.textContent = `[Engine] Hydration successful.`;
             consolePanel.appendChild(log);
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error('executeUpdate error:', e);
             const log = document.createElement('div');
             log.className = 'log-entry info';
             log.style.color = 'var(--error)';
-            log.textContent = `Error: ${e.message}\n\nStack:\n${e.stack}`;
+            log.textContent = e instanceof Error ? `Error: ${e.message}\n\nStack:\n${e.stack}` : String(e);
             log.style.whiteSpace = 'pre-wrap';
             log.style.fontSize = '11px';
             consolePanel.appendChild(log);
@@ -146,15 +145,27 @@ export function renderStep(
 
     copyBtn.addEventListener('click', () => navigator.clipboard.writeText(editorBox.innerText));
 
-    // Fullscreen button
+    // Fullscreen button - hidden on mobile
+    const isMobile = () => 
+        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints > 0 && window.innerWidth < 769);
+    
     stepMain.querySelectorAll('.fullscreen-btn').forEach(btn => {
+        if (isMobile()) {
+            (btn as HTMLElement).style.display = 'none';
+            return;
+        }
+        
         btn.addEventListener('click', () => {
             const canvasBox = stepMain.querySelector('.canvas-box');
             if (canvasBox) {
-                if (document.fullscreenElement) {
-                    document.exitFullscreen?.();
+                if (document.fullscreenElement || (document as Document & { webkitFullscreenElement?: Element }).webkitFullscreenElement) {
+                    document.exitFullscreen?.() || (document as Document & { webkitExitFullscreen?: () => void }).webkitExitFullscreen?.();
                 } else {
-                    canvasBox.requestFullscreen?.();
+                    const requestFS = 
+                        canvasBox.requestFullscreen?.bind(canvasBox) ||
+                        (canvasBox as HTMLElement & { webkitRequestFullscreen?: () => void }).webkitRequestFullscreen?.bind(canvasBox);
+                    requestFS?.();
                 }
             }
         });

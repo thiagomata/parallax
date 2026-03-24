@@ -83,19 +83,19 @@ describe("Stage", () => {
         );
     });
 
-    it("addProjection throws when targetId does not exist", () => {
+    it("addProjection throws when parentId does not exist", () => {
         const projection: BlueprintProjection = {
             id: "p2",
             type: PROJECTION_TYPES.WORLD,
             lookMode: LOOK_MODES.LOOK_AT,
-            targetId: "missing",
+            parentId: "missing",
             position: { x: 0, y: 0, z: 0 },
             direction: { x: 0, y: 0, z: 1 },
             lookAt: { x: 0, y: 0, z: 0 },
         };
 
         expect(() => stage.addProjection(projection)).toThrow(
-            "Target missing not found for projection p2"
+            "Parent missing not found for projection p2"
         );
     });
 
@@ -104,7 +104,7 @@ describe("Stage", () => {
             id: STANDARD_PROJECTION_IDS.SCREEN,
             type: PROJECTION_TYPES.SCREEN,
             lookMode: LOOK_MODES.ROTATION,
-            targetId: STANDARD_PROJECTION_IDS.EYE,
+            parentId: STANDARD_PROJECTION_IDS.EYE,
             position: { x: 0, y: 0, z: 0 },
             direction: { x: 0, y: 0, z: 1 },
             rotation: { pitch: 0, yaw: 0, roll: 0 },
@@ -141,12 +141,30 @@ describe("Stage", () => {
         expect(buildRenderTree([])).toBeNull();
     });
 
+    it("toRenderTreeNode throws when the lookup map is missing a node", () => {
+        const toRenderTreeNode = (stage as any).toRenderTreeNode.bind(stage) as (node: any, nodeMap: Map<string, any>) => any;
+
+        expect(() => toRenderTreeNode(
+            { value: { id: "missing" }, children: [] },
+            new Map()
+        )).toThrow("Render tree node 'missing' missing from lookup map");
+    });
+
     describe("buildProjectionTree", () => {
         it("returns null when there are no projections", () => {
             const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
             const result = buildProjectionTree({});
             expect(result.tree).toBeNull();
             expect(result.flatMap.size).toBe(0);
+        });
+
+        it("toProjectionTreeNode throws when the lookup map is missing a node", () => {
+            const toProjectionTreeNode = (stage as any).toProjectionTreeNode.bind(stage) as (node: any, nodeMap: Map<string, any>) => any;
+
+            expect(() => toProjectionTreeNode(
+                { value: { id: "missing" }, children: [] },
+                new Map()
+            )).toThrow("Projection tree node 'missing' missing from lookup map");
         });
 
         it("builds tree with single root projection", () => {
@@ -193,7 +211,7 @@ describe("Stage", () => {
             expect(result.tree!.props.globalRotation).toEqual({ yaw: 0.1, pitch: 0.2, roll: 0.3 });
         });
 
-        it("links child projection to parent via targetId", () => {
+        it("links child projection to parent via parentId", () => {
             const buildProjectionTree = (stage as any).buildProjectionTree.bind(stage) as (pool: Record<string, ResolvedProjection>) => any;
             const pool: Record<string, ResolvedProjection> = {
                 screen: {
@@ -209,7 +227,7 @@ describe("Stage", () => {
                 eye: {
                     id: "eye",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "screen",
+                    parentId: "screen",
                     position: { x: 0, y: 5, z: -10 },
                     rotation: { yaw: 0, pitch: 0, roll: 0 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -242,7 +260,7 @@ describe("Stage", () => {
                 eye: {
                     id: "eye",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "screen",
+                    parentId: "screen",
                     position: { x: 0, y: 5, z: -10 },
                     rotation: { yaw: 0.5, pitch: 0.2, roll: 0.1 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -282,7 +300,7 @@ describe("Stage", () => {
                 eye: {
                     id: "eye",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "screen",
+                    parentId: "screen",
                     position: { x: 0, y: 0, z: -5 }, // 5 units "forward" in local space
                     rotation: { yaw: 0, pitch: 0, roll: 0 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -353,7 +371,7 @@ describe("Stage", () => {
                 child1: {
                     id: "child1",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "root",
+                    parentId: "root",
                     position: { x: 0, y: 0, z: -10 },
                     rotation: { yaw: 0, pitch: 0, roll: 0 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -364,7 +382,7 @@ describe("Stage", () => {
                 child2: {
                     id: "child2",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "child1",
+                    parentId: "child1",
                     position: { x: 5, y: 0, z: 0 },
                     rotation: { yaw: 0.1, pitch: 0, roll: 0 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -404,7 +422,7 @@ describe("Stage", () => {
                 child: {
                     id: "child",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "root",
+                    parentId: "root",
                     position: { x: 0, y: 0, z: 0 },
                     rotation: { yaw: 0.5, pitch: 0.6, roll: 0.7 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -465,7 +483,7 @@ describe("Stage", () => {
                 eye: {
                     id: "eye",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "screen",
+                    parentId: "screen",
                     position: { x: 0, y: 5, z: -10 },
                     rotation: { yaw: 0.5, pitch: 0, roll: 0 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -476,7 +494,7 @@ describe("Stage", () => {
                 child: {
                     id: "child",
                     type: PROJECTION_TYPES.EYE,
-                    targetId: "eye",
+                    parentId: "eye",
                     position: { x: 3, y: 0, z: 0 },
                     rotation: { yaw: 0, pitch: 0, roll: 0 },
                     lookAt: { x: 0, y: 0, z: 0 },
@@ -502,6 +520,36 @@ describe("Stage", () => {
         });
     });
 
+    it("clears the distance cache when the cache interval expires", () => {
+        const gp = {
+            dist: vi.fn(() => 42),
+            drawTree: vi.fn(),
+            setCameraTree: vi.fn(),
+        } as any;
+
+        stage.addElement({
+            id: "box",
+            type: ELEMENT_TYPES.BOX,
+            width: 1,
+            position: { x: 0, y: 0, z: 0 },
+        } as any);
+
+        (stage as any).lastCacheUpdate = 0;
+        const nowSpy = vi.spyOn(performance, "now").mockReturnValue(9999);
+
+        stage.render(gp, {
+            playback: { now: 0, delta: 0, frameCount: 0, progress: 0 },
+            previousResolved: null,
+            sceneId: 1,
+        });
+
+        expect((stage as any).distanceCache.size).toBe(0);
+        expect(gp.setCameraTree).toHaveBeenCalled();
+        expect(gp.drawTree).toHaveBeenCalled();
+
+        nowSpy.mockRestore();
+    });
+
     it("removeElement does not remove children; children become roots when parent is removed", () => {
         stage.addElement({
             id: "parent",
@@ -514,7 +562,7 @@ describe("Stage", () => {
             id: "child",
             type: ELEMENT_TYPES.BOX,
             width: 1,
-            targetId: "parent",
+            parentId: "parent",
             position: { x: 1, y: 0, z: 0 },
         });
 
@@ -609,6 +657,7 @@ describe("Stage", () => {
             type: "foo",
             tick: vi.fn(),
             getData: vi.fn().mockReturnValue({ offsetX: 42 }),
+            getDataResult: vi.fn().mockReturnValue({ success: true, value: { offsetX: 42 } }),
         };
 
         const settings = structuredClone(DEFAULT_SCENE_SETTINGS);
@@ -635,10 +684,114 @@ describe("Stage", () => {
             sceneId: 7,
         });
 
-        expect(provider.tick).toHaveBeenCalledWith(7);
+        expect(provider.tick).toHaveBeenCalledWith(7, expect.objectContaining({
+            parent: null,
+            ancestorsById: expect.any(Map),
+        }));
         expect(provider.getData).toHaveBeenCalled();
         expect(dist).toHaveBeenCalled();
         expect(dist.mock.calls[0][1]).toEqual({ x: 42, y: 0, z: 0 });
+    });
+
+    it("render ticks data providers in hierarchy order", () => {
+        const calls: string[] = [];
+        const seenParents: Array<string | null> = [];
+        const seenAncestorKeys: string[][] = [];
+
+        const parentProvider = {
+            type: "parent",
+            tick: () => calls.push("parent"),
+            getData: () => null,
+            getDataResult: () => ({ success: false as const, error: "no data" }),
+        };
+
+        const childProvider = {
+            type: "child",
+            parentId: "parent",
+            tick: (_sceneId: number, context?: { parent: typeof parentProvider | null; ancestorsById: ReadonlyMap<string, any> }) => {
+                calls.push("child");
+                seenParents.push(context?.parent?.type ?? null);
+                seenAncestorKeys.push(Array.from(context?.ancestorsById.keys() ?? []));
+            },
+            getData: () => null,
+            getDataResult: () => ({ success: false as const, error: "no data" }),
+        };
+
+        const settings = structuredClone(DEFAULT_SCENE_SETTINGS);
+        settings.window = WindowConfig.create(DEFAULT_WINDOW_CONFIG);
+        const stageWithProviders = new Stage<
+            MockGraphicBundle,
+            {},
+            {},
+            {
+                child: typeof childProvider;
+                parent: typeof parentProvider;
+            }
+        >(settings, loader, {}, {}, { child: childProvider, parent: parentProvider });
+
+        stageWithProviders.addElement({
+            id: "box",
+            type: ELEMENT_TYPES.BOX,
+            width: 1,
+            position: { x: 0, y: 0, z: 0 },
+        } as any);
+
+        const gp = {
+            dist: () => 0,
+            drawTree: vi.fn(),
+            setCameraTree: vi.fn(),
+        } as any;
+
+        stageWithProviders.render(gp, {
+            playback: { now: 0, delta: 0, frameCount: 0, progress: 0 },
+            previousResolved: null,
+            sceneId: 11,
+        });
+
+        expect(calls).toEqual(["parent", "child"]);
+        expect(seenParents).toEqual(["parent"]);
+        expect(seenAncestorKeys[0]).toEqual(["parent"]);
+    });
+
+    it("render throws a friendly error when a provider is missing its parent", () => {
+        const headTracker = {
+            type: "headTracker",
+            parentId: "webCam",
+            tick: vi.fn(),
+            getData: () => null,
+            getDataResult: () => ({ success: false as const, error: "No face" }),
+        };
+
+        const settings = structuredClone(DEFAULT_SCENE_SETTINGS);
+        settings.window = WindowConfig.create(DEFAULT_WINDOW_CONFIG);
+        const stageWithProviders = new Stage<MockGraphicBundle, {}, {}, { headTracker: typeof headTracker }>(
+            settings,
+            loader,
+            {},
+            {},
+            { headTracker }
+        );
+
+        stageWithProviders.addElement({
+            id: "box",
+            type: ELEMENT_TYPES.BOX,
+            width: 1,
+            position: { x: 0, y: 0, z: 0 },
+        } as any);
+
+        const gp = {
+            dist: () => 0,
+            drawTree: vi.fn(),
+            setCameraTree: vi.fn(),
+        } as any;
+
+        expect(() => {
+            stageWithProviders.render(gp, {
+                playback: { now: 0, delta: 0, frameCount: 0, progress: 0 },
+                previousResolved: null,
+                sceneId: 12,
+            });
+        }).toThrow("headTracker requires parent provider webCam, but it was not registered.");
     });
 
 	    it("setEye replaces the eye projection", () => {
@@ -702,7 +855,7 @@ describe("Stage", () => {
                 modifiers: {},
             };
             
-            (stage as any).projectionRegistry.update('testLookAt', lookAtProjection as any);
+            (stage as any).projectionRegistry.update(lookAtProjection);
 
             const mockStickModifier = {
                 name: 'stickTest',

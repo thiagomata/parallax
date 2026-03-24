@@ -121,13 +121,34 @@ export function createFaceWorldData(overrides: {
 }
 
 export function createMockHeadTrackingProvider(getDataMock: ReturnType<typeof vi.fn>) {
-    return {
-        type: 'headTracker' as const,
-        getData: getDataMock,
-        getVideo: () => undefined,
+    const mockVideoElement = {
+        elt: { readyState: 4 },
+        noLoop: () => {},
+        hide: () => {},
+        size: () => {},
+        play: () => {},
+    };
+    
+    const mockFaceProvider = {
+        getFace: () => ({ success: true, value: createFaceWorldData() }),
+        getStatus: () => 'READY' as const,
+        getVideo: () => ({ success: true, value: mockVideoElement }),
         init: async () => {},
+    };
+    
+    const mockTracker = {
+        type: 'headTracker' as const,
+        provider: mockFaceProvider,
+        getData: getDataMock,
+        getDataResult: () => ({ success: true as const, value: (getDataMock as any)() }),
+        getVideo: () => ({ success: true, value: mockVideoElement }),
+        init: async () => {
+            await mockFaceProvider.init();
+        },
         tick: () => {},
         cameraPosition: { x: 0, y: 0, z: 300 },
         panelPosition: { x: 0, y: 0, z: 0 },
     };
+    
+    return mockTracker;
 }

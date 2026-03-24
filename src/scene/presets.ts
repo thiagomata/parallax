@@ -91,7 +91,7 @@ export const VR_CABIN_PRESET: WorldPreset = {
         {
             id: 'screen',
             type: PROJECTION_TYPES.EYE,
-            targetId: 'car',
+            parentId: 'car',
             position: { x: 0, y: 0, z: 50 },
             direction: { x: 0, y: 0, z: 1 },
             lookMode: LOOK_MODES.ROTATION,
@@ -100,7 +100,7 @@ export const VR_CABIN_PRESET: WorldPreset = {
         {
             id: 'head',
             type: PROJECTION_TYPES.EYE,
-            targetId: 'screen',
+            parentId: 'screen',
             position: { x: 0, y: 0, z: 0 },
             direction: { x: 0, y: 0, z: 1 },
             lookMode: LOOK_MODES.ROTATION,
@@ -109,7 +109,7 @@ export const VR_CABIN_PRESET: WorldPreset = {
         {
             id: 'eye',
             type: PROJECTION_TYPES.EYE,
-            targetId: 'head',
+            parentId: 'head',
             position: { x: 0, y: 0, z: 0 },
             direction: { x: 0, y: 0, z: 1 },
             lookMode: LOOK_MODES.ROTATION,
@@ -132,7 +132,7 @@ export const SIMPLE_PRESET: WorldPreset = {
         {
             id: 'eye',
             type: PROJECTION_TYPES.EYE,
-            targetId: 'screen',
+            parentId: 'screen',
             position: { x: 0, y: 0, z: 0 },
             direction: { x: 0, y: 0, z: 1 },
             lookMode: LOOK_MODES.ROTATION,
@@ -142,7 +142,7 @@ export const SIMPLE_PRESET: WorldPreset = {
     elements: [],
 };
 
-export const HEAD_TRACKED_PRESET: WorldPreset = {
+export const    HEAD_TRACKED_PRESET: WorldPreset = {
     projectors: [
         {
             id: 'head',
@@ -155,8 +155,8 @@ export const HEAD_TRACKED_PRESET: WorldPreset = {
         {
             id: 'eye',
             type: PROJECTION_TYPES.EYE,
-            targetId: 'head',
-            position: { x: 0, y: 0, z: 50 },
+            parentId: 'head',
+            position: { x: 0, y: 0, z: 100 },
             direction: { x: 0, y: 0, z: 1 },
             lookMode: LOOK_MODES.LOOK_AT,
             lookAt: { x: 0, y: 0, z: 0 },
@@ -164,7 +164,7 @@ export const HEAD_TRACKED_PRESET: WorldPreset = {
         {
             id: 'screen',
             type: PROJECTION_TYPES.EYE,
-            targetId: 'head',
+            parentId: 'head',
             position: { x: 0, y: 0, z: -100 },
             direction: { x: 0, y: 0, z: 1 },
             lookMode: LOOK_MODES.LOOK_AT,

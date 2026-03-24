@@ -29,15 +29,30 @@ const createDynamicVideoElt = (states: number[]) => {
     return elt;
 };
 
+const createMockCapture = (eltProps: any = { readyState: 4 }) => ({
+    size: vi.fn(),
+    hide: vi.fn(),
+    elt: { 
+        readyState: 4,
+        onloadedmetadata: null as any,
+        onerror: null as any,
+        ...eltProps 
+    },
+    play: vi.fn(),
+});
+
 describe('MediaPipeFaceProvider', () => {
     let mockP5: any;
     let mockLandmarker: any;
+    let mockCapture: any;
     let provider: MediaPipeFaceProvider;
 
     beforeEach(() => {
         vi.clearAllMocks();
         mockP5 = createMockP5();
         mockP5.VIDEO = 'video';
+        mockCapture = createMockCapture();
+        mockP5.createCapture.mockReturnValue(mockCapture);
 
         mockLandmarker = {
             detectForVideo: vi.fn().mockReturnValue({ faceLandmarks: [[{ x: 0, y: 0, z: 0 }]] }),
@@ -62,12 +77,6 @@ describe('MediaPipeFaceProvider', () => {
             (FilesetResolver.forVisionTasks as any).mockResolvedValue({});
             (FaceLandmarker.createFromOptions as any).mockResolvedValue(mockLandmarker);
 
-            mockP5.createCapture.mockReturnValue({
-                size: vi.fn(),
-                hide: vi.fn(),
-                elt: { readyState: 4 }
-            });
-
             await provider.init();
 
             expect(provider.getStatus()).toBe('READY');
@@ -87,18 +96,6 @@ describe('MediaPipeFaceProvider', () => {
             (FilesetResolver.forVisionTasks as any).mockResolvedValue({});
             (FaceLandmarker.createFromOptions as any).mockResolvedValue(mockLandmarker);
 
-            const mockCapture = {
-                size: vi.fn(),
-                hide: vi.fn(),
-                elt: { 
-                    readyState: 4,
-                    onloadedmetadata: null as any,
-                    onerror: null as any,
-                },
-                play: vi.fn(),
-            };
-            mockP5.createCapture.mockReturnValue(mockCapture);
-
             await provider.init();
 
             expect(mockCapture.elt.onloadedmetadata).toBeDefined();
@@ -111,18 +108,6 @@ describe('MediaPipeFaceProvider', () => {
             (FilesetResolver.forVisionTasks as any).mockResolvedValue({});
             (FaceLandmarker.createFromOptions as any).mockResolvedValue(mockLandmarker);
 
-            const mockCapture = {
-                size: vi.fn(),
-                hide: vi.fn(),
-                elt: { 
-                    readyState: 4,
-                    onloadedmetadata: null as any,
-                    onerror: null as any,
-                },
-                play: vi.fn(),
-            };
-            mockP5.createCapture.mockReturnValue(mockCapture);
-
             await provider.init();
 
             expect(mockCapture.elt.onerror).toBeDefined();
@@ -134,13 +119,6 @@ describe('MediaPipeFaceProvider', () => {
             const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
             (FilesetResolver.forVisionTasks as any).mockResolvedValue({});
             (FaceLandmarker.createFromOptions as any).mockResolvedValue(mockLandmarker);
-
-            const mockCapture = {
-                size: vi.fn(),
-                hide: vi.fn(),
-                elt: { readyState: 4 },
-            };
-            mockP5.createCapture.mockReturnValue(mockCapture);
 
             await provider.init();
 
@@ -156,40 +134,29 @@ describe('MediaPipeFaceProvider', () => {
             (FaceLandmarker.createFromOptions as any).mockResolvedValue(mockLandmarker);
         });
 
-        it('should return capture when status is READY', async () => {
-            const mockCapture = {
-                size: vi.fn(),
-                hide: vi.fn(),
-                elt: { readyState: 4 },
-            };
-            mockP5.createCapture.mockReturnValue(mockCapture);
-
+        it('should return success true and value capture when status is READY', async () => {
             await provider.init();
 
             const video = provider.getVideo();
-            expect(video).toBe(mockCapture);
+            expect(video.success).toBe(true);
+            if (!video.success) return;
+            expect(video.value).toBe(mockCapture);
         });
 
-        it('should return null when status is not READY', async () => {
-            mockP5.createCapture.mockReturnValue({
-                size: vi.fn(),
-                hide: vi.fn(),
-                elt: { readyState: 4 },
-            });
-
+        it('should return success false when status is not READY', async () => {
             await provider.init();
             (provider as any).status = 'INITIALIZING';
 
-            expect(provider.getVideo()).toBeNull();
+            expect(provider.getVideo().success).toBe(false);
         });
 
-        it('should return null when capture is not created', async () => {
+        it('should return success false when capture is not created', async () => {
             const { FilesetResolver } = await import('@mediapipe/tasks-vision');
             (FilesetResolver.forVisionTasks as any).mockRejectedValue(new Error("Init Failed"));
             
             await provider.init();
 
-            expect(provider.getVideo()).toBeNull();
+            expect(provider.getVideo().success).toBe(false);
         });
     });
 
@@ -201,58 +168,47 @@ describe('MediaPipeFaceProvider', () => {
         });
 
         it('should wait for readyState >= 2 (HAVE_CURRENT_DATA) before processing', async () => {
-            // Sequence: 0 (Nothing), 1 (Metadata), 2 (Ready), 4 (Buffered)
             const dynamicElt = createDynamicVideoElt([0, 1, 2, 4]);
-
-            mockP5.createCapture.mockReturnValue({
-                size: vi.fn(),
-                hide: vi.fn(),
-                elt: dynamicElt
-            });
+            mockCapture.elt = dynamicElt;
 
             await provider.init();
 
-            // Frame 1: State 0
-            expect(provider.getFace()).toBeNull();
-
-            // Frame 2: State 1
-            expect(provider.getFace()).toBeNull();
-
-            // Frame 3: State 2 -> Should finally trigger detection
-            const face = provider.getFace();
-            expect(face).not.toBeNull();
+            expect(provider.getFace().success).toBe(false);
+            expect(provider.getFace().success).toBe(false);
+            const faceResult = provider.getFace();
+            expect(faceResult.success).toBe(true);
+            if (faceResult.success) {
+                expect(faceResult.value).not.toBeNull();
+            }
             expect(mockLandmarker.detectForVideo).toHaveBeenCalledTimes(1);
         });
 
-        it('should return null if face is missing in the frame', async () => {
-            mockP5.createCapture.mockReturnValue({
-                size: vi.fn(),
-                hide: vi.fn(),
-                elt: { readyState: 4 }
-            });
+        it('should return failure if face is missing in the frame', async () => {
             await provider.init();
 
-            // Simulate MediaPipe running but finding nothing
             mockLandmarker.detectForVideo.mockReturnValue({ faceLandmarks: [] });
 
-            expect(provider.getFace()).toBeNull();
+            const result = provider.getFace();
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error).toBe('No face detected in frame');
+            }
         });
 
-        it('should handle camera "glitches" by returning null without crashing', async () => {
-            // Sequence: 4 (Success), 1 (Glitch/Reload), 4 (Recovery)
+        it('should handle camera "glitches" by returning failure when video drops below readyState 2', async () => {
             const glitchyElt = createDynamicVideoElt([4, 1, 4]);
-
-            mockP5.createCapture.mockReturnValue({
-                size: vi.fn(),
-                hide: vi.fn(),
-                elt: glitchyElt
-            });
+            mockCapture.elt = glitchyElt;
 
             await provider.init();
 
-            expect(provider.getFace()).not.toBeNull(); // Success
-            expect(provider.getFace()).toBeNull();     // Glitch
-            expect(provider.getFace()).not.toBeNull(); // Recovery
+            const result1 = provider.getFace();
+            expect(result1.success).toBe(true);
+            if (result1.success) {
+                expect(result1.value).not.toBeNull();
+            }
+
+            const result2 = provider.getFace();
+            expect(result2.success).toBe(false);
         });
     });
 });

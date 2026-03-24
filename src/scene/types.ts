@@ -55,7 +55,7 @@ export const STANDARD_PROJECTION_IDS = {
 export interface BaseProjection {
     readonly type: ProjectionType;
     readonly id: string;
-    readonly targetId?: string;
+    readonly parentId?: string;
 }
 
 export function projectionIsType<T extends ProjectionType>(
@@ -218,7 +218,7 @@ export const DEFAULT_EYE_LOOK_AT: BlueprintProjectionLookAt = {
     type: PROJECTION_TYPES.EYE,
     lookMode: LOOK_MODES.LOOK_AT,
     id: STANDARD_PROJECTION_IDS.EYE,
-    targetId: STANDARD_PROJECTION_IDS.SCREEN,
+    parentId: STANDARD_PROJECTION_IDS.SCREEN,
     position: {x: 0, y: 0, z: 100},
     lookAt: {x: 0, y: 0, z: 0},
     direction: {x: 0, y: 0, z: -1},
@@ -229,7 +229,7 @@ export const DEFAULT_EYE_ROTATION: BlueprintProjectionRotation = {
     type: PROJECTION_TYPES.EYE,
     lookMode: LOOK_MODES.ROTATION,
     id: STANDARD_PROJECTION_IDS.EYE,
-    targetId: STANDARD_PROJECTION_IDS.SCREEN,
+    parentId: STANDARD_PROJECTION_IDS.SCREEN,
     position: {x: 0, y: 0, z: 100},
     rotation: {pitch: 0, yaw: 0, roll: 0},
     direction: {x: 0, y: 0, z: -1},
@@ -529,7 +529,6 @@ export type FontAsset<TFont = unknown> =
 export interface ElementAssets<TBundle extends GraphicsBundle> {
     texture?: TextureAsset<TBundle['texture']>;
     font?: FontAsset<TBundle['font']>;
-    video?: any;
 }
 
 export interface AssetLoader<TBundle extends GraphicsBundle> {
@@ -721,10 +720,10 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     readonly id: ElementId<TID>;
     readonly type: typeof ELEMENT_TYPES[keyof typeof ELEMENT_TYPES];
 
-    /** Target element id for hierarchy. Child position/rotation becomes relative to parent element. */
-    readonly targetId?: string;
+    /** Parent  element id for hierarchy. Child position/rotation becomes relative to parent element. */
+    readonly parentId?: string;
 
-    /** Local position - relative to parent (if targetId set) or world origin */
+    /** Local position - relative to parent (if parentId set) or world origin */
     readonly position: Vector3;
 
     readonly alpha?: number;
@@ -739,13 +738,16 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     /** Look mode - how rotation is determined (ANGLE or LOOK_AT) */
     readonly lookMode?: ElementLookMode;
 
-    /** Target position to look at when lookMode is LOOK_AT */
+    /** Parent  position to look at when lookMode is LOOK_AT */
     readonly lookAt?: Vector3;
 
     readonly texture?: TextureRef;
     readonly video?: unknown;
     readonly font?: FontRef;
     readonly effects?: EffectBlueprint[];
+
+    readonly mirrorTextureVertical?: boolean;
+    readonly mirrorTextureHorizontal?: boolean;
 }
 
 export type DynamicElement<T extends ResolvedElement, TDataProviderLib extends DataProviderLib = DataProviderLib> = MapToDynamic<T, TDataProviderLib>;
@@ -954,8 +956,15 @@ export type TrackingStatus =
 
 export interface DataProviderBundle<TID extends string, TData> {
     readonly type: TID;
-    tick(sceneId: number): void;
+    readonly parentId?: string;
+    tick(sceneId: number, context?: DataProviderTickContext): void;
     getData(): TData | null;
+    getDataResult(): FailableResult<TData>;
+}
+
+export interface DataProviderTickContext {
+    readonly parent: DataProviderBundle<any, any> | null;
+    readonly ancestorsById: ReadonlyMap<string, DataProviderBundle<any, any>>;
 }
 
 export type DataProviderLib = Record<string, DataProviderBundle<any, any>>;

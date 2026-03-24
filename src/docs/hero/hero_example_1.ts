@@ -48,6 +48,7 @@ export function heroExample1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG
 
     world.loadPreset(CenterOrbit(p, {radius: 500}));
     world.enableDefaultPerspective(config.width, config.height);
+    world.complete();
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
@@ -131,12 +132,15 @@ export function heroExample1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG
         });
     };
 
-    p.draw = () => {
-        if (config.paused && !clock.isPaused()) clock.pause();
-        if (!config.paused && clock.isPaused()) clock.resume();
+    p.draw = async () => {
+        if (config.paused && !world.isPaused()) {
+            world.pause();
+        } else if (!config.paused && world.isPaused()) {
+            world.resume();
+        }
 
         p.background(15);
-        world.step(graphicProcessor);
+        await world.step(graphicProcessor);
     };
 
     return world;
