@@ -1,5 +1,5 @@
 import p5 from "p5";
-import type {DataProviderBundle, DataProviderTickContext, FailableResult, TrackingStatus, Vector3} from "../types.ts";
+import type {DataProviderBundle, DataProviderTickContext, FailableResult, TrackingStatus, Vector3, VideoSourceRef} from "../types.ts";
 import { MediaPipeFaceProvider, type FaceProviderConfig } from "../drivers/mediapipe/face_provider.ts";
 import type {FaceProvider} from "./face_provider.ts";
 import type {Face} from "../drivers/mediapipe/face.ts";
@@ -14,7 +14,8 @@ export type HeadTrackerDataProviderLib = {
 };
 
 export type ObserverDataProviderLib = {
-    webCam: DataProviderBundle<"webCam", any>,
+    webCam: DataProviderBundle<"webCam", VideoSourceRef>,
+    video: DataProviderBundle<"video", VideoSourceRef>,
     headTracker: DataProviderBundle<"headTracker", FaceWorldData>,
 };
 
@@ -103,9 +104,12 @@ export const DEFAULT_CAMERA_PANEL_POSITION: Vector3 = { x: 0, y: 0, z: 0 };
 export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker", FaceWorldData> {
     readonly type = "headTracker";
     readonly parentId = "webCam";
+    readonly dependencies: readonly string[];
 
     private provider: FaceProvider;
     private webCamProvider: WebCamDataProvider | null = null;
+    private sourceProviders: DataProviderBundle<any, any>[] = [];
+    private readonly faceConfig: FaceProviderConfig;
 
     /**
      * Expected width of the head projected in the screen to the zero Z level.
@@ -142,6 +146,7 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         panelPosition: Vector3 = DEFAULT_CAMERA_PANEL_POSITION,
         cameraPosition: Vector3 = DEFAULT_CAMERA_POSITION,
         faceConfig: FaceProviderConfig = {},
+        sourceIds: readonly string[] = ["webCam"],
     ) {
         if (sceneHeadWidth <= 0) {
             throw new Error("Invalid scene head width");
@@ -152,9 +157,11 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         this.sceneHeadWidth = sceneHeadWidth;
         this.sceneScreenWidth = sceneScreenWidth;
         this.sceneScreenHeadProportion = this.sceneHeadWidth / this.sceneScreenWidth;
+        this.faceConfig = faceConfig;
 
         this.panelPosition  = panelPosition;
         this.cameraPosition = cameraPosition;
+        this.dependencies = sourceIds;
 
         this.provider = new MediaPipeFaceProvider(p, "/parallax/wasm", "/parallax/models/face_landmarker.task", mirror, faceConfig, null);
     }
@@ -167,8 +174,9 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         if (this.sceneId === sceneId) return;
         this.sceneId = sceneId;
 
+        this.sourceProviders = [...(context?.dependencies ?? [])];
         this.webCamProvider = (context?.parent as WebCamDataProvider | null) ?? null;
-        const capture = this.webCamProvider?.getData() ?? null;
+        const capture = this.resolveCapture();
         if (this.provider instanceof MediaPipeFaceProvider) {
             this.provider.setCapture(capture);
         }
@@ -181,6 +189,13 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     }
 
     getVideo(): FailableResult<any> {
+        const capture = this.resolveCapture();
+        if (capture) {
+            return {
+                success: true,
+                value: capture,
+            };
+        }
         if (this.webCamProvider) {
             return this.webCamProvider.getVideo();
         }
@@ -196,7 +211,7 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     }
 
     getDataResult(): FailableResult<FaceWorldData> {
-        const capture = this.webCamProvider?.getData() ?? null;
+        const capture = this.resolveCapture();
         if (this.provider instanceof MediaPipeFaceProvider) {
             this.provider.setCapture(capture);
         }
@@ -213,7 +228,8 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         const faceScreeWidth = face.width * this.sceneScreenWidth;
         const cameraToPanelZ = this.panelPosition.z - this.cameraPosition.z;
         const diff = ((this.sceneHeadWidth / faceScreeWidth) - 1);
-        const midPointZ = cameraToPanelZ * diff;
+        const depthScale = this.getDepthScale();
+        const midPointZ = cameraToPanelZ * diff * depthScale;
 
         const midpoint = {
             x: -(face.skullCenter.position.x - 0.5) * this.sceneScreenWidth,
@@ -225,8 +241,31 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
             face,
             this.sceneHeadWidth,
             midpoint
-        )
+        );
 
         return { success: true, value: this.lastFace };
+    }
+
+    private getDepthScale(): number {
+        const physicalHeadWidth = this.faceConfig.physicalHeadWidth ?? 150;
+        const focalLength = this.faceConfig.focalLength ?? 1;
+        const scale = (physicalHeadWidth / 150) * focalLength;
+        return Number.isFinite(scale) && scale > 0 ? scale : 1;
+    }
+
+    private resolveCapture(): any | null {
+        const providers = this.sourceProviders.length > 0
+            ? this.sourceProviders
+            : (this.webCamProvider ? [this.webCamProvider] : []);
+
+        for (const provider of providers) {
+            const result = typeof provider.getDataResult === "function"
+                ? provider.getDataResult()
+                : { success: true as const, value: typeof provider.getData === "function" ? provider.getData() : null };
+            if (!result.success || !result.value) continue;
+            return result.value;
+        }
+
+        return null;
     }
 }

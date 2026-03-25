@@ -40,6 +40,42 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.loader = loader;
     }
 
+    private resolveVideoNode(source: unknown): p5.MediaElement<HTMLVideoElement> | null {
+
+
+        const isMediaElement = (value: unknown): value is p5.MediaElement<HTMLVideoElement> => {
+            return !!value
+                && typeof value === "object"
+                && "elt" in value;
+        };
+
+        if (!source) return null;
+
+        if (typeof HTMLVideoElement !== "undefined" && source instanceof HTMLVideoElement) {
+            return new (p5 as any).MediaElement(source, this.p) as p5.MediaElement<HTMLVideoElement>;
+        }
+
+        if (typeof source !== "object") return null;
+
+        if (isMediaElement(source)) {
+            return source;
+        }
+
+        const candidate = source as { node?: unknown; elt?: unknown };
+
+        if (candidate.node) {
+            if (isMediaElement(candidate.node)) {
+                return candidate.node;
+            }
+        }
+
+        if (typeof HTMLVideoElement !== "undefined" && candidate.elt instanceof HTMLVideoElement) {
+            return new (p5 as any).MediaElement(candidate.elt, this.p) as p5.MediaElement<HTMLVideoElement>;
+        }
+
+        return null;
+    }
+
 
     public setCamera(eye: ResolvedProjection): void {
         this.p.camera(
@@ -216,12 +252,9 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     private applyVisuals(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         const combinedAlpha = (props.alpha ?? 1) * state.settings.alpha;
 
-        const videoCandidate = props.video as any;
-        const videoEl = videoCandidate && typeof videoCandidate === "object" && "success" in videoCandidate
-            ? (videoCandidate.success ? videoCandidate.value : null)
-            : videoCandidate;
-        const videoElInner = videoEl ? (videoEl as any).elt || videoEl : null;
-        const videoReady = videoElInner && (videoElInner as HTMLVideoElement).readyState >= 2;
+        const videoNode = this.resolveVideoNode(props.video);
+        const videoElt = videoNode?.elt ?? null;
+        const videoReady = !!videoElt && videoElt.readyState >= 2;
 
         if (props.mirrorTextureHorizontal ?? false) {
             // Mirror video texture horizontally
@@ -235,8 +268,10 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
 
         if (videoReady) {
             this.p.blendMode(this.p.BLEND);
-            this.p.texture(videoEl);
             this.p.tint(255, this.to8Bit(combinedAlpha));
+            if (videoNode) {
+                this.p.texture(videoNode);
+            }
         } else if (assets.texture?.status === ASSET_STATUS.READY && assets.texture.value) {
             this.p.blendMode(this.p.BLEND);
             this.p.texture(assets.texture.value.internalRef);

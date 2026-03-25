@@ -708,7 +708,7 @@ describe("Stage", () => {
         const childProvider = {
             type: "child",
             parentId: "parent",
-            tick: (_sceneId: number, context?: { parent: typeof parentProvider | null; ancestorsById: ReadonlyMap<string, any> }) => {
+            tick: (_sceneId: number, context?: any) => {
                 calls.push("child");
                 seenParents.push(context?.parent?.type ?? null);
                 seenAncestorKeys.push(Array.from(context?.ancestorsById.keys() ?? []));
@@ -791,7 +791,7 @@ describe("Stage", () => {
                 previousResolved: null,
                 sceneId: 12,
             });
-        }).toThrow("headTracker requires parent provider webCam, but it was not registered.");
+        }).toThrow("headTracker requires dependency provider webCam, but it was not registered.");
     });
 
 	    it("setEye replaces the eye projection", () => {

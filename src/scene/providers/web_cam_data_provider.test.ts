@@ -13,7 +13,8 @@ describe("WebCamDataProvider", () => {
         const video = provider.getVideo();
         expect(video.success).toBe(true);
         if (video.success) {
-            expect(video.value).toBe(p._mockCapture);
+            expect(video.value.kind).toBe("webCam");
+            expect(video.value.node).toBe(p._mockCapture);
         }
     });
 
@@ -24,8 +25,9 @@ describe("WebCamDataProvider", () => {
         const provider = new WebCamDataProvider(p, 320, 240);
 
         expect(provider.getStatus()).toBe("INITIALIZING");
-        expect(provider.getData()).toBe(p._mockCapture);
-        expect(provider.getVideo().success).toBe(true);
+        expect(provider.getData()).toBeNull();
+        expect(provider.getVideo().success).toBe(false);
+        expect(provider.getDataResult().success).toBe(false);
     });
 
     it("reports READY when the underlying video element is ready", () => {
@@ -81,6 +83,6 @@ describe("WebCamDataProvider", () => {
         expect(p._mockCapture.play).toHaveBeenCalled();
 
         p._mockCapture.elt.onerror();
-        expect(provider.getStatus()).toBe("ERROR");
+        expect(provider.getStatus()).toBe("READY");
     });
 });

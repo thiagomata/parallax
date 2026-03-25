@@ -7,6 +7,7 @@ import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provid
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type Vector3} from "../../../scene/types.ts";
 import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "../sketch_config.ts";
+import type { FaceConfig } from "../sketch_engine.types.ts";
 import { WorldSettings } from "../../../scene/world_settings.ts";
 import { HEAD_TRACKED_PRESET } from "../../../scene/presets.ts";
 import { HeadTrackingModifier } from "../../../scene/modifiers/head_tracking_modifier.ts";
@@ -47,7 +48,7 @@ export const parallax_explanation = `
 export async function tutorial_parallax(
     p: p5,
     config: SketchConfig = DEFAULT_SKETCH_CONFIG,
-    extraArgs?: { faceConfig?: any; faceDataProvider?: HeadTrackingDataProvider; webCamProvider?: WebCamDataProvider },
+    extraArgs?: { faceConfig?: FaceConfig; faceDataProvider?: HeadTrackingDataProvider; webCamProvider?: WebCamDataProvider },
 ): Promise<World<P5Bundler, any, any, { webCam: WebCamDataProvider; headTracker: HeadTrackingDataProvider }>> {
     const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,

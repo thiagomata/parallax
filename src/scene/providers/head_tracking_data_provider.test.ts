@@ -69,6 +69,34 @@ describe("HeadTrackingDataProvider", () => {
         expect(data!.midpoint.z).toBeCloseTo(expectedZ);
     });
 
+    it("should scale depth using face calibration settings", () => {
+        const mockProvider = MockFaceProvider(mockFace);
+        const mockP5 = createMockP5WithCapture();
+        const tracker = new HeadTrackingDataProvider(
+            mockP5 as any,
+            sceneHeadWidth,
+            sceneScreenWidth,
+            false,
+            { x: 0, y: 0, z: 0 },
+            { x: 0, y: 0, z: 300 },
+            {
+                physicalHeadWidth: 300,
+                focalLength: 2,
+            },
+        );
+        (tracker as any).provider = mockProvider;
+
+        const data = tracker.getData();
+        expect(data).not.toBeNull();
+
+        const faceScreenWidth = mockFace.width * sceneScreenWidth;
+        const cameraToPanelZ = 0 - 300;
+        const diff = ((sceneHeadWidth / faceScreenWidth) - 1);
+        const expectedZ = cameraToPanelZ * diff * 4;
+
+        expect(data!.midpoint.z).toBeCloseTo(expectedZ);
+    });
+
     it("should return last face if no face detected", () => {
         const mockProvider = MockFaceProvider(null);
         const mockP5 = createMockP5WithCapture();
@@ -332,7 +360,39 @@ describe("HeadTrackingDataProvider", () => {
 
             const video = tracker.getVideo();
 
-            expect(video).toBe(mockVideo);
+            expect(video.success).toBe(true);
+            if (video.success) {
+                expect(video.value).toBe(mockVideo);
+            }
+        });
+
+        it("should fall back to the next source when webcam is unavailable", () => {
+            const mockVideo = { foo: "video" };
+            const mockWebCam = {
+                getDataResult: vi.fn().mockReturnValue({ success: false as const, error: "not ready" }),
+                getData: vi.fn().mockReturnValue(null),
+            };
+            const mockFallbackVideo = {
+                getDataResult: vi.fn().mockReturnValue({ success: true as const, value: mockVideo }),
+                getData: vi.fn().mockReturnValue(mockVideo),
+            };
+            const mockProvider = MockFaceProvider(mockFace);
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(
+                mockP5 as any,
+                sceneHeadWidth,
+                sceneScreenWidth
+            );
+            (tracker as any).provider = mockProvider;
+            (tracker as any).webCamProvider = mockWebCam;
+            (tracker as any).sourceProviders = [mockWebCam, mockFallbackVideo];
+
+            const video = tracker.getVideo();
+
+            expect(video.success).toBe(true);
+            if (video.success) {
+                expect(video.value).toBe(mockVideo);
+            }
         });
     });
 

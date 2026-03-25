@@ -119,12 +119,10 @@ describe('Head Tracking Integration', () => {
                 return null;
             };
             const eyeNode = findNode(root, 'eye');
-            const headNode = findNode(root, 'head');
             const screenNode = findNode(root, 'screen');
             
-            console.log('screen global:', screenNode?.props?.globalPosition);
-            console.log('head global:', headNode?.props?.globalPosition, 'rot:', headNode?.props?.globalRotation);
-            console.log('eye global:', eyeNode?.props?.globalPosition);
+            // console.log('screen global:', screenNode?.props?.globalPosition);
+            // console.log('eye global:', eyeNode?.props?.globalPosition);
             
             if (eyeNode && screenNode) {
                 cameraCallArgs = {
@@ -136,7 +134,7 @@ describe('Head Tracking Integration', () => {
         
         // First step - calibration (first face detected returns zero)
         await world.step(mockGraphicProcessor);
-        console.log('After first step (calibration):', cameraCallArgs?.eye);
+        // console.log('After first step (calibration):', cameraCallArgs?.eye);
 
         expect(cameraCallArgs).not.toBeNull();
         

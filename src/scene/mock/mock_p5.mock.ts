@@ -13,8 +13,48 @@ export function createMockCapture() {
     };
 }
 
+export function createMockVideo() {
+    const listeners: Record<string, Function[]> = {};
+        const elt = {
+            readyState: 0,
+            currentTime: 0,
+            paused: false,
+            ended: false,
+        videoWidth: 1920,
+        videoHeight: 1080,
+        onloadedmetadata: null,
+        onerror: null,
+        playsInline: true,
+        preload: "auto",
+        addEventListener: vi.fn((event: string, cb: Function) => {
+            listeners[event] = listeners[event] ?? [];
+            listeners[event].push(cb);
+        }),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn((event: Event) => {
+            for (const cb of listeners[event.type] ?? []) {
+                cb(event);
+            }
+            return true;
+        }),
+    };
+    return {
+        elt,
+        src: "",
+        loop: vi.fn(),
+        autoplay: vi.fn(),
+        volume: vi.fn(),
+        hide: vi.fn(),
+        play: vi.fn(() => {
+            elt.paused = false;
+            return Promise.resolve();
+        }),
+    };
+}
+
 export function createMockP5() {
     const mockCapture = createMockCapture();
+    const mockVideo = createMockVideo();
     return {
         fill: vi.fn(),
         box: vi.fn(),
@@ -79,7 +119,12 @@ export function createMockP5() {
         setup: vi.fn(),
         draw: vi.fn(),
         createCapture: vi.fn().mockReturnValue(mockCapture),
+        createVideo: vi.fn().mockImplementation((url) => {
+            mockVideo.src = Array.isArray(url) ? (url[0] ?? "") : (url ?? "");
+            return mockVideo;
+        }),
         _mockCapture: mockCapture,
+        _mockVideo: mockVideo,
         lerp: vi.fn(),
         frustum: vi.fn(),
         loop: vi.fn(),

@@ -1,3 +1,5 @@
+import p5 from "p5";
+
 /**
  * A strict 3D vector.
  */
@@ -742,7 +744,7 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     readonly lookAt?: Vector3;
 
     readonly texture?: TextureRef;
-    readonly video?: unknown;
+    readonly video?: any;
     readonly font?: FontRef;
     readonly effects?: EffectBlueprint[];
 
@@ -951,19 +953,28 @@ export type TrackingStatus =
     | 'READY'          // Active tracking in progress
     | 'DRIFTING'       // Tracking lost, but modifier is returning back to neutral
     | 'DISCONNECTED'   // Tracking source disconnected and threshold exceeded (calibration cleared)
-    | 'ERROR';         // Fatal hardware/permission issue
+    | 'ERROR';         // Failed this attempt; retry on the next frame
 
 
 export interface DataProviderBundle<TID extends string, TData> {
     readonly type: TID;
     readonly parentId?: string;
+    readonly dependencies?: readonly string[];
     tick(sceneId: number, context?: DataProviderTickContext): void;
     getData(): TData | null;
     getDataResult(): FailableResult<TData>;
 }
 
+export type VideoSourceKind = "webCam" | "video";
+
+export interface VideoSourceRef {
+    readonly kind: VideoSourceKind;
+    readonly node: p5.MediaElement<HTMLVideoElement>;
+}
+
 export interface DataProviderTickContext {
     readonly parent: DataProviderBundle<any, any> | null;
+    readonly dependencies: ReadonlyArray<DataProviderBundle<any, any>>;
     readonly ancestorsById: ReadonlyMap<string, DataProviderBundle<any, any>>;
 }
 

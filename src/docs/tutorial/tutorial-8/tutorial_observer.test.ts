@@ -6,6 +6,7 @@ import {SceneClock} from "../../../scene/scene_clock.ts";
 import {DEFAULT_SCENE_SETTINGS} from "../../../scene/types.ts";
 import {createFaceWorldData, createMockHeadTrackingProvider} from "../../../scene/mock/face.mock.ts";
 import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
+import { VideoDataProvider } from "../../../scene/providers/video_data_provider.ts";
 
 describe('Tutorial 8: The Observer', () => {
     
@@ -241,13 +242,14 @@ describe('Tutorial 8: The Observer', () => {
         const face1 = createFaceWorldData();
         const getDataMock = vi.fn().mockReturnValue(face1);
         const mockTracker = createMockHeadTrackingProvider(getDataMock);
+        const webcamData = { kind: "webCam", node: { readyState: 1 } };
         const mockWebCam = {
             type: "webCam",
             parentId: undefined,
             tick: vi.fn(),
-            getData: vi.fn().mockReturnValue(null),
-            getDataResult: vi.fn().mockReturnValue({ success: false as const, error: "no video" }),
-            getVideo: vi.fn().mockReturnValue({ success: false as const, error: "no video" }),
+            getData: vi.fn().mockReturnValue(webcamData),
+            getDataResult: vi.fn().mockReturnValue({ success: true as const, value: webcamData }),
+            getVideo: vi.fn().mockReturnValue({ success: true as const, value: webcamData }),
         } as unknown as WebCamDataProvider;
 
         const world = await tutorial_observer(mockP5 as unknown as p5, {
@@ -265,5 +267,54 @@ describe('Tutorial 8: The Observer', () => {
 
         expect(mockP5.background).toHaveBeenCalled();
         expect(mockP5.box).toHaveBeenCalled();
+    });
+
+    it('should fall back to the MP4 when the webcam stays initializing too long', async () => {
+        const mockP5 = createMockP5();
+        mockP5.millis.mockReturnValueOnce(0).mockReturnValue(5000);
+
+        const mockVideo = { readyState: 4, currentTime: 1.5, paused: false, ended: false };
+        const videoGetDataSpy = vi.spyOn(VideoDataProvider.prototype, 'getData').mockReturnValue(mockVideo as any);
+        const videoGetDataResultSpy = vi.spyOn(VideoDataProvider.prototype, 'getDataResult').mockReturnValue({ success: true as const, value: mockVideo as any });
+        const videoStatusSpy = vi.spyOn(VideoDataProvider.prototype, 'getStatus').mockReturnValue("READY");
+
+        const clock = new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
+            playback: {
+                ...DEFAULT_SCENE_SETTINGS.playback,
+                duration: 10000,
+                isLoop: true
+            }
+        });
+
+        const face1 = createFaceWorldData();
+        const getDataMock = vi.fn().mockReturnValue(face1);
+        const mockTracker = createMockHeadTrackingProvider(getDataMock);
+        const webcamData = { kind: "webCam", node: { readyState: 1 } };
+        const mockWebCam = {
+            type: "webCam",
+            parentId: undefined,
+            tick: vi.fn(),
+            getStatus: vi.fn().mockReturnValue("INITIALIZING"),
+            getData: vi.fn().mockReturnValue(webcamData),
+            getDataResult: vi.fn().mockReturnValue({ success: true as const, value: webcamData }),
+            getVideo: vi.fn().mockReturnValue({ success: true as const, value: webcamData }),
+        } as unknown as WebCamDataProvider;
+
+        const world = await tutorial_observer(mockP5 as unknown as p5, {
+            width: 500,
+            height: 400,
+            clock,
+            paused: false
+        }, { faceDataProvider: mockTracker, webCamProvider: mockWebCam } as any);
+
+        await mockP5.setup();
+        await mockP5.draw();
+
+        expect(world.getElement('videoPanel')).toBeDefined();
+
+        videoGetDataSpy.mockRestore();
+        videoGetDataResultSpy.mockRestore();
+        videoStatusSpy.mockRestore();
     });
 });
