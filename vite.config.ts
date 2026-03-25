@@ -14,7 +14,16 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: './index.html',
-                tutorial: './docs/tutorial/index.html',
+                'docs/tutorial': './docs/tutorial/index.html',
+                'docs/tutorial/tutorial-1': './docs/tutorial/tutorial-1/index.html',
+                'docs/tutorial/tutorial-2': './docs/tutorial/tutorial-2/index.html',
+                'docs/tutorial/tutorial-3': './docs/tutorial/tutorial-3/index.html',
+                'docs/tutorial/tutorial-4': './docs/tutorial/tutorial-4/index.html',
+                'docs/tutorial/tutorial-5': './docs/tutorial/tutorial-5/index.html',
+                'docs/tutorial/tutorial-6': './docs/tutorial/tutorial-6/index.html',
+                'docs/tutorial/tutorial-7': './docs/tutorial/tutorial-7/index.html',
+                'docs/tutorial/tutorial-8': './docs/tutorial/tutorial-8/index.html',
+                'docs/tutorial/tutorial-9': './docs/tutorial/tutorial-9/index.html',
             }
         }
     },
