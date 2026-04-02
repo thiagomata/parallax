@@ -4,7 +4,7 @@ import {createMockP5} from "../../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {SceneClock} from "../../../scene/scene_clock.ts";
 import {DEFAULT_SCENE_SETTINGS, type ResolvedBox} from "../../../scene/types.ts";
-import {createFaceWorldData, createMockHeadTrackingProvider} from "../../../scene/mock/face.mock.ts";
+import {createMockFaceWorldData, createMockHeadTrackingProvider, createMockSceneFace} from "../../../scene/mock/face.mock.ts";
 
 describe('Tutorial 10: Parallax Head-Tracked VR View', () => {
 
@@ -22,9 +22,11 @@ describe('Tutorial 10: Parallax Head-Tracked VR View', () => {
         });
 
         // Canonical head - centered, looking straight
-        const canonicalFace = createFaceWorldData({
-            midpoint: { x: 0, y: 0, z: 0 },
-            stick: { yaw: 0, pitch: 0, roll: 0 }
+        const canonicalFace = createMockFaceWorldData({
+            sceneFace: createMockSceneFace({
+                localPosition: { x: 0, y: 0, z: 0 },
+                localRotation: { yaw: 0, pitch: 0, roll: 0 }
+            })
         });
 
         const getDataMock = vi.fn();
@@ -72,7 +74,7 @@ describe('Tutorial 10: Parallax Head-Tracked VR View', () => {
         });
 
         const getDataMock = vi.fn();
-        getDataMock.mockReturnValue(createFaceWorldData());
+        getDataMock.mockReturnValue(createMockFaceWorldData());
 
         await tutorial_parallax(mockP5 as unknown as p5, { 
             width: 640, 
@@ -100,9 +102,11 @@ describe('Tutorial 10: Parallax Head-Tracked VR View', () => {
             }
         });
 
-        const faceData = createFaceWorldData({
-            midpoint: { x: 50, y: -30, z: 100 },
-            stick: { yaw: 0.5, pitch: 0.3, roll: 0.1 }
+        const faceData = createMockFaceWorldData({
+            sceneFace: createMockSceneFace({
+                localPosition: { x: 50, y: -30, z: 100 },
+                localRotation: { yaw: 0.5, pitch: 0.3, roll: 0.1 }
+            })
         });
 
         const getDataMock = vi.fn();
@@ -133,7 +137,7 @@ describe('Tutorial 10: Parallax Head-Tracked VR View', () => {
         });
 
         const getDataMock = vi.fn();
-        getDataMock.mockReturnValue(createFaceWorldData());
+        getDataMock.mockReturnValue(createMockFaceWorldData());
 
         await tutorial_parallax(mockP5 as unknown as p5, {
             width: 640,

@@ -2,6 +2,7 @@ import { describe, it, vi, expect } from 'vitest';
 import { HeadTrackingDataProvider, DEFAULT_CAMERA_POSITION, DEFAULT_CAMERA_PANEL_POSITION } from "./head_tracking_data_provider";
 import type { FaceProvider } from "./face_provider.ts";
 import { Face } from "../drivers/mediapipe/face.ts";
+import { SceneFaceBuilder } from "./scene_face.ts";
 
 const createMockP5WithCapture = () => ({
     createCapture: vi.fn().mockReturnValue({
@@ -68,12 +69,13 @@ describe("HeadTrackingDataProvider", () => {
         const data = tracker.getData();
         expect(data).not.toBeNull();
 
-        const faceScreenWidth = mockFace.width * sceneScreenWidth;
-        const cameraToPanelZ = 0 - 300;
-        const diff = ((sceneHeadWidth / faceScreenWidth) - 1);
-        const expectedZ = cameraToPanelZ * diff;
+        const expectedFace = new SceneFaceBuilder()
+            .config({ sceneScreenWidth, baseline: { x: 0, y: 0, z: 0 } })
+            .actualWidth(mockFace.width)
+            .baselineWidth(sceneHeadWidth)
+            .build();
 
-        expect(data!.midpoint.z).toBeCloseTo(expectedZ);
+        expect(data!.midpoint.z).toBeCloseTo(expectedFace.localPosition.z);
     });
 
     it("should scale depth using face calibration settings", () => {
@@ -96,12 +98,13 @@ describe("HeadTrackingDataProvider", () => {
         const data = tracker.getData();
         expect(data).not.toBeNull();
 
-        const faceScreenWidth = mockFace.width * sceneScreenWidth;
-        const cameraToPanelZ = 0 - 300;
-        const diff = ((sceneHeadWidth / faceScreenWidth) - 1);
-        const expectedZ = cameraToPanelZ * diff * 4;
+        const expectedFace = new SceneFaceBuilder()
+            .config({ sceneScreenWidth, baseline: { x: 0, y: 0, z: 0 }, depthScale: 4 })
+            .actualWidth(mockFace.width)
+            .baselineWidth(sceneHeadWidth)
+            .build();
 
-        expect(data!.midpoint.z).toBeCloseTo(expectedZ);
+        expect(data!.midpoint.z).toBeCloseTo(expectedFace.localPosition.z);
     });
 
     it("should return last face if no face detected", () => {
