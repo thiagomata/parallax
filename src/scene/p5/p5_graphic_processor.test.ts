@@ -4,7 +4,8 @@ import {
     ASSET_STATUS,
     ELEMENT_TYPES,
     type ProjectionMatrix,
-    type ResolvedBox
+    type ResolvedBox,
+    type ResolvedPanel,
 } from "../types.ts";
 
 const createMockP5 = () => {
@@ -400,5 +401,139 @@ describe("P5GraphicProcessor", () => {
 
         expect(gp.lerp(0, 10, 0.5)).toBe(5);
         expect(p.lerp).toHaveBeenCalled();
+    });
+
+    describe("drawPanel fitMode", () => {
+        it("draws panel at default size when no video", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, {} as any);
+
+            const state = { settings: { alpha: 1 } } as any;
+            const assets = {} as any;
+
+            gp.drawPanel(
+                {
+                    id: "panel",
+                    type: ELEMENT_TYPES.PANEL,
+                    width: 100,
+                    height: 100,
+                    position: { x: 0, y: 0, z: 0 },
+                } as ResolvedPanel,
+                assets,
+                state
+            );
+
+            expect(p.plane).toHaveBeenCalledWith(100, 100);
+        });
+
+        it("fitMode contain scales video to fit within panel", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, {} as any);
+
+            const state = { settings: { alpha: 1 } } as any;
+            const videoElt = { readyState: 2, videoWidth: 640, videoHeight: 480 };
+            const videoNode = { elt: videoElt };
+
+            gp.drawPanel(
+                {
+                    id: "panel",
+                    type: ELEMENT_TYPES.PANEL,
+                    width: 200,
+                    height: 200,
+                    position: { x: 0, y: 0, z: 0 },
+                    fitMode: "contain",
+                    video: videoNode as any,
+                } as any,
+                {} as any,
+                state
+            );
+
+            // panel 200x200 (aspect 1.0), video 640x480 (aspect 1.33)
+            // contain: panelAspect(1.0) < sourceAspect(1.33), scale by width -> 200/640 * 480 = 150
+            expect(p.plane).toHaveBeenCalledWith(200, 150);
+        });
+
+        it("fitMode cover scales video to fill panel", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, {} as any);
+
+            const state = { settings: { alpha: 1 } } as any;
+            const videoElt = { readyState: 2, videoWidth: 640, videoHeight: 480 };
+            const videoNode = { elt: videoElt };
+
+            gp.drawPanel(
+                {
+                    id: "panel",
+                    type: ELEMENT_TYPES.PANEL,
+                    width: 200,
+                    height: 200,
+                    position: { x: 0, y: 0, z: 0 },
+                    fitMode: "cover",
+                    video: videoNode as any,
+                } as any,
+                {} as any,
+                state
+            );
+
+            // panel 200x200 (aspect 1.0), video 640x480 (aspect 1.33)
+            // cover: panelAspect(1.0) < sourceAspect(1.33), scale by width -> 200/640 * 480 = 150
+            expect(p.plane).toHaveBeenCalledWith(200, 150);
+        });
+
+        it("fitMode fill stretches video to panel size", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, {} as any);
+
+            const state = { settings: { alpha: 1 } } as any;
+            const videoElt = { readyState: 2, videoWidth: 640, videoHeight: 480 };
+            const videoNode = { elt: videoElt };
+
+            gp.drawPanel(
+                {
+                    id: "panel",
+                    type: ELEMENT_TYPES.PANEL,
+                    width: 200,
+                    height: 200,
+                    position: { x: 0, y: 0, z: 0 },
+                    fitMode: "fill",
+                    video: videoNode as any,
+                } as any,
+                {} as any,
+                state
+            );
+
+            expect(p.plane).toHaveBeenCalledWith(200, 200);
+        });
+
+        it("uses texture asset dimensions when video not ready", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, {} as any);
+
+            const state = { settings: { alpha: 1 } } as any;
+            const img = { width: 320, height: 240 };
+            const assets = {
+                texture: {
+                    status: ASSET_STATUS.READY,
+                    value: { internalRef: img },
+                },
+            } as any;
+
+            gp.drawPanel(
+                {
+                    id: "panel",
+                    type: ELEMENT_TYPES.PANEL,
+                    width: 200,
+                    height: 200,
+                    position: { x: 0, y: 0, z: 0 },
+                    fitMode: "contain",
+                } as any,
+                assets,
+                state
+            );
+
+            // panel 200x200 (aspect 1.0), texture 320x240 (aspect 1.33)
+            // contain: panelAspect(1.0) < sourceAspect(1.33), scale by width -> 200/320 * 240 = 150
+            expect(p.plane).toHaveBeenCalledWith(200, 150);
+        });
     });
 });
