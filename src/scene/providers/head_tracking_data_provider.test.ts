@@ -30,6 +30,13 @@ describe("HeadTrackingDataProvider", () => {
         skullCenter: {
             position: { x: 0.5, y: 0.5, z: 0.5 }
         },
+        getRotation: () => ({
+            rotation: {
+                yaw: 0.1,
+                pitch: 0.2,
+                roll: 0.05,
+            }
+        }),
         rebase: {
             nose: { x: 0.5, y: 0.5, z: 0.5 },
             leftEye: { x: 0.4, y: 0.5, z: 0.5 },
@@ -239,7 +246,7 @@ describe("HeadTrackingDataProvider", () => {
 
             const data = tracker.getData();
             expect(data).not.toBeNull();
-            expect(data!.sceneHeadWidth).toBe(sceneHeadWidth);
+            expect(data!.sceneFace.headWidth).toBe(sceneHeadWidth);
             expect(data!.face).toBe(mockFace);
         });
     });

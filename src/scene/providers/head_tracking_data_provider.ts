@@ -4,6 +4,12 @@ import { MediaPipeFaceProvider, type FaceProviderConfig } from "../drivers/media
 import type {FaceProvider} from "./face_provider.ts";
 import type {Face} from "../drivers/mediapipe/face.ts";
 import type { WebCamDataProvider } from "./web_cam_data_provider.ts";
+import {
+    SceneFace,
+    SceneFaceBuilder,
+    type FaceSceneConfig,
+    computeDepthScale,
+} from "./scene_face.ts";
 
 /**
  * Data provider library type for head tracking.
@@ -25,16 +31,15 @@ export type ObserverDataProviderLib = {
  */
 export class FaceWorldData {
     readonly face: Face;
-    readonly sceneHeadWidth: number;
+    readonly sceneFace: SceneFace;
     readonly midpoint: Vector3
     public constructor(
         face: Face,
-        sceneHeadWidth: number,
-        midpoint: Vector3
+        sceneFace: SceneFace,
     ) {
         this.face = face;
-        this.sceneHeadWidth = sceneHeadWidth;
-        this.midpoint = midpoint;
+        this.sceneFace = sceneFace;
+        this.midpoint = sceneFace.localPosition;
     }
 
     /**
@@ -42,13 +47,12 @@ export class FaceWorldData {
      * Applies coordinate flipping and scaling to sceneHeadWidth.
      */
     private transform = (vector: Vector3) => {
-        // return {x:0,y:0,z:0};
+        const sceneHeadWidth = this.sceneFace.headWidth;
         const scaled = {
-            x: vector.x * this.sceneHeadWidth,
-            y: vector.y * this.sceneHeadWidth,
-            z: vector.z * this.sceneHeadWidth,
+            x: vector.x * sceneHeadWidth,
+            y: vector.y * sceneHeadWidth,
+            z: vector.z * sceneHeadWidth,
         };
-        // Flip Y and Z for p5 coordinate system
         return {
             x: scaled.x,
             y: scaled.y,
@@ -225,32 +229,32 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         }
 
         const face = faceResult.value;
-        const faceScreeWidth = face.width * this.sceneScreenWidth;
-        const cameraToPanelZ = this.panelPosition.z - this.cameraPosition.z;
-        const diff = ((this.sceneHeadWidth / faceScreeWidth) - 1);
-        const depthScale = this.getDepthScale();
-        const midPointZ = cameraToPanelZ * diff * depthScale;
+        const rotation = face.getRotation().rotation;
 
-        const midpoint = {
-            x: -(face.skullCenter.position.x - 0.5) * this.sceneScreenWidth,
-            y:  (face.skullCenter.position.y - 0.5) * this.sceneScreenWidth,
-            z: midPointZ,
+        const sceneFaceConfig: FaceSceneConfig = {
+            sceneScreenWidth: this.sceneScreenWidth,
+            baseline: this.panelPosition,
+            cameraPosition: this.cameraPosition,
+            depthScale: computeDepthScale(
+                this.faceConfig.physicalHeadWidth ?? 150,
+                this.faceConfig.focalLength ?? 1
+            ),
         };
+
+        const sceneFace = new SceneFaceBuilder()
+            .config(sceneFaceConfig)
+            .actualWidth(face.width)
+            .baselineWidth(this.sceneHeadWidth)
+            .skullCenterNormalized(face.skullCenter.position)
+            .rotation(rotation)
+            .build();
 
         this.lastFace = new FaceWorldData(
             face,
-            this.sceneHeadWidth,
-            midpoint
+            sceneFace
         );
 
         return { success: true, value: this.lastFace };
-    }
-
-    private getDepthScale(): number {
-        const physicalHeadWidth = this.faceConfig.physicalHeadWidth ?? 150;
-        const focalLength = this.faceConfig.focalLength ?? 1;
-        const scale = (physicalHeadWidth / 150) * focalLength;
-        return Number.isFinite(scale) && scale > 0 ? scale : 1;
     }
 
     private resolveCapture(): any | null {
