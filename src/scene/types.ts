@@ -766,12 +766,17 @@ export interface ResolvedBox extends ResolvedBaseVisual {
 export type BlueprintBox<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedBox, TDataProviderLib>;
 export type DynamicBox<TDataProviderLib extends DataProviderLib> = DynamicElement<ResolvedBox, TDataProviderLib>;
 
+export type FitMode = "contain" | "cover" | "fill";
+
+export const DEFAULT_FIT_MODE: FitMode = "contain";
+
 // PANEL
 
 export interface ResolvedPanel extends ResolvedBaseVisual {
     readonly type: typeof ELEMENT_TYPES.PANEL;
     readonly width: number;
     readonly height: number;
+    readonly fitMode?: FitMode;
 }
 
 export type BlueprintPanel<TDataProviderLib extends DataProviderLib> = MapToBlueprint<ResolvedPanel, TDataProviderLib>;
