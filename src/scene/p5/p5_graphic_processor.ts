@@ -1,5 +1,6 @@
 import {
     ASSET_STATUS,
+    DEFAULT_FIT_MODE,
     type AssetLoader, type ColorRGBA,
     type ElementAssets,
     type GraphicProcessor,
@@ -147,8 +148,54 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.push();
         this.applyContext(props, assets, state);
 
-        this.p.plane(props.width, props.height);
+        const { width: drawWidth, height: drawHeight } = this.computeFitDimensions(props, assets);
+
+        this.p.plane(drawWidth, drawHeight);
         this.p.pop();
+    }
+
+    private computeFitDimensions(props: ResolvedPanel, assets: ElementAssets<P5Bundler>): { width: number; height: number } {
+        const fitMode = props.fitMode ?? DEFAULT_FIT_MODE;
+        if (fitMode === "fill") {
+            return { width: props.width, height: props.height };
+        }
+
+        const sourceDims = this.getSourceDimensions(props.video, assets);
+        if (!sourceDims) {
+            return { width: props.width, height: props.height };
+        }
+
+        const panelAspect = props.width / props.height;
+        const sourceAspect = sourceDims.width / sourceDims.height;
+
+        const shouldScaleByWidth = fitMode === "contain"
+            ? panelAspect < sourceAspect
+            : panelAspect <= sourceAspect;
+
+        if (shouldScaleByWidth) {
+            const scale = props.width / sourceDims.width;
+            return { width: props.width, height: sourceDims.height * scale };
+        } else {
+            const scale = props.height / sourceDims.height;
+            return { width: sourceDims.width * scale, height: props.height };
+        }
+    }
+
+    private getSourceDimensions(video: unknown, assets: ElementAssets<P5Bundler>): { width: number; height: number } | null {
+        if (assets.texture?.status === ASSET_STATUS.READY && assets.texture.value) {
+            return {
+                width: assets.texture.value.internalRef.width,
+                height: assets.texture.value.internalRef.height,
+            };
+        }
+
+        const videoNode = this.resolveVideoNode(video);
+        const videoElt = videoNode?.elt ?? null;
+        if (videoElt && videoElt.readyState >= 2 && videoElt.videoWidth > 0 && videoElt.videoHeight > 0) {
+            return { width: videoElt.videoWidth, height: videoElt.videoHeight };
+        }
+
+        return null;
     }
 
     public drawSphere(props: ResolvedSphere, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
