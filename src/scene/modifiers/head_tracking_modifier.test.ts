@@ -2,8 +2,22 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { HeadTrackingModifier, DEFAULT_HEAD_TRACKING_CONFIG } from "./head_tracking_modifier.ts";
 import type { ResolutionContext, DataProviderBundle } from "../types.ts";
 import type { FaceWorldData } from "../providers/head_tracking_data_provider.ts";
+import { SceneFace, DEFAULT_FACE_SCENE_CONFIG } from "../providers/scene_face.ts";
 
 type TestDataProviderLib = { headTracker: DataProviderBundle<"headTracker", FaceWorldData> };
+
+function createMockSceneFace(overrides: Partial<{
+    localPosition: { x: number; y: number; z: number };
+    localRotation: { yaw: number; pitch: number; roll: number };
+}> = {}): SceneFace {
+    return new SceneFace(
+        DEFAULT_FACE_SCENE_CONFIG,
+        overrides.localPosition ?? { x: 0, y: 0, z: 0 },
+        overrides.localRotation ?? { yaw: 0, pitch: 0, roll: 0 },
+        180,
+        1
+    );
+}
 
 function createMockContext(headData: FaceWorldData | null): ResolutionContext<TestDataProviderLib> {
     return {
@@ -25,18 +39,47 @@ function createMockContext(headData: FaceWorldData | null): ResolutionContext<Te
     } as unknown as ResolutionContext<TestDataProviderLib>;
 }
 
-function createMockFaceWorldData(overrides: Partial<FaceWorldData> = {}): FaceWorldData {
+function createMockFaceWorldData(overrides: Partial<{
+    sceneFace: SceneFace;
+    midpoint: { x: number; y: number; z: number };
+    nose: { x: number; y: number; z: number };
+    eyes: { left: { x: number; y: number; z: number }; right: { x: number; y: number; z: number } };
+    brows: { left: { x: number; y: number; z: number }; right: { x: number; y: number; z: number } };
+    bounds: { left: { x: number; y: number; z: number }; right: { x: number; y: number; z: number }; top: { x: number; y: number; z: number }; bottom: { x: number; y: number; z: number } };
+    stick: { yaw: number; pitch: number; roll: number };
+}> = {}): FaceWorldData {
+    let sceneFace: SceneFace;
+    if (overrides.sceneFace) {
+        sceneFace = overrides.sceneFace;
+    } else if (overrides.midpoint) {
+        sceneFace = createMockSceneFace({ localPosition: overrides.midpoint });
+    } else {
+        sceneFace = createMockSceneFace();
+    }
+    const face = {
+        rebase: {
+            nose: { x: 0, y: 0, z: 0 },
+            leftEye: { x: 0, y: 0, z: 0 },
+            rightEye: { x: 0, y: 0, z: 0 },
+            leftBrow: { x: 0, y: 0, z: 0 },
+            rightBrow: { x: 0, y: 0, z: 0 },
+            leftEar: { x: 0, y: 0, z: 0 },
+            rightEar: { x: 0, y: 0, z: 0 },
+            middleTop: { x: 0, y: 0, z: 0 },
+            middleBottom: { x: 0, y: 0, z: 0 },
+        }
+    } as any;
+    
     return {
-        face: {} as any,
-        sceneHeadWidth: 120,
-        midpoint: { x: 0, y: 0, z: 0 },
-        nose: { x: 0, y: 0, z: 0 },
-        eyes: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
-        brows: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
-        bounds: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 }, top: { x: 0, y: 0, z: 0 }, bottom: { x: 0, y: 0, z: 0 } },
-        stick: { yaw: 0, pitch: 0, roll: 0 },
-        ...overrides
-    } as FaceWorldData;
+        face,
+        sceneFace,
+        midpoint: sceneFace.localPosition,
+        nose: overrides.nose ?? { x: 0, y: 0, z: 0 },
+        eyes: overrides.eyes ?? { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
+        brows: overrides.brows ?? { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
+        bounds: overrides.bounds ?? { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 }, top: { x: 0, y: 0, z: 0 }, bottom: { x: 0, y: 0, z: 0 } },
+        stick: overrides.stick ?? { yaw: 0, pitch: 0, roll: 0 },
+    } as unknown as FaceWorldData;
 }
 
 describe('HeadTrackingModifier', () => {

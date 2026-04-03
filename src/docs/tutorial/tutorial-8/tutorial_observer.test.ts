@@ -4,7 +4,7 @@ import {createMockP5} from "../../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
 import {SceneClock} from "../../../scene/scene_clock.ts";
 import {DEFAULT_SCENE_SETTINGS} from "../../../scene/types.ts";
-import {createFaceWorldData, createMockHeadTrackingProvider} from "../../../scene/mock/face.mock.ts";
+import {createMockFaceWorldData, createMockHeadTrackingProvider, createMockSceneFace} from "../../../scene/mock/face.mock.ts";
 import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
 import { VideoDataProvider } from "../../../scene/providers/video_data_provider.ts";
 
@@ -28,7 +28,7 @@ describe('Tutorial 8: The Observer', () => {
             }
         });
 
-        const face1 = createFaceWorldData();
+        const face1 = createMockFaceWorldData();
         const getDataMock = vi.fn();
         getDataMock.mockReturnValue(face1);
 
@@ -96,7 +96,7 @@ describe('Tutorial 8: The Observer', () => {
             }
         });
 
-        const face1 = createFaceWorldData();
+        const face1 = createMockFaceWorldData();
         const getDataMock = vi.fn();
         getDataMock.mockReturnValue(face1);
 
@@ -140,18 +140,16 @@ describe('Tutorial 8: The Observer', () => {
         });
 
         // Test with face data that has specific positions
-        const faceDataWithPositions = createFaceWorldData({
-            midpoint: { x: 100, y: -50, z: 200 },
+        const faceDataWithPositions = createMockFaceWorldData({
+            sceneFace: createMockSceneFace({
+                localPosition: { x: 100, y: -50, z: 200 },
+                localRotation: { yaw: 0.5, pitch: 0.2, roll: -0.1 }
+            }),
             nose: { x: 105, y: -55, z: 205 },
             eyes: {
                 left: { x: 80, y: -70, z: 190 },
                 right: { x: 120, y: -70, z: 190 }
             },
-            stick: {
-                yaw: 0.5,
-                pitch: 0.2,
-                roll: -0.1
-            }
         });
         
         const getDataMock = vi.fn();
@@ -209,7 +207,7 @@ describe('Tutorial 8: The Observer', () => {
             }
         });
 
-        const face1 = createFaceWorldData();
+        const face1 = createMockFaceWorldData();
         const getDataMock = vi.fn();
         getDataMock.mockReturnValue(face1);
 
@@ -239,7 +237,7 @@ describe('Tutorial 8: The Observer', () => {
             }
         });
 
-        const face1 = createFaceWorldData();
+        const face1 = createMockFaceWorldData();
         const getDataMock = vi.fn().mockReturnValue(face1);
         const mockTracker = createMockHeadTrackingProvider(getDataMock);
         const webcamData = { kind: "webCam", node: { readyState: 1 } };
@@ -287,7 +285,7 @@ describe('Tutorial 8: The Observer', () => {
             }
         });
 
-        const face1 = createFaceWorldData();
+        const face1 = createMockFaceWorldData();
         const getDataMock = vi.fn().mockReturnValue(face1);
         const mockTracker = createMockHeadTrackingProvider(getDataMock);
         const webcamData = { kind: "webCam", node: { readyState: 1 } };

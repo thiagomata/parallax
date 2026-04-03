@@ -99,7 +99,7 @@ export class VideoDataProvider implements DataProviderBundle<"video", VideoSourc
 
         this.playRequested = true;
         try {
-            await this.video.play();
+            this.video.play();
         } catch {
             this.playRequested = false;
             return;
