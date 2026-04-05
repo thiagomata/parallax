@@ -261,15 +261,26 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     }
 
     private resolveCapture(): any | null {
-        // Priority 1: Use fallback capture (raw p5 video) if available - it has loaded frames
+        // Priority 1: Try webcam first if available and ready
+        if (this.webCamProvider) {
+            const webcamStatus = this.webCamProvider.getStatus();
+            if (webcamStatus === "READY") {
+                const webcamData = this.webCamProvider.getData();
+                if (webcamData) {
+                    return webcamData.node; // Use webcam
+                }
+            }
+        }
+        
+        // Priority 2: Use fallback capture (raw p5 video) if webcam not available
         if (this.fallbackCapture) {
             return this.fallbackCapture;
         }
         
-        // Priority 2: Try sourceProviders (webcam or video provider)
+        // Priority 3: Try sourceProviders (video provider)
         const providers = this.sourceProviders.length > 0
             ? this.sourceProviders
-            : (this.webCamProvider ? [this.webCamProvider] : []);
+            : [];
 
         for (const provider of providers) {
             const result = typeof provider.getDataResult === "function"

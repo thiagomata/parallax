@@ -355,6 +355,7 @@ export async function tutorial_observer(
             world.complete();
             
             // Add video panel after world.complete()
+            // Always show fallback video in panel (webcam is used for face tracking)
             const videoSelector = (_ctx: ResolutionContext<ObserverDataProviderLib>) => {
                 return fallbackVideo;
             };
