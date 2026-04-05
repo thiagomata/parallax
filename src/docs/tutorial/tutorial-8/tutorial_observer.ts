@@ -22,17 +22,6 @@ import {COLORS} from "../../../scene/colors.ts";
 const FALLBACK_VIDEO_URL = "/parallax/video/heads.mp4";
 const VIDEO_SOURCE_ORDER = ["webCam", "video"] as const;
 
-function resolvePreferredSource<T>(
-    dataProviders: Record<string, T | null | undefined>,
-    preferredIds: readonly string[],
-): T | null {
-    for (const id of preferredIds) {
-        const value = dataProviders[id];
-        if (value) return value;
-    }
-    return null;
-}
-
 /**
  * TUTORIAL: The Observer
  * 
@@ -88,24 +77,21 @@ export async function tutorial_observer(
         },
     });
 
-    // const faceConfig = {
-    //     throttleThreshold: 0,
-    //     videoWidth: 640,
-    //     videoHeight: 480,
-    //     physicalHeadWidth: 180,
-    //     focalLength: 0.5,
-    //     mirror: false,
-    // };
-    var faceConfig =extraArgs?.faceConfig;
+    var faceConfig = extraArgs?.faceConfig;
 
     let webCamProvider = extraArgs?.webCamProvider;
     webCamProvider = webCamProvider ?? new WebCamDataProvider(p, 1920, 1080);
+    
+    // Create video via VideoDataProvider - this is the ONE video element we use
     const fallbackVideoProvider = new VideoDataProvider(p, FALLBACK_VIDEO_URL, {
         loop: true,
         autoplay: true,
         muted: true,
         playsInline: true,
     });
+    
+    // Get the p5 video element from provider for panel display and face tracking
+    const fallbackVideo = (fallbackVideoProvider as any).video;
 
     let faceDataProvider = extraArgs?.faceDataProvider;
     faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(
@@ -127,7 +113,7 @@ export async function tutorial_observer(
         gp = new P5GraphicProcessor(p, loader);
     };
     const dataProviderLib: ObserverDataProviderLib = {
-        webCam: webCamProvider,
+        webCam: webCamProvider, // needed as parent dependency for headTracker
         video: fallbackVideoProvider,
         headTracker: faceDataProvider,
     };
@@ -163,16 +149,6 @@ export async function tutorial_observer(
         strokeWidth: 1
     });
 
-    // world.setScreen({
-    //     id: STANDARD_PROJECTION_IDS.SCREEN,
-    //     type: PROJECTION_TYPES.SCREEN,
-    //     lookMode: LOOK_MODES.ROTATION,
-    //     modifiers: {
-    //         carModifiers: [],
-    //         stickModifiers: []
-    //     }
-    // });
-
     const boxSize = 15;
 
     world.addBox({
@@ -180,7 +156,6 @@ export async function tutorial_observer(
         id: 'bigBox',
         width: 500,
         position: { x:0, y:0, z: -10},
-        // rotate: {pitch: 0, roll: 0, yaw: Math.PI/4},
     });
 
     world.addBox({
@@ -371,7 +346,19 @@ export async function tutorial_observer(
         if (!gp) return;
         
         if (!initialized) {
+            // Set fallback video capture for face tracking when webcam is not available
+            if (typeof (faceDataProvider as any).setFallbackCapture === 'function') {
+                (faceDataProvider as any).setFallbackCapture(fallbackVideo);
+            }
+            
             await faceDataProvider.init();
+            world.complete();
+            
+            // Add video panel after world.complete()
+            const videoSelector = (_ctx: ResolutionContext<ObserverDataProviderLib>) => {
+                return fallbackVideo;
+            };
+            
             world.addPanel({
                 type: ELEMENT_TYPES.PANEL,
                 parentId: 'bigBox',
@@ -380,24 +367,28 @@ export async function tutorial_observer(
                 mirrorTextureHorizontal: true,
                 height: 1080 * 2,
                 position: { x: 0, y: -50, z: -500 * 2 },
-                video: (ctx: ResolutionContext<ObserverDataProviderLib>) => resolvePreferredSource(ctx.dataProviders, VIDEO_SOURCE_ORDER),
+                video: videoSelector,
                 fillColor:  COLORS.blue,
             });
-
-            world.complete();
+            
             initialized = true;
             return;
         }
         
+        // Simple pause/resume - let video play naturally
         if (config.paused && !world.isPaused()) {
             world.pause();
+            fallbackVideo.pause();
+            // Don't clear background - keep last frame visible
+            return;
         } else if (!config.paused && world.isPaused()) {
             world.resume();
+            fallbackVideo.loop();
         }
         
+        // Let video play naturally - just render
         p.background(20);
         const result = await world.step(gp);
-        
         if (!result.running) return;
     };
 

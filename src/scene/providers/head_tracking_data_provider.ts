@@ -20,8 +20,8 @@ export type HeadTrackerDataProviderLib = {
 };
 
 export type ObserverDataProviderLib = {
-    webCam: DataProviderBundle<"webCam", VideoSourceRef>,
-    video: DataProviderBundle<"video", VideoSourceRef>,
+    webCam?: DataProviderBundle<"webCam", VideoSourceRef>,
+    video?: DataProviderBundle<"video", VideoSourceRef>,
     headTracker: DataProviderBundle<"headTracker", FaceWorldData>,
 };
 
@@ -114,6 +114,7 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     private webCamProvider: WebCamDataProvider | null = null;
     private sourceProviders: DataProviderBundle<any, any>[] = [];
     private readonly faceConfig: FaceProviderConfig;
+    private fallbackCapture: any = null;
 
     /**
      * Expected width of the head projected in the screen to the zero Z level.
@@ -180,7 +181,9 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
 
         this.sourceProviders = [...(context?.dependencies ?? [])];
         this.webCamProvider = (context?.parent as WebCamDataProvider | null) ?? null;
+        
         const capture = this.resolveCapture();
+        
         if (this.provider instanceof MediaPipeFaceProvider) {
             this.provider.setCapture(capture);
         }
@@ -258,6 +261,12 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     }
 
     private resolveCapture(): any | null {
+        // Priority 1: Use fallback capture (raw p5 video) if available - it has loaded frames
+        if (this.fallbackCapture) {
+            return this.fallbackCapture;
+        }
+        
+        // Priority 2: Try sourceProviders (webcam or video provider)
         const providers = this.sourceProviders.length > 0
             ? this.sourceProviders
             : (this.webCamProvider ? [this.webCamProvider] : []);
@@ -266,10 +275,16 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
             const result = typeof provider.getDataResult === "function"
                 ? provider.getDataResult()
                 : { success: true as const, value: typeof provider.getData === "function" ? provider.getData() : null };
-            if (!result.success || !result.value) continue;
-            return result.value;
+            if (!result.success) continue;
+            const value = (result as any).value;
+            if (!value) continue;
+            return value;
         }
-
+        
         return null;
+    }
+
+    setFallbackCapture(capture: any): void {
+        this.fallbackCapture = capture;
     }
 }

@@ -92,6 +92,26 @@ export class VideoDataProvider implements DataProviderBundle<"video", VideoSourc
         return { success: true, value: this.source };
     }
 
+    seekTo(timeInSeconds: number): void {
+        if (this.video.elt.readyState >= 1) {
+            this.video.elt.currentTime = timeInSeconds;
+        }
+    }
+
+    getDuration(): number {
+        return this.video.elt.duration ?? 0;
+    }
+
+    play(): void {
+        this.ensurePlaying();
+    }
+
+    load(): void {
+        if (typeof this.video.elt.load === 'function') {
+            this.video.elt.load();
+        }
+    }
+
     private async ensurePlaying(): Promise<void> {
         if (this.playRequested) return;
         if (this.video.elt.readyState < 2) return;

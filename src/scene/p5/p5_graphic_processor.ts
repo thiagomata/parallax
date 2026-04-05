@@ -299,9 +299,15 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     private applyVisuals(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
         const combinedAlpha = (props.alpha ?? 1) * state.settings.alpha;
 
-        const videoNode = this.resolveVideoNode(props.video);
+        let videoSource = props.video;
+        // If video is a function, resolve it now
+        if (typeof videoSource === 'function') {
+            videoSource = videoSource(state as any);
+        }
+
+        const videoNode = this.resolveVideoNode(videoSource);
         const videoElt = videoNode?.elt ?? null;
-        const videoReady = !!videoElt && videoElt.readyState >= 2;
+        const videoReady = !!videoElt && videoElt.readyState >= 1 && videoElt.videoWidth > 0 && videoElt.videoHeight > 0;
 
         if (props.mirrorTextureHorizontal ?? false) {
             // Mirror video texture horizontally
