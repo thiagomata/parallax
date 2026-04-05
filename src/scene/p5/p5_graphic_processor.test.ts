@@ -146,7 +146,7 @@ describe("P5GraphicProcessor", () => {
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
         const state = { settings: { alpha: 0.5 } } as any;
-        const videoEl = { kind: "video", node: { elt: { readyState: 2 } } };
+        const videoEl = { kind: "video", node: { elt: { readyState: 2, videoWidth: 640, videoHeight: 480 } } };
         const assets = {} as any;
 
         gp.drawBox(
@@ -171,7 +171,7 @@ describe("P5GraphicProcessor", () => {
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
         const state = { settings: { alpha: 1 } } as any;
-        const rawVideo = { kind: "webCam", node: { elt: { readyState: 2 } } };
+        const rawVideo = { kind: "webCam", node: { elt: { readyState: 2, videoWidth: 640, videoHeight: 480 } } };
 
         gp.drawBox(
             {

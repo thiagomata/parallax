@@ -1,7 +1,7 @@
 import type {Rotation3, Vector3} from "../types.ts";
 
 export interface FaceSceneConfig {
-    sceneScreenWidth: number;
+    sceneScreenWidth?: number;
     baseline: Vector3;
     cameraPosition: Vector3;
     depthScale: number;
@@ -88,17 +88,41 @@ export class SceneFaceBuilder {
 
     build(): SceneFace {
         const config = this._config;
-        const cameraToBaselineZ = config.baseline.z - config.cameraPosition.z;
 
-        const actualSceneWidth = this._normalizedWidth * config.sceneScreenWidth;
-        const widthRatio = this._baselineWidth / actualSceneWidth;
-        const diff = widthRatio - 1;
-        const localZ = cameraToBaselineZ * diff * config.depthScale;
+        const baselineDistance = Math.hypot(
+            config.baseline.x - config.cameraPosition.x,
+            config.baseline.y - config.cameraPosition.y,
+            config.baseline.z - config.cameraPosition.z,
+        );
 
+        const ratio = this._normalizedWidth / this._baselineWidth;
+        
+        const dx = config.baseline.x - config.cameraPosition.x;
+        const dy = config.baseline.y - config.cameraPosition.y;
+        const dz = config.baseline.z - config.cameraPosition.z;
+        
+        const dirX = dx / baselineDistance;
+        const dirY = dy / baselineDistance;
+        const dirZ = dz / baselineDistance;
+        
+        const distanceFromCamera = baselineDistance / ratio;
+        
+        const faceX = config.cameraPosition.x + dirX * distanceFromCamera;
+        const faceY = config.cameraPosition.y + dirY * distanceFromCamera;
+        const faceZ = config.cameraPosition.z + dirZ * distanceFromCamera;
+        
+        const localX = (faceX - config.baseline.x) * config.depthScale;
+        const localY = (faceY - config.baseline.y) * config.depthScale;
+        const localZ = (faceZ - config.baseline.z) * config.depthScale;
+
+        const screenWidth = config.sceneScreenWidth ?? this._baselineWidth;
+        const skullOffsetX = -(this._skullCenterNormalized.x - 0.5) * screenWidth;
+        const skullOffsetY = (this._skullCenterNormalized.y - 0.5) * screenWidth;
+        
         const localPosition: Vector3 = {
-            x: -(this._skullCenterNormalized.x - 0.5) * config.sceneScreenWidth,
-            y:  (this._skullCenterNormalized.y - 0.5) * config.sceneScreenWidth,
-            z:  localZ,
+            x: localX + skullOffsetX,
+            y: localY + skullOffsetY,
+            z: localZ,
         };
 
         const localRotation: Rotation3 = {
@@ -106,6 +130,8 @@ export class SceneFaceBuilder {
             pitch: -this._rotation.pitch,
             roll:  -this._rotation.roll,
         };
+
+        const widthRatio = 1 / ratio;
 
         return new SceneFace(
             config,

@@ -24,7 +24,6 @@ function MockFaceProvider(mockFace: Face | null, status: string = 'READY', mockV
 
 describe("HeadTrackingDataProvider", () => {
     const sceneHeadWidth = 120;
-    const sceneScreenWidth = 650;
 
     const mockFace = {
         width: 0.5,
@@ -60,7 +59,10 @@ describe("HeadTrackingDataProvider", () => {
         const tracker = new HeadTrackingDataProvider(
             mockP5 as any,
             sceneHeadWidth,
-            sceneScreenWidth
+            false,
+            { x: 0, y: 0, z: 0 },
+            { x: 0, y: 0, z: 300 },
+            { videoWidth: 1920 },
         );
         (tracker as any).provider = mockProvider;
         (tracker as any).panelPosition = { x: 0, y: 0, z: 0 };
@@ -69,9 +71,10 @@ describe("HeadTrackingDataProvider", () => {
         const data = tracker.getData();
         expect(data).not.toBeNull();
 
+        const expectedSceneScreenWidth = sceneHeadWidth / mockFace.width;
         const expectedFace = new SceneFaceBuilder()
-            .config({ sceneScreenWidth, baseline: { x: 0, y: 0, z: 0 } })
-            .actualWidth(mockFace.width)
+            .config({ sceneScreenWidth: expectedSceneScreenWidth, baseline: { x: 0, y: 0, z: 0 } })
+            .actualWidth(mockFace.width * 1920)
             .baselineWidth(sceneHeadWidth)
             .build();
 
@@ -84,13 +87,13 @@ describe("HeadTrackingDataProvider", () => {
         const tracker = new HeadTrackingDataProvider(
             mockP5 as any,
             sceneHeadWidth,
-            sceneScreenWidth,
             false,
             { x: 0, y: 0, z: 0 },
             { x: 0, y: 0, z: 300 },
             {
                 physicalHeadWidth: 300,
                 focalLength: 2,
+                videoWidth: 1920,
             },
         );
         (tracker as any).provider = mockProvider;
@@ -98,9 +101,10 @@ describe("HeadTrackingDataProvider", () => {
         const data = tracker.getData();
         expect(data).not.toBeNull();
 
+        const expectedSceneScreenWidth = sceneHeadWidth / mockFace.width;
         const expectedFace = new SceneFaceBuilder()
-            .config({ sceneScreenWidth, baseline: { x: 0, y: 0, z: 0 }, depthScale: 4 })
-            .actualWidth(mockFace.width)
+            .config({ sceneScreenWidth: expectedSceneScreenWidth, baseline: { x: 0, y: 0, z: 0 }, depthScale: 4 })
+            .actualWidth(mockFace.width * 1920)
             .baselineWidth(sceneHeadWidth)
             .build();
 
@@ -113,7 +117,6 @@ describe("HeadTrackingDataProvider", () => {
         const tracker = new HeadTrackingDataProvider(
             mockP5 as any,
             sceneHeadWidth,
-            sceneScreenWidth
         );
         (tracker as any).provider = mockProvider;
 
@@ -136,8 +139,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth,
-                sceneScreenWidth
+                sceneHeadWidth
             );
             (tracker as any).provider = mockProvider;
             (tracker as any).panelPosition = { x: 0, y: 0, z: 0 };
@@ -157,8 +159,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth,
-                sceneScreenWidth
+                sceneHeadWidth
             );
             (tracker as any).provider = mockProvider;
             (tracker as any).panelPosition = { x: 0, y: 0, z: 0 };
@@ -177,8 +178,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth,
-                sceneScreenWidth
+                sceneHeadWidth
             );
             (tracker as any).provider = mockProvider;
             (tracker as any).panelPosition = { x: 0, y: 0, z: 0 };
@@ -197,8 +197,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth,
-                sceneScreenWidth
+                sceneHeadWidth
             );
             (tracker as any).provider = mockProvider;
             (tracker as any).panelPosition = { x: 0, y: 0, z: 0 };
@@ -219,8 +218,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth,
-                sceneScreenWidth
+                sceneHeadWidth
             );
             (tracker as any).provider = mockProvider;
             (tracker as any).panelPosition = { x: 0, y: 0, z: 0 };
@@ -240,8 +238,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth,
-                sceneScreenWidth
+                sceneHeadWidth
             );
             (tracker as any).provider = mockProvider;
             (tracker as any).panelPosition = { x: 0, y: 0, z: 0 };
@@ -258,29 +255,15 @@ describe("HeadTrackingDataProvider", () => {
         it("should throw error for invalid sceneHeadWidth", () => {
             const mockP5 = createMockP5WithCapture();
             expect(() => {
-                new HeadTrackingDataProvider(mockP5 as any, -10, sceneScreenWidth);
+                new HeadTrackingDataProvider(mockP5 as any, -10);
             }).toThrow("Invalid scene head width");
         });
 
         it("should throw error for zero sceneHeadWidth", () => {
             const mockP5 = createMockP5WithCapture();
             expect(() => {
-                new HeadTrackingDataProvider(mockP5 as any, 0, sceneScreenWidth);
+                new HeadTrackingDataProvider(mockP5 as any, 0);
             }).toThrow("Invalid scene head width");
-        });
-
-        it("should throw error for invalid sceneScreenWidth", () => {
-            const mockP5 = createMockP5WithCapture();
-            expect(() => {
-                new HeadTrackingDataProvider(mockP5 as any, sceneHeadWidth, -100);
-            }).toThrow("Invalid scene screen width");
-        });
-
-        it("should throw error for zero sceneScreenWidth", () => {
-            const mockP5 = createMockP5WithCapture();
-            expect(() => {
-                new HeadTrackingDataProvider(mockP5 as any, sceneHeadWidth, 0);
-            }).toThrow("Invalid scene screen width");
         });
     });
 
@@ -290,8 +273,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth,
-                sceneScreenWidth
+                sceneHeadWidth
             );
             (tracker as any).provider = mockProvider;
 
@@ -307,8 +289,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth,
-                sceneScreenWidth
+                sceneHeadWidth
             );
             (tracker as any).provider = mockProvider;
 
@@ -322,8 +303,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth,
-                sceneScreenWidth
+                sceneHeadWidth
             );
             (tracker as any).provider = mockProvider;
             (tracker as any).sceneId = 1;
@@ -338,8 +318,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth,
-                sceneScreenWidth
+                sceneHeadWidth
             );
             (tracker as any).provider = mockProvider;
             (tracker as any).sceneId = 1;
@@ -362,8 +341,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth,
-                sceneScreenWidth
+                sceneHeadWidth
             );
             (tracker as any).provider = mockProvider;
             (tracker as any).webCamProvider = mockWebCam;
@@ -390,8 +368,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth,
-                sceneScreenWidth
+                sceneHeadWidth
             );
             (tracker as any).provider = mockProvider;
             (tracker as any).webCamProvider = mockWebCam;
@@ -420,21 +397,6 @@ describe("HeadTrackingDataProvider", () => {
             const tracker = new HeadTrackingDataProvider(mockP5 as any);
             expect(tracker.cameraPosition).toEqual(DEFAULT_CAMERA_POSITION);
             expect(tracker.panelPosition).toEqual(DEFAULT_CAMERA_PANEL_POSITION);
-        });
-    });
-
-    describe("sceneScreenHeadProportion", () => {
-        it("should calculate proportion correctly", () => {
-            const mockProvider = MockFaceProvider(mockFace);
-            const mockP5 = createMockP5WithCapture();
-            const tracker = new HeadTrackingDataProvider(
-                mockP5 as any,
-                sceneHeadWidth,
-                sceneScreenWidth
-            );
-            (tracker as any).provider = mockProvider;
-
-            expect(tracker.sceneScreenHeadProportion).toBe(sceneHeadWidth / sceneScreenWidth);
         });
     });
 });

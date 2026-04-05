@@ -125,19 +125,6 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
      */
     readonly sceneHeadWidth: number;
 
-    /**
-     * The screen width.
-     * The projected head is created based in a screen image (normally camera).
-     * To properly define the head position, we need to know the screen size.
-     * @private
-     */
-    readonly sceneScreenWidth: number;
-
-    /**
-     * Percentage of the screen width that the head in neutral position should match.
-     */
-    readonly sceneScreenHeadProportion: number;
-
     private sceneId: number = -1;
     private lastFace: FaceWorldData | null = null;
     readonly cameraPosition: Vector3;
@@ -146,7 +133,6 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     constructor(
         p: p5,
         sceneHeadWidth: number = 120,
-        sceneScreenWidth: number = 650,
         mirror: boolean = false,
         panelPosition: Vector3 = DEFAULT_CAMERA_PANEL_POSITION,
         cameraPosition: Vector3 = DEFAULT_CAMERA_POSITION,
@@ -156,12 +142,7 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         if (sceneHeadWidth <= 0) {
             throw new Error("Invalid scene head width");
         }
-        if (sceneScreenWidth <= 0) {
-            throw new Error("Invalid scene screen width");
-        }
         this.sceneHeadWidth = sceneHeadWidth;
-        this.sceneScreenWidth = sceneScreenWidth;
-        this.sceneScreenHeadProportion = this.sceneHeadWidth / this.sceneScreenWidth;
         this.faceConfig = faceConfig;
 
         this.panelPosition  = panelPosition;
@@ -204,7 +185,11 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
             };
         }
         if (this.webCamProvider) {
-            return this.webCamProvider.getVideo();
+            const videoResult = this.webCamProvider.getVideo?.();
+            if (videoResult && typeof videoResult === 'object' && 'success' in videoResult) {
+                return videoResult as FailableResult<any>;
+            }
+            return { success: true, value: videoResult };
         }
         return {
             success: false,
@@ -234,8 +219,9 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         const face = faceResult.value;
         const rotation = face.getRotation().rotation;
 
+        const videoWidth = this.faceConfig.videoWidth ?? 1920;
+
         const sceneFaceConfig: FaceSceneConfig = {
-            sceneScreenWidth: this.sceneScreenWidth,
             baseline: this.panelPosition,
             cameraPosition: this.cameraPosition,
             depthScale: computeDepthScale(
@@ -246,7 +232,7 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
 
         const sceneFace = new SceneFaceBuilder()
             .config(sceneFaceConfig)
-            .actualWidth(face.width)
+            .actualWidth(face.width * videoWidth)
             .baselineWidth(this.sceneHeadWidth)
             .skullCenterNormalized(face.skullCenter.position)
             .rotation(rotation)
@@ -263,11 +249,13 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     private resolveCapture(): any | null {
         // Priority 1: Try webcam first if available and ready
         if (this.webCamProvider) {
-            const webcamStatus = this.webCamProvider.getStatus();
+            const webcamStatus = typeof this.webCamProvider.getStatus === "function"
+                ? this.webCamProvider.getStatus()
+                : "IDLE";
             if (webcamStatus === "READY") {
-                const webcamData = this.webCamProvider.getData();
+                const webcamData = this.webCamProvider.getData?.();
                 if (webcamData) {
-                    return webcamData.node; // Use webcam
+                    return webcamData.node;
                 }
             }
         }

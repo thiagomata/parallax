@@ -11,13 +11,10 @@ describe('SceneFaceBuilder', () => {
 
     describe('depth positioning', () => {
         it('should place face at baseline when actual size matches expected', () => {
-            const sceneScreenWidth = 650;
             const baselineWidth = 180;
-            const actualWidthNormalized = baselineWidth / sceneScreenWidth;
 
             const face = new SceneFaceBuilder()
-                .config({ sceneScreenWidth })
-                .actualWidth(actualWidthNormalized)
+                .actualWidth(1)
                 .baselineWidth(baselineWidth)
                 .build();
 
@@ -26,12 +23,10 @@ describe('SceneFaceBuilder', () => {
         });
 
         it('should place face in front of baseline (closer) when face appears big in image', () => {
-            const sceneScreenWidth = 650;
             const baselineWidth = 180;
-            const bigFaceNormalized = 0.5;
+            const bigFaceNormalized = 2;
 
             const face = new SceneFaceBuilder()
-                .config({ sceneScreenWidth })
                 .actualWidth(bigFaceNormalized)
                 .baselineWidth(baselineWidth)
                 .build();
@@ -41,12 +36,10 @@ describe('SceneFaceBuilder', () => {
         });
 
         it('should place face behind baseline (farther) when face appears small in image', () => {
-            const sceneScreenWidth = 650;
             const baselineWidth = 180;
-            const smallFaceNormalized = 0.1;
+            const smallFaceNormalized = 0.5;
 
             const face = new SceneFaceBuilder()
-                .config({ sceneScreenWidth })
                 .actualWidth(smallFaceNormalized)
                 .baselineWidth(baselineWidth)
                 .build();
@@ -88,27 +81,23 @@ describe('SceneFaceBuilder', () => {
     describe('extreme cases', () => {
         it('should handle very big face (very close to camera)', () => {
             const baselineWidth = 180;
-            const sceneScreenWidth = 650;
             const hugeFaceNormalized = 1.0;
 
             const face = new SceneFaceBuilder()
-                .config({ sceneScreenWidth })
                 .actualWidth(hugeFaceNormalized)
                 .baselineWidth(baselineWidth)
                 .build();
 
-            expect(face.localPosition.z).toBeGreaterThan(0);
-            expect(face.widthRatio).toBeLessThan(1);
+            expect(face.localPosition.z).toBeCloseTo(0);
+            expect(face.widthRatio).toBeCloseTo(1);
             expect(face.headWidth).toBe(baselineWidth);
         });
 
         it('should handle very small face (very far from camera)', () => {
             const baselineWidth = 180;
-            const sceneScreenWidth = 650;
             const tinyFaceNormalized = 0.01;
 
             const face = new SceneFaceBuilder()
-                .config({ sceneScreenWidth })
                 .actualWidth(tinyFaceNormalized)
                 .baselineWidth(baselineWidth)
                 .build();
@@ -151,12 +140,11 @@ describe('SceneFaceBuilder', () => {
 
         it('should return baseline as world position when at baseline position', () => {
             const baseline = { x: 50, y: 75, z: 100 };
-            const sceneScreenWidth = 650;
             const baselineWidth = 180;
 
             const face = new SceneFaceBuilder()
                 .config({ ...defaultConfig, baseline })
-                .actualWidth(baselineWidth / sceneScreenWidth)
+                .actualWidth(1)
                 .baselineWidth(baselineWidth)
                 .build();
 
