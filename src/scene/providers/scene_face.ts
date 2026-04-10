@@ -1,7 +1,7 @@
 import type {Rotation3, Vector3} from "../types.ts";
 
 export interface FaceSceneConfig {
-    sceneScreenWidth?: number;
+    sceneScreenWidth: number;
     baseline: Vector3;
     cameraPosition: Vector3;
     depthScale: number;
@@ -19,7 +19,7 @@ export class SceneFace {
     readonly baseline: Vector3;
     readonly localPosition: Vector3;
     readonly localRotation: Rotation3;
-    readonly headWidth: number;
+    readonly headWidthScene: number;
     readonly widthRatio: number;
 
     constructor(
@@ -33,7 +33,7 @@ export class SceneFace {
         this.baseline = config.baseline;
         this.localPosition = localPosition;
         this.localRotation = localRotation;
-        this.headWidth = headWidth;
+        this.headWidthScene = headWidth;
         this.widthRatio = widthRatio;
     }
 
@@ -66,12 +66,12 @@ export class SceneFaceBuilder {
         return this;
     }
 
-    actualWidth(normalizedWidth: number): this {
+    actualPixelWidth(normalizedWidth: number): this {
         this._normalizedWidth = normalizedWidth;
         return this;
     }
 
-    baselineWidth(width: number): this {
+    baselineFacePixelWidth(width: number): this {
         this._baselineWidth = width;
         return this;
     }
@@ -115,7 +115,7 @@ export class SceneFaceBuilder {
         const localY = (faceY - config.baseline.y) * config.depthScale;
         const localZ = (faceZ - config.baseline.z) * config.depthScale;
 
-        const screenWidth = config.sceneScreenWidth ?? this._baselineWidth;
+        const screenWidth = config.sceneScreenWidth;
         const skullOffsetX = -(this._skullCenterNormalized.x - 0.5) * screenWidth;
         const skullOffsetY = (this._skullCenterNormalized.y - 0.5) * screenWidth;
         
@@ -141,9 +141,4 @@ export class SceneFaceBuilder {
             widthRatio,
         );
     }
-}
-
-export function computeDepthScale(physicalHeadWidth: number, focalLength: number): number {
-    const scale = (physicalHeadWidth / 150) * focalLength;
-    return Number.isFinite(scale) && scale > 0 ? scale : 1;
 }

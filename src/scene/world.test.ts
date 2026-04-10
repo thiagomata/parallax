@@ -14,6 +14,35 @@ import {
     DEFAULT_SCENE_SETTINGS,
     type SceneSettings,
 } from "./types";
+// Define a generic branded type
+type Percentage<T extends string> = number & { __percentage: T };
+
+// Create specific types
+type ScreenPercent = Percentage<'screen'>;
+type CanvasPercent = Percentage<'canvas'>;
+type VideoPercent = Percentage<'video'>;
+
+// Generic operation - zero runtime overhead
+function addPercents<PercentageType extends string, T extends Percentage<PercentageType>>(
+    a: T,
+    b: T
+): T {
+    return (a + b) as T;
+}
+
+describe("temp test", () => {
+    it("gluglu", async () => {
+        // Usage - compile-time safety, zero runtime overhead
+        const screen1 = 50 as ScreenPercent;
+        const screen2 = 25 as ScreenPercent;
+        const canvas1 = 22 as CanvasPercent;
+        console.log(canvas1);
+        const screenSum = addPercents(screen1, screen2); // Works!
+        console.log(screenSum);
+        const fail = addPercents(screen1, canvas1);
+        console.log(fail);
+    })
+});
 
 describe("World", () => {
     let world: World<any, any, any, any>;

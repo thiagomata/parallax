@@ -2,7 +2,11 @@ import p5 from 'p5';
 import { World } from "../../../scene/world.ts";
 import { P5GraphicProcessor } from "../../../scene/p5/p5_graphic_processor.ts";
 import { SceneClock } from "../../../scene/scene_clock.ts";
-import { HeadTrackingDataProvider, type ObserverDataProviderLib } from "../../../scene/providers/head_tracking_data_provider.ts";
+import {
+    HeadTrackingDataProvider,
+    type HeadTrackingDataProviderConfig,
+    type ObserverDataProviderLib
+} from "../../../scene/providers/head_tracking_data_provider.ts";
 import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
 import { VideoDataProvider } from "../../../scene/providers/video_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
@@ -18,7 +22,7 @@ import {
 import type { FaceConfig } from "../sketch_engine.types.ts";
 import {WorldSettings} from "../../../scene/world_settings.ts";
 import {COLORS} from "../../../scene/colors.ts";
-import {CenterOrbit} from "../../../scene/presets.ts";
+// import {CenterOrbit} from "../../../scene/presets.ts";
 
 const FALLBACK_VIDEO_URL = "/parallax/video/heads.mp4";
 const VIDEO_SOURCE_ORDER = ["webCam", "video"] as const;
@@ -78,10 +82,26 @@ export async function tutorial_observer(
         },
     });
 
-    var faceConfig = extraArgs?.faceConfig ?? { videoWidth: 1920 };
+
+    const videoWidthPixels = 1920;
+    const videoHeightPixels = 1080;
+    const headWidthPercent = 60 / 100;
+    const headWidthPixels = headWidthPercent * videoWidthPixels;
+    const panelPosition = { x: 0, y: 0, z: 0 };
+    const screenPosition = { x: 0, y: 0, z: 950 };
+
+    let headTrackingConfig: Partial<HeadTrackingDataProviderConfig> = {
+        ...( extraArgs?.faceConfig ?? {} ),
+        videoWidthPixels: videoWidthPixels,
+        videoHeightPixels: videoHeightPixels,
+        mirror: false,
+        panelPosition: panelPosition,
+        cameraPosition: screenPosition,
+        sceneHeadWidthPixels: headWidthPixels,
+    }
 
     let webCamProvider = extraArgs?.webCamProvider;
-    webCamProvider = webCamProvider ?? new WebCamDataProvider(p, 1920, 1080);
+    webCamProvider = webCamProvider ?? new WebCamDataProvider(p, videoWidthPixels, videoHeightPixels);
     
     // Create video via VideoDataProvider - this is the ONE video element we use
     const fallbackVideoProvider = new VideoDataProvider(p, FALLBACK_VIDEO_URL, {
@@ -97,11 +117,7 @@ export async function tutorial_observer(
     let faceDataProvider = extraArgs?.faceDataProvider;
     faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(
         p,
-        1920 / 6,
-        false,
-        { x: 0, y: 0, z: 0 },  // panel position
-        { x: 0, y: 0, z: 1000 },   // eye position (camera)
-        faceConfig,
+        headTrackingConfig,
         VIDEO_SOURCE_ORDER,
     );
 
@@ -123,7 +139,7 @@ export async function tutorial_observer(
     world.setScreen({
         id: 'screen',
         type: PROJECTION_TYPES.SCREEN,
-        position: {x: 0, y: 0, z: 1000},
+        position: screenPosition,
         direction: {x: 0, y: 0, z: 1},
         lookMode: LOOK_MODES.ROTATION,
         rotation: {yaw: 0, pitch: 0, roll: 0},
@@ -153,7 +169,7 @@ export async function tutorial_observer(
         type: ELEMENT_TYPES.BOX,
         id: 'camera-square',
         width: 50,
-        position:  { x:0, y:0, z: 1000 },  // eye position
+        position:  screenPosition,
         fillColor: { red: 255, green: 255, blue: 255 },
         strokeColor: { red: 0, green: 0, blue: 255 },
         strokeWidth: 1,

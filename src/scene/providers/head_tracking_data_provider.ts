@@ -1,6 +1,9 @@
 import p5 from "p5";
 import type {DataProviderBundle, DataProviderTickContext, FailableResult, TrackingStatus, Vector3, VideoSourceRef} from "../types.ts";
-import { MediaPipeFaceProvider, type FaceProviderConfig } from "../drivers/mediapipe/face_provider.ts";
+import {
+    MediaPipeFaceProvider,
+    type FaceProviderConfig, DEFAULT_FACE_PROVIDER_CONFIG,
+} from "../drivers/mediapipe/face_provider.ts";
 import type {FaceProvider} from "./face_provider.ts";
 import type {Face} from "../drivers/mediapipe/face.ts";
 import type { WebCamDataProvider } from "./web_cam_data_provider.ts";
@@ -8,8 +11,8 @@ import {
     SceneFace,
     SceneFaceBuilder,
     type FaceSceneConfig,
-    computeDepthScale,
 } from "./scene_face.ts";
+import {merge} from "../utils/merge.ts";
 
 /**
  * Data provider library type for head tracking.
@@ -47,7 +50,7 @@ export class FaceWorldData {
      * Applies coordinate flipping and scaling to sceneHeadWidth.
      */
     private transform = (vector: Vector3) => {
-        const sceneHeadWidth = this.sceneFace.headWidth;
+        const sceneHeadWidth = this.sceneFace.headWidthScene;
         const scaled = {
             x: vector.x * sceneHeadWidth,
             y: vector.y * sceneHeadWidth,
@@ -105,6 +108,25 @@ export class FaceWorldData {
 export const DEFAULT_CAMERA_POSITION: Vector3 = { x: 0, y: 0, z: 300 };
 export const DEFAULT_CAMERA_PANEL_POSITION: Vector3 = { x: 0, y: 0, z: 0 };
 
+export interface HeadTrackingDataProviderConfig extends FaceProviderConfig {
+    /**
+     * Expected width of the head projected in the screen to the zero Z level.
+     * If they match, the head should have Z equals of the screen.
+     * If the projected head is bigger than the expected width, head Z is bigger (closer).
+     * If the projected head is smaller than the expected width, head Z is small (farther).
+     */
+    sceneHeadWidthPixels: number,
+    panelPosition: Vector3,
+    cameraPosition: Vector3,
+}
+
+export const DEFAULT_HEAD_TRACKING_DATA_PROVIDER_CONFIG: HeadTrackingDataProviderConfig = {
+    ...DEFAULT_FACE_PROVIDER_CONFIG,
+    sceneHeadWidthPixels: 120,
+    panelPosition: DEFAULT_CAMERA_PANEL_POSITION,
+    cameraPosition: DEFAULT_CAMERA_POSITION,
+};
+
 export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker", FaceWorldData> {
     readonly type = "headTracker";
     readonly parentId = "webCam";
@@ -113,43 +135,37 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     private provider: FaceProvider;
     private webCamProvider: WebCamDataProvider | null = null;
     private sourceProviders: DataProviderBundle<any, any>[] = [];
-    private readonly faceConfig: FaceProviderConfig;
     private fallbackCapture: any = null;
-
-    /**
-     * Expected width of the head projected in the screen to the zero Z level.
-     * If they match, the head should have Z equals of the screen.
-     * If the projected head is bigger than the expected width, head Z is bigger (closer).
-     * If the projected head is smaller than the expected width, head Z is small (farther).
-     * @private
-     */
-    readonly sceneHeadWidth: number;
 
     private sceneId: number = -1;
     private lastFace: FaceWorldData | null = null;
+    private readonly config: HeadTrackingDataProviderConfig;
+
     readonly cameraPosition: Vector3;
     readonly panelPosition: Vector3;
 
     constructor(
         p: p5,
-        sceneHeadWidth: number = 120,
-        mirror: boolean = false,
-        panelPosition: Vector3 = DEFAULT_CAMERA_PANEL_POSITION,
-        cameraPosition: Vector3 = DEFAULT_CAMERA_POSITION,
-        faceConfig: FaceProviderConfig = {},
+        config: Partial<HeadTrackingDataProviderConfig> = {},
         sourceIds: readonly string[] = ["webCam"],
     ) {
-        if (sceneHeadWidth <= 0) {
+        this.config = merge(DEFAULT_HEAD_TRACKING_DATA_PROVIDER_CONFIG, config);
+
+        if (this.config.sceneHeadWidthPixels <= 0) {
             throw new Error("Invalid scene head width");
         }
-        this.sceneHeadWidth = sceneHeadWidth;
-        this.faceConfig = faceConfig;
-
-        this.panelPosition  = panelPosition;
-        this.cameraPosition = cameraPosition;
         this.dependencies = sourceIds;
 
-        this.provider = new MediaPipeFaceProvider(p, "/parallax/wasm", "/parallax/models/face_landmarker.task", mirror, faceConfig, null);
+        this.cameraPosition = this.config.cameraPosition;
+        this.panelPosition = this.config.panelPosition;
+
+        this.provider = new MediaPipeFaceProvider(
+            p,
+            "/parallax/wasm",
+            "/parallax/models/face_landmarker.task",
+            this.config,
+            null
+        );
     }
 
     async init(): Promise<void> {
@@ -219,21 +235,18 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
         const face = faceResult.value;
         const rotation = face.getRotation().rotation;
 
-        const videoWidth = this.faceConfig.videoWidth ?? 1920;
-
+        debugger;
         const sceneFaceConfig: FaceSceneConfig = {
-            baseline: this.panelPosition,
-            cameraPosition: this.cameraPosition,
-            depthScale: computeDepthScale(
-                this.faceConfig.physicalHeadWidth ?? 150,
-                this.faceConfig.focalLength ?? 1
-            ),
+            baseline: this.config.panelPosition,
+            cameraPosition: this.config.cameraPosition,
+            depthScale: this.config.focalLength,
+            sceneScreenWidth:  this.config.videoWidthPixels,
         };
 
         const sceneFace = new SceneFaceBuilder()
             .config(sceneFaceConfig)
-            .actualWidth(face.width * videoWidth)
-            .baselineWidth(this.sceneHeadWidth)
+            .actualPixelWidth(face.width * this.config.videoWidthPixels)
+            .baselineFacePixelWidth(this.config.sceneHeadWidthPixels)
             .skullCenterNormalized(face.skullCenter.position)
             .rotation(rotation)
             .build();

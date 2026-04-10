@@ -58,15 +58,14 @@ describe("HeadTrackingDataProvider", () => {
         const mockP5 = createMockP5WithCapture();
         const tracker = new HeadTrackingDataProvider(
             mockP5 as any,
-            sceneHeadWidth,
-            false,
-            { x: 0, y: 0, z: 0 },
-            { x: 0, y: 0, z: 300 },
-            { videoWidth: 1920 },
+            {
+                sceneHeadWidthPixels: sceneHeadWidth,
+                panelPosition: { x: 0, y: 0, z: 0 },
+                cameraPosition: { x: 0, y: 0, z: 300 },
+                videoWidthPixels: 1920,
+            },
         );
         (tracker as any).provider = mockProvider;
-        (tracker as any).panelPosition = { x: 0, y: 0, z: 0 };
-        (tracker as any).cameraPosition = { x: 0, y: 0, z: 300 };
 
         const data = tracker.getData();
         expect(data).not.toBeNull();
@@ -74,8 +73,8 @@ describe("HeadTrackingDataProvider", () => {
         const expectedSceneScreenWidth = sceneHeadWidth / mockFace.width;
         const expectedFace = new SceneFaceBuilder()
             .config({ sceneScreenWidth: expectedSceneScreenWidth, baseline: { x: 0, y: 0, z: 0 } })
-            .actualWidth(mockFace.width * 1920)
-            .baselineWidth(sceneHeadWidth)
+            .actualPixelWidth(mockFace.width * 1920)
+            .baselineFacePixelWidth(sceneHeadWidth)
             .build();
 
         expect(data!.midpoint.z).toBeCloseTo(expectedFace.localPosition.z);
@@ -86,14 +85,12 @@ describe("HeadTrackingDataProvider", () => {
         const mockP5 = createMockP5WithCapture();
         const tracker = new HeadTrackingDataProvider(
             mockP5 as any,
-            sceneHeadWidth,
-            false,
-            { x: 0, y: 0, z: 0 },
-            { x: 0, y: 0, z: 300 },
             {
-                physicalHeadWidth: 300,
+                sceneHeadWidthPixels: sceneHeadWidth,
+                panelPosition: { x: 0, y: 0, z: 0 },
+                cameraPosition: { x: 0, y: 0, z: 300 },
                 focalLength: 2,
-                videoWidth: 1920,
+                videoWidthPixels: 1920,
             },
         );
         (tracker as any).provider = mockProvider;
@@ -104,11 +101,11 @@ describe("HeadTrackingDataProvider", () => {
         const expectedSceneScreenWidth = sceneHeadWidth / mockFace.width;
         const expectedFace = new SceneFaceBuilder()
             .config({ sceneScreenWidth: expectedSceneScreenWidth, baseline: { x: 0, y: 0, z: 0 }, depthScale: 4 })
-            .actualWidth(mockFace.width * 1920)
-            .baselineWidth(sceneHeadWidth)
+            .actualPixelWidth(mockFace.width * 1920)
+            .baselineFacePixelWidth(sceneHeadWidth)
             .build();
 
-        expect(data!.midpoint.z).toBeCloseTo(expectedFace.localPosition.z);
+        expect(data!.midpoint.z).toBeCloseTo(expectedFace.localPosition.z / 2);
     });
 
     it("should return last face if no face detected", () => {
@@ -116,7 +113,7 @@ describe("HeadTrackingDataProvider", () => {
         const mockP5 = createMockP5WithCapture();
         const tracker = new HeadTrackingDataProvider(
             mockP5 as any,
-            sceneHeadWidth,
+            { sceneHeadWidthPixels: sceneHeadWidth },
         );
         (tracker as any).provider = mockProvider;
 
@@ -139,11 +136,9 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth
+                { sceneHeadWidthPixels: sceneHeadWidth }
             );
             (tracker as any).provider = mockProvider;
-            (tracker as any).panelPosition = { x: 0, y: 0, z: 0 };
-            (tracker as any).cameraPosition = { x: 0, y: 0, z: 300 };
 
             const data = tracker.getData();
             expect(data).not.toBeNull();
@@ -159,11 +154,9 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth
+                { sceneHeadWidthPixels: sceneHeadWidth }
             );
             (tracker as any).provider = mockProvider;
-            (tracker as any).panelPosition = { x: 0, y: 0, z: 0 };
-            (tracker as any).cameraPosition = { x: 0, y: 0, z: 300 };
 
             const data = tracker.getData();
             expect(data).not.toBeNull();
@@ -178,11 +171,9 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth
+                { sceneHeadWidthPixels: sceneHeadWidth }
             );
             (tracker as any).provider = mockProvider;
-            (tracker as any).panelPosition = { x: 0, y: 0, z: 0 };
-            (tracker as any).cameraPosition = { x: 0, y: 0, z: 300 };
 
             const data = tracker.getData();
             expect(data).not.toBeNull();
@@ -197,11 +188,9 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth
+                { sceneHeadWidthPixels: sceneHeadWidth }
             );
             (tracker as any).provider = mockProvider;
-            (tracker as any).panelPosition = { x: 0, y: 0, z: 0 };
-            (tracker as any).cameraPosition = { x: 0, y: 0, z: 300 };
 
             const data = tracker.getData();
             expect(data).not.toBeNull();
@@ -218,11 +207,9 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth
+                { sceneHeadWidthPixels: sceneHeadWidth }
             );
             (tracker as any).provider = mockProvider;
-            (tracker as any).panelPosition = { x: 0, y: 0, z: 0 };
-            (tracker as any).cameraPosition = { x: 0, y: 0, z: 300 };
 
             const data = tracker.getData();
             expect(data).not.toBeNull();
@@ -238,15 +225,13 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth
+                { sceneHeadWidthPixels: sceneHeadWidth }
             );
             (tracker as any).provider = mockProvider;
-            (tracker as any).panelPosition = { x: 0, y: 0, z: 0 };
-            (tracker as any).cameraPosition = { x: 0, y: 0, z: 300 };
 
             const data = tracker.getData();
             expect(data).not.toBeNull();
-            expect(data!.sceneFace.headWidth).toBe(sceneHeadWidth);
+            expect(data!.sceneFace.headWidthScene).toBe(sceneHeadWidth);
             expect(data!.face).toBe(mockFace);
         });
     });
@@ -273,7 +258,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth
+                { sceneHeadWidthPixels: sceneHeadWidth }
             );
             (tracker as any).provider = mockProvider;
 
@@ -289,7 +274,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth
+                { sceneHeadWidthPixels: sceneHeadWidth }
             );
             (tracker as any).provider = mockProvider;
 
@@ -303,7 +288,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth
+                { sceneHeadWidthPixels: sceneHeadWidth }
             );
             (tracker as any).provider = mockProvider;
             (tracker as any).sceneId = 1;
@@ -318,7 +303,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth
+                { sceneHeadWidthPixels: sceneHeadWidth }
             );
             (tracker as any).provider = mockProvider;
             (tracker as any).sceneId = 1;
@@ -341,7 +326,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth
+                { sceneHeadWidthPixels: sceneHeadWidth }
             );
             (tracker as any).provider = mockProvider;
             (tracker as any).webCamProvider = mockWebCam;
@@ -368,7 +353,7 @@ describe("HeadTrackingDataProvider", () => {
             const mockP5 = createMockP5WithCapture();
             const tracker = new HeadTrackingDataProvider(
                 mockP5 as any,
-                sceneHeadWidth
+                { sceneHeadWidthPixels: sceneHeadWidth }
             );
             (tracker as any).provider = mockProvider;
             (tracker as any).webCamProvider = mockWebCam;

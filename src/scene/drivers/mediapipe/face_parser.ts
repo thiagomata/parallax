@@ -1,5 +1,6 @@
 import {DEFAULT_HEAD_PROPORTIONS, Face, type FaceData, type HeadProportions} from "./face.ts";
 import type {Vector3} from "../../types.ts";
+import {merge} from "../../utils/merge.ts";
 
 /**
  * Maps MediaPipe landmark indices to semantic face landmarks.
@@ -24,10 +25,24 @@ export const INDEX = {
  * Configuration for face parsing.
  */
 export interface HeadParserConfig {
-    physicalHeadWidth: number;
+    /**
+     * multiplier - depth sensitivity (default: 1.0)
+     */
     focalLength: number;
+    /**
+     * flip landmarks horizontally
+     */
     mirror: boolean;
+    /**
+     *  landmark positions ratios
+     */
     headProportions: HeadProportions
+}
+
+export const DEFAULT_HEAD_PARSER_CONFIG: HeadParserConfig = {
+    focalLength: 1,
+    mirror: false,
+    headProportions: DEFAULT_HEAD_PROPORTIONS,
 }
 
 interface RawLandmark {
@@ -40,12 +55,7 @@ export class FaceParser {
     private config: HeadParserConfig;
 
     constructor(config: Partial<HeadParserConfig> = {}) {
-        this.config = {
-            physicalHeadWidth: config.physicalHeadWidth ?? 150,
-            focalLength: config.focalLength ?? 1.0,
-            mirror: config.mirror ?? false,
-            headProportions: config.headProportions ?? DEFAULT_HEAD_PROPORTIONS,
-        };
+        this.config = merge(DEFAULT_HEAD_PARSER_CONFIG, config);
     }
 
     /**

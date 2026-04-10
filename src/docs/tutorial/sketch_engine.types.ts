@@ -12,7 +12,7 @@ export interface FaceConfig {
     throttleThreshold?: number;
     videoWidth?: number;
     videoHeight?: number;
-    physicalHeadWidth?: number;
+    // physicalHeadWidth?: number;
     focalLength?: number;
     mirror?: boolean;
     headProportions?: HeadProportions;

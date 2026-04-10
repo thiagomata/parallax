@@ -411,7 +411,7 @@ export class Face {
 
 
     /**
-     * Measures face width in normalized units.
+     * Measures face width in normalized units, where 1 is the full screen width.
      * Uses ear-to-ear if visible, otherwise computes from eye span.
      * @returns face width in normalized coordinates
      */

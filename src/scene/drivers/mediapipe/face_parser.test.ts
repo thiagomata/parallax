@@ -19,7 +19,7 @@ describe('FaceParser - constructor', () => {
 
     it('should accept custom config', () => {
         const parser = new FaceParser({
-            physicalHeadWidth: 200,
+            // physicalHeadWidth: 200,
             focalLength: 1.5,
             mirror: true,
         });
