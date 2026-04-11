@@ -240,14 +240,14 @@ describe("HeadTrackingDataProvider", () => {
         it("should throw error for invalid sceneHeadWidth", () => {
             const mockP5 = createMockP5WithCapture();
             expect(() => {
-                new HeadTrackingDataProvider(mockP5 as any, -10);
+                new HeadTrackingDataProvider(mockP5 as any, {sceneHeadWidthPixels: -10});
             }).toThrow("Invalid scene head width");
         });
 
         it("should throw error for zero sceneHeadWidth", () => {
             const mockP5 = createMockP5WithCapture();
             expect(() => {
-                new HeadTrackingDataProvider(mockP5 as any, 0);
+                new HeadTrackingDataProvider(mockP5 as any, {sceneHeadWidthPixels: 0});
             }).toThrow("Invalid scene head width");
         });
     });

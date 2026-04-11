@@ -13,7 +13,7 @@ describe('SceneFaceBuilder', () => {
             const baselineWidth = 180;
 
             const face = new SceneFaceBuilder()
-                .actualPixelWidth(1)
+                .actualPixelWidth(baselineWidth)
                 .baselineFacePixelWidth(baselineWidth)
                 .build();
 
@@ -26,7 +26,7 @@ describe('SceneFaceBuilder', () => {
             const bigFaceNormalized = 2;
 
             const face = new SceneFaceBuilder()
-                .actualPixelWidth(bigFaceNormalized)
+                .actualPixelWidth(bigFaceNormalized * baselineWidth)
                 .baselineFacePixelWidth(baselineWidth)
                 .build();
 
@@ -39,7 +39,7 @@ describe('SceneFaceBuilder', () => {
             const smallFaceNormalized = 0.5;
 
             const face = new SceneFaceBuilder()
-                .actualPixelWidth(smallFaceNormalized)
+                .actualPixelWidth(smallFaceNormalized * baselineWidth)
                 .baselineFacePixelWidth(baselineWidth)
                 .build();
 
@@ -83,7 +83,7 @@ describe('SceneFaceBuilder', () => {
             const hugeFaceNormalized = 1.0;
 
             const face = new SceneFaceBuilder()
-                .actualPixelWidth(hugeFaceNormalized)
+                .actualPixelWidth(hugeFaceNormalized * baselineWidth)
                 .baselineFacePixelWidth(baselineWidth)
                 .build();
 
@@ -143,7 +143,7 @@ describe('SceneFaceBuilder', () => {
 
             const face = new SceneFaceBuilder()
                 .config({ ...defaultConfig, baseline })
-                .actualPixelWidth(1)
+                .actualPixelWidth(baselineWidth)
                 .baselineFacePixelWidth(baselineWidth)
                 .build();
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { LookAtEffect } from './look_at_effect.ts';
-import { STANDARD_PROJECTION_IDS, type ResolvedBaseVisual } from '../types.ts';
+import { STANDARD_PROJECTION_IDS, type ResolvedBaseVisual, type Alpha } from '../types.ts';
 
 describe('LookAtEffect', () => {
     const createContext = (projectionPool: Record<string, any> = {}, previousResolved: any = null) => {
@@ -12,7 +12,7 @@ describe('LookAtEffect', () => {
                 pixelRatio: 1,
                 playback: { speed: 1, loop: true, duration: 0 },
                 debug: false,
-                alpha: 1,
+                alpha: 1 as Alpha,
                 startPaused: false
             },
             projectionPool,

@@ -66,7 +66,14 @@ export async function tutorial_parallax(
     webCamProvider = webCamProvider ?? new WebCamDataProvider(p, 640, 480);
 
     let faceDataProvider = extraArgs?.faceDataProvider;
-    faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(p, 120, false, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 300 }, faceConfig);
+    faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(p,
+        {
+            ...faceConfig,
+            sceneHeadWidthPixels: 120,
+            panelPosition: {x: 0, y: 0, z: 0},
+            cameraPosition: {x: 0, y: 0, z: 300},
+        }
+    );
 
     const loader = new P5AssetLoader(p);
     const dataProviderLib: { webCam: WebCamDataProvider; headTracker: HeadTrackingDataProvider } = {

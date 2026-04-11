@@ -1,10 +1,20 @@
 import p5 from "p5";
 
 /**
- * A strict 3D vector.
+ * A strict 3D vector with numeric coordinates.
  */
 export interface Vector3 {
     readonly x: number;
+    readonly y: number;
+    readonly z: number;
+}
+
+/**
+ * A 3D vector in scene units.
+ * Use this for positions in the 3D scene coordinate system.
+ */
+export interface Vector3Scene {
+    readonly x: number;  // Could be Unit<'scene'> in future
     readonly y: number;
     readonly z: number;
 }
@@ -20,6 +30,138 @@ export interface Rotation3 {
     /** Rotation around Z axis in radians (roll). 0 = level, π = sideways. */
     roll: number;
 }
+
+/**
+ * A number with a unit marker for compile-time type safety.
+ */
+export type Unit<T extends string> = number & { __unit: T };
+
+/**
+ * A pure scalar (unit-less number) for operations that require no unit.
+ */
+export type Scalar = number & ({} extends { __unit: string } ? { __unit?: never } : never);
+
+/**
+ * Unit-aware math functions for type-safe operations.
+ */
+export function scale<UnitType extends string, T extends Unit<UnitType>>(unit: T, scalar: Scalar): T {
+    return (unit * scalar) as T;
+}
+
+export function divide<UnitType extends string, T extends Unit<UnitType>>(unit: T, scalar: Scalar): T {
+    return (unit / scalar) as T;
+}
+
+export function add<UnitType extends string, T extends Unit<UnitType>>(a: T, b: T): T {
+    return (a + b) as T;
+}
+
+export function sub<UnitType extends string, T extends Unit<UnitType>>(a: T, b: T): T {
+    return (a - b) as T;
+}
+
+export function multiplyByScalar<UnitType extends string, T extends Unit<UnitType>>(unit: T, scalar: Scalar): T {
+    return (unit * scalar) as T;
+}
+
+export function divideUnits<UnitType extends string, T extends Unit<UnitType>>(a: T, b: T): Scalar {
+    return (a / b) as Scalar;
+}
+
+/**
+ * Common unit types for compile-time type safety.
+ * These types wrap the generic Unit<T> with specific unit names.
+ */
+
+/**
+ * Scene units - the primary dimensional unit in the 3D scene coordinate system.
+ * Used for positions, sizes, and distances within the scene.
+ */
+export type SceneUnits = Unit<'scene'>;
+
+/**
+ * Milliseconds - time duration in milliseconds.
+ * Used for animation durations, timeouts, and timing-related values.
+ */
+export type Milliseconds = Unit<'ms'>;
+
+/**
+ * Ratio - a dimensionless ratio value (e.g., width ratios, magnification).
+ * Typically represents a multiplier or proportion (e.g., 1.0 = 100%, 0.5 = 50%).
+ */
+export type Ratio = Unit<'ratio'>;
+
+/**
+ * Aspect - aspect ratio value (width/height).
+ * Used for screen and element aspect ratios (e.g., 16/9, 4/3).
+ */
+export type Aspect = Unit<'aspect'>;
+
+/**
+ * Scale - scale factor for transformations.
+ * Used for scaling operations, zoom levels, and size multipliers.
+ */
+export type Scale = Unit<'scale'>;
+
+/**
+ * Normalized - a value in the range [0, 1] with a specific reference.
+ * Use the specific types (Alpha, Progress, etc.) for type safety.
+ */
+export type Normalized<R extends string> = Unit<`Normalized/${R}`>;
+
+/**
+ * Percent - a percentage value in the range [0, 100] with a specific reference.
+ * Use the specific types (ScreenPercent, CanvasPercent, etc.) for type safety.
+ */
+export type Percent<R extends string> = Unit<`Percent/${R}`>;
+
+/**
+ * Specific Normalized types (0-1 range)
+ */
+export type Alpha = Normalized<'alpha'>;
+export type Progress = Normalized<'progress'>;
+export type SmoothingValue = Normalized<'smoothing'>;
+export type DampingValue = Normalized<'damping'>;
+
+/**
+ * Specific Percent types (0-100 range)
+ */
+export type ScreenPercent = Percent<'screen'>;
+export type CanvasPercent = Percent<'canvas'>;
+export type VideoPercent = Percent<'video'>;
+
+/**
+ * Uint8 - an 8-bit unsigned integer in the range [0, 255].
+ * Used for color channels (red, green, blue) and other byte-level values.
+ */
+export type Uint8 = Unit<'uint8'>;
+
+/**
+ * Smoothing - a smoothing factor in the range [0, 1].
+ * Lower values = more smoothing/lag, higher values = less smoothing/more responsive.
+ * Used in head tracking and animation interpolation.
+ */
+export type Smoothing = Unit<'smoothing'>;
+
+/**
+ * Damping - a damping factor in the range [0, 1].
+ * Reduces oscillation/overshoot in physical simulations.
+ * Used in head tracking rotation damping.
+ */
+export type Damping = Unit<'damping'>;
+
+/**
+ * FocalLength - camera focal length in arbitrary units.
+ * Used for perspective calculations and depth estimation.
+ */
+export type FocalLength = Unit<'focalLength'>;
+
+/**
+ * DepthScale - a multiplier for depth/Z-axis transformations.
+ * Amplifies or reduces the depth effect in 3D positioning.
+ * Values > 1 amplify, values < 1 reduce.
+ */
+export type DepthScale = Unit<'depthScale'>;
 
 /**
  * Look mode determines how the projection's view direction is calculated.
@@ -363,7 +505,7 @@ export interface SceneSettings {
     window: WindowConfig;
     playback: PlaybackSettings;
     debug: boolean;
-    alpha: number;
+    alpha: Alpha;
     startPaused: boolean;
 }
 
@@ -407,7 +549,7 @@ export const DEFAULT_SCENE_SETTINGS: SceneSettings = {
     },
     debug: false,
     startPaused: false,
-    alpha: 1
+    alpha: 1 as Alpha
 };
 
 export interface SceneStateDebugLog {
@@ -542,7 +684,7 @@ export interface AssetLoader<TBundle extends GraphicsBundle> {
 /**
  * GRAPHIC PROCESSOR
  */
-export type ColorRGBA = { red: number; green: number; blue: number; alpha?: number; }
+export type ColorRGBA = { red: Uint8; green: Uint8; blue: Uint8; alpha?: Alpha }
 
 /**
  * Tree node for hierarchical element rendering.
@@ -728,7 +870,8 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     /** Local position - relative to parent (if parentId set) or world origin */
     readonly position: Vector3;
 
-    readonly alpha?: number;
+    /** Alpha/opacity in range [0, 1] */
+    readonly alpha?: Alpha;
 
     readonly fillColor?: ColorRGBA;
     readonly strokeColor?: ColorRGBA;

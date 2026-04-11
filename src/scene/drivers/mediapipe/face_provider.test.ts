@@ -136,7 +136,7 @@ describe('MediaPipeFaceProvider', () => {
 
             await provider.init();
 
-            expect(mockCapture.size).toHaveBeenCalledWith(640, 480);
+            expect(mockCapture.size).toHaveBeenCalledWith(1920, 1080);
             expect(mockCapture.hide).toHaveBeenCalled();
         });
     });

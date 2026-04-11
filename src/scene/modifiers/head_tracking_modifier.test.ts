@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { HeadTrackingModifier, DEFAULT_HEAD_TRACKING_CONFIG } from "./head_tracking_modifier.ts";
-import type { ResolutionContext, DataProviderBundle } from "../types.ts";
+import type { ResolutionContext, DataProviderBundle, Alpha } from "../types.ts";
 import type { FaceWorldData } from "../providers/head_tracking_data_provider.ts";
 import { SceneFace, DEFAULT_FACE_SCENE_CONFIG } from "../providers/scene_face.ts";
 
@@ -28,7 +28,7 @@ function createMockContext(headData: FaceWorldData | null): ResolutionContext<Te
             pixelRatio: 1,
             playback: { speed: 1, loop: true, duration: 0 },
             debug: false,
-            alpha: 1,
+            alpha: 1 as Alpha,
             startPaused: false
         },
         projectionPool: {},
