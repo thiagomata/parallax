@@ -86,10 +86,18 @@ export type SceneUnits = Unit<'scene'>;
 export type Milliseconds = Unit<'ms'>;
 
 /**
- * Ratio - a dimensionless ratio value (e.g., width ratios, magnification).
- * Typically represents a multiplier or proportion (e.g., 1.0 = 100%, 0.5 = 50%).
+ * RelativeRatio - a relative value divided by a reference.
+ * Use specific types (FaceWidthRatio, SceneWidthRatio, VideoWidthRatio) for type safety.
+ * Value represents a proportion of the reference (e.g., 0.5 = 50% of reference).
  */
-export type Ratio = Unit<'ratio'>;
+export type RelativeRatio<R extends string> = Unit<`RelativeRatio/${R}`>;
+
+/**
+ * Specific RelativeRatio types - clear and unambiguous references.
+ */
+export type FaceWidthRatio = RelativeRatio<'face_width'>;
+export type SceneWidthRatio = RelativeRatio<'scene_width'>;
+export type VideoWidthRatio = RelativeRatio<'video_width'>;
 
 /**
  * Aspect - aspect ratio value (width/height).

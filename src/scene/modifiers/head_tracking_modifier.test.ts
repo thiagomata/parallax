@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { HeadTrackingModifier, DEFAULT_HEAD_TRACKING_CONFIG } from "./head_tracking_modifier.ts";
-import type { ResolutionContext, DataProviderBundle, Alpha } from "../types.ts";
+import type { ResolutionContext, DataProviderBundle, Alpha, FaceWidthRatio } from "../types.ts";
 import type { FaceWorldData } from "../providers/head_tracking_data_provider.ts";
 import { SceneFace, DEFAULT_FACE_SCENE_CONFIG } from "../providers/scene_face.ts";
 
@@ -15,7 +15,7 @@ function createMockSceneFace(overrides: Partial<{
         overrides.localPosition ?? { x: 0, y: 0, z: 0 },
         overrides.localRotation ?? { yaw: 0, pitch: 0, roll: 0 },
         180,
-        1
+        1 as FaceWidthRatio
     );
 }
 

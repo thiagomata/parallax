@@ -1,4 +1,4 @@
-import type {Rotation3, Vector3} from "../types.ts";
+import type {Rotation3, Vector3, FaceWidthRatio} from "../types.ts";
 
 export interface FaceSceneConfig {
     sceneScreenWidth: number;
@@ -20,14 +20,14 @@ export class SceneFace {
     readonly localPosition: Vector3;
     readonly localRotation: Rotation3;
     readonly headWidthScene: number;
-    readonly widthRatio: number;
+    readonly widthRatio: FaceWidthRatio;
 
     constructor(
         config: FaceSceneConfig,
         localPosition: Vector3,
         localRotation: Rotation3,
         headWidth: number,
-        widthRatio: number,
+        widthRatio: FaceWidthRatio,
     ) {
         this.config = config;
         this.baseline = config.baseline;
@@ -131,7 +131,7 @@ export class SceneFaceBuilder {
             roll:  -this._rotation.roll,
         };
 
-        const widthRatio = 1 / ratio;
+        const widthRatio = (1 / ratio) as FaceWidthRatio;
 
         return new SceneFace(
             config,

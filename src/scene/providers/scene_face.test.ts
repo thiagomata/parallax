@@ -4,6 +4,7 @@ import {
     SceneFace,
     DEFAULT_FACE_SCENE_CONFIG,
 } from './scene_face';
+import type { FaceWidthRatio } from '../types';
 
 describe('SceneFaceBuilder', () => {
     const defaultConfig = DEFAULT_FACE_SCENE_CONFIG;
@@ -238,7 +239,7 @@ describe('SceneFace', () => {
             { x: 10, y: 20, z: 150 },
             { yaw: 0, pitch: 0, roll: 0 },
             180,
-            0.5
+            0.5 as FaceWidthRatio
         );
 
         expect(face.depth).toBe(150);

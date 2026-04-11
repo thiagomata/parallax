@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 import { DEFAULT_HEAD_PROPORTIONS, type FaceData, type HeadProportions } from "../drivers/mediapipe/face";
 import { SceneFace, DEFAULT_FACE_SCENE_CONFIG } from "../providers/scene_face";
 import type { FaceWorldData } from "../providers/head_tracking_data_provider";
+import type { FaceWidthRatio } from "../types";
 
 export const createCanonicalHead = (H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): FaceData => {
     return {
@@ -93,7 +94,7 @@ export function createMockSceneFace(overrides: {
         overrides.localPosition ?? { x: 0, y: 0, z: 0 },
         overrides.localRotation ?? { yaw: 0, pitch: 0, roll: 0 },
         overrides.headWidth ?? 180,
-        1
+        1 as FaceWidthRatio
     );
 }
 
