@@ -1,8 +1,11 @@
 import p5 from "p5";
-import type {DataProviderBundle, DataProviderTickContext, FailableResult, TrackingStatus, Vector3, VideoSourceRef} from "../types.ts";
+import type {
+    DataProviderBundle, DataProviderTickContext, FailableResult, TrackingStatus, Vector3,
+    VideoSourceRef, FaceTrackingConfig, VideoPixels, SceneUnits
+} from "../types.ts";
+import {FaceTrackingConfigBuilder} from "../types.ts";
 import {
     MediaPipeFaceProvider,
-    type FaceProviderConfig, DEFAULT_FACE_PROVIDER_CONFIG,
 } from "../drivers/mediapipe/face_provider.ts";
 import type {FaceProvider} from "./face_provider.ts";
 import type {Face} from "../drivers/mediapipe/face.ts";
@@ -35,14 +38,36 @@ export type ObserverDataProviderLib = {
 export class FaceWorldData {
     readonly face: Face;
     readonly sceneFace: SceneFace;
-    readonly midpoint: Vector3
+
     public constructor(
         face: Face,
         sceneFace: SceneFace,
     ) {
         this.face = face;
         this.sceneFace = sceneFace;
-        this.midpoint = sceneFace.localPosition;
+    }
+
+    /**
+     * Position relative to baseline (the parallax origin).
+     * Use this for parallax calculations.
+     */
+    get localPosition(): Vector3<SceneUnits> {
+        return this.sceneFace.localPosition;
+    }
+
+    /**
+     * Absolute position in scene coordinates.
+     * Includes baseline offset + local position.
+     */
+    get worldPosition(): Vector3<SceneUnits> {
+        return this.sceneFace.worldPosition;
+    }
+
+    /**
+     * @deprecated Use localPosition or worldPosition instead
+     */
+    get midpoint(): Vector3 {
+        return this.sceneFace.localPosition;
     }
 
     /**
@@ -105,27 +130,19 @@ export class FaceWorldData {
     }
 }
 
-export const DEFAULT_CAMERA_POSITION: Vector3 = { x: 0, y: 0, z: 300 };
-export const DEFAULT_CAMERA_PANEL_POSITION: Vector3 = { x: 0, y: 0, z: 0 };
+export type HeadTrackingDataProviderConfig = FaceTrackingConfig;
 
-export interface HeadTrackingDataProviderConfig extends FaceProviderConfig {
-    /**
-     * Expected width of the head projected in the screen to the zero Z level.
-     * If they match, the head should have Z equals of the screen.
-     * If the projected head is bigger than the expected width, head Z is bigger (closer).
-     * If the projected head is smaller than the expected width, head Z is small (farther).
-     */
-    sceneHeadWidthPixels: number,
-    panelPosition: Vector3,
-    cameraPosition: Vector3,
-}
-
-export const DEFAULT_HEAD_TRACKING_DATA_PROVIDER_CONFIG: HeadTrackingDataProviderConfig = {
-    ...DEFAULT_FACE_PROVIDER_CONFIG,
-    sceneHeadWidthPixels: 120,
-    panelPosition: DEFAULT_CAMERA_PANEL_POSITION,
-    cameraPosition: DEFAULT_CAMERA_POSITION,
-};
+export const DEFAULT_HEAD_TRACKING_DATA_PROVIDER_CONFIG: HeadTrackingDataProviderConfig = new FaceTrackingConfigBuilder()
+    .videoWidthPixels(1920 as VideoPixels)
+    .videoHeightPixels(1080 as VideoPixels)
+    .baselineHeadPixels(640 as VideoPixels)
+    .baselineHeadSceneUnits(100 as SceneUnits)
+    .baseline({ x: 0, y: 0, z: 0 })
+    .cameraPosition({ x: 0, y: 0, z: 300 })
+    .depthScale(4)
+    .mirror(false)
+    .throttleThreshold(1000)
+    .build();
 
 export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker", FaceWorldData> {
     readonly type = "headTracker";
@@ -151,13 +168,13 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     ) {
         this.config = merge(DEFAULT_HEAD_TRACKING_DATA_PROVIDER_CONFIG, config);
 
-        if (this.config.sceneHeadWidthPixels <= 0) {
+        if (this.config.baselineHeadPixels <= 0) {
             throw new Error("Invalid scene head width");
         }
         this.dependencies = sourceIds;
 
         this.cameraPosition = this.config.cameraPosition;
-        this.panelPosition = this.config.panelPosition;
+        this.panelPosition = this.config.baseline;
 
         this.provider = new MediaPipeFaceProvider(
             p,
@@ -234,19 +251,20 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
 
         const face = faceResult.value;
         const rotation = face.getRotation().rotation;
+        const faceWidthInPixels = face.width * this.config.videoWidthPixels as VideoPixels;
 
-        debugger;
         const sceneFaceConfig: FaceSceneConfig = {
-            baseline: this.config.panelPosition,
+            baseline: this.config.baseline,
             cameraPosition: this.config.cameraPosition,
-            depthScale: this.config.focalLength,
-            sceneScreenWidth:  this.config.videoWidthPixels,
+            depthScale: this.config.depthScale,
+            sceneScreenWidth: this.config.sceneScreenWidth,
+            baselineHeadSceneUnits: this.config.baselineHeadSceneUnits,
         };
 
         const sceneFace = new SceneFaceBuilder()
             .config(sceneFaceConfig)
-            .actualPixelWidth(face.width * this.config.videoWidthPixels)
-            .baselineFacePixelWidth(this.config.sceneHeadWidthPixels)
+            .actualFacePixelWidth(faceWidthInPixels)
+            .baselineFacePixelWidth(this.config.baselineHeadPixels)
             .skullCenterNormalized(face.skullCenter.position)
             .rotation(rotation)
             .build();

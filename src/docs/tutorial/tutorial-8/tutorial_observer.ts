@@ -8,12 +8,14 @@ import {
     type ObserverDataProviderLib
 } from "../../../scene/providers/head_tracking_data_provider.ts";
 import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
+import type { VideoPixels } from "../../../scene/types.ts";
 import { VideoDataProvider } from "../../../scene/providers/video_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
 import {
     DEFAULT_SCENE_SETTINGS,
     ELEMENT_TYPES, LOOK_MODES, PROJECTION_TYPES,
     type ResolutionContext,
+    type SceneUnits,
 } from "../../../scene/types.ts";
 import {
     DEFAULT_SKETCH_CONFIG,
@@ -83,21 +85,26 @@ export async function tutorial_observer(
     });
 
 
-    const videoWidthPixels = 1920;
-    const videoHeightPixels = 1080;
-    const headWidthPercent = 60 / 100;
-    const headWidthPixels = headWidthPercent * videoWidthPixels;
+    const videoWidthPixels = 1920 as VideoPixels;
+    const videoHeightPixels = 1080 as VideoPixels;
+    const headWidthPercent = 1 / 4;
+    const headWidthPixels = (headWidthPercent * videoWidthPixels) as VideoPixels;
     const panelPosition = { x: 0, y: 0, z: 0 };
-    const screenPosition = { x: 0, y: 0, z: 950 };
+    const screenPosition = { x: 0, y: 0, z: 1500 };
+    const panelScreenZDistance = 0;//panelPosition.z - screenPosition.z;
+    const baselineHeadSceneUnits = 300 as SceneUnits;
 
     let headTrackingConfig: Partial<HeadTrackingDataProviderConfig> = {
         ...( extraArgs?.faceConfig ?? {} ),
         videoWidthPixels: videoWidthPixels,
         videoHeightPixels: videoHeightPixels,
         mirror: false,
-        panelPosition: panelPosition,
+        baseline: panelPosition,
         cameraPosition: screenPosition,
-        sceneHeadWidthPixels: headWidthPixels,
+        baselineHeadPixels: headWidthPixels,
+        baselineHeadSceneUnits: baselineHeadSceneUnits,
+        sceneScreenWidth: baselineHeadSceneUnits / headWidthPercent as SceneUnits,
+        depthScale: 1,
     }
 
     let webCamProvider = extraArgs?.webCamProvider;
@@ -200,16 +207,16 @@ export async function tutorial_observer(
         type: ELEMENT_TYPES.BOX,
         id: 'faceBox',
         parentId: 'bigBox',
-        width: 150,
-        height: 180,
-        depth: 100,
+        width: baselineHeadSceneUnits,
+        height: baselineHeadSceneUnits * 1.8,
+        depth: baselineHeadSceneUnits,
         position: (ctx) => {
             const face = ctx.dataProviders['headTracker'];
             if (!face) return { x: 0, y: 0, z: 0 };
             return {
-                x: face.midpoint.x,
-                y: face.midpoint.y,
-                z: face.midpoint.z
+                x: face.worldPosition.x,
+                y: face.worldPosition.y,
+                z: face.worldPosition.z
             };
         },
         rotate: (ctx) => {
@@ -221,7 +228,7 @@ export async function tutorial_observer(
                 roll:  face.stick.roll,
             };
         },
-        strokeWidth: 2,
+        strokeWidth: 10,
         strokeColor: {red:255, green: 0, blue: 0},
     });
 
@@ -345,8 +352,8 @@ export async function tutorial_observer(
         type: ELEMENT_TYPES.PYRAMID,
         id: 'nose',
         parentId: 'faceBox',
-        baseSize: 20,
-        height: 20,
+        baseSize: 50,
+        height: 50,
         position: { x: 0, y: 0, z: 50 },
         rotate: {roll: 0, pitch: - Math.PI / 2, yaw: 0,},
         strokeWidth: 4,
@@ -358,8 +365,8 @@ export async function tutorial_observer(
         type: ELEMENT_TYPES.SPHERE,
         id: 'left-eye',
         parentId: 'faceBox',
-        radius: 20,
-        position: { x: -25, y: -25, z: 25 },
+        radius: 40,
+        position: { x: -50, y: -50, z: 50 },
         alpha: 0.5,
         fillColor: { red: 255, green: 255, blue: 255 },
     });
@@ -368,8 +375,8 @@ export async function tutorial_observer(
         type: ELEMENT_TYPES.SPHERE,
         id: 'right-eye',
         parentId: 'faceBox',
-        radius: 20,
-        position: { x: 25, y: -25, z: 25 },
+        radius: 40,
+        position: { x: 50, y: -50, z: 50 },
         alpha: 0.5,
         fillColor: { red: 255, green: 255, blue: 255 },
     });
@@ -406,12 +413,17 @@ export async function tutorial_observer(
 
             world.addPanel({
                 type: ELEMENT_TYPES.PANEL,
+                alpha: 0.5,
                 parentId: 'bigBox',
                 id: 'videoPanel',
                 width: 1920,
                 height: 1080,
                 mirrorTextureHorizontal: true,
-                position: { x: 0, y: 0, z: -5000 },
+                position: {
+                    x: panelPosition.x,
+                    y: panelPosition.y,
+                    z: panelPosition.z + panelScreenZDistance,
+                },
                 video: videoSelector,
                 fillColor:  COLORS.blue,
             });

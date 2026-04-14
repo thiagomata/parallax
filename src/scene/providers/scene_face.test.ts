@@ -4,18 +4,18 @@ import {
     SceneFace,
     DEFAULT_FACE_SCENE_CONFIG,
 } from './scene_face';
-import type { FaceWidthRatio } from '../types';
+import type {FaceWidthRatio, SceneUnits, VideoPixels} from '../types';
 
 describe('SceneFaceBuilder', () => {
     const defaultConfig = DEFAULT_FACE_SCENE_CONFIG;
 
     describe('depth positioning', () => {
         it('should place face at baseline when actual size matches expected', () => {
-            const baselineWidth = 180;
+            const baselinePixelWidth = 180 as VideoPixels;
 
             const face = new SceneFaceBuilder()
-                .actualPixelWidth(baselineWidth)
-                .baselineFacePixelWidth(baselineWidth)
+                .actualFacePixelWidth(baselinePixelWidth)
+                .baselineFacePixelWidth(baselinePixelWidth)
                 .build();
 
             expect(face.localPosition.z).toBeCloseTo(0);
@@ -23,11 +23,11 @@ describe('SceneFaceBuilder', () => {
         });
 
         it('should place face in front of baseline (closer) when face appears big in image', () => {
-            const baselineWidth = 180;
+            const baselineWidth = 180 as VideoPixels;
             const bigFaceNormalized = 2;
 
             const face = new SceneFaceBuilder()
-                .actualPixelWidth(bigFaceNormalized * baselineWidth)
+                .actualFacePixelWidth(bigFaceNormalized * baselineWidth as VideoPixels)
                 .baselineFacePixelWidth(baselineWidth)
                 .build();
 
@@ -36,11 +36,11 @@ describe('SceneFaceBuilder', () => {
         });
 
         it('should place face behind baseline (farther) when face appears small in image', () => {
-            const baselineWidth = 180;
+            const baselineWidth = 180 as VideoPixels;
             const smallFaceNormalized = 0.5;
 
             const face = new SceneFaceBuilder()
-                .actualPixelWidth(smallFaceNormalized * baselineWidth)
+                .actualFacePixelWidth(smallFaceNormalized * baselineWidth as VideoPixels)
                 .baselineFacePixelWidth(baselineWidth)
                 .build();
 
@@ -51,40 +51,39 @@ describe('SceneFaceBuilder', () => {
 
     describe('head width invariant', () => {
         it('should always have headWidth equal to baselineWidth regardless of distance', () => {
-            const baselineWidth = 180;
-            const sceneScreenWidth = 650;
+            const baselineWidthPixel = 180 as VideoPixels;
 
             const closeFace = new SceneFaceBuilder()
-                .config({ sceneScreenWidth })
-                .actualPixelWidth(0.5)
-                .baselineFacePixelWidth(baselineWidth)
+                .config({ baselineHeadSceneUnits: 650 as SceneUnits })
+                .actualFacePixelWidth(0.5 * baselineWidthPixel as VideoPixels)
+                .baselineFacePixelWidth(baselineWidthPixel)
                 .build();
 
             const baselineFace = new SceneFaceBuilder()
-                .config({ sceneScreenWidth })
-                .actualPixelWidth(baselineWidth / sceneScreenWidth)
-                .baselineFacePixelWidth(baselineWidth)
+                .config({ baselineHeadSceneUnits: 650 as SceneUnits })
+                .actualFacePixelWidth(baselineWidthPixel)
+                .baselineFacePixelWidth(baselineWidthPixel)
                 .build();
 
             const farFace = new SceneFaceBuilder()
-                .config({ sceneScreenWidth })
-                .actualPixelWidth(0.05)
-                .baselineFacePixelWidth(baselineWidth)
+                .config({ baselineHeadSceneUnits: 650 as SceneUnits })
+                .actualFacePixelWidth(0.05 * baselineWidthPixel as VideoPixels)
+                .baselineFacePixelWidth(baselineWidthPixel)
                 .build();
 
-            expect(closeFace.headWidthScene).toBe(baselineWidth);
-            expect(baselineFace.headWidthScene).toBe(baselineWidth);
-            expect(farFace.headWidthScene).toBe(baselineWidth);
+            expect(closeFace.headWidthScene).toBe(baselineWidthPixel);
+            expect(baselineFace.headWidthScene).toBe(baselineWidthPixel);
+            expect(farFace.headWidthScene).toBe(baselineWidthPixel);
         });
     });
 
     describe('extreme cases', () => {
         it('should handle very big face (very close to camera)', () => {
-            const baselineWidth = 180;
+            const baselineWidth = 180 as VideoPixels;
             const hugeFaceNormalized = 1.0;
 
             const face = new SceneFaceBuilder()
-                .actualPixelWidth(hugeFaceNormalized * baselineWidth)
+                .actualFacePixelWidth(hugeFaceNormalized * baselineWidth as VideoPixels)
                 .baselineFacePixelWidth(baselineWidth)
                 .build();
 
@@ -94,11 +93,11 @@ describe('SceneFaceBuilder', () => {
         });
 
         it('should handle very small face (very far from camera)', () => {
-            const baselineWidth = 180;
+            const baselineWidth = 180 as VideoPixels;
             const tinyFaceNormalized = 0.01;
 
             const face = new SceneFaceBuilder()
-                .actualPixelWidth(tinyFaceNormalized)
+                .actualFacePixelWidth(tinyFaceNormalized * baselineWidth as VideoPixels)
                 .baselineFacePixelWidth(baselineWidth)
                 .build();
 
@@ -108,12 +107,12 @@ describe('SceneFaceBuilder', () => {
         });
 
         it('should handle tiny face as a very far face, not a tiny scene object', () => {
-            const baselineWidth = 180;
+            const baselineWidth = 180 as VideoPixels;
             const tinyNormalized = 0.001;
 
             const face = new SceneFaceBuilder()
-                .actualPixelWidth(tinyNormalized)
-                .baselineFacePixelWidth(baselineWidth)
+                .actualFacePixelWidth(tinyNormalized * baselineWidth as VideoPixels)
+                .baselineFacePixelWidth(baselineWidth as VideoPixels)
                 .build();
 
             expect(face.headWidthScene).toBe(baselineWidth);
@@ -124,13 +123,13 @@ describe('SceneFaceBuilder', () => {
     describe('world position', () => {
         it('should compute world position by adding baseline to local position', () => {
             const baseline = { x: 100, y: 200, z: 500 };
-            const baselineWidth = 180;
+            const baselineWidth = 180 as VideoPixels;
             const actualNormalized = 0.5;
 
             const face = new SceneFaceBuilder()
                 .config({ ...defaultConfig, baseline })
-                .actualPixelWidth(actualNormalized)
-                .baselineFacePixelWidth(baselineWidth)
+                .actualFacePixelWidth(actualNormalized * baselineWidth as VideoPixels)
+                .baselineFacePixelWidth(baselineWidth as VideoPixels)
                 .build();
 
             expect(face.worldPosition.x).toBeCloseTo(baseline.x + face.localPosition.x);
@@ -140,11 +139,11 @@ describe('SceneFaceBuilder', () => {
 
         it('should return baseline as world position when at baseline position', () => {
             const baseline = { x: 50, y: 75, z: 100 };
-            const baselineWidth = 180;
+            const baselineWidth = 180 as VideoPixels;
 
             const face = new SceneFaceBuilder()
                 .config({ ...defaultConfig, baseline })
-                .actualPixelWidth(baselineWidth)
+                .actualFacePixelWidth(baselineWidth as VideoPixels)
                 .baselineFacePixelWidth(baselineWidth)
                 .build();
 
@@ -155,10 +154,14 @@ describe('SceneFaceBuilder', () => {
     });
 
     describe('horizontal positioning', () => {
+        const baselineWidth = 180 as VideoPixels;
+        const actualNormalized = 0.277;
+
         it('should center face horizontally when skull center is at 0.5', () => {
+
             const face = new SceneFaceBuilder()
-                .actualPixelWidth(0.277)
-                .baselineFacePixelWidth(180)
+                .actualFacePixelWidth(actualNormalized * baselineWidth as VideoPixels)
+                .baselineFacePixelWidth(baselineWidth)
                 .skullCenterNormalized({ x: 0.5, y: 0.5, z: 0.5 })
                 .build();
 
@@ -167,8 +170,8 @@ describe('SceneFaceBuilder', () => {
 
         it('should position face left when skull center is right of center', () => {
             const face = new SceneFaceBuilder()
-                .actualPixelWidth(0.277)
-                .baselineFacePixelWidth(180)
+                .actualFacePixelWidth(actualNormalized * baselineWidth as VideoPixels)
+                .baselineFacePixelWidth(baselineWidth)
                 .skullCenterNormalized({ x: 0.7, y: 0.5, z: 0.5 })
                 .build();
 
@@ -177,8 +180,8 @@ describe('SceneFaceBuilder', () => {
 
         it('should position face right when skull center is left of center', () => {
             const face = new SceneFaceBuilder()
-                .actualPixelWidth(0.277)
-                .baselineFacePixelWidth(180)
+                .actualFacePixelWidth(actualNormalized * baselineWidth as VideoPixels)
+                .baselineFacePixelWidth(baselineWidth)
                 .skullCenterNormalized({ x: 0.3, y: 0.5, z: 0.5 })
                 .build();
 
@@ -209,17 +212,21 @@ describe('SceneFaceBuilder', () => {
     });
 
     describe('depth scale', () => {
+
+        const baselineWidth = 180 as VideoPixels;
+        const actualNormalized = 0.5;
+
         it('should amplify depth effect when depthScale is greater than 1', () => {
             const faceWithoutScale = new SceneFaceBuilder()
-                .config({ sceneScreenWidth: 650, depthScale: 1 })
-                .actualPixelWidth(0.5)
-                .baselineFacePixelWidth(180)
+                .config({ baselineHeadSceneUnits: 650 as SceneUnits, depthScale: 1 })
+                .actualFacePixelWidth(actualNormalized * baselineWidth as VideoPixels)
+                .baselineFacePixelWidth(baselineWidth as VideoPixels)
                 .build();
 
             const faceWithScale = new SceneFaceBuilder()
-                .config({ sceneScreenWidth: 650, depthScale: 2 })
-                .actualPixelWidth(0.5)
-                .baselineFacePixelWidth(180)
+                .config({ baselineHeadSceneUnits: 650 as SceneUnits, depthScale: 2 })
+                .actualFacePixelWidth(actualNormalized * baselineWidth as VideoPixels)
+                .baselineFacePixelWidth(baselineWidth as VideoPixels)
                 .build();
 
             expect(Math.abs(faceWithScale.localPosition.z)).toBeGreaterThan(
@@ -236,9 +243,9 @@ describe('SceneFace', () => {
     it('should expose depth as localPosition.z', () => {
         const face = new SceneFace(
             DEFAULT_FACE_SCENE_CONFIG,
-            { x: 10, y: 20, z: 150 },
+            { x: 10 as SceneUnits, y: 20 as SceneUnits, z: 150 as SceneUnits },
             { yaw: 0, pitch: 0, roll: 0 },
-            180,
+            180 as SceneUnits,
             0.5 as FaceWidthRatio
         );
 

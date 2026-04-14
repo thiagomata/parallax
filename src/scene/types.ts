@@ -2,22 +2,28 @@ import p5 from "p5";
 
 /**
  * A strict 3D vector with numeric coordinates.
+ * Can be generic to specify unit type.
+ * 
+ * @example
+ * Vector3              // x, y, z are numbers
+ * Vector3<SceneUnits>  // x, y, z are in scene units
+ * Vector3<VideoPixels> // x, y, z are in video pixels
  */
-export interface Vector3 {
-    readonly x: number;
-    readonly y: number;
-    readonly z: number;
+export interface Vector3<T = number> {
+    readonly x: T;
+    readonly y: T;
+    readonly z: T;
 }
 
 /**
  * A 3D vector in scene units.
- * Use this for positions in the 3D scene coordinate system.
  */
-export interface Vector3Scene {
-    readonly x: number;  // Could be Unit<'scene'> in future
-    readonly y: number;
-    readonly z: number;
-}
+export type Vector3Scene = Vector3<SceneUnits>;
+
+/**
+ * A 3D vector in video pixels.
+ */
+export type Vector3Video = Vector3<VideoPixels>;
 
 /**
  * Rotation angles in radians (0 to 2π for full rotation).
@@ -78,6 +84,12 @@ export function divideUnits<UnitType extends string, T extends Unit<UnitType>>(a
  * Used for positions, sizes, and distances within the scene.
  */
 export type SceneUnits = Unit<'scene'>;
+
+/**
+ * VideoPixels - pixel dimensions from the video stream (e.g., videoWidth, videoHeight).
+ * Used for video dimensions and pixel-related measurements from the capture source.
+ */
+export type VideoPixels = Unit<'videoPixels'>;
 
 /**
  * Milliseconds - time duration in milliseconds.
@@ -170,6 +182,79 @@ export type FocalLength = Unit<'focalLength'>;
  * Values > 1 amplify, values < 1 reduce.
  */
 export type DepthScale = Unit<'depthScale'>;
+
+/**
+ * Unified configuration for face tracking.
+ * Contains all settings needed for both FaceProvider and HeadTrackingDataProvider.
+ * 
+ * The builder pattern ensures derived values (sceneScreenWidth) are computed
+ * correctly and the config is immutable.
+ */
+export interface FaceTrackingConfig {
+    // Video source
+    readonly videoWidthPixels: VideoPixels;
+    readonly videoHeightPixels: VideoPixels;
+    
+    // Expected head size at neutral position
+    readonly baselineHeadPixels: VideoPixels;
+    readonly baselineHeadSceneUnits: SceneUnits;
+    
+    // Scene geometry
+    readonly baseline: Vector3;
+    readonly cameraPosition: Vector3;
+    
+    // Derived values (computed by builder)
+    readonly sceneScreenWidth: SceneUnits;  // = baselineHeadSceneUnits / (baselineHeadPixels / videoWidthPixels)
+    
+    // Behavior
+    readonly depthScale: number;
+    readonly mirror: boolean;
+    readonly throttleThreshold: number;
+}
+
+/**
+ * Builder for FaceTrackingConfig.
+ * Computes derived values and creates immutable config objects.
+ */
+export class FaceTrackingConfigBuilder {
+    private _videoWidthPixels: VideoPixels = 1920 as VideoPixels;
+    private _videoHeightPixels: VideoPixels = 1080 as VideoPixels;
+    private _baselineHeadPixels: VideoPixels = 640 as VideoPixels;
+    private _baselineHeadSceneUnits: SceneUnits = 100 as SceneUnits;
+    private _baseline: Vector3 = { x: 0, y: 0, z: 0 };
+    private _cameraPosition: Vector3 = { x: 0, y: 0, z: 300 };
+    private _depthScale: number = 1;
+    private _mirror: boolean = false;
+    private _throttleThreshold: number = 1000;
+
+    videoWidthPixels(v: VideoPixels): this { this._videoWidthPixels = v; return this; }
+    videoHeightPixels(v: VideoPixels): this { this._videoHeightPixels = v; return this; }
+    baselineHeadPixels(v: VideoPixels): this { this._baselineHeadPixels = v; return this; }
+    baselineHeadSceneUnits(v: SceneUnits): this { this._baselineHeadSceneUnits = v; return this; }
+    baseline(v: Vector3): this { this._baseline = v; return this; }
+    cameraPosition(v: Vector3): this { this._cameraPosition = v; return this; }
+    depthScale(v: number): this { this._depthScale = v; return this; }
+    mirror(v: boolean): this { this._mirror = v; return this; }
+    throttleThreshold(v: number): this { this._throttleThreshold = v; return this; }
+
+    build(): FaceTrackingConfig {
+        const headAtVideoRatio = this._baselineHeadPixels / this._videoWidthPixels;
+        const sceneScreenWidth = this._baselineHeadSceneUnits / headAtVideoRatio;
+
+        return Object.freeze({
+            videoWidthPixels: this._videoWidthPixels,
+            videoHeightPixels: this._videoHeightPixels,
+            baselineHeadPixels: this._baselineHeadPixels,
+            baselineHeadSceneUnits: this._baselineHeadSceneUnits,
+            baseline: Object.freeze({ ...this._baseline }),
+            cameraPosition: Object.freeze({ ...this._cameraPosition }),
+            sceneScreenWidth: sceneScreenWidth as SceneUnits,
+            depthScale: this._depthScale,
+            mirror: this._mirror,
+            throttleThreshold: this._throttleThreshold,
+        });
+    }
+}
 
 /**
  * Look mode determines how the projection's view direction is calculated.

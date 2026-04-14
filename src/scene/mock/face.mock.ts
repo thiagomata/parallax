@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 import { DEFAULT_HEAD_PROPORTIONS, type FaceData, type HeadProportions } from "../drivers/mediapipe/face";
 import { SceneFace, DEFAULT_FACE_SCENE_CONFIG } from "../providers/scene_face";
 import type { FaceWorldData } from "../providers/head_tracking_data_provider";
-import type { FaceWidthRatio } from "../types";
+import type { FaceWidthRatio, SceneUnits } from "../types";
 
 export const createCanonicalHead = (H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): FaceData => {
     return {
@@ -87,13 +87,13 @@ export const createCanonicalHead = (H: HeadProportions = DEFAULT_HEAD_PROPORTION
 export function createMockSceneFace(overrides: {
     localPosition?: { x: number; y: number; z: number };
     localRotation?: { yaw: number; pitch: number; roll: number };
-    headWidth?: number;
+    headWidth?: SceneUnits;
 } = {}): SceneFace {
     return new SceneFace(
         DEFAULT_FACE_SCENE_CONFIG,
-        overrides.localPosition ?? { x: 0, y: 0, z: 0 },
+        overrides.localPosition ? { x: overrides.localPosition.x as SceneUnits, y: overrides.localPosition.y as SceneUnits, z: overrides.localPosition.z as SceneUnits } : { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits },
         overrides.localRotation ?? { yaw: 0, pitch: 0, roll: 0 },
-        overrides.headWidth ?? 180,
+        overrides.headWidth ?? (180 as SceneUnits),
         1 as FaceWidthRatio
     );
 }

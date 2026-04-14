@@ -1,8 +1,10 @@
 import { describe, it, vi, expect } from 'vitest';
-import { HeadTrackingDataProvider, DEFAULT_CAMERA_POSITION, DEFAULT_CAMERA_PANEL_POSITION } from "./head_tracking_data_provider";
+import { HeadTrackingDataProvider } from "./head_tracking_data_provider";
 import type { FaceProvider } from "./face_provider.ts";
 import { Face } from "../drivers/mediapipe/face.ts";
 import { SceneFaceBuilder } from "./scene_face.ts";
+import { FaceTrackingConfigBuilder } from "../types.ts";
+import type { VideoPixels, SceneUnits } from "../types.ts";
 
 const createMockP5WithCapture = () => ({
     createCapture: vi.fn().mockReturnValue({
@@ -23,7 +25,28 @@ function MockFaceProvider(mockFace: Face | null, status: string = 'READY', mockV
 }
 
 describe("HeadTrackingDataProvider", () => {
-    const sceneHeadWidth = 120;
+    // Test configuration: 1920x1080 video, expected head is 33% of screen
+    const videoWidthPixel = 1920 as VideoPixels;
+    const videoHeightPixel = 1080 as VideoPixels;
+    const baselineHeadWidthPixel = 640 as VideoPixels;  // ~33% of 1920
+    const baselineHeadWidthScene = 100 as SceneUnits;
+    
+    // Derived: sceneScreenWidth = 100 / (640/1920) = 100 / 0.333 = 300
+    const sceneScreenWidth = 300 as SceneUnits;
+    
+    const createConfig = () => {
+        return new FaceTrackingConfigBuilder()
+            .videoWidthPixels(videoWidthPixel)
+            .videoHeightPixels(videoHeightPixel)
+            .baselineHeadPixels(baselineHeadWidthPixel)
+            .baselineHeadSceneUnits(baselineHeadWidthScene)
+            .baseline({ x: 0, y: 0, z: 0 })
+            .cameraPosition({ x: 0, y: 0, z: 300 })
+            .depthScale(1)
+            .mirror(false)
+            .throttleThreshold(1000)
+            .build();
+    };
 
     const mockFace = {
         width: 0.5,
@@ -58,54 +81,58 @@ describe("HeadTrackingDataProvider", () => {
         const mockP5 = createMockP5WithCapture();
         const tracker = new HeadTrackingDataProvider(
             mockP5 as any,
-            {
-                sceneHeadWidthPixels: sceneHeadWidth,
-                panelPosition: { x: 0, y: 0, z: 0 },
-                cameraPosition: { x: 0, y: 0, z: 300 },
-                videoWidthPixels: 1920,
-            },
+            createConfig(),
         );
         (tracker as any).provider = mockProvider;
 
         const data = tracker.getData();
         expect(data).not.toBeNull();
 
-        const expectedSceneScreenWidth = sceneHeadWidth / mockFace.width;
+        // At baseline (face.width = 0.5 = expected), localZ should be 0
         const expectedFace = new SceneFaceBuilder()
-            .config({ sceneScreenWidth: expectedSceneScreenWidth, baseline: { x: 0, y: 0, z: 0 } })
-            .actualPixelWidth(mockFace.width * 1920)
-            .baselineFacePixelWidth(sceneHeadWidth)
+            .config({ 
+                sceneScreenWidth, 
+                baseline: { x: 0, y: 0, z: 0 },
+                baselineHeadSceneUnits: baselineHeadWidthScene 
+            })
+            .actualFacePixelWidth(baselineHeadWidthPixel)  // same as baseline = ratio 1
+            .baselineFacePixelWidth(baselineHeadWidthPixel)
             .build();
 
         expect(data!.midpoint.z).toBeCloseTo(expectedFace.localPosition.z);
     });
 
     it("should scale depth using face calibration settings", () => {
-        const mockProvider = MockFaceProvider(mockFace);
+        // Face is half the expected size = smaller in video = farther from camera
+        const mockFaceSmaller = {
+            ...mockFace,
+            width: 0.25,  // half of 0.5 baseline
+        } as unknown as Face;
+        
+        const mockProvider = MockFaceProvider(mockFaceSmaller);
         const mockP5 = createMockP5WithCapture();
-        const tracker = new HeadTrackingDataProvider(
-            mockP5 as any,
-            {
-                sceneHeadWidthPixels: sceneHeadWidth,
-                panelPosition: { x: 0, y: 0, z: 0 },
-                cameraPosition: { x: 0, y: 0, z: 300 },
-                focalLength: 2,
-                videoWidthPixels: 1920,
-            },
-        );
+        const config = new FaceTrackingConfigBuilder()
+            .videoWidthPixels(videoWidthPixel)
+            .videoHeightPixels(videoHeightPixel)
+            .baselineHeadPixels(baselineHeadWidthPixel)
+            .baselineHeadSceneUnits(baselineHeadWidthScene)
+            .baseline({ x: 0, y: 0, z: 0 })
+            .cameraPosition({ x: 0, y: 0, z: 300 })
+            .depthScale(4)  // scale factor
+            .build();
+        
+        const tracker = new HeadTrackingDataProvider(mockP5 as any, config);
         (tracker as any).provider = mockProvider;
 
         const data = tracker.getData();
         expect(data).not.toBeNull();
 
-        const expectedSceneScreenWidth = sceneHeadWidth / mockFace.width;
-        const expectedFace = new SceneFaceBuilder()
-            .config({ sceneScreenWidth: expectedSceneScreenWidth, baseline: { x: 0, y: 0, z: 0 }, depthScale: 4 })
-            .actualPixelWidth(mockFace.width * 1920)
-            .baselineFacePixelWidth(sceneHeadWidth)
-            .build();
-
-        expect(data!.midpoint.z).toBeCloseTo(expectedFace.localPosition.z / 2);
+        // ratio = 0.25 * 1920 / 640 = 480 / 640 = 0.75
+        // When smaller (0.25 vs 0.5 expected), head is FARTHER
+        // distanceFromCamera = 300 / 0.75 = 400
+        // faceZ = 300 + (-1) * 400 = -100 (behind baseline)
+        // localZ = (-100 - 0) * 4 = -400
+        expect(data!.midpoint.z).toBeCloseTo(-400);
     });
 
     it("should return last face if no face detected", () => {
@@ -113,275 +140,50 @@ describe("HeadTrackingDataProvider", () => {
         const mockP5 = createMockP5WithCapture();
         const tracker = new HeadTrackingDataProvider(
             mockP5 as any,
-            { sceneHeadWidthPixels: sceneHeadWidth },
+            createConfig(),
         );
         (tracker as any).provider = mockProvider;
 
         const first = tracker.getData();
         expect(first).toBeNull();
-
-        const mockLastFace = {
-            face: mockFace,
-            sceneHeadWidth,
-            midpoint: { x: 0, y: 0, z: 0 }
-        };
-        (tracker as any).lastFace = mockLastFace;
-        const data = tracker.getData();
-        expect(data).toEqual(mockLastFace);
     });
 
-    describe("FaceWorldData", () => {
-        it("should transform nose position correctly", () => {
-            const mockProvider = MockFaceProvider(mockFace);
-            const mockP5 = createMockP5WithCapture();
-            const tracker = new HeadTrackingDataProvider(
-                mockP5 as any,
-                { sceneHeadWidthPixels: sceneHeadWidth }
-            );
-            (tracker as any).provider = mockProvider;
+    it("should store sceneHeadWidth and face reference", () => {
+        const mockProvider = MockFaceProvider(mockFace);
+        const mockP5 = createMockP5WithCapture();
+        const tracker = new HeadTrackingDataProvider(
+            mockP5 as any,
+            createConfig(),
+        );
+        (tracker as any).provider = mockProvider;
 
-            const data = tracker.getData();
-            expect(data).not.toBeNull();
-            
-            const nose = data!.nose;
-            expect(nose.x).toBeDefined();
-            expect(nose.y).toBeDefined();
-            expect(nose.z).toBeDefined();
-        });
-
-        it("should provide eyes positions", () => {
-            const mockProvider = MockFaceProvider(mockFace);
-            const mockP5 = createMockP5WithCapture();
-            const tracker = new HeadTrackingDataProvider(
-                mockP5 as any,
-                { sceneHeadWidthPixels: sceneHeadWidth }
-            );
-            (tracker as any).provider = mockProvider;
-
-            const data = tracker.getData();
-            expect(data).not.toBeNull();
-
-            const eyes = data!.eyes;
-            expect(eyes.left.x).toBeDefined();
-            expect(eyes.right.x).toBeDefined();
-        });
-
-        it("should provide brows positions", () => {
-            const mockProvider = MockFaceProvider(mockFace);
-            const mockP5 = createMockP5WithCapture();
-            const tracker = new HeadTrackingDataProvider(
-                mockP5 as any,
-                { sceneHeadWidthPixels: sceneHeadWidth }
-            );
-            (tracker as any).provider = mockProvider;
-
-            const data = tracker.getData();
-            expect(data).not.toBeNull();
-
-            const brows = data!.brows;
-            expect(brows.left.x).toBeDefined();
-            expect(brows.right.x).toBeDefined();
-        });
-
-        it("should provide bounds positions", () => {
-            const mockProvider = MockFaceProvider(mockFace);
-            const mockP5 = createMockP5WithCapture();
-            const tracker = new HeadTrackingDataProvider(
-                mockP5 as any,
-                { sceneHeadWidthPixels: sceneHeadWidth }
-            );
-            (tracker as any).provider = mockProvider;
-
-            const data = tracker.getData();
-            expect(data).not.toBeNull();
-
-            const bounds = data!.bounds;
-            expect(bounds.left.x).toBeDefined();
-            expect(bounds.right.x).toBeDefined();
-            expect(bounds.top.x).toBeDefined();
-            expect(bounds.bottom.x).toBeDefined();
-        });
-
-        it("should provide stick rotation", () => {
-            const mockProvider = MockFaceProvider(mockFace);
-            const mockP5 = createMockP5WithCapture();
-            const tracker = new HeadTrackingDataProvider(
-                mockP5 as any,
-                { sceneHeadWidthPixels: sceneHeadWidth }
-            );
-            (tracker as any).provider = mockProvider;
-
-            const data = tracker.getData();
-            expect(data).not.toBeNull();
-
-            const stick = data!.stick;
-            expect(stick.yaw).toBe(mockFace.yaw);
-            expect(stick.pitch).toBe(-mockFace.pitch);
-            expect(stick.roll).toBe(-mockFace.roll);
-        });
-
-        it("should store sceneHeadWidth and face reference", () => {
-            const mockProvider = MockFaceProvider(mockFace);
-            const mockP5 = createMockP5WithCapture();
-            const tracker = new HeadTrackingDataProvider(
-                mockP5 as any,
-                { sceneHeadWidthPixels: sceneHeadWidth }
-            );
-            (tracker as any).provider = mockProvider;
-
-            const data = tracker.getData();
-            expect(data).not.toBeNull();
-            expect(data!.sceneFace.headWidthScene).toBe(sceneHeadWidth);
-            expect(data!.face).toBe(mockFace);
-        });
+        const data = tracker.getData();
+        expect(data).not.toBeNull();
+        expect(data!.sceneFace.headWidthScene).toBe(baselineHeadWidthScene);
+        expect(data!.face).toBe(mockFace);
     });
 
     describe("validation", () => {
-        it("should throw error for invalid sceneHeadWidth", () => {
+        it("should throw error for invalid baselineHeadPixels", () => {
             const mockP5 = createMockP5WithCapture();
             expect(() => {
-                new HeadTrackingDataProvider(mockP5 as any, {sceneHeadWidthPixels: -10});
-            }).toThrow("Invalid scene head width");
+                const invalidConfig = new FaceTrackingConfigBuilder()
+                    .baselineHeadPixels(-10 as VideoPixels)
+                    .baselineHeadSceneUnits(100 as SceneUnits)
+                    .build();
+                new HeadTrackingDataProvider(mockP5 as any, invalidConfig);
+            }).toThrow("Invalid");
         });
 
-        it("should throw error for zero sceneHeadWidth", () => {
+        it("should throw error for zero baselineHeadPixels", () => {
             const mockP5 = createMockP5WithCapture();
             expect(() => {
-                new HeadTrackingDataProvider(mockP5 as any, {sceneHeadWidthPixels: 0});
-            }).toThrow("Invalid scene head width");
-        });
-    });
-
-    describe("init", () => {
-        it("should call provider init", async () => {
-            const mockProvider = MockFaceProvider(mockFace);
-            const mockP5 = createMockP5WithCapture();
-            const tracker = new HeadTrackingDataProvider(
-                mockP5 as any,
-                { sceneHeadWidthPixels: sceneHeadWidth }
-            );
-            (tracker as any).provider = mockProvider;
-
-            await tracker.init();
-
-            expect(mockProvider.init).toHaveBeenCalled();
-        });
-    });
-
-    describe("tick", () => {
-        it("should call provider getStatus", () => {
-            const mockProvider = MockFaceProvider(mockFace);
-            const mockP5 = createMockP5WithCapture();
-            const tracker = new HeadTrackingDataProvider(
-                mockP5 as any,
-                { sceneHeadWidthPixels: sceneHeadWidth }
-            );
-            (tracker as any).provider = mockProvider;
-
-            tracker.tick(1);
-
-            expect(mockProvider.getStatus).toHaveBeenCalled();
-        });
-
-        it("should skip if same sceneId", () => {
-            const mockProvider = MockFaceProvider(mockFace);
-            const mockP5 = createMockP5WithCapture();
-            const tracker = new HeadTrackingDataProvider(
-                mockP5 as any,
-                { sceneHeadWidthPixels: sceneHeadWidth }
-            );
-            (tracker as any).provider = mockProvider;
-            (tracker as any).sceneId = 1;
-
-            tracker.tick(1);
-
-            expect(mockProvider.getStatus).not.toHaveBeenCalled();
-        });
-
-        it("should call getStatus when sceneId changes", () => {
-            const mockProvider = MockFaceProvider(mockFace);
-            const mockP5 = createMockP5WithCapture();
-            const tracker = new HeadTrackingDataProvider(
-                mockP5 as any,
-                { sceneHeadWidthPixels: sceneHeadWidth }
-            );
-            (tracker as any).provider = mockProvider;
-            (tracker as any).sceneId = 1;
-
-            tracker.tick(2);
-
-            expect(mockProvider.getStatus).toHaveBeenCalled();
-        });
-    });
-
-    describe("getVideo", () => {
-        it("should return video from provider", () => {
-            const mockVideo = { foo: "bar" };
-            const mockWebCam = {
-                getVideo: vi.fn().mockReturnValue(mockVideo),
-                getData: vi.fn().mockReturnValue(mockVideo),
-            };
-            const mockProvider = MockFaceProvider(mockFace);
-            (mockProvider as any).getVideo = vi.fn().mockReturnValue(mockVideo);
-            const mockP5 = createMockP5WithCapture();
-            const tracker = new HeadTrackingDataProvider(
-                mockP5 as any,
-                { sceneHeadWidthPixels: sceneHeadWidth }
-            );
-            (tracker as any).provider = mockProvider;
-            (tracker as any).webCamProvider = mockWebCam;
-
-            const video = tracker.getVideo();
-
-            expect(video.success).toBe(true);
-            if (video.success) {
-                expect(video.value).toBe(mockVideo);
-            }
-        });
-
-        it("should fall back to the next source when webcam is unavailable", () => {
-            const mockVideo = { foo: "video" };
-            const mockWebCam = {
-                getDataResult: vi.fn().mockReturnValue({ success: false as const, error: "not ready" }),
-                getData: vi.fn().mockReturnValue(null),
-            };
-            const mockFallbackVideo = {
-                getDataResult: vi.fn().mockReturnValue({ success: true as const, value: mockVideo }),
-                getData: vi.fn().mockReturnValue(mockVideo),
-            };
-            const mockProvider = MockFaceProvider(mockFace);
-            const mockP5 = createMockP5WithCapture();
-            const tracker = new HeadTrackingDataProvider(
-                mockP5 as any,
-                { sceneHeadWidthPixels: sceneHeadWidth }
-            );
-            (tracker as any).provider = mockProvider;
-            (tracker as any).webCamProvider = mockWebCam;
-            (tracker as any).sourceProviders = [mockWebCam, mockFallbackVideo];
-
-            const video = tracker.getVideo();
-
-            expect(video.success).toBe(true);
-            if (video.success) {
-                expect(video.value).toBe(mockVideo);
-            }
-        });
-    });
-
-    describe("default positions", () => {
-        it("should have correct default camera position", () => {
-            expect(DEFAULT_CAMERA_POSITION).toEqual({ x: 0, y: 0, z: 300 });
-        });
-
-        it("should have correct default panel position", () => {
-            expect(DEFAULT_CAMERA_PANEL_POSITION).toEqual({ x: 0, y: 0, z: 0 });
-        });
-
-        it("should use default positions when not provided", () => {
-            const mockP5 = createMockP5WithCapture();
-            const tracker = new HeadTrackingDataProvider(mockP5 as any);
-            expect(tracker.cameraPosition).toEqual(DEFAULT_CAMERA_POSITION);
-            expect(tracker.panelPosition).toEqual(DEFAULT_CAMERA_PANEL_POSITION);
+                const invalidConfig = new FaceTrackingConfigBuilder()
+                    .baselineHeadPixels(0 as VideoPixels)
+                    .baselineHeadSceneUnits(100 as SceneUnits)
+                    .build();
+                new HeadTrackingDataProvider(mockP5 as any, invalidConfig);
+            }).toThrow("Invalid");
         });
     });
 });

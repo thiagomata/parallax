@@ -1,14 +1,27 @@
-import type {Rotation3, Vector3, FaceWidthRatio} from "../types.ts";
+import {
+    type Rotation3,
+    type Vector3,
+    type FaceWidthRatio,
+    type VideoPixels,
+    type SceneUnits,
+    type Scalar,
+    divide
+} from "../types.ts";
 
 export interface FaceSceneConfig {
-    sceneScreenWidth: number;
-    baseline: Vector3;
-    cameraPosition: Vector3;
+    sceneScreenWidth: SceneUnits;
+    baseline: Vector3<SceneUnits>;
+    cameraPosition: Vector3<SceneUnits>;
     depthScale: number;
+    baselineHeadSceneUnits: SceneUnits,
 }
 
+export const DEFAULT_FACE_SIZE_SCENE_UNITS = 100 as SceneUnits;
+export const DEFAULT_HEAD_SIZE_IN_SCREEN = 1 / 3 as Scalar;
+
 export const DEFAULT_FACE_SCENE_CONFIG: FaceSceneConfig = {
-    sceneScreenWidth: 650,
+    baselineHeadSceneUnits: DEFAULT_HEAD_SIZE_IN_SCREEN,
+    sceneScreenWidth: divide(DEFAULT_FACE_SIZE_SCENE_UNITS, DEFAULT_HEAD_SIZE_IN_SCREEN),
     baseline: { x: 0, y: 0, z: 0 },
     cameraPosition: { x: 0, y: 0, z: 300 },
     depthScale: 1,
@@ -17,31 +30,31 @@ export const DEFAULT_FACE_SCENE_CONFIG: FaceSceneConfig = {
 export class SceneFace {
     readonly config: FaceSceneConfig;
     readonly baseline: Vector3;
-    readonly localPosition: Vector3;
+    readonly localPosition: Vector3<SceneUnits>;
     readonly localRotation: Rotation3;
-    readonly headWidthScene: number;
+    readonly headWidthScene: SceneUnits;
     readonly widthRatio: FaceWidthRatio;
 
     constructor(
         config: FaceSceneConfig,
-        localPosition: Vector3,
+        localPosition: Vector3<SceneUnits>,
         localRotation: Rotation3,
-        headWidth: number,
+        headWidthScene: SceneUnits,
         widthRatio: FaceWidthRatio,
     ) {
         this.config = config;
         this.baseline = config.baseline;
         this.localPosition = localPosition;
         this.localRotation = localRotation;
-        this.headWidthScene = headWidth;
+        this.headWidthScene = headWidthScene;
         this.widthRatio = widthRatio;
     }
 
-    get worldPosition(): Vector3 {
+    get worldPosition(): Vector3<SceneUnits> {
         return {
-            x: this.baseline.x + this.localPosition.x,
-            y: this.baseline.y + this.localPosition.y,
-            z: this.baseline.z + this.localPosition.z,
+            x: (this.baseline.x + this.localPosition.x) as SceneUnits,
+            y: (this.baseline.y + this.localPosition.y) as SceneUnits,
+            z: (this.baseline.z + this.localPosition.z) as SceneUnits,
         };
     }
 
@@ -52,8 +65,8 @@ export class SceneFace {
 
 export class SceneFaceBuilder {
     private _config: FaceSceneConfig;
-    private _normalizedWidth: number = 1;
-    private _baselineWidth: number = 180;
+    private _actualFaceWidthPixel: VideoPixels = -1 as VideoPixels;
+    private _baselineWidthPixel: VideoPixels = -1 as VideoPixels;
     private _skullCenterNormalized: Vector3 = { x: 0.5, y: 0.5, z: 0.5 };
     private _rotation: Rotation3 = { yaw: 0, pitch: 0, roll: 0 };
 
@@ -66,13 +79,13 @@ export class SceneFaceBuilder {
         return this;
     }
 
-    actualPixelWidth(normalizedWidth: number): this {
-        this._normalizedWidth = normalizedWidth;
+    actualFacePixelWidth(facePixelWidth: VideoPixels): this {
+        this._actualFaceWidthPixel = facePixelWidth;
         return this;
     }
 
-    baselineFacePixelWidth(width: number): this {
-        this._baselineWidth = width;
+    baselineFacePixelWidth(width: VideoPixels): this {
+        this._baselineWidthPixel = width;
         return this;
     }
 
@@ -95,7 +108,7 @@ export class SceneFaceBuilder {
             config.baseline.z - config.cameraPosition.z,
         );
 
-        const ratio = this._normalizedWidth / this._baselineWidth;
+        const ratio = this._actualFaceWidthPixel / this._baselineWidthPixel;
         
         const dx = config.baseline.x - config.cameraPosition.x;
         const dy = config.baseline.y - config.cameraPosition.y;
@@ -115,14 +128,15 @@ export class SceneFaceBuilder {
         const localY = (faceY - config.baseline.y) * config.depthScale;
         const localZ = (faceZ - config.baseline.z) * config.depthScale;
 
-        const screenWidth = config.sceneScreenWidth;
-        const skullOffsetX = -(this._skullCenterNormalized.x - 0.5) * screenWidth;
-        const skullOffsetY = (this._skullCenterNormalized.y - 0.5) * screenWidth;
-        
-        const localPosition: Vector3 = {
-            x: localX + skullOffsetX,
-            y: localY + skullOffsetY,
-            z: localZ,
+        const skullOffsetX = -(this._skullCenterNormalized.x - 0.5) * config.sceneScreenWidth;
+        const skullOffsetY = (this._skullCenterNormalized.y - 0.5) * config.sceneScreenWidth;
+
+        debugger;
+
+        const localPosition: Vector3<SceneUnits> = {
+            x: (localX + skullOffsetX) as SceneUnits,
+            y: (localY + skullOffsetY) as SceneUnits,
+            z: localZ as SceneUnits,
         };
 
         const localRotation: Rotation3 = {
@@ -137,7 +151,7 @@ export class SceneFaceBuilder {
             config,
             localPosition,
             localRotation,
-            this._baselineWidth,
+            config.baselineHeadSceneUnits,
             widthRatio,
         );
     }

@@ -1,23 +1,27 @@
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
-import type {FailableResult, TrackingStatus} from "../../types";
-import {DEFAULT_HEAD_PARSER_CONFIG, FaceParser, type HeadParserConfig} from "./face_parser";
+import type {FailableResult, TrackingStatus, FaceTrackingConfig, VideoPixels, SceneUnits, Vector3} from "../../types";
+import {FaceTrackingConfigBuilder} from "../../types";
+import {FaceParser} from "./face_parser";
 import p5 from "p5";
 import type {Face} from "./face.ts";
 import type {FaceProvider} from "../../providers/face_provider.ts";
 import {merge} from "../../utils/merge.ts";
 
-export interface FaceProviderConfig extends HeadParserConfig {
-    throttleThreshold: number;
-    videoWidthPixels: number;
-    videoHeightPixels: number;
-}
+export type FaceProviderConfig = FaceTrackingConfig;
 
-export const DEFAULT_FACE_PROVIDER_CONFIG: FaceProviderConfig = {
-    ...DEFAULT_HEAD_PARSER_CONFIG,
-    throttleThreshold: 1000,
-    videoWidthPixels: 1920,
-    videoHeightPixels: 1080,
-}
+export const DEFAULT_CAMERA_POSITION: Vector3 = { x: 0, y: 0, z: 300 };
+export const DEFAULT_CAMERA_PANEL_POSITION: Vector3 = { x: 0, y: 0, z: 0 };
+
+export const DEFAULT_FACE_PROVIDER_CONFIG: FaceProviderConfig = new FaceTrackingConfigBuilder()
+    .videoWidthPixels(1920 as VideoPixels)
+    .videoHeightPixels(1080 as VideoPixels)
+    .baselineHeadPixels(640 as VideoPixels)
+    .baselineHeadSceneUnits(100 as SceneUnits)
+    .baseline(DEFAULT_CAMERA_PANEL_POSITION)
+    .cameraPosition(DEFAULT_CAMERA_POSITION)
+    .mirror(false)
+    .throttleThreshold(1000)
+    .build();
 
 export class MediaPipeFaceProvider implements FaceProvider {
     private landmarker: FaceLandmarker | null = null;
