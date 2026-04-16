@@ -22,8 +22,8 @@ export const DEFAULT_HEAD_SIZE_IN_SCREEN = 1 / 3 as Scalar;
 export const DEFAULT_FACE_SCENE_CONFIG: FaceSceneConfig = {
     baselineHeadSceneUnits: DEFAULT_HEAD_SIZE_IN_SCREEN,
     sceneScreenWidth: divide(DEFAULT_FACE_SIZE_SCENE_UNITS, DEFAULT_HEAD_SIZE_IN_SCREEN),
-    baseline: { x: 0, y: 0, z: 0 },
-    cameraPosition: { x: 0, y: 0, z: 300 },
+    baseline: { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits },
+    cameraPosition: { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 300 as SceneUnits },
     depthScale: 1,
 };
 

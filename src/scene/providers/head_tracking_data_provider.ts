@@ -1,7 +1,7 @@
 import p5 from "p5";
 import type {
     DataProviderBundle, DataProviderTickContext, FailableResult, TrackingStatus, Vector3,
-    VideoSourceRef, FaceTrackingConfig, VideoPixels, SceneUnits
+    VideoSourceRef, FaceTrackingConfig, VideoPixels, SceneUnits, VideoWidthRatio
 } from "../types.ts";
 import {FaceTrackingConfigBuilder} from "../types.ts";
 import {
@@ -36,11 +36,11 @@ export type ObserverDataProviderLib = {
  * Provides access to facial features and rotation in scene units.
  */
 export class FaceWorldData {
-    readonly face: Face;
+    readonly face: Face<VideoWidthRatio>;
     readonly sceneFace: SceneFace;
 
     public constructor(
-        face: Face,
+        face: Face<VideoWidthRatio>,
         sceneFace: SceneFace,
     ) {
         this.face = face;
@@ -61,13 +61,6 @@ export class FaceWorldData {
      */
     get worldPosition(): Vector3<SceneUnits> {
         return this.sceneFace.worldPosition;
-    }
-
-    /**
-     * @deprecated Use localPosition or worldPosition instead
-     */
-    get midpoint(): Vector3 {
-        return this.sceneFace.localPosition;
     }
 
     /**
@@ -137,8 +130,8 @@ export const DEFAULT_HEAD_TRACKING_DATA_PROVIDER_CONFIG: HeadTrackingDataProvide
     .videoHeightPixels(1080 as VideoPixels)
     .baselineHeadPixels(640 as VideoPixels)
     .baselineHeadSceneUnits(100 as SceneUnits)
-    .baseline({ x: 0, y: 0, z: 0 })
-    .cameraPosition({ x: 0, y: 0, z: 300 })
+    .baseline({ x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits })
+    .cameraPosition({ x: 0 as SceneUnits, y: 0 as SceneUnits, z: 300 as SceneUnits })
     .depthScale(4)
     .mirror(false)
     .throttleThreshold(1000)
@@ -158,8 +151,8 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     private lastFace: FaceWorldData | null = null;
     private readonly config: HeadTrackingDataProviderConfig;
 
-    readonly cameraPosition: Vector3;
-    readonly panelPosition: Vector3;
+    readonly cameraPosition: Vector3<SceneUnits>;
+    readonly panelPosition: Vector3<SceneUnits>;
 
     constructor(
         p: p5,

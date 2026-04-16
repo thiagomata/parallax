@@ -200,8 +200,8 @@ export interface FaceTrackingConfig {
     readonly baselineHeadSceneUnits: SceneUnits;
     
     // Scene geometry
-    readonly baseline: Vector3;
-    readonly cameraPosition: Vector3;
+    readonly baseline: Vector3<SceneUnits>;
+    readonly cameraPosition: Vector3<SceneUnits>;
     
     // Derived values (computed by builder)
     readonly sceneScreenWidth: SceneUnits;  // = baselineHeadSceneUnits / (baselineHeadPixels / videoWidthPixels)
@@ -221,8 +221,8 @@ export class FaceTrackingConfigBuilder {
     private _videoHeightPixels: VideoPixels = 1080 as VideoPixels;
     private _baselineHeadPixels: VideoPixels = 640 as VideoPixels;
     private _baselineHeadSceneUnits: SceneUnits = 100 as SceneUnits;
-    private _baseline: Vector3 = { x: 0, y: 0, z: 0 };
-    private _cameraPosition: Vector3 = { x: 0, y: 0, z: 300 };
+    private _baseline: Vector3<SceneUnits> = { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits};
+    private _cameraPosition: Vector3<SceneUnits> = { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 300 as SceneUnits };
     private _depthScale: number = 1;
     private _mirror: boolean = false;
     private _throttleThreshold: number = 1000;
@@ -231,8 +231,8 @@ export class FaceTrackingConfigBuilder {
     videoHeightPixels(v: VideoPixels): this { this._videoHeightPixels = v; return this; }
     baselineHeadPixels(v: VideoPixels): this { this._baselineHeadPixels = v; return this; }
     baselineHeadSceneUnits(v: SceneUnits): this { this._baselineHeadSceneUnits = v; return this; }
-    baseline(v: Vector3): this { this._baseline = v; return this; }
-    cameraPosition(v: Vector3): this { this._cameraPosition = v; return this; }
+    baseline(v: Vector3<SceneUnits>): this { this._baseline = v; return this; }
+    cameraPosition(v: Vector3<SceneUnits>): this { this._cameraPosition = v; return this; }
     depthScale(v: number): this { this._depthScale = v; return this; }
     mirror(v: boolean): this { this._mirror = v; return this; }
     throttleThreshold(v: number): this { this._throttleThreshold = v; return this; }

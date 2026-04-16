@@ -1,10 +1,10 @@
 import { describe, it, vi, expect } from 'vitest';
 import { HeadTrackingDataProvider } from "./head_tracking_data_provider";
 import type { FaceProvider } from "./face_provider.ts";
-import { Face } from "../drivers/mediapipe/face.ts";
+import type { Face } from "../drivers/mediapipe/face.ts";
 import { SceneFaceBuilder } from "./scene_face.ts";
 import { FaceTrackingConfigBuilder } from "../types.ts";
-import type { VideoPixels, SceneUnits } from "../types.ts";
+import type { VideoPixels, SceneUnits, VideoWidthRatio } from "../types.ts";
 
 const createMockP5WithCapture = () => ({
     createCapture: vi.fn().mockReturnValue({
@@ -15,7 +15,7 @@ const createMockP5WithCapture = () => ({
     }),
 });
 
-function MockFaceProvider(mockFace: Face | null, status: string = 'READY', mockVideo: any = { mock: 'capture' }): FaceProvider {
+function MockFaceProvider(mockFace: Face<VideoWidthRatio> | null, status: string = 'READY', mockVideo: any = { mock: 'capture' }): FaceProvider {
     return {
         getFace: vi.fn().mockReturnValue(mockFace ? { success: true, value: mockFace } : { success: false, error: 'No face' }),
         getStatus: vi.fn().mockReturnValue(status),
@@ -26,12 +26,13 @@ function MockFaceProvider(mockFace: Face | null, status: string = 'READY', mockV
 
 describe("HeadTrackingDataProvider", () => {
     // Test configuration: 1920x1080 video, expected head is 33% of screen
+    const faceRatioAtScreen = 1/3;
     const videoWidthPixel = 1920 as VideoPixels;
     const videoHeightPixel = 1080 as VideoPixels;
-    const baselineHeadWidthPixel = 640 as VideoPixels;  // ~33% of 1920
+    const baselineHeadWidthPixel = 1920 * faceRatioAtScreen as VideoPixels;
     const baselineHeadWidthScene = 100 as SceneUnits;
-    
-    // Derived: sceneScreenWidth = 100 / (640/1920) = 100 / 0.333 = 300
+
+    // size of the head at the baseline in the scene using scene units
     const sceneScreenWidth = 300 as SceneUnits;
     
     const createConfig = () => {
@@ -40,8 +41,8 @@ describe("HeadTrackingDataProvider", () => {
             .videoHeightPixels(videoHeightPixel)
             .baselineHeadPixels(baselineHeadWidthPixel)
             .baselineHeadSceneUnits(baselineHeadWidthScene)
-            .baseline({ x: 0, y: 0, z: 0 })
-            .cameraPosition({ x: 0, y: 0, z: 300 })
+            .baseline({ x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits })
+            .cameraPosition({ x: 0 as SceneUnits, y: 0 as SceneUnits, z: 300 as SceneUnits })
             .depthScale(1)
             .mirror(false)
             .throttleThreshold(1000)
@@ -49,7 +50,7 @@ describe("HeadTrackingDataProvider", () => {
     };
 
     const mockFace = {
-        width: 0.5,
+        width: faceRatioAtScreen,
         skullCenter: {
             position: { x: 0.5, y: 0.5, z: 0.5 }
         },
@@ -74,7 +75,7 @@ describe("HeadTrackingDataProvider", () => {
         yaw: 0.1,
         pitch: 0.2,
         roll: 0.05,
-    } as unknown as Face;
+    } as Face<VideoWidthRatio>;
 
     it("should compute midpoint based on face position and size", () => {
         const mockProvider = MockFaceProvider(mockFace);
@@ -92,14 +93,14 @@ describe("HeadTrackingDataProvider", () => {
         const expectedFace = new SceneFaceBuilder()
             .config({ 
                 sceneScreenWidth, 
-                baseline: { x: 0, y: 0, z: 0 },
+                baseline: { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits },
                 baselineHeadSceneUnits: baselineHeadWidthScene 
             })
             .actualFacePixelWidth(baselineHeadWidthPixel)  // same as baseline = ratio 1
             .baselineFacePixelWidth(baselineHeadWidthPixel)
             .build();
 
-        expect(data!.midpoint.z).toBeCloseTo(expectedFace.localPosition.z);
+        expect(data!.localPosition.z).toBeCloseTo(expectedFace.localPosition.z);
     });
 
     it("should scale depth using face calibration settings", () => {
@@ -107,7 +108,7 @@ describe("HeadTrackingDataProvider", () => {
         const mockFaceSmaller = {
             ...mockFace,
             width: 0.25,  // half of 0.5 baseline
-        } as unknown as Face;
+} as unknown as Face<VideoWidthRatio>;
         
         const mockProvider = MockFaceProvider(mockFaceSmaller);
         const mockP5 = createMockP5WithCapture();
@@ -116,8 +117,8 @@ describe("HeadTrackingDataProvider", () => {
             .videoHeightPixels(videoHeightPixel)
             .baselineHeadPixels(baselineHeadWidthPixel)
             .baselineHeadSceneUnits(baselineHeadWidthScene)
-            .baseline({ x: 0, y: 0, z: 0 })
-            .cameraPosition({ x: 0, y: 0, z: 300 })
+            .baseline({ x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits })
+            .cameraPosition({ x: 0 as SceneUnits, y: 0 as SceneUnits, z: 300 as SceneUnits })
             .depthScale(4)  // scale factor
             .build();
         
@@ -132,7 +133,7 @@ describe("HeadTrackingDataProvider", () => {
         // distanceFromCamera = 300 / 0.75 = 400
         // faceZ = 300 + (-1) * 400 = -100 (behind baseline)
         // localZ = (-100 - 0) * 4 = -400
-        expect(data!.midpoint.z).toBeCloseTo(-400);
+        expect(data!.worldPosition.z).toBeCloseTo(-400);
     });
 
     it("should return last face if no face detected", () => {

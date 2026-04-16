@@ -2,87 +2,87 @@ import { vi } from 'vitest';
 import { DEFAULT_HEAD_PROPORTIONS, type FaceData, type HeadProportions } from "../drivers/mediapipe/face";
 import { SceneFace, DEFAULT_FACE_SCENE_CONFIG } from "../providers/scene_face";
 import type { FaceWorldData } from "../providers/head_tracking_data_provider";
-import type { FaceWidthRatio, SceneUnits } from "../types";
+import type { FaceWidthRatio, RelativeRatio, SceneUnits, VideoWidthRatio } from "../types";
 
-export const createCanonicalHead = (H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): FaceData => {
+export function createCanonicalHead<T extends RelativeRatio<string> = VideoWidthRatio>(H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): FaceData<T> {
     return {
         nose: {
-            position: { x: 0, y: H.height.nose_base, z: H.depth.nose_tip },
+            position: { x: 0 as T, y: H.height.nose_base as unknown as T, z: H.depth.nose_tip as unknown as T },
             visibility: 1,
             isUsable: true
         },
         eyes: {
             left: {
-                position: { x: -H.width.eye_to_eye / 2, y: H.height.eye_line, z: H.depth.eye_plane },
+                position: { x: -H.width.eye_to_eye / 2 as unknown as T, y: H.height.eye_line as unknown as T, z: H.depth.eye_plane as unknown as T },
                 visibility: 1,
                 isUsable: true
             },
             right: {
-                position: { x: H.width.eye_to_eye / 2, y: H.height.eye_line, z: H.depth.eye_plane },
+                position: { x: H.width.eye_to_eye / 2 as unknown as T, y: H.height.eye_line as unknown as T, z: H.depth.eye_plane as unknown as T },
                 visibility: 1,
                 isUsable: true
             },
         },
         rig: {
             leftEar: {
-                position: { x: -H.width.ear_to_ear / 2, y: H.offset.ear_y, z: -0.02 },
+                position: { x: -H.width.ear_to_ear / 2 as unknown as T, y: H.offset.ear_y as unknown as T, z: -0.02 as unknown as T },
                 visibility: 1,
                 isUsable: true
             },
             rightEar: {
-                position: { x: H.width.ear_to_ear / 2, y: H.offset.ear_y, z: -0.02 },
+                position: { x: H.width.ear_to_ear / 2 as unknown as T, y: H.offset.ear_y as unknown as T, z: -0.02 as unknown as T },
                 visibility: 1,
                 isUsable: true
             },
             leftTemple: {
-                position: { x: -H.width.temple_to_temple / 2, y: H.offset.ear_y, z: 0 },
+                position: { x: -H.width.temple_to_temple / 2 as unknown as T, y: H.offset.ear_y as unknown as T, z: 0 as unknown as T },
                 visibility: 1,
                 isUsable: true
             },
             rightTemple: {
-                position: { x: H.width.temple_to_temple / 2, y: H.offset.ear_y, z: 0 },
+                position: { x: H.width.temple_to_temple / 2 as unknown as T, y: H.offset.ear_y as unknown as T, z: 0 as unknown as T },
                 visibility: 1,
                 isUsable: true
             },
         },
         mouth: {
             left: {
-                position: { x: -H.width.mouth_width / 2, y: H.height.mouth_line, z: H.depth.mouth_plane },
+                position: { x: -H.width.mouth_width / 2 as unknown as T, y: H.height.mouth_line as unknown as T, z: H.depth.mouth_plane as unknown as T },
                 visibility: 1,
                 isUsable: true
             },
             right: {
-                position: { x: H.width.mouth_width / 2, y: H.height.mouth_line, z: H.depth.mouth_plane },
+                position: { x: H.width.mouth_width / 2 as unknown as T, y: H.height.mouth_line as unknown as T, z: H.depth.mouth_plane as unknown as T },
                 visibility: 1,
                 isUsable: true
             },
         },
         brows: {
             left: {
-                position: { x: -H.width.eye_to_eye / 2, y: H.height.forehead_top * 0.5, z: H.depth.eye_plane },
+                position: { x: -H.width.eye_to_eye / 2 as unknown as T, y: (H.height.forehead_top * 0.5) as unknown as T, z: H.depth.eye_plane as unknown as T },
                 visibility: 1,
                 isUsable: true
             },
             right: {
-                position: { x: H.width.eye_to_eye / 2, y: H.height.forehead_top * 0.5, z: H.depth.eye_plane },
+                position: { x: H.width.eye_to_eye / 2 as unknown as T, y: (H.height.forehead_top * 0.5) as unknown as T, z: H.depth.eye_plane as unknown as T },
                 visibility: 1,
                 isUsable: true
             },
         },
         bounds: {
             middleTop: {
-                position: { x: 0, y: H.height.forehead_top, z: 0.02 },
+                position: { x: 0 as unknown as T, y: H.height.forehead_top as unknown as T, z: 0.02 as unknown as T },
                 visibility: 1,
                 isUsable: true
             },
             middleBottom: {
-                position: { x: 0, y: H.height.chin_tip, z: 0.02 },
+                position: { x: 0 as unknown as T, y: H.height.chin_tip as unknown as T, z: 0.02 as unknown as T },
                 visibility: 1,
                 isUsable: true
             }
         },
     };
-};
+}
 
 export function createMockSceneFace(overrides: {
     localPosition?: { x: number; y: number; z: number };

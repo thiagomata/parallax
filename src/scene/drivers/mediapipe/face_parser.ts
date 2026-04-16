@@ -1,5 +1,5 @@
-import {DEFAULT_HEAD_PROPORTIONS, Face, type FaceData, type HeadProportions} from "./face.ts";
-import type {Vector3} from "../../types.ts";
+import {DEFAULT_HEAD_PROPORTIONS, Face, type FaceData, type HeadProportions, type RawLandmark} from "./face.ts";
+import type {Vector3, VideoWidthRatio} from "../../types.ts";
 import {merge} from "../../utils/merge.ts";
 
 /**
@@ -45,11 +45,11 @@ export const DEFAULT_HEAD_PARSER_CONFIG: HeadParserConfig = {
     headProportions: DEFAULT_HEAD_PROPORTIONS,
 }
 
-interface RawLandmark {
-    readonly position: Readonly<Vector3>;
-    readonly visibility: number | null;
-    readonly isUsable: boolean;
-}
+// interface RawLandmark {
+//     readonly position: Readonly<Vector3>;
+//     readonly visibility: number | null;
+//     readonly isUsable: boolean;
+// }
 
 export class FaceParser {
     private config: HeadParserConfig;
@@ -63,14 +63,18 @@ export class FaceParser {
      * @param rawDataVector - array of landmarks from MediaPipe (indices 0-477)
      * @returns Face with semantic landmarks, raw `visibility` scores, and `isUsable` quality flags
      */
-    public parse(rawDataVector: Array<Partial<Vector3> & { visibility?: number | null }>): Face {
-        const missing: RawLandmark = {
-            position: { x: -1, y: -1, z: -1 },
+    public parse(rawDataVector: Array<Partial<Vector3<VideoWidthRatio>> & { visibility?: number | null }>): Face<VideoWidthRatio> {
+        const missing: RawLandmark<VideoWidthRatio> = {
+            position: {
+                x: -1 as VideoWidthRatio,
+                y: -1 as VideoWidthRatio,
+                z: -1 as VideoWidthRatio,
+            },
             visibility: null,
             isUsable: false,
         };
 
-        const createLandmark = (index: number): RawLandmark => {
+        const createLandmark = (index: number): RawLandmark<VideoWidthRatio> => {
             const landmark = rawDataVector[index];
             if (!landmark) {
                 return missing;
@@ -97,16 +101,16 @@ export class FaceParser {
 
             return {
                 position: {
-                    x,
-                    y: rawY,
-                    z: rawZ
+                    x: x as VideoWidthRatio,
+                    y: rawY as VideoWidthRatio,
+                    z: rawZ as VideoWidthRatio
                 },
                 visibility,
                 isUsable: hasXY,
             };
         };
 
-        const faceData: FaceData = {
+        const faceData: FaceData<VideoWidthRatio> = {
             nose: createLandmark(INDEX.NOSE),
             eyes: {
                 left: createLandmark(INDEX.EYE_LEFT),

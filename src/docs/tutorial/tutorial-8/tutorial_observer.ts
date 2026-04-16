@@ -89,9 +89,9 @@ export async function tutorial_observer(
     const videoHeightPixels = 1080 as VideoPixels;
     const headWidthPercent = 1 / 4;
     const headWidthPixels = (headWidthPercent * videoWidthPixels) as VideoPixels;
-    const panelPosition = { x: 0, y: 0, z: 0 };
-    const screenPosition = { x: 0, y: 0, z: 1500 };
-    const panelScreenZDistance = 0;//panelPosition.z - screenPosition.z;
+    const panelPosition = { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits };
+    const screenPosition = { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 1500 as SceneUnits };
+    const panelScreenZDistance = 0;
     const baselineHeadSceneUnits = 300 as SceneUnits;
 
     let headTrackingConfig: Partial<HeadTrackingDataProviderConfig> = {

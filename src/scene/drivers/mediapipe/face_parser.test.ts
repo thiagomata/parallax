@@ -1,11 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { FaceParser, INDEX } from "./face_parser";
-import type { Vector3 } from "../../types.ts";
+import type {Vector3, VideoWidthRatio} from "../../types.ts";
 
-const createRawLandmarks = (overrides: Record<number, { x?: number; y?: number; z?: number; visibility?: number }> = {}): Array<Partial<Vector3> & { visibility?: number }> => {
-    const landmarks: Array<Partial<Vector3> & { visibility?: number }> = new Array(468);
+const createRawLandmarks = (overrides: Partial<Record<number, { x?: number; y?: number; z?: number; visibility?: number }>> = {}): Array<Partial<Vector3<VideoWidthRatio>> & { visibility?: number }> => {
+    const landmarks: Array<Partial<Vector3<VideoWidthRatio> & { visibility?: number }>> = new Array(468);
     for (let i = 0; i < 468; i++) {
-        landmarks[i] = overrides[i];
+        const item = overrides[i];
+        if (item) {
+            landmarks[i] = {
+                x: item.x !== undefined ? item.x as VideoWidthRatio : undefined,
+                y: item.y !== undefined ? item.y as VideoWidthRatio : undefined,
+                z: item.z !== undefined ? item.z as VideoWidthRatio : undefined,
+                visibility: item.visibility,
+            };
+        }
     }
     return landmarks;
 };

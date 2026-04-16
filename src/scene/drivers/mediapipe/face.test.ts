@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Face, DEFAULT_HEAD_PROPORTIONS, type FaceData, type HeadProportions } from "./face";
 import { merge } from "../../utils/merge.ts";
 import { createCanonicalHead } from "../../mock/face.mock.ts";
+import type {FaceWidthRatio, VideoWidthRatio} from "../../types.ts";
 
 describe('Face - constructor', () => {
     it('should create a Face instance with provided data and proportions', () => {
@@ -145,29 +146,35 @@ describe('Face - getSkullCenter', () => {
     });
 
     it('should return invisible when no landmarks are visible', () => {
-        const emptyHead: FaceData = {
-            nose: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+
+        const zero = {
+            x: 0 as VideoWidthRatio,
+            y: 0 as VideoWidthRatio,
+            z: 0 as VideoWidthRatio,
+        }
+        const emptyHead: FaceData<VideoWidthRatio> = {
+            nose: { position: zero, visibility: null, isUsable: false },
             eyes: {
-                left: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
-                right: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+                left: { position: zero, visibility: null, isUsable: false },
+                right: { position: zero, visibility: null, isUsable: false },
             },
             brows: {
-                left: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
-                right: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+                left: { position: zero, visibility: null, isUsable: false },
+                right: { position: zero, visibility: null, isUsable: false },
             },
             mouth: {
-                left: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
-                right: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+                left: { position: zero, visibility: null, isUsable: false },
+                right: { position: zero, visibility: null, isUsable: false },
             },
             rig: {
-                leftEar: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
-                rightEar: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
-                leftTemple: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
-                rightTemple: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+                leftEar: { position: zero, visibility: null, isUsable: false },
+                rightEar: { position: zero, visibility: null, isUsable: false },
+                leftTemple: { position: zero, visibility: null, isUsable: false },
+                rightTemple: { position: zero, visibility: null, isUsable: false },
             },
             bounds: {
-                middleTop: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
-                middleBottom: { position: { x: 0, y: 0, z: 0 }, visibility: null, isUsable: false },
+                middleTop: { position: zero, visibility: null, isUsable: false },
+                middleBottom: { position: zero, visibility: null, isUsable: false },
             },
         };
         const face = new Face(emptyHead, DEFAULT_HEAD_PROPORTIONS);
@@ -479,7 +486,7 @@ describe('Face - rotation comparison with known rotations', () => {
         const strategies = [
             { 
                 name: "Z->X->Y", 
-                fn: (f: Face) => { 
+                fn: (f: Face<FaceWidthRatio>) => {
                     const roll = f.computeRoll();
                     const t1 = f.rotateZ(-roll).normalize(); 
                     const pitch = t1.computePitch(); 
@@ -490,7 +497,7 @@ describe('Face - rotation comparison with known rotations', () => {
             },
             { 
                 name: "Y->X->Z", 
-                fn: (f: Face) => { 
+                fn: (f: Face<FaceWidthRatio>) => {
                     const yaw = f.computeYaw(); 
                     const t1 = f.rotateY(-yaw).normalize(); 
                     const pitch = t1.computePitch(); 
@@ -501,7 +508,7 @@ describe('Face - rotation comparison with known rotations', () => {
             },
             { 
                 name: "Z->Y->X", 
-                fn: (f: Face) => { 
+                fn: (f: Face<FaceWidthRatio>) => {
                     const roll = f.computeRoll();
                     const t1 = f.rotateZ(-roll).normalize(); 
                     const yaw = t1.computeYaw(); 
@@ -512,7 +519,7 @@ describe('Face - rotation comparison with known rotations', () => {
             },
             { 
                 name: "X->Y->Z", 
-                fn: (f: Face) => { 
+                fn: (f: Face<FaceWidthRatio>) => {
                     const pitch = f.computePitch(); 
                     const t1 = f.rotateX(-pitch).normalize(); 
                     const yaw = t1.computeYaw(); 
@@ -523,7 +530,7 @@ describe('Face - rotation comparison with known rotations', () => {
             },
             { 
                 name: "X->Z->Y", 
-                fn: (f: Face) => { 
+                fn: (f: Face<FaceWidthRatio>) => {
                     const pitch = f.computePitch(); 
                     const t1 = f.rotateX(-pitch).normalize(); 
                     const roll = t1.computeRoll();
@@ -534,7 +541,7 @@ describe('Face - rotation comparison with known rotations', () => {
             },
             { 
                 name: "Y->Z->X", 
-                fn: (f: Face) => { 
+                fn: (f: Face<FaceWidthRatio>) => {
                     const yaw = f.computeYaw(); 
                     const t1 = f.rotateY(-yaw).normalize(); 
                     const roll = t1.computeRoll();
@@ -780,7 +787,7 @@ describe('Face - getters', () => {
             ...DEFAULT_HEAD_PROPORTIONS,
             width: {
                 ...DEFAULT_HEAD_PROPORTIONS.width,
-                eye_to_eye: 0,
+                eye_to_eye: 0 as FaceWidthRatio,
             },
             depth: {
                 ...DEFAULT_HEAD_PROPORTIONS.depth,

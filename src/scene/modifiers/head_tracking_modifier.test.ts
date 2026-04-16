@@ -73,6 +73,7 @@ function createMockFaceWorldData(overrides: Partial<{
     return {
         face,
         sceneFace,
+        localPosition: sceneFace.localPosition,
         midpoint: sceneFace.localPosition,
         nose: overrides.nose ?? { x: 0, y: 0, z: 0 },
         eyes: overrides.eyes ?? { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },

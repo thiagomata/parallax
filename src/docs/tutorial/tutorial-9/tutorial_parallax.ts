@@ -71,8 +71,8 @@ export async function tutorial_parallax(
             ...faceConfig,
             baselineHeadPixels: 120 as VideoPixels,
             baselineHeadSceneUnits: 180 as SceneUnits,
-            baseline: {x: 0, y: 0, z: 0},
-            cameraPosition: {x: 0, y: 0, z: 300},
+            baseline: {x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits},
+            cameraPosition: {x: 0 as SceneUnits, y: 0 as SceneUnits, z: 300 as SceneUnits},
         }
     );
 

@@ -1,5 +1,5 @@
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
-import type {FailableResult, TrackingStatus, FaceTrackingConfig, VideoPixels, SceneUnits, Vector3} from "../../types";
+import type {FailableResult, TrackingStatus, FaceTrackingConfig, VideoPixels, SceneUnits, Vector3, VideoWidthRatio} from "../../types";
 import {FaceTrackingConfigBuilder} from "../../types";
 import {FaceParser} from "./face_parser";
 import p5 from "p5";
@@ -9,8 +9,8 @@ import {merge} from "../../utils/merge.ts";
 
 export type FaceProviderConfig = FaceTrackingConfig;
 
-export const DEFAULT_CAMERA_POSITION: Vector3 = { x: 0, y: 0, z: 300 };
-export const DEFAULT_CAMERA_PANEL_POSITION: Vector3 = { x: 0, y: 0, z: 0 };
+export const DEFAULT_CAMERA_POSITION: Vector3<SceneUnits> = { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 300 as SceneUnits };
+export const DEFAULT_CAMERA_PANEL_POSITION: Vector3<SceneUnits> = { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits };
 
 export const DEFAULT_FACE_PROVIDER_CONFIG: FaceProviderConfig = new FaceTrackingConfigBuilder()
     .videoWidthPixels(1920 as VideoPixels)
@@ -34,7 +34,7 @@ export class MediaPipeFaceProvider implements FaceProvider {
     private readonly config: FaceProviderConfig;
     // private readonly mirror: boolean;
     
-    private lastFaceResult: Face | null = null;
+    private lastFaceResult: Face<VideoWidthRatio> | null = null;
     private consecutiveNoFaceFrames = 0;
     private readonly throttleThreshold: number;
     // private readonly videoWidth: number;
@@ -113,7 +113,7 @@ export class MediaPipeFaceProvider implements FaceProvider {
      * Returns the cleaned FaceGeometry.
      * Synchronous and safe to call inside p5's draw loop.
      */
-    getFace(): FailableResult<Face> {
+    getFace(): FailableResult<Face<VideoWidthRatio>> {
         void this.ensureInit();
 
         if (this.status !== 'READY' || !this.landmarker) {
@@ -162,7 +162,8 @@ export class MediaPipeFaceProvider implements FaceProvider {
 
         if (result.faceLandmarks && result.faceLandmarks.length > 0) {
             this.consecutiveNoFaceFrames = 0;
-            this.lastFaceResult = this.parser.parse(result.faceLandmarks[0]);
+            const landmarks = result.faceLandmarks[0] as Array<Partial<Vector3<VideoWidthRatio>> & { visibility?: number | null }>;
+            this.lastFaceResult = this.parser.parse(landmarks);
             this.debug("face detected", {
                 faces: result.faceLandmarks.length,
                 landmarks: result.faceLandmarks[0].length,
