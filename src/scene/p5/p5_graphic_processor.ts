@@ -3,7 +3,6 @@ import {
     DEFAULT_FIT_MODE,
     type AssetLoader, type ColorRGBA,
     type ElementAssets,
-    type GraphicProcessor,
     type Alpha,
     type ProjectionMatrix,
     type ProjectionTreeNode,
@@ -31,18 +30,28 @@ import {
 import type {P5Bundler} from "./p5_asset_loader.ts";
 import p5 from "p5";
 
-export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
+import { BaseGraphicProcessor } from "../graphic_processor.ts";
+
+export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
     public readonly loader: AssetLoader<P5Bundler>;
     private p: p5;
 
-    // Cache for center offsets to avoid recalculation
     private centerOffsetCache = new Map<string, Vector3>();
     private lastWidth = 0;
     private lastHeight = 0;
 
     constructor(p: p5, loader: AssetLoader<P5Bundler>) {
+        super();
         this.p = p;
         this.loader = loader;
+    }
+
+    protected push(): void {
+        this.p.push();
+    }
+
+    protected pop(): void {
+        this.p.pop();
     }
 
     private resolveVideoNode(source: unknown): p5.MediaElement<HTMLVideoElement> | null {
@@ -369,7 +378,7 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.pop();
     }
 
-    private translate(pos: Partial<Vector3>): void {
+    protected translate(pos: Partial<Vector3>): void {
         this.p.translate(pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
     }
 
@@ -388,7 +397,7 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.stroke(color.red, color.green, color.blue, finalAlphaUnsigned8Bits);
     }
 
-    private getCenterOffset(props: ResolvedBaseVisual): Vector3 {
+    private computeCenterOffsetCached(props: ResolvedBaseVisual): Vector3 {
         // Cache key based on dimensions
         const p = props as any;
         const cacheKey = `${props.type}-${p.width ?? 0}-${p.height ?? 0}-${p.depth ?? 0}`;
@@ -427,75 +436,40 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     public drawTree(node: RenderTreeNode | null, state: ResolvedSceneState): void {
         if (!node) return;
         let rotation = node.props.rotate;
-        const centerOffset = this.getCenterOffset(node.props);
+        const centerOffset = this.computeCenterOffsetCached(node.props);
         const drawOffset = { x: -centerOffset.x, y: -centerOffset.y, z: -centerOffset.z };
 
-        this.p.push();
+        this.push();
         {
             this.translate(node.props.position);
-            this.p.push();
+            this.push();
             {
                 this.translate(drawOffset);
-                this.p.push();
+                this.push();
                 {
                     this.translate(centerOffset);
-                    this.rotate(rotation);
-                    this.p.push();
+                    this.rotate3(rotation);
+                    this.push();
                     {
                         this.renderElement(node.props, node.assets, state);
                     }
-                    this.p.pop();
+                    this.pop();
 
                     for (const child of node.children) {
                         this.drawTree(child, state);
                     }
 
                 }
-                this.p.pop();
+                this.pop();
             }
-            this.p.pop();
+            this.pop();
 
         }
-        this.p.pop();
-    }
-
-    private renderElement(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
-        switch (props.type) {
-            case ELEMENT_TYPES.BOX:
-                this.drawBox(props as ResolvedBox, assets, state);
-                break;
-            case ELEMENT_TYPES.PANEL:
-                this.drawPanel(props as ResolvedPanel, assets, state);
-                break;
-            case ELEMENT_TYPES.SPHERE:
-                this.drawSphere(props as ResolvedSphere, assets, state);
-                break;
-            case ELEMENT_TYPES.CONE:
-                this.drawCone(props as ResolvedCone, assets, state);
-                break;
-            case ELEMENT_TYPES.PYRAMID:
-                this.drawPyramid(props as ResolvedPyramid, assets, state);
-                break;
-            case ELEMENT_TYPES.CYLINDER:
-                this.drawCylinder(props as ResolvedCylinder, assets, state);
-                break;
-            case ELEMENT_TYPES.TORUS:
-                this.drawTorus(props as ResolvedTorus, assets, state);
-                break;
-            case ELEMENT_TYPES.ELLIPTICAL:
-                this.drawElliptical(props as ResolvedElliptical, assets, state);
-                break;
-            case ELEMENT_TYPES.FLOOR:
-                this.drawFloor(props as ResolvedFloor, assets, state);
-                break;
-            case ELEMENT_TYPES.TEXT:
-                this.drawText(props as ResolvedText, assets, state);
-                break;
-        }
+        this.pop();
     }
 
     /** Apply rotation (YXZ order: yaw, pitch, roll) */
-    private rotate(rotate: Rotation3 | undefined) {
+    protected rotate3(rotate: Rotation3 | undefined) {
         if (!rotate) return;
         
         // YXZ order: yaw (Y), pitch (X), roll (Z)

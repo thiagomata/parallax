@@ -58,8 +58,10 @@ export function createMockVideo() {
 export function createMockP5(): any {
     const mockCapture = createMockCapture();
     const mockVideo = createMockVideo();
-    
+
     return {
+        VIDEO: 'video',
+        createCapture: vi.fn().mockReturnValue(mockCapture),
         fill: vi.fn(),
         box: vi.fn(),
         sphere: vi.fn(),

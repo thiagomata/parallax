@@ -1,27 +1,10 @@
-import {ELEMENT_TYPES} from "../types.ts";
-import type {
-    AssetLoader,
-    GraphicsBundle,
-    RenderTreeNode,
-    ResolvedBaseVisual,
-    ResolvedBox,
-    ResolvedCone,
-    ResolvedCylinder,
-    ResolvedElliptical,
-    ResolvedFloor,
-    ResolvedPanel,
-    ResolvedPyramid,
-    ResolvedSceneState,
-    ResolvedSphere,
-    ResolvedText,
-    ResolvedTorus,
-    Vector3,
-    GraphicProcessor,
-    ElementAssets,
-} from "../types.ts";
-import {vi} from "vitest";
+import { BaseGraphicProcessor } from "../graphic_processor.ts";
+import { vi } from "vitest";
+import type { AssetLoader, GraphicsBundle, Vector3 } from "../types.ts";
 
-export class MockGraphicProcessor<TBundle extends GraphicsBundle> implements GraphicProcessor<TBundle> {
+export class MockGraphicProcessor<TBundle extends GraphicsBundle>
+    extends BaseGraphicProcessor<TBundle>
+{
     readonly loader: AssetLoader<TBundle> = {} as AssetLoader<TBundle>;
 
     setCameraTree = vi.fn();
@@ -55,47 +38,13 @@ export class MockGraphicProcessor<TBundle extends GraphicsBundle> implements Gra
     drawHUDText = vi.fn();
     text = vi.fn();
 
-    drawTree = vi.fn((node: RenderTreeNode | null, state: ResolvedSceneState) => {
-        if (!node) return;
-        this.renderElement(node.props, node.assets, state);
-        for (const child of node.children) {
-            this.drawTree(child, state);
-        }
-    });
+    push = vi.fn();
+    pop = vi.fn();
+    translate = vi.fn();
+    rotate3 = vi.fn();
 
-    private renderElement(props: ResolvedBaseVisual, assets: ElementAssets<TBundle>, state: ResolvedSceneState): void {
-        switch (props.type) {
-            case ELEMENT_TYPES.BOX:
-                this.drawBox(props as ResolvedBox, assets, state);
-                break;
-            case ELEMENT_TYPES.PANEL:
-                this.drawPanel(props as ResolvedPanel, assets, state);
-                break;
-            case ELEMENT_TYPES.SPHERE:
-                this.drawSphere(props as ResolvedSphere, assets, state);
-                break;
-            case ELEMENT_TYPES.CONE:
-                this.drawCone(props as ResolvedCone, assets, state);
-                break;
-            case ELEMENT_TYPES.PYRAMID:
-                this.drawPyramid(props as ResolvedPyramid, assets, state);
-                break;
-            case ELEMENT_TYPES.CYLINDER:
-                this.drawCylinder(props as ResolvedCylinder, assets, state);
-                break;
-            case ELEMENT_TYPES.TORUS:
-                this.drawTorus(props as ResolvedTorus, assets, state);
-                break;
-            case ELEMENT_TYPES.ELLIPTICAL:
-                this.drawElliptical(props as ResolvedElliptical, assets, state);
-                break;
-            case ELEMENT_TYPES.FLOOR:
-                this.drawFloor(props as ResolvedFloor, assets, state);
-                break;
-            case ELEMENT_TYPES.TEXT:
-                this.drawText(props as ResolvedText, assets, state);
-                break;
-        }
+    _test_renderElement(props: any, assets: any, state: any) {
+        return this.renderElement(props, assets, state);
     }
 }
 
