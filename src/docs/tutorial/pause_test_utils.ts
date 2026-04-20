@@ -5,14 +5,10 @@ import {createMockP5} from '../../scene/mock/mock_p5.mock.ts';
 import p5 from 'p5';
 import type {World} from "../../scene/world.ts";
 
-/**
- * Type for tutorial functions that follow the standard pattern (async)
- */
+/** Type for tutorial functions that follow the standard pattern (async) */
 export type TutorialFunction = (p: p5, config?: SketchConfig) => Promise<World<any, any, any>>;
 
-/**
- * Creates standardized pause functionality tests for any tutorial function
- */
+/** Creates standardized pause functionality tests for any tutorial function */
 export function createPauseTests(
     tutorialName: string,
     tutorialFunction: TutorialFunction

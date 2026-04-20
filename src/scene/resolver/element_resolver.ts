@@ -98,9 +98,7 @@ export class ElementResolver<
         };
     }
 
-    /**
-     * Phase: The Frame Loop (Behavioral Application)
-     */
+    /** Phase: The Frame Loop (Behavioral Application) */
     effect<E extends ResolvedElement>(
         bundle: BundleResolvedElement<E, TGraphicBundle>,
         context: ResolutionContext
@@ -112,9 +110,7 @@ export class ElementResolver<
         };
     }
 
-    /**
-     * Phase: The Frame Loop (Graphic Processing)
-     */
+    /** Phase: The Frame Loop (Graphic Processing) */
     render<E extends ResolvedElement>(
         bundle: BundleResolvedElement<E, TGraphicBundle>,
         graphicProcessor: GraphicProcessor<TGraphicBundle>,
@@ -139,9 +135,7 @@ export class ElementResolver<
         }
     }
 
-    /**
-     * Logic for transforming Effect Blueprints into Resolution Groups.
-     */
+    /** Logic for transforming Effect Blueprints into Resolution Groups. */
     protected bundleBehaviors<K extends keyof TEffectLib & string>(
         instructions?: EffectBlueprint<K, TEffectLib[K]['defaults']>[]
     ): EffectResolutionGroup[] {
@@ -178,9 +172,7 @@ export class ElementResolver<
         return true;
     }
 
-    /**
-     * Internal Type Guard for DynamicProperty
-     */
+    /** Internal Type Guard for DynamicProperty */
     isDynamicProperty<T>(obj: unknown): obj is DynamicProperty<T> {
         return (
             typeof obj === 'object' &&

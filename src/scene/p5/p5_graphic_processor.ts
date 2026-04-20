@@ -494,9 +494,7 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         }
     }
 
-    /**
-     * Apply rotation (YXZ order: yaw, pitch, roll)
-     */
+    /** Apply rotation (YXZ order: yaw, pitch, roll) */
     private rotate(rotate: Rotation3 | undefined) {
         if (!rotate) return;
         

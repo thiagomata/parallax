@@ -21,17 +21,11 @@ export const INDEX = {
 
 /** Configuration for face parsing. */
 export interface HeadParserConfig {
-    /**
-     * multiplier - depth sensitivity (default: 1.0)
-     */
+    /** multiplier - depth sensitivity (default: 1.0) */
     focalLength: number;
-    /**
-     * flip landmarks horizontally
-     */
+    /** flip landmarks horizontally */
     mirror: boolean;
-    /**
-     *  landmark positions ratios
-     */
+    /** landmark positions ratios */
     headProportions: HeadProportions
 }
 

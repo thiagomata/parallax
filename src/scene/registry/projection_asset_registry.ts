@@ -46,9 +46,7 @@ export class ProjectionAssetRegistry<
         return this.projections.has(id);
     }
 
-    /**
-     * For the Frame Loop
-     */
+    /** For the Frame Loop */
     public all(): IterableIterator<DynamicProjection> {
         return this.projections.values();
     }

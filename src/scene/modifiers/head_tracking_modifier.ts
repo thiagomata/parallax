@@ -10,9 +10,7 @@ import type {
 } from "../types.ts";
 import type { FaceWorldData, HeadTrackerDataProviderLib } from "../providers/head_tracking_data_provider.ts";
 
-/**
- * Optional limits for head tracking values
- */
+/** Optional limits for head tracking values */
 export interface HeadTrackingLimits {
     minX?: number;
     maxX?: number;

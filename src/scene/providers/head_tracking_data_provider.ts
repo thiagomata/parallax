@@ -111,9 +111,7 @@ export class FaceWorldData {
         };
     }
 
-    /**
-     * Returns rotation angles.
-     */
+    /** Returns rotation angles. */
     public get stick() {
         return {
             yaw: this.face.yaw,

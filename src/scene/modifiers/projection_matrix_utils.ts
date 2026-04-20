@@ -17,9 +17,7 @@ export function MatrixToArray(matrix: ProjectionMatrix): Float32Array {
     ]);
 }
 
-/**
- * Create a ProjectionMatrix from its four components.
- */
+/** Create a ProjectionMatrix from its four components. */
 export function createProjectionMatrix(
     xscale: ProjectionMatrixComponent,
     yscale: ProjectionMatrixComponent,
@@ -43,9 +41,7 @@ export function projectPoint(p: Vector3, m: ProjectionMatrix): { x: number; y: n
     };
 }
 
-/**
- * Create a ProjectionMatrix from a Float32Array (column-major 4x4 matrix).
- */
+/** Create a ProjectionMatrix from a Float32Array (column-major 4x4 matrix). */
 export function fromFloat32Array(array: Float32Array): ProjectionMatrix {
     if (array.length !== 16) {
         throw new Error(`Float32Array must have exactly 16 elements, got ${array.length}`);
@@ -89,9 +85,7 @@ export function projectionMatrixFromFrustum(
     };
 }
 
-/**
- * Create a symmetric projection matrix (for simplified use cases).
- */
+/** Create a symmetric projection matrix (for simplified use cases). */
 export function projectionMatrixFromFrustumSymmetric(
     width: number,
     height: number,
@@ -200,9 +194,7 @@ export function createOffAxisPerspectiveMatrix(
     };
 }
 
-/**
- * Create an identity projection matrix (useful for testing).
- */
+/** Create an identity projection matrix (useful for testing). */
 export function createIdentityProjectionMatrix(): ProjectionMatrix {
     return createProjectionMatrix(
         { x: 1, y: 0, z: 0, w: 0 },     // xscale
@@ -212,9 +204,7 @@ export function createIdentityProjectionMatrix(): ProjectionMatrix {
     );
 }
 
-/**
- * Create a scaling projection matrix (useful for testing).
- */
+/** Create a scaling projection matrix (useful for testing). */
 export function createScalingProjectionMatrix(scaleX: number, scaleY: number, scaleZ: number = 1): ProjectionMatrix {
     return createProjectionMatrix(
         { x: scaleX, y: 0, z: 0, w: 0 },     // xscale
@@ -224,9 +214,7 @@ export function createScalingProjectionMatrix(scaleX: number, scaleY: number, sc
     );
 }
 
-/**
- * Create a zero projection matrix (useful for testing).
- */
+/** Create a zero projection matrix (useful for testing). */
 export function createZeroProjectionMatrix(): ProjectionMatrix {
     return createProjectionMatrix(
         { x: 0, y: 0, z: 0, w: 0 },     // xscale
