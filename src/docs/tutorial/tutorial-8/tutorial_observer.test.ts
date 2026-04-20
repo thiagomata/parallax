@@ -264,6 +264,8 @@ describe('Tutorial 8: The Observer', () => {
         await mockP5.draw();
 
         expect(mockP5.background).toHaveBeenCalled();
+
+        /* we need to improve the test mock to trigger the drawing */
         // expect(mockP5.box).toHaveBeenCalled();
     });
 

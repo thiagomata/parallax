@@ -45,12 +45,6 @@ export const DEFAULT_HEAD_PARSER_CONFIG: HeadParserConfig = {
     headProportions: DEFAULT_HEAD_PROPORTIONS,
 }
 
-// interface RawLandmark {
-//     readonly position: Readonly<Vector3>;
-//     readonly visibility: number | null;
-//     readonly isUsable: boolean;
-// }
-
 export class FaceParser {
     private config: HeadParserConfig;
 

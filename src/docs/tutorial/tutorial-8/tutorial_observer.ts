@@ -24,7 +24,6 @@ import {
 import type { FaceConfig } from "../sketch_engine.types.ts";
 import {WorldSettings} from "../../../scene/world_settings.ts";
 import {COLORS} from "../../../scene/colors.ts";
-// import {CenterOrbit} from "../../../scene/presets.ts";
 
 const FALLBACK_VIDEO_URL = "/parallax/video/heads.mp4";
 const VIDEO_SOURCE_ORDER = ["webCam", "video"] as const;
