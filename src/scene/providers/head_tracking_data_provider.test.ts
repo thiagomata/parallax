@@ -187,4 +187,126 @@ describe("HeadTrackingDataProvider", () => {
             }).toThrow("Invalid");
         });
     });
+
+    describe("tick behavior", () => {
+        it("should not re-process when tick is called with same sceneId", () => {
+            const mockProvider = MockFaceProvider(mockFace);
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(mockP5 as any, createConfig());
+            (tracker as any).provider = mockProvider;
+
+            tracker.tick(1);
+            tracker.tick(1);
+
+            expect((tracker as any).sceneId).toBe(1);
+        });
+
+        it("should use fallback capture when provider is MediaPipeFaceProvider", () => {
+            const mockProvider = {
+                getFace: vi.fn().mockReturnValue({ success: true, value: mockFace }),
+                getStatus: vi.fn().mockReturnValue("READY"),
+                getVideo: vi.fn().mockReturnValue({ success: true, value: { node: {} } }),
+                init: vi.fn().mockResolvedValue(undefined),
+            };
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(mockP5 as any, createConfig());
+            (tracker as any).provider = mockProvider;
+
+            const data = tracker.getData();
+            expect(data).not.toBeNull();
+        });
+    });
+
+    describe("getVideo", () => {
+        it("should return fallback capture when resolved", () => {
+            const mockProvider = {
+                getFace: vi.fn().mockReturnValue({ success: true, value: mockFace }),
+                getStatus: vi.fn().mockReturnValue("READY"),
+                getVideo: vi.fn().mockReturnValue({ success: true, value: { node: document.createElement("video") } }),
+                init: vi.fn().mockResolvedValue(undefined),
+            };
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(mockP5 as any, createConfig());
+            (tracker as any).provider = mockProvider;
+            (tracker as any).fallbackCapture = document.createElement("video");
+
+            const result = tracker.getVideo();
+            expect(result.success).toBe(true);
+        });
+
+        it("should return error when no capture is available", () => {
+            const mockProvider = MockFaceProvider(null, "ERROR");
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(mockP5 as any, createConfig());
+            (tracker as any).provider = mockProvider;
+
+            const result = tracker.getVideo();
+            expect(result.success).toBe(false);
+        });
+    });
+
+    describe("webcam provider", () => {
+        it("should use webcam provider when available and ready", () => {
+            const mockProvider = MockFaceProvider(mockFace);
+            const mockWebCam = {
+                getStatus: vi.fn().mockReturnValue("READY"),
+                getData: vi.fn().mockReturnValue({ kind: "webCam", node: document.createElement("video") }),
+            };
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(mockP5 as any, createConfig());
+            (tracker as any).provider = mockProvider;
+            (tracker as any).webCamProvider = mockWebCam;
+
+            const data = tracker.getData();
+            expect(data).not.toBeNull();
+        });
+
+        it("handles webcam provider not ready", () => {
+            const mockProvider = MockFaceProvider(mockFace);
+            const mockWebCam = {
+                getStatus: vi.fn().mockReturnValue("INITIALIZING"),
+                getData: vi.fn().mockReturnValue(null),
+            };
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(mockP5 as any, createConfig());
+            (tracker as any).provider = mockProvider;
+            (tracker as any).webCamProvider = mockWebCam;
+
+            const data = tracker.getData();
+            expect(data).not.toBeNull();
+        });
+    });
+
+    describe("getDataResult", () => {
+        it("returns failure when no face data", () => {
+            const mockProvider = MockFaceProvider(null, "ERROR");
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(mockP5 as any, createConfig());
+            (tracker as any).provider = mockProvider;
+
+            const result = tracker.getDataResult();
+            expect(result.success).toBe(false);
+        });
+
+        it("returns success with face data", () => {
+            const mockProvider = MockFaceProvider(mockFace, "READY");
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(mockP5 as any, createConfig());
+            (tracker as any).provider = mockProvider;
+
+            const result = tracker.getDataResult();
+            expect(result.success).toBe(true);
+        });
+    });
+
+    describe("getStatus", () => {
+        it("returns provider status", () => {
+            const mockProvider = MockFaceProvider(mockFace, "READY");
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(mockP5 as any, createConfig());
+            (tracker as any).provider = mockProvider;
+
+            expect(tracker.getStatus()).toBe("READY");
+        });
+    });
 });

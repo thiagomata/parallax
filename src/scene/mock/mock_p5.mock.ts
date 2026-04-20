@@ -42,6 +42,9 @@ export function createMockVideo() {
         elt,
         src: "",
         loop: vi.fn(),
+        pause: vi.fn(() => {
+            elt.paused = true;
+        }),
         autoplay: vi.fn(),
         volume: vi.fn(),
         hide: vi.fn(),

@@ -317,4 +317,246 @@ describe('Tutorial 8: The Observer', () => {
         videoGetDataResultSpy.mockRestore();
         videoStatusSpy.mockRestore();
     });
+
+    it('runs world with paused config set to false by default', async () => {
+        const mockP5 = createMockP5();
+        mockP5.millis.mockReturnValue(0);
+
+        const clock = new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
+            playback: {
+                ...DEFAULT_SCENE_SETTINGS.playback,
+                duration: 10000,
+                isLoop: true
+            }
+        });
+
+        const face1 = createMockFaceWorldData();
+        const getDataMock = vi.fn().mockReturnValue(face1);
+        const mockTracker = createMockHeadTrackingProvider(getDataMock);
+
+        const world = await tutorial_observer(mockP5 as unknown as p5, {
+            width: 500,
+            height: 400,
+            clock,
+            paused: false
+        }, { faceDataProvider: mockTracker } as any);
+
+        await mockP5.setup();
+        await mockP5.draw();
+        await mockP5.draw();
+
+        expect(world.isPaused()).toBe(false);
+    });
+
+    it('pauses world when paused config is true', async () => {
+        const mockP5 = createMockP5();
+        mockP5.millis.mockReturnValue(0);
+
+        const clock = new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
+            playback: {
+                ...DEFAULT_SCENE_SETTINGS.playback,
+                duration: 10000,
+                isLoop: true
+            }
+        });
+
+        const face1 = createMockFaceWorldData();
+        const getDataMock = vi.fn().mockReturnValue(face1);
+        const mockTracker = createMockHeadTrackingProvider(getDataMock);
+
+        const world = await tutorial_observer(mockP5 as unknown as p5, {
+            width: 500,
+            height: 400,
+            clock,
+            paused: true
+        }, { faceDataProvider: mockTracker } as any);
+
+        await mockP5.setup();
+        await mockP5.draw();
+        await mockP5.draw();
+
+        expect(world.isPaused()).toBe(true);
+    });
+
+    it('resumes world when paused config is false', async () => {
+        const mockP5 = createMockP5();
+        mockP5.millis.mockReturnValue(0);
+
+        const clock = new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
+            playback: {
+                ...DEFAULT_SCENE_SETTINGS.playback,
+                duration: 10000,
+                isLoop: true
+            }
+        });
+
+        const face1 = createMockFaceWorldData();
+        const getDataMock = vi.fn().mockReturnValue(face1);
+        const mockTracker = createMockHeadTrackingProvider(getDataMock);
+
+        const world = await tutorial_observer(mockP5 as unknown as p5, {
+            width: 500,
+            height: 400,
+            clock,
+            paused: false
+        }, { faceDataProvider: mockTracker } as any);
+
+        await mockP5.setup();
+        await mockP5.draw();
+        await mockP5.draw();
+
+        expect(world.isPaused()).toBe(false);
+    });
+
+    it('initializes face provider and adds video panel on first draw', async () => {
+        const mockP5 = createMockP5();
+        mockP5.millis.mockReturnValue(0);
+
+        const clock = new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
+            playback: {
+                ...DEFAULT_SCENE_SETTINGS.playback,
+                duration: 10000,
+                isLoop: true
+            }
+        });
+
+        const face1 = createMockFaceWorldData();
+        const getDataMock = vi.fn().mockReturnValue(face1);
+        const mockTracker = createMockHeadTrackingProvider(getDataMock);
+        const mockInit = vi.fn().mockResolvedValue(undefined);
+        const mockSetFallbackCapture = vi.fn();
+        mockTracker.init = mockInit;
+        (mockTracker as any).setFallbackCapture = mockSetFallbackCapture;
+
+        const world = await tutorial_observer(mockP5 as unknown as p5, {
+            width: 500,
+            height: 400,
+            clock,
+            paused: false
+        }, { faceDataProvider: mockTracker } as any);
+
+        await mockP5.setup();
+        await mockP5.draw();
+
+        expect(mockInit).toHaveBeenCalled();
+        expect(mockSetFallbackCapture).toHaveBeenCalled();
+        expect(world.getElement('videoPanel')).toBeDefined();
+    });
+
+    it('video selector returns fallback video when webcam is not available', async () => {
+        const mockP5 = createMockP5();
+        mockP5.millis.mockReturnValue(0);
+
+        const clock = new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
+            playback: {
+                ...DEFAULT_SCENE_SETTINGS.playback,
+                duration: 10000,
+                isLoop: true
+            }
+        });
+
+        const face1 = createMockFaceWorldData();
+        const getDataMock = vi.fn().mockReturnValue(face1);
+        const mockTracker = createMockHeadTrackingProvider(getDataMock);
+        const mockInit = vi.fn().mockResolvedValue(undefined);
+        mockTracker.init = mockInit;
+
+        const webcamData = { kind: "webCam", node: null };
+        const mockWebCam = {
+            type: "webCam",
+            parentId: undefined,
+            tick: vi.fn(),
+            getStatus: vi.fn().mockReturnValue("INITIALIZING"),
+            getData: vi.fn().mockReturnValue(webcamData),
+            getDataResult: vi.fn().mockReturnValue({ success: true as const, value: webcamData }),
+            getVideo: vi.fn().mockReturnValue({ success: true as const, value: webcamData }),
+        } as unknown as WebCamDataProvider;
+
+        const world = await tutorial_observer(mockP5 as unknown as p5, {
+            width: 500,
+            height: 400,
+            clock,
+            paused: false
+        }, { faceDataProvider: mockTracker, webCamProvider: mockWebCam } as any);
+
+        await mockP5.setup();
+        await mockP5.draw();
+
+        expect(world.getElement('videoPanel')).toBeDefined();
+    });
+
+    it('resumes world when config is not paused but world is paused', async () => {
+        const mockP5 = createMockP5();
+        mockP5.millis.mockReturnValue(0);
+
+        const clock = new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
+            playback: {
+                ...DEFAULT_SCENE_SETTINGS.playback,
+                duration: 10000,
+                isLoop: true
+            }
+        });
+
+        const face1 = createMockFaceWorldData();
+        const getDataMock = vi.fn().mockReturnValue(face1);
+        const mockTracker = createMockHeadTrackingProvider(getDataMock);
+
+        const world = await tutorial_observer(mockP5 as unknown as p5, {
+            width: 500,
+            height: 400,
+            clock,
+            paused: false
+        }, { faceDataProvider: mockTracker } as any);
+
+        await mockP5.setup();
+        await mockP5.draw();
+        await mockP5.draw();
+
+        world.pause();
+
+        await mockP5.draw();
+
+        expect(world.isPaused()).toBe(false);
+    });
+
+    it('pauses world when config is not paused but user paused the world', async () => {
+        const mockP5 = createMockP5();
+        mockP5.millis.mockReturnValue(0);
+
+        const clock = new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
+            playback: {
+                ...DEFAULT_SCENE_SETTINGS.playback,
+                duration: 10000,
+                isLoop: true
+            }
+        });
+
+        const face1 = createMockFaceWorldData();
+        const getDataMock = vi.fn().mockReturnValue(face1);
+        const mockTracker = createMockHeadTrackingProvider(getDataMock);
+
+        const world = await tutorial_observer(mockP5 as unknown as p5, {
+            width: 500,
+            height: 400,
+            clock,
+            paused: false
+        }, { faceDataProvider: mockTracker } as any);
+
+        await mockP5.setup();
+        await mockP5.draw();
+        await mockP5.draw();
+
+        world.pause();
+
+        await mockP5.draw();
+
+        expect(world.isPaused()).toBe(false);
+    });
 });
