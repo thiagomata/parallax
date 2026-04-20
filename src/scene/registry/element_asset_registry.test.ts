@@ -3,9 +3,7 @@ import {ASSET_STATUS, type AssetLoader, ELEMENT_TYPES,} from '../types';
 import {ElementAssetRegistry} from "./element_asset_registry.ts";
 import type {MockGraphicBundle} from "../mock/mock_type.mock.ts";
 
-/**
- * Mocking the Loader to observe resolution triggers
- */
+/** Mocking the Loader to observe resolution triggers */
 const createMockLoader = (): AssetLoader<MockGraphicBundle> => ({
     hydrateTexture: vi.fn().mockResolvedValue({
         status: ASSET_STATUS.READY,

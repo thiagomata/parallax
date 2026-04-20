@@ -1,13 +1,25 @@
 import p5 from "p5";
 
 /**
- * A strict 3D vector.
+ * A strict 3D vector with numeric coordinates.
+ * Can be generic to specify unit type.
+ * 
+ * @example
+ * Vector3              // x, y, z are numbers
+ * Vector3<SceneUnits>  // x, y, z are in scene units
+ * Vector3<VideoPixels> // x, y, z are in video pixels
  */
-export interface Vector3 {
-    readonly x: number;
-    readonly y: number;
-    readonly z: number;
+export interface Vector3<T = number> {
+    readonly x: T;
+    readonly y: T;
+    readonly z: T;
 }
+
+/** A 3D vector in scene units. */
+export type Vector3Scene = Vector3<SceneUnits>;
+
+/** A 3D vector in video pixels. */
+export type Vector3Video = Vector3<VideoPixels>;
 
 /**
  * Rotation angles in radians (0 to 2π for full rotation).
@@ -19,6 +31,202 @@ export interface Rotation3 {
     yaw: number;
     /** Rotation around Z axis in radians (roll). 0 = level, π = sideways. */
     roll: number;
+}
+
+/** A number with a unit marker for compile-time type safety. */
+export type Unit<T extends string> = number & { __unit: T };
+
+/** A pure scalar (unit-less number) for operations that require no unit. */
+export type Scalar = number & ({} extends { __unit: string } ? { __unit?: never } : never);
+
+/** Unit-aware math functions for type-safe operations. */
+
+/** Scales a unit by a scalar value. */
+export function scale<UnitType extends string, T extends Unit<UnitType>>(unit: T, scalar: Scalar): T {
+    return (unit * scalar) as T;
+}
+
+/** Divides a unit by a scalar value. */
+export function divide<UnitType extends string, T extends Unit<UnitType>>(unit: T, scalar: Scalar): T {
+    return (unit / scalar) as T;
+}
+
+/** Adds two units of the same type. */
+export function add<UnitType extends string, T extends Unit<UnitType>>(a: T, b: T): T {
+    return (a + b) as T;
+}
+
+/** Subtracts two units of the same type. */
+export function sub<UnitType extends string, T extends Unit<UnitType>>(a: T, b: T): T {
+    return (a - b) as T;
+}
+
+/** Multiplies a unit by a scalar (alias for scale). */
+export function multiplyByScalar<UnitType extends string, T extends Unit<UnitType>>(unit: T, scalar: Scalar): T {
+    return (unit * scalar) as T;
+}
+
+/** Divides two units, returning a Scalar. */
+export function divideUnits<UnitType extends string, T extends Unit<UnitType>>(a: T, b: T): Scalar {
+    return (a / b) as Scalar;
+}
+
+/**
+ * Common unit types for compile-time type safety.
+ * These types wrap the generic Unit<T> with specific unit names.
+ */
+
+/** Scene units - the primary dimensional unit in the 3D scene coordinate system. */
+export type SceneUnits = Unit<'scene'>;
+
+/** VideoPixels - pixel dimensions from the video stream (e.g., videoWidth, videoHeight). */
+export type VideoPixels = Unit<'videoPixels'>;
+
+/** Milliseconds - time duration in milliseconds. */
+export type Milliseconds = Unit<'ms'>;
+
+/** RelativeRatio - a relative value divided by a reference. */
+export type RelativeRatio<R extends string> = Unit<`RelativeRatio/${R}`>;
+
+/**
+ * Specific RelativeRatio types - clear and unambiguous references.
+ */
+export type FaceWidthRatio = RelativeRatio<'face_width'>;
+export type SceneWidthRatio = RelativeRatio<'scene_width'>;
+export type VideoWidthRatio = RelativeRatio<'video_width'>;
+
+/**
+ * Aspect - aspect ratio value (width/height).
+ * Used for screen and element aspect ratios (e.g., 16/9, 4/3).
+ */
+export type Aspect = Unit<'aspect'>;
+
+/** Scale - scale factor for transformations. */
+export type Scale = Unit<'scale'>;
+
+/** Normalized - a value in the range [0, 1] with a specific reference. */
+export type Normalized<R extends string> = Unit<`Normalized/${R}`>;
+
+/** Percent - a percentage value in the range [0, 100] with a specific reference. */
+export type Percent<R extends string> = Unit<`Percent/${R}`>;
+
+/** Specific Normalized types (0-1 range) */
+export type Alpha = Normalized<'alpha'>;
+export type Progress = Normalized<'progress'>;
+export type SmoothingValue = Normalized<'smoothing'>;
+export type DampingValue = Normalized<'damping'>;
+
+/**
+ * Specific Percent types (0-100 range)
+ */
+export type ScreenPercent = Percent<'screen'>;
+export type CanvasPercent = Percent<'canvas'>;
+export type VideoPercent = Percent<'video'>;
+
+/**
+ * Uint8 - an 8-bit unsigned integer in the range [0, 255].
+ * Used for color channels (red, green, blue) and other byte-level values.
+ */
+export type Uint8 = Unit<'uint8'>;
+
+/**
+ * Smoothing - a smoothing factor in the range [0, 1].
+ * Lower values = more smoothing/lag, higher values = less smoothing/more responsive.
+ * Used in head tracking and animation interpolation.
+ */
+export type Smoothing = Unit<'smoothing'>;
+
+/**
+ * Damping - a damping factor in the range [0, 1].
+ * Reduces oscillation/overshoot in physical simulations.
+ * Used in head tracking rotation damping.
+ */
+export type Damping = Unit<'damping'>;
+
+/**
+ * FocalLength - camera focal length in arbitrary units.
+ * Used for perspective calculations and depth estimation.
+ */
+export type FocalLength = Unit<'focalLength'>;
+
+/**
+ * DepthScale - a multiplier for depth/Z-axis transformations.
+ * Amplifies or reduces the depth effect in 3D positioning.
+ * Values > 1 amplify, values < 1 reduce.
+ */
+export type DepthScale = Unit<'depthScale'>;
+
+/**
+ * Unified configuration for face tracking.
+ * Contains all settings needed for both FaceProvider and HeadTrackingDataProvider.
+ * 
+ * The builder pattern ensures derived values (sceneScreenWidth) are computed
+ * correctly and the config is immutable.
+ */
+export interface FaceTrackingConfig {
+    // Video source
+    readonly videoWidthPixels: VideoPixels;
+    readonly videoHeightPixels: VideoPixels;
+    
+    // Expected head size at neutral position
+    readonly baselineHeadPixels: VideoPixels;
+    readonly baselineHeadSceneUnits: SceneUnits;
+    
+    // Scene geometry
+    readonly baseline: Vector3<SceneUnits>;
+    readonly cameraPosition: Vector3<SceneUnits>;
+    
+    // Derived values (computed by builder)
+    readonly sceneScreenWidth: SceneUnits;  // = baselineHeadSceneUnits / (baselineHeadPixels / videoWidthPixels)
+    
+    // Behavior
+    readonly depthScale: number;
+    readonly mirror: boolean;
+    readonly throttleThreshold: number;
+}
+
+/**
+ * Builder for FaceTrackingConfig.
+ * Computes derived values and creates immutable config objects.
+ */
+export class FaceTrackingConfigBuilder {
+    private _videoWidthPixels: VideoPixels = 1920 as VideoPixels;
+    private _videoHeightPixels: VideoPixels = 1080 as VideoPixels;
+    private _baselineHeadPixels: VideoPixels = 640 as VideoPixels;
+    private _baselineHeadSceneUnits: SceneUnits = 100 as SceneUnits;
+    private _baseline: Vector3<SceneUnits> = { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits};
+    private _cameraPosition: Vector3<SceneUnits> = { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 300 as SceneUnits };
+    private _depthScale: number = 1;
+    private _mirror: boolean = false;
+    private _throttleThreshold: number = 1000;
+
+    videoWidthPixels(v: VideoPixels): this { this._videoWidthPixels = v; return this; }
+    videoHeightPixels(v: VideoPixels): this { this._videoHeightPixels = v; return this; }
+    baselineHeadPixels(v: VideoPixels): this { this._baselineHeadPixels = v; return this; }
+    baselineHeadSceneUnits(v: SceneUnits): this { this._baselineHeadSceneUnits = v; return this; }
+    baseline(v: Vector3<SceneUnits>): this { this._baseline = v; return this; }
+    cameraPosition(v: Vector3<SceneUnits>): this { this._cameraPosition = v; return this; }
+    depthScale(v: number): this { this._depthScale = v; return this; }
+    mirror(v: boolean): this { this._mirror = v; return this; }
+    throttleThreshold(v: number): this { this._throttleThreshold = v; return this; }
+
+    build(): FaceTrackingConfig {
+        const headAtVideoRatio = this._baselineHeadPixels / this._videoWidthPixels;
+        const sceneScreenWidth = this._baselineHeadSceneUnits / headAtVideoRatio;
+
+        return Object.freeze({
+            videoWidthPixels: this._videoWidthPixels,
+            videoHeightPixels: this._videoHeightPixels,
+            baselineHeadPixels: this._baselineHeadPixels,
+            baselineHeadSceneUnits: this._baselineHeadSceneUnits,
+            baseline: Object.freeze({ ...this._baseline }),
+            cameraPosition: Object.freeze({ ...this._cameraPosition }),
+            sceneScreenWidth: sceneScreenWidth as SceneUnits,
+            depthScale: this._depthScale,
+            mirror: this._mirror,
+            throttleThreshold: this._throttleThreshold,
+        });
+    }
 }
 
 /**
@@ -60,6 +268,7 @@ export interface BaseProjection {
     readonly parentId?: string;
 }
 
+/** Type guard to check if a projection is of a specific type. */
 export function projectionIsType<T extends ProjectionType>(
     resolvedProjection: ResolvedProjection,
     type: T
@@ -113,12 +322,16 @@ export interface BlueprintProjectionRotation extends BaseBlueprintProjection {
 }
 
 export type BlueprintProjection = BlueprintProjectionLookAt | BlueprintProjectionRotation;
+
+/** Type guard to check if a blueprint projection is of a specific type. */
 export function blueprintIsType<T extends ProjectionType>(
     blueprintProjection: Partial<BlueprintProjection>,
     type: T
 ): blueprintProjection is Partial<BlueprintProjection> & { type: T } {
     return blueprintProjection.type === type;
 }
+
+/** Type guard to check if a blueprint projection uses a specific look mode. */
 export function blueprintLookModeIs<T extends LookMode>(
     blueprintProjection: Partial<BlueprintProjection>,
     lookMode: T
@@ -363,7 +576,7 @@ export interface SceneSettings {
     window: WindowConfig;
     playback: PlaybackSettings;
     debug: boolean;
-    alpha: number;
+    alpha: Alpha;
     startPaused: boolean;
 }
 
@@ -407,7 +620,7 @@ export const DEFAULT_SCENE_SETTINGS: SceneSettings = {
     },
     debug: false,
     startPaused: false,
-    alpha: 1
+    alpha: 1 as Alpha
 };
 
 export interface SceneStateDebugLog {
@@ -454,6 +667,7 @@ export interface ResolutionContext<TDataProviderLib extends DataProviderLib = Da
     };
 }
 
+/** Creates a new resolution context from a resolved scene state. */
 export function createResolution<TDataProviderLib extends DataProviderLib = DataProviderLib>(state: ResolvedSceneState):  ResolutionContext<TDataProviderLib> {
     return {
         elementPool: {},
@@ -542,7 +756,7 @@ export interface AssetLoader<TBundle extends GraphicsBundle> {
 /**
  * GRAPHIC PROCESSOR
  */
-export type ColorRGBA = { red: number; green: number; blue: number; alpha?: number; }
+export type ColorRGBA = { red: Uint8; green: Uint8; blue: Uint8; alpha?: Alpha }
 
 /**
  * Tree node for hierarchical element rendering.
@@ -728,7 +942,8 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     /** Local position - relative to parent (if parentId set) or world origin */
     readonly position: Vector3;
 
-    readonly alpha?: number;
+    /** Alpha/opacity in range [0, 1] */
+    readonly alpha?: Alpha;
 
     readonly fillColor?: ColorRGBA;
     readonly strokeColor?: ColorRGBA;

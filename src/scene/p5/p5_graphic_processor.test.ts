@@ -3,6 +3,7 @@ import { P5GraphicProcessor } from "./p5_graphic_processor.ts";
 import {
     ASSET_STATUS,
     ELEMENT_TYPES,
+    type Alpha,
     type ProjectionMatrix,
     type ResolvedBox,
     type ResolvedPanel,
@@ -126,7 +127,7 @@ describe("P5GraphicProcessor", () => {
         const p = createMockP5();
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
-        const state = { settings: { alpha: 1 } } as any;
+        const state = { settings: { alpha: 1 as Alpha } } as any;
         const assets = {
             font: { status: ASSET_STATUS.PENDING, value: null },
         } as any;
@@ -146,7 +147,7 @@ describe("P5GraphicProcessor", () => {
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
         const state = { settings: { alpha: 0.5 } } as any;
-        const videoEl = { kind: "video", node: { elt: { readyState: 2 } } };
+        const videoEl = { kind: "video", node: { elt: { readyState: 2, videoWidth: 640, videoHeight: 480 } } };
         const assets = {} as any;
 
         gp.drawBox(
@@ -170,8 +171,8 @@ describe("P5GraphicProcessor", () => {
         const p = createMockP5();
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
-        const state = { settings: { alpha: 1 } } as any;
-        const rawVideo = { kind: "webCam", node: { elt: { readyState: 2 } } };
+        const state = { settings: { alpha: 1 as Alpha } } as any;
+        const rawVideo = { kind: "webCam", node: { elt: { readyState: 2, videoWidth: 640, videoHeight: 480 } } };
 
         gp.drawBox(
             {
@@ -192,7 +193,7 @@ describe("P5GraphicProcessor", () => {
         const p = createMockP5();
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
-        const state = { settings: { alpha: 1 } } as any;
+        const state = { settings: { alpha: 1 as Alpha } } as any;
         const img = { id: "img-1" };
         const assets = {
             texture: {
@@ -244,7 +245,7 @@ describe("P5GraphicProcessor", () => {
         const p = createMockP5();
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
-        const state = { settings: { alpha: 1 } } as any;
+        const state = { settings: { alpha: 1 as Alpha } } as any;
         const assets = {} as any;
 
         gp.drawPyramid(
@@ -269,7 +270,7 @@ describe("P5GraphicProcessor", () => {
         const p = createMockP5();
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
-        const state = { settings: { alpha: 1 } } as any;
+        const state = { settings: { alpha: 1 as Alpha } } as any;
 
         const drawBoxSpy = vi.spyOn(gp, "drawBox").mockImplementation(() => {});
         const drawPanelSpy = vi.spyOn(gp, "drawPanel").mockImplementation(() => {});
@@ -329,7 +330,7 @@ describe("P5GraphicProcessor", () => {
         const p = createMockP5();
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
-        const state = { settings: { alpha: 1 } } as any;
+        const state = { settings: { alpha: 1 as Alpha } } as any;
         const drawBoxSpy = vi.spyOn(gp, "drawBox").mockImplementation(() => {});
 
         // Parent box at (0,0,0) with size 100x100x50
@@ -408,7 +409,7 @@ describe("P5GraphicProcessor", () => {
             const p = createMockP5();
             const gp = new P5GraphicProcessor(p as any, {} as any);
 
-            const state = { settings: { alpha: 1 } } as any;
+            const state = { settings: { alpha: 1 as Alpha } } as any;
             const assets = {} as any;
 
             gp.drawPanel(
@@ -430,7 +431,7 @@ describe("P5GraphicProcessor", () => {
             const p = createMockP5();
             const gp = new P5GraphicProcessor(p as any, {} as any);
 
-            const state = { settings: { alpha: 1 } } as any;
+            const state = { settings: { alpha: 1 as Alpha } } as any;
             const videoElt = { readyState: 2, videoWidth: 640, videoHeight: 480 };
             const videoNode = { elt: videoElt };
 
@@ -457,7 +458,7 @@ describe("P5GraphicProcessor", () => {
             const p = createMockP5();
             const gp = new P5GraphicProcessor(p as any, {} as any);
 
-            const state = { settings: { alpha: 1 } } as any;
+            const state = { settings: { alpha: 1 as Alpha } } as any;
             const videoElt = { readyState: 2, videoWidth: 640, videoHeight: 480 };
             const videoNode = { elt: videoElt };
 
@@ -484,7 +485,7 @@ describe("P5GraphicProcessor", () => {
             const p = createMockP5();
             const gp = new P5GraphicProcessor(p as any, {} as any);
 
-            const state = { settings: { alpha: 1 } } as any;
+            const state = { settings: { alpha: 1 as Alpha } } as any;
             const videoElt = { readyState: 2, videoWidth: 640, videoHeight: 480 };
             const videoNode = { elt: videoElt };
 
@@ -509,7 +510,7 @@ describe("P5GraphicProcessor", () => {
             const p = createMockP5();
             const gp = new P5GraphicProcessor(p as any, {} as any);
 
-            const state = { settings: { alpha: 1 } } as any;
+            const state = { settings: { alpha: 1 as Alpha } } as any;
             const img = { width: 320, height: 240 };
             const assets = {
                 texture: {

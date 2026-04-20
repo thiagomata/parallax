@@ -123,7 +123,7 @@ export const SIMPLE_PRESET: WorldPreset = {
     projectors: [
         {
             id: 'screen',
-            type: PROJECTION_TYPES.EYE,
+            type: PROJECTION_TYPES.SCREEN,
             position: { x: 0, y: 0, z: 100 },
             direction: { x: 0, y: 0, z: 1 },
             lookMode: LOOK_MODES.ROTATION,

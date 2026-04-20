@@ -2,14 +2,20 @@ import p5 from 'p5';
 import { World } from "../../../scene/world.ts";
 import { P5GraphicProcessor } from "../../../scene/p5/p5_graphic_processor.ts";
 import { SceneClock } from "../../../scene/scene_clock.ts";
-import { HeadTrackingDataProvider, type ObserverDataProviderLib } from "../../../scene/providers/head_tracking_data_provider.ts";
+import {
+    HeadTrackingDataProvider,
+    type HeadTrackingDataProviderConfig,
+    type ObserverDataProviderLib
+} from "../../../scene/providers/head_tracking_data_provider.ts";
 import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
+import type { VideoPixels } from "../../../scene/types.ts";
 import { VideoDataProvider } from "../../../scene/providers/video_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
 import {
     DEFAULT_SCENE_SETTINGS,
-    ELEMENT_TYPES,
+    ELEMENT_TYPES, LOOK_MODES, PROJECTION_TYPES,
     type ResolutionContext,
+    type SceneUnits,
 } from "../../../scene/types.ts";
 import {
     DEFAULT_SKETCH_CONFIG,
@@ -21,17 +27,6 @@ import {COLORS} from "../../../scene/colors.ts";
 
 const FALLBACK_VIDEO_URL = "/parallax/video/heads.mp4";
 const VIDEO_SOURCE_ORDER = ["webCam", "video"] as const;
-
-function resolvePreferredSource<T>(
-    dataProviders: Record<string, T | null | undefined>,
-    preferredIds: readonly string[],
-): T | null {
-    for (const id of preferredIds) {
-        const value = dataProviders[id];
-        if (value) return value;
-    }
-    return null;
-}
 
 /**
  * TUTORIAL: The Observer
@@ -88,34 +83,47 @@ export async function tutorial_observer(
         },
     });
 
-    // const faceConfig = {
-    //     throttleThreshold: 0,
-    //     videoWidth: 640,
-    //     videoHeight: 480,
-    //     physicalHeadWidth: 180,
-    //     focalLength: 0.5,
-    //     mirror: false,
-    // };
-    var faceConfig =extraArgs?.faceConfig;
+
+    const videoWidthPixels = 1920 as VideoPixels;
+    const videoHeightPixels = 1080 as VideoPixels;
+    const headWidthPercent = 1 / 4;
+    const headWidthPixels = (headWidthPercent * videoWidthPixels) as VideoPixels;
+    const panelPosition = { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits };
+    const screenPosition = { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 1500 as SceneUnits };
+    const panelScreenZDistance = 0;
+    const baselineHeadSceneUnits = 300 as SceneUnits;
+
+    let headTrackingConfig: Partial<HeadTrackingDataProviderConfig> = {
+        ...( extraArgs?.faceConfig ?? {} ),
+        videoWidthPixels: videoWidthPixels,
+        videoHeightPixels: videoHeightPixels,
+        mirror: false,
+        baseline: panelPosition,
+        cameraPosition: screenPosition,
+        baselineHeadPixels: headWidthPixels,
+        baselineHeadSceneUnits: baselineHeadSceneUnits,
+        sceneScreenWidth: baselineHeadSceneUnits / headWidthPercent as SceneUnits,
+        depthScale: 1,
+    }
 
     let webCamProvider = extraArgs?.webCamProvider;
-    webCamProvider = webCamProvider ?? new WebCamDataProvider(p, 1920, 1080);
+    webCamProvider = webCamProvider ?? new WebCamDataProvider(p, videoWidthPixels, videoHeightPixels);
+    
+    // Create video via VideoDataProvider - this is the ONE video element we use
     const fallbackVideoProvider = new VideoDataProvider(p, FALLBACK_VIDEO_URL, {
         loop: true,
         autoplay: true,
         muted: true,
         playsInline: true,
     });
+    
+    // Get the p5 video element from provider for panel display and face tracking
+    const fallbackVideo = (fallbackVideoProvider as any).video;
 
     let faceDataProvider = extraArgs?.faceDataProvider;
     faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(
         p,
-        180,
-        650,
-        false,
-        { x: 0, y: 0, z: 0 },
-        { x: 0, y: -100, z: 200 },
-        faceConfig,
+        headTrackingConfig,
         VIDEO_SOURCE_ORDER,
     );
 
@@ -127,15 +135,37 @@ export async function tutorial_observer(
         gp = new P5GraphicProcessor(p, loader);
     };
     const dataProviderLib: ObserverDataProviderLib = {
-        webCam: webCamProvider,
+        webCam: webCamProvider, // needed as parent dependency for headTracker
         video: fallbackVideoProvider,
         headTracker: faceDataProvider,
     };
     const world = new World<P5Bundler, any, any, ObserverDataProviderLib>(
         WorldSettings.fromLibs({clock, loader, dataProviderLib})
     );
+    world.setScreen({
+        id: 'screen',
+        type: PROJECTION_TYPES.SCREEN,
+        position: screenPosition,
+        direction: {x: 0, y: 0, z: 1},
+        lookMode: LOOK_MODES.ROTATION,
+        rotation: {yaw: 0, pitch: 0, roll: 0},
+    });
+    world.setEye({
+        id: 'eye',
+        type: PROJECTION_TYPES.EYE,
+        parentId: 'screen',
+        position: { x: 0, y: 0, z: 10 },
+        direction: { x: 0, y: 0, z: -1 },
+        lookMode: LOOK_MODES.ROTATION,
+        rotation: { yaw: 0, pitch: 0, roll: 0 },
+    })
+    // world.loadPreset(
+    //     CenterOrbit(p,{eyeScreenDistance: 2000, verticalBaseline:-10})
+    // );
+
     world.startLoading();
-    world.enableDefaultPerspective(config.width, config.height, Math.PI / 2);
+    // world.enableDefaultPerspective(config.width, config.height, Math.PI / 2);
+
 
     if (config.paused) {
         world.pause();
@@ -145,7 +175,7 @@ export async function tutorial_observer(
         type: ELEMENT_TYPES.BOX,
         id: 'camera-square',
         width: 50,
-        position:  { x:0, y:0, z: 300 },
+        position:  screenPosition,
         fillColor: { red: 255, green: 255, blue: 255 },
         strokeColor: { red: 0, green: 0, blue: 255 },
         strokeWidth: 1,
@@ -163,40 +193,29 @@ export async function tutorial_observer(
         strokeWidth: 1
     });
 
-    // world.setScreen({
-    //     id: STANDARD_PROJECTION_IDS.SCREEN,
-    //     type: PROJECTION_TYPES.SCREEN,
-    //     lookMode: LOOK_MODES.ROTATION,
-    //     modifiers: {
-    //         carModifiers: [],
-    //         stickModifiers: []
-    //     }
-    // });
-
     const boxSize = 15;
 
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'bigBox',
         width: 500,
-        position: { x:0, y:0, z: -10},
-        // rotate: {pitch: 0, roll: 0, yaw: Math.PI/4},
+        position: { x:0, y:0, z: 0 },  // screen position
     });
 
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'faceBox',
         parentId: 'bigBox',
-        width: 150,
-        height: 180,
-        depth: 100,
+        width: baselineHeadSceneUnits,
+        height: baselineHeadSceneUnits * 1.8,
+        depth: baselineHeadSceneUnits,
         position: (ctx) => {
             const face = ctx.dataProviders['headTracker'];
             if (!face) return { x: 0, y: 0, z: 0 };
             return {
-                x: face.midpoint.x,
-                y: face.midpoint.y,
-                z: face.midpoint.z
+                x: face.worldPosition.x,
+                y: face.worldPosition.y,
+                z: face.worldPosition.z
             };
         },
         rotate: (ctx) => {
@@ -208,7 +227,7 @@ export async function tutorial_observer(
                 roll:  face.stick.roll,
             };
         },
-        strokeWidth: 2,
+        strokeWidth: 10,
         strokeColor: {red:255, green: 0, blue: 0},
     });
 
@@ -332,8 +351,8 @@ export async function tutorial_observer(
         type: ELEMENT_TYPES.PYRAMID,
         id: 'nose',
         parentId: 'faceBox',
-        baseSize: 20,
-        height: 20,
+        baseSize: 50,
+        height: 50,
         position: { x: 0, y: 0, z: 50 },
         rotate: {roll: 0, pitch: - Math.PI / 2, yaw: 0,},
         strokeWidth: 4,
@@ -345,8 +364,8 @@ export async function tutorial_observer(
         type: ELEMENT_TYPES.SPHERE,
         id: 'left-eye',
         parentId: 'faceBox',
-        radius: 20,
-        position: { x: -25, y: -25, z: 25 },
+        radius: 40,
+        position: { x: -50, y: -50, z: 50 },
         alpha: 0.5,
         fillColor: { red: 255, green: 255, blue: 255 },
     });
@@ -355,8 +374,8 @@ export async function tutorial_observer(
         type: ELEMENT_TYPES.SPHERE,
         id: 'right-eye',
         parentId: 'faceBox',
-        radius: 20,
-        position: { x: 25, y: -25, z: 25 },
+        radius: 40,
+        position: { x: 50, y: -50, z: 50 },
         alpha: 0.5,
         fillColor: { red: 255, green: 255, blue: 255 },
     });
@@ -369,35 +388,63 @@ export async function tutorial_observer(
     let initialized = false;
     p.draw = async () => {
         if (!gp) return;
-        
+
         if (!initialized) {
+            // Set fallback video capture for face tracking when webcam is not available
+            if (typeof (faceDataProvider as any).setFallbackCapture === 'function') {
+                (faceDataProvider as any).setFallbackCapture(fallbackVideo);
+            }
+
             await faceDataProvider.init();
+            world.complete();
+
+            // Add video panel after world.complete()
+            // Always show fallback video in panel (webcam is used for face tracking)
+            const videoSelector = (ctx: ResolutionContext<ObserverDataProviderLib>) => {
+                // Use webcam if available and has a valid node
+                const webcamData = ctx.dataProviders.webCam;
+                if (webcamData?.node) {
+                    return webcamData.node;
+                }
+                // Fallback to video
+                return fallbackVideo;
+            };
+
             world.addPanel({
                 type: ELEMENT_TYPES.PANEL,
+                alpha: 0.5,
                 parentId: 'bigBox',
                 id: 'videoPanel',
-                width: 1920  * 2,
+                width: 1920,
+                height: 1080,
                 mirrorTextureHorizontal: true,
-                height: 1080 * 2,
-                position: { x: 0, y: -50, z: -500 * 2 },
-                video: (ctx: ResolutionContext<ObserverDataProviderLib>) => resolvePreferredSource(ctx.dataProviders, VIDEO_SOURCE_ORDER),
+                position: {
+                    x: panelPosition.x,
+                    y: panelPosition.y,
+                    z: panelPosition.z + panelScreenZDistance,
+                },
+                video: videoSelector,
                 fillColor:  COLORS.blue,
             });
 
-            world.complete();
             initialized = true;
             return;
         }
-        
+
+        // Simple pause/resume - let video play naturally
         if (config.paused && !world.isPaused()) {
             world.pause();
+            fallbackVideo.pause();
+            // Don't clear background - keep last frame visible
+            return;
         } else if (!config.paused && world.isPaused()) {
             world.resume();
+            fallbackVideo.loop();
         }
-        
+
+        // Let video play naturally - just render
         p.background(20);
         const result = await world.step(gp);
-        
         if (!result.running) return;
     };
 

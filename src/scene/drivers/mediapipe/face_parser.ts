@@ -1,9 +1,8 @@
-import {DEFAULT_HEAD_PROPORTIONS, Face, type FaceData, type HeadProportions} from "./face.ts";
-import type {Vector3} from "../../types.ts";
+import {DEFAULT_HEAD_PROPORTIONS, Face, type FaceData, type HeadProportions, type RawLandmark} from "./face.ts";
+import type {Vector3, VideoWidthRatio} from "../../types.ts";
+import {merge} from "../../utils/merge.ts";
 
-/**
- * Maps MediaPipe landmark indices to semantic face landmarks.
- */
+/** Maps MediaPipe landmark indices to semantic face landmarks. */
 export const INDEX = {
     NOSE: 1,
     EYE_LEFT: 33,
@@ -20,32 +19,27 @@ export const INDEX = {
     BOTTOM: 152
 };
 
-/**
- * Configuration for face parsing.
- */
+/** Configuration for face parsing. */
 export interface HeadParserConfig {
-    physicalHeadWidth: number;
+    /** multiplier - depth sensitivity (default: 1.0) */
     focalLength: number;
+    /** flip landmarks horizontally */
     mirror: boolean;
+    /** landmark positions ratios */
     headProportions: HeadProportions
 }
 
-interface RawLandmark {
-    readonly position: Readonly<Vector3>;
-    readonly visibility: number | null;
-    readonly isUsable: boolean;
+export const DEFAULT_HEAD_PARSER_CONFIG: HeadParserConfig = {
+    focalLength: 1,
+    mirror: false,
+    headProportions: DEFAULT_HEAD_PROPORTIONS,
 }
 
 export class FaceParser {
     private config: HeadParserConfig;
 
     constructor(config: Partial<HeadParserConfig> = {}) {
-        this.config = {
-            physicalHeadWidth: config.physicalHeadWidth ?? 150,
-            focalLength: config.focalLength ?? 1.0,
-            mirror: config.mirror ?? false,
-            headProportions: config.headProportions ?? DEFAULT_HEAD_PROPORTIONS,
-        };
+        this.config = merge(DEFAULT_HEAD_PARSER_CONFIG, config);
     }
 
     /**
@@ -53,14 +47,18 @@ export class FaceParser {
      * @param rawDataVector - array of landmarks from MediaPipe (indices 0-477)
      * @returns Face with semantic landmarks, raw `visibility` scores, and `isUsable` quality flags
      */
-    public parse(rawDataVector: Array<Partial<Vector3> & { visibility?: number | null }>): Face {
-        const missing: RawLandmark = {
-            position: { x: -1, y: -1, z: -1 },
+    public parse(rawDataVector: Array<Partial<Vector3<VideoWidthRatio>> & { visibility?: number | null }>): Face<VideoWidthRatio> {
+        const missing: RawLandmark<VideoWidthRatio> = {
+            position: {
+                x: -1 as VideoWidthRatio,
+                y: -1 as VideoWidthRatio,
+                z: -1 as VideoWidthRatio,
+            },
             visibility: null,
             isUsable: false,
         };
 
-        const createLandmark = (index: number): RawLandmark => {
+        const createLandmark = (index: number): RawLandmark<VideoWidthRatio> => {
             const landmark = rawDataVector[index];
             if (!landmark) {
                 return missing;
@@ -87,16 +85,16 @@ export class FaceParser {
 
             return {
                 position: {
-                    x,
-                    y: rawY,
-                    z: rawZ
+                    x: x as VideoWidthRatio,
+                    y: rawY as VideoWidthRatio,
+                    z: rawZ as VideoWidthRatio
                 },
                 visibility,
                 isUsable: hasXY,
             };
         };
 
-        const faceData: FaceData = {
+        const faceData: FaceData<VideoWidthRatio> = {
             nose: createLandmark(INDEX.NOSE),
             eyes: {
                 left: createLandmark(INDEX.EYE_LEFT),

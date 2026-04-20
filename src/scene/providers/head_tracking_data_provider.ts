@@ -1,6 +1,12 @@
 import p5 from "p5";
-import type {DataProviderBundle, DataProviderTickContext, FailableResult, TrackingStatus, Vector3, VideoSourceRef} from "../types.ts";
-import { MediaPipeFaceProvider, type FaceProviderConfig } from "../drivers/mediapipe/face_provider.ts";
+import type {
+    DataProviderBundle, DataProviderTickContext, FailableResult, TrackingStatus, Vector3,
+    VideoSourceRef, FaceTrackingConfig, VideoPixels, SceneUnits, VideoWidthRatio
+} from "../types.ts";
+import {FaceTrackingConfigBuilder} from "../types.ts";
+import {
+    MediaPipeFaceProvider,
+} from "../drivers/mediapipe/face_provider.ts";
 import type {FaceProvider} from "./face_provider.ts";
 import type {Face} from "../drivers/mediapipe/face.ts";
 import type { WebCamDataProvider } from "./web_cam_data_provider.ts";
@@ -8,8 +14,8 @@ import {
     SceneFace,
     SceneFaceBuilder,
     type FaceSceneConfig,
-    computeDepthScale,
 } from "./scene_face.ts";
+import {merge} from "../utils/merge.ts";
 
 /**
  * Data provider library type for head tracking.
@@ -20,8 +26,8 @@ export type HeadTrackerDataProviderLib = {
 };
 
 export type ObserverDataProviderLib = {
-    webCam: DataProviderBundle<"webCam", VideoSourceRef>,
-    video: DataProviderBundle<"video", VideoSourceRef>,
+    webCam?: DataProviderBundle<"webCam", VideoSourceRef>,
+    video?: DataProviderBundle<"video", VideoSourceRef>,
     headTracker: DataProviderBundle<"headTracker", FaceWorldData>,
 };
 
@@ -30,16 +36,31 @@ export type ObserverDataProviderLib = {
  * Provides access to facial features and rotation in scene units.
  */
 export class FaceWorldData {
-    readonly face: Face;
+    readonly face: Face<VideoWidthRatio>;
     readonly sceneFace: SceneFace;
-    readonly midpoint: Vector3
+
     public constructor(
-        face: Face,
+        face: Face<VideoWidthRatio>,
         sceneFace: SceneFace,
     ) {
         this.face = face;
         this.sceneFace = sceneFace;
-        this.midpoint = sceneFace.localPosition;
+    }
+
+    /**
+     * Position relative to baseline (the parallax origin).
+     * Use this for parallax calculations.
+     */
+    get localPosition(): Vector3<SceneUnits> {
+        return this.sceneFace.localPosition;
+    }
+
+    /**
+     * Absolute position in scene coordinates.
+     * Includes baseline offset + local position.
+     */
+    get worldPosition(): Vector3<SceneUnits> {
+        return this.sceneFace.worldPosition;
     }
 
     /**
@@ -47,7 +68,7 @@ export class FaceWorldData {
      * Applies coordinate flipping and scaling to sceneHeadWidth.
      */
     private transform = (vector: Vector3) => {
-        const sceneHeadWidth = this.sceneFace.headWidth;
+        const sceneHeadWidth = this.sceneFace.headWidthScene;
         const scaled = {
             x: vector.x * sceneHeadWidth,
             y: vector.y * sceneHeadWidth,
@@ -90,9 +111,7 @@ export class FaceWorldData {
         };
     }
 
-    /**
-     * Returns rotation angles.
-     */
+    /** Returns rotation angles. */
     public get stick() {
         return {
             yaw: this.face.yaw,
@@ -102,8 +121,19 @@ export class FaceWorldData {
     }
 }
 
-export const DEFAULT_CAMERA_POSITION: Vector3 = { x: 0, y: 0, z: 300 };
-export const DEFAULT_CAMERA_PANEL_POSITION: Vector3 = { x: 0, y: 0, z: 0 };
+export type HeadTrackingDataProviderConfig = FaceTrackingConfig;
+
+export const DEFAULT_HEAD_TRACKING_DATA_PROVIDER_CONFIG: HeadTrackingDataProviderConfig = new FaceTrackingConfigBuilder()
+    .videoWidthPixels(1920 as VideoPixels)
+    .videoHeightPixels(1080 as VideoPixels)
+    .baselineHeadPixels(640 as VideoPixels)
+    .baselineHeadSceneUnits(100 as SceneUnits)
+    .baseline({ x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits })
+    .cameraPosition({ x: 0 as SceneUnits, y: 0 as SceneUnits, z: 300 as SceneUnits })
+    .depthScale(4)
+    .mirror(false)
+    .throttleThreshold(1000)
+    .build();
 
 export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker", FaceWorldData> {
     readonly type = "headTracker";
@@ -113,61 +143,37 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     private provider: FaceProvider;
     private webCamProvider: WebCamDataProvider | null = null;
     private sourceProviders: DataProviderBundle<any, any>[] = [];
-    private readonly faceConfig: FaceProviderConfig;
-
-    /**
-     * Expected width of the head projected in the screen to the zero Z level.
-     * If they match, the head should have Z equals of the screen.
-     * If the projected head is bigger than the expected width, head Z is bigger (closer).
-     * If the projected head is smaller than the expected width, head Z is small (farther).
-     * @private
-     */
-    readonly sceneHeadWidth: number;
-
-    /**
-     * The screen width.
-     * The projected head is created based in a screen image (normally camera).
-     * To properly define the head position, we need to know the screen size.
-     * @private
-     */
-    readonly sceneScreenWidth: number;
-
-    /**
-     * Percentage of the screen width that the head in neutral position should match.
-     */
-    readonly sceneScreenHeadProportion: number;
+    private fallbackCapture: any = null;
 
     private sceneId: number = -1;
     private lastFace: FaceWorldData | null = null;
-    readonly cameraPosition: Vector3;
-    readonly panelPosition: Vector3;
+    private readonly config: HeadTrackingDataProviderConfig;
+
+    readonly cameraPosition: Vector3<SceneUnits>;
+    readonly panelPosition: Vector3<SceneUnits>;
 
     constructor(
         p: p5,
-        sceneHeadWidth: number = 120,
-        sceneScreenWidth: number = 650,
-        mirror: boolean = false,
-        panelPosition: Vector3 = DEFAULT_CAMERA_PANEL_POSITION,
-        cameraPosition: Vector3 = DEFAULT_CAMERA_POSITION,
-        faceConfig: FaceProviderConfig = {},
+        config: Partial<HeadTrackingDataProviderConfig> = {},
         sourceIds: readonly string[] = ["webCam"],
     ) {
-        if (sceneHeadWidth <= 0) {
+        this.config = merge(DEFAULT_HEAD_TRACKING_DATA_PROVIDER_CONFIG, config);
+
+        if (this.config.baselineHeadPixels <= 0) {
             throw new Error("Invalid scene head width");
         }
-        if (sceneScreenWidth <= 0) {
-            throw new Error("Invalid scene screen width");
-        }
-        this.sceneHeadWidth = sceneHeadWidth;
-        this.sceneScreenWidth = sceneScreenWidth;
-        this.sceneScreenHeadProportion = this.sceneHeadWidth / this.sceneScreenWidth;
-        this.faceConfig = faceConfig;
-
-        this.panelPosition  = panelPosition;
-        this.cameraPosition = cameraPosition;
         this.dependencies = sourceIds;
 
-        this.provider = new MediaPipeFaceProvider(p, "/parallax/wasm", "/parallax/models/face_landmarker.task", mirror, faceConfig, null);
+        this.cameraPosition = this.config.cameraPosition;
+        this.panelPosition = this.config.baseline;
+
+        this.provider = new MediaPipeFaceProvider(
+            p,
+            "/parallax/wasm",
+            "/parallax/models/face_landmarker.task",
+            this.config,
+            null
+        );
     }
 
     async init(): Promise<void> {
@@ -180,7 +186,9 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
 
         this.sourceProviders = [...(context?.dependencies ?? [])];
         this.webCamProvider = (context?.parent as WebCamDataProvider | null) ?? null;
+        
         const capture = this.resolveCapture();
+        
         if (this.provider instanceof MediaPipeFaceProvider) {
             this.provider.setCapture(capture);
         }
@@ -201,7 +209,11 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
             };
         }
         if (this.webCamProvider) {
-            return this.webCamProvider.getVideo();
+            const videoResult = this.webCamProvider.getVideo?.();
+            if (videoResult && typeof videoResult === 'object' && 'success' in videoResult) {
+                return videoResult as FailableResult<any>;
+            }
+            return { success: true, value: videoResult };
         }
         return {
             success: false,
@@ -230,21 +242,20 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
 
         const face = faceResult.value;
         const rotation = face.getRotation().rotation;
+        const faceWidthInPixels = face.width * this.config.videoWidthPixels as VideoPixels;
 
         const sceneFaceConfig: FaceSceneConfig = {
-            sceneScreenWidth: this.sceneScreenWidth,
-            baseline: this.panelPosition,
-            cameraPosition: this.cameraPosition,
-            depthScale: computeDepthScale(
-                this.faceConfig.physicalHeadWidth ?? 150,
-                this.faceConfig.focalLength ?? 1
-            ),
+            baseline: this.config.baseline,
+            cameraPosition: this.config.cameraPosition,
+            depthScale: this.config.depthScale,
+            sceneScreenWidth: this.config.sceneScreenWidth,
+            baselineHeadSceneUnits: this.config.baselineHeadSceneUnits,
         };
 
         const sceneFace = new SceneFaceBuilder()
             .config(sceneFaceConfig)
-            .actualWidth(face.width)
-            .baselineWidth(this.sceneHeadWidth)
+            .actualFacePixelWidth(faceWidthInPixels)
+            .baselineFacePixelWidth(this.config.baselineHeadPixels)
             .skullCenterNormalized(face.skullCenter.position)
             .rotation(rotation)
             .build();
@@ -258,18 +269,43 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
     }
 
     private resolveCapture(): any | null {
+        // Priority 1: Try webcam first if available and ready
+        if (this.webCamProvider) {
+            const webcamStatus = typeof this.webCamProvider.getStatus === "function"
+                ? this.webCamProvider.getStatus()
+                : "IDLE";
+            if (webcamStatus === "READY") {
+                const webcamData = this.webCamProvider.getData?.();
+                if (webcamData) {
+                    return webcamData.node;
+                }
+            }
+        }
+        
+        // Priority 2: Use fallback capture (raw p5 video) if webcam not available
+        if (this.fallbackCapture) {
+            return this.fallbackCapture;
+        }
+        
+        // Priority 3: Try sourceProviders (video provider)
         const providers = this.sourceProviders.length > 0
             ? this.sourceProviders
-            : (this.webCamProvider ? [this.webCamProvider] : []);
+            : [];
 
         for (const provider of providers) {
             const result = typeof provider.getDataResult === "function"
                 ? provider.getDataResult()
                 : { success: true as const, value: typeof provider.getData === "function" ? provider.getData() : null };
-            if (!result.success || !result.value) continue;
-            return result.value;
+            if (!result.success) continue;
+            const value = (result as any).value;
+            if (!value) continue;
+            return value;
         }
-
+        
         return null;
+    }
+
+    setFallbackCapture(capture: any): void {
+        this.fallbackCapture = capture;
     }
 }

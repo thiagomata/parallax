@@ -102,21 +102,25 @@ export class World<
         return this.stage.getCurrentState()
     }
 
+    /** Pauses the scene clock and animation. */
     public pause(): void {
         this._paused = true;
         this.sceneClock.pause();
     }
 
+    /** Resumes the scene clock and animation. */
     public resume(): void {
         this._paused = false;
         this.sceneClock.resume();
     }
 
+    /** Returns whether the scene is currently paused. */
     public isPaused(): boolean {
         return this._paused;
     }
 
-	    public setEye<T extends Partial<BlueprintProjection>>(
+    /** Sets the camera/eye projection for the scene. */
+    public setEye<T extends Partial<BlueprintProjection>>(
 	        blueprintEye: T & {
 	            id: typeof STANDARD_PROJECTION_IDS.EYE,
 	            type: typeof PROJECTION_TYPES.EYE,
@@ -154,15 +158,16 @@ export class World<
         throw new Error("invalid mode");
     }
 
-	    public setScreen<T extends Partial<BlueprintProjection>>(
-	        blueprintScreen: T & {
-	            id: typeof STANDARD_PROJECTION_IDS.SCREEN,
-	            type: typeof PROJECTION_TYPES.SCREEN,
-	            lookMode: LookMode,
-	        }
-	    ): void {
+    /** Sets the screen projection for the scene. */
+    public setScreen<T extends Partial<BlueprintProjection>>(
+        blueprintScreen: T & {
+            id: typeof STANDARD_PROJECTION_IDS.SCREEN;
+            type: typeof PROJECTION_TYPES.SCREEN;
+            lookMode: LookMode;
+        }
+    ): void {
         if (blueprintLookModeIs(blueprintScreen, LOOK_MODES.ROTATION)) {
-	            const rotateScreen: BlueprintProjectionRotation = {
+            const rotateScreen: BlueprintProjectionRotation = {
 	                ...DEFAULT_SCREEN_ROTATION,
 	                ...blueprintScreen,
 	                id: STANDARD_PROJECTION_IDS.SCREEN,
@@ -192,60 +197,70 @@ export class World<
         throw new Error("invalid mode");
     }
 
+    /** Adds a box element to the scene. */
     public addBox<TID extends string>(
         blueprint: BlueprintBox<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
+    /** Adds a sphere element to the scene. */
     public addSphere<TID extends string>(
         blueprint: BlueprintSphere<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
+    /** Adds a cone element to the scene. */
     public addCone<TID extends string>(
         blueprint: BlueprintCone<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
+    /** Adds a pyramid element to the scene. */
     public addPyramid<TID extends string>(
         blueprint: BlueprintPyramid<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
+    /** Adds an elliptical element to the scene. */
     public addElliptical<TID extends string>(
         blueprint: BlueprintElliptical<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
+    /** Adds a cylinder element to the scene. */
     public addCylinder<TID extends string>(
         blueprint: BlueprintCylinder<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
+    /** Adds a torus element to the scene. */
     public addTorus<TID extends string>(
         blueprint: BlueprintTorus<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
+    /** Adds a text element to the scene. */
     public addText<TID extends string>(
         blueprint: BlueprintText<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
+    /** Adds a floor element to the scene. */
     public addFloor<TID extends string>(
         blueprint: BlueprintFloor<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
         this.stage.addElement(blueprint);
     }
 
+    /** Adds a panel element to the scene. */
     public addPanel<TID extends string>(
         blueprint: BlueprintPanel<TDataProviderLib> & { id: ElementId<TID> }
     ): void {
@@ -273,17 +288,17 @@ export class World<
         this.stage.addModifierToProjection(projectionId, modifier, modifierType);
     }
 
+    /** Retrieves an element by its ID, or undefined if not found. */
     public getElement(id: string): BundleDynamicElement<any, TBundle> | undefined {
         return this.stage.getElement(id);
     }
 
+    /** Removes an element from the scene by its ID. */
     public removeElement(id: string): void {
         this.stage.removeElement(id);
     }
 
-    /**
-     * Get the current WindowConfig (for creating projections, etc.)
-     */
+    /** Get the current WindowConfig (for creating projections, etc.) */
     public getWindowConfig(): WindowConfig {
         return this.stage.getSettings().window;
     }

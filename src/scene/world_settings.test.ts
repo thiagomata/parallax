@@ -6,6 +6,7 @@ import {
     DEFAULT_SCENE_SETTINGS,
     type SceneSettings,
     type AssetLoader,
+    type Alpha,
 } from "./types";
 
 describe("WorldSettings", () => {
@@ -76,7 +77,7 @@ describe("WorldSettings", () => {
         it("should create instance with custom settings", () => {
             const customSettings: Partial<SceneSettings> = {
                 debug: true,
-                alpha: 0.5,
+                alpha: 0.5 as Alpha,
             };
 
             const worldSettings = WorldSettings.fromLibs({
@@ -157,7 +158,7 @@ describe("WorldSettings", () => {
         it("should create instance with custom settings", () => {
             const customSettings: Partial<SceneSettings> = {
                 startPaused: true,
-                alpha: 0.8,
+                alpha: 0.8 as Alpha,
             };
 
             const worldSettings = WorldSettings.fromStage({
@@ -172,7 +173,7 @@ describe("WorldSettings", () => {
 
         it("should merge custom settings with defaults", () => {
             const customSettings: Partial<SceneSettings> = {
-                alpha: 0.9,
+                alpha: 0.9 as Alpha,
             };
 
             const worldSettings = WorldSettings.fromStage({

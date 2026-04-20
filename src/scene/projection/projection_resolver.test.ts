@@ -11,6 +11,7 @@ import {
     type NudgeModifier,
     type ResolvedProjection,
     type DynamicSceneState,
+    type Alpha,
     DEFAULT_WINDOW_CONFIG,
     WindowConfig,
 } from "../types";
@@ -173,7 +174,7 @@ describe("ProjectionResolver", () => {
                     startTime: 0,
                 },
                 debug: false,
-                alpha: 1,
+                alpha: 1 as Alpha,
                 startPaused: false,
             },
             playback: {
@@ -453,7 +454,7 @@ describe("ProjectionResolver", () => {
                     startTime: 0,
                 },
                 debug: false,
-                alpha: 1,
+                alpha: 1 as Alpha,
                 startPaused: false,
             },
             playback: {

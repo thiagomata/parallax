@@ -1,15 +1,27 @@
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
-import type {FailableResult, TrackingStatus} from "../../types";
-import { FaceParser, type HeadParserConfig } from "./face_parser";
+import type {FailableResult, TrackingStatus, FaceTrackingConfig, VideoPixels, SceneUnits, Vector3, VideoWidthRatio} from "../../types";
+import {FaceTrackingConfigBuilder} from "../../types";
+import {FaceParser} from "./face_parser";
 import p5 from "p5";
 import type {Face} from "./face.ts";
 import type {FaceProvider} from "../../providers/face_provider.ts";
+import {merge} from "../../utils/merge.ts";
 
-export interface FaceProviderConfig extends Partial<HeadParserConfig> {
-    throttleThreshold?: number;
-    videoWidth?: number;
-    videoHeight?: number;
-}
+export type FaceProviderConfig = FaceTrackingConfig;
+
+export const DEFAULT_CAMERA_POSITION: Vector3<SceneUnits> = { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 300 as SceneUnits };
+export const DEFAULT_CAMERA_PANEL_POSITION: Vector3<SceneUnits> = { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits };
+
+export const DEFAULT_FACE_PROVIDER_CONFIG: FaceProviderConfig = new FaceTrackingConfigBuilder()
+    .videoWidthPixels(1920 as VideoPixels)
+    .videoHeightPixels(1080 as VideoPixels)
+    .baselineHeadPixels(640 as VideoPixels)
+    .baselineHeadSceneUnits(100 as SceneUnits)
+    .baseline(DEFAULT_CAMERA_PANEL_POSITION)
+    .cameraPosition(DEFAULT_CAMERA_POSITION)
+    .mirror(false)
+    .throttleThreshold(1000)
+    .build();
 
 export class MediaPipeFaceProvider implements FaceProvider {
     private landmarker: FaceLandmarker | null = null;
@@ -19,13 +31,11 @@ export class MediaPipeFaceProvider implements FaceProvider {
     private readonly p: p5;
     private readonly wasmPath: string;
     private readonly modelPath: string;
-    private readonly mirror: boolean;
-    
-    private lastFaceResult: Face | null = null;
+    private readonly config: FaceProviderConfig;
+
+    private lastFaceResult: Face<VideoWidthRatio> | null = null;
     private consecutiveNoFaceFrames = 0;
     private readonly throttleThreshold: number;
-    private readonly videoWidth: number;
-    private readonly videoHeight: number;
     private initPromise: Promise<void> | null = null;
     private initAttempt = 0;
 
@@ -38,29 +48,21 @@ export class MediaPipeFaceProvider implements FaceProvider {
         p: p5,
         wasmPath: string = "/parallax/wasm",
         modelPath: string = "/parallax/models/face_landmarker.task",
-        mirror: boolean = false,
-        config: FaceProviderConfig = {},
+        config: Partial<FaceProviderConfig> = {},
         capture: any | null | undefined = undefined
     ) {
         this.p = p;
+        this.config = merge(DEFAULT_FACE_PROVIDER_CONFIG, config);
         this.wasmPath = wasmPath;
         this.modelPath = modelPath;
-        this.mirror = mirror;
-        this.parser = new FaceParser({
-            physicalHeadWidth: config.physicalHeadWidth,
-            focalLength: config.focalLength,
-            mirror: config.mirror ?? this.mirror,
-            headProportions: config.headProportions,
-        });
+        this.parser = new FaceParser(this.config);
         
         this.throttleThreshold = config.throttleThreshold ?? 3;
-        this.videoWidth = config.videoWidth ?? 640;
-        this.videoHeight = config.videoHeight ?? 480;
 
         if (capture === undefined) {
             // Create video capture SYNCHRONOUSLY to trigger camera permission
             this.capture = this.p.createCapture(this.p.VIDEO);
-            this.capture.size(this.videoWidth, this.videoHeight);
+            this.capture.size(this.config.videoWidthPixels, this.config.videoHeightPixels);
             this.capture.hide();
             this.capture.elt.onloadedmetadata = () => {
                 this.capture.play();
@@ -108,7 +110,7 @@ export class MediaPipeFaceProvider implements FaceProvider {
      * Returns the cleaned FaceGeometry.
      * Synchronous and safe to call inside p5's draw loop.
      */
-    getFace(): FailableResult<Face> {
+    getFace(): FailableResult<Face<VideoWidthRatio>> {
         void this.ensureInit();
 
         if (this.status !== 'READY' || !this.landmarker) {
@@ -157,12 +159,15 @@ export class MediaPipeFaceProvider implements FaceProvider {
 
         if (result.faceLandmarks && result.faceLandmarks.length > 0) {
             this.consecutiveNoFaceFrames = 0;
-            this.lastFaceResult = this.parser.parse(result.faceLandmarks[0]);
+            const landmarks = result.faceLandmarks[0] as Array<Partial<Vector3<VideoWidthRatio>> & { visibility?: number | null }>;
+            this.lastFaceResult = this.parser.parse(landmarks);
             this.debug("face detected", {
                 faces: result.faceLandmarks.length,
                 landmarks: result.faceLandmarks[0].length,
             });
-            return { success: true, value: this.lastFaceResult };
+            if (this.lastFaceResult !== null && result.faceLandmarks.length > 0) {
+                return { success: true, value: this.lastFaceResult };
+            }
         }
 
         this.consecutiveNoFaceFrames++;
@@ -211,9 +216,9 @@ export class MediaPipeFaceProvider implements FaceProvider {
         this.debug("initializing", {
             wasmPath: this.wasmPath,
             modelPath: this.modelPath,
-            mirror: this.mirror,
-            videoWidth: this.videoWidth,
-            videoHeight: this.videoHeight,
+            mirror: this.config.mirror,
+            videoWidth: this.config.videoWidthPixels,
+            videoHeight: this.config.videoHeightPixels,
         });
 
         this.initPromise = (async () => {

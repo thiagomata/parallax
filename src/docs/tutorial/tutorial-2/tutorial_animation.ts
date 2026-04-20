@@ -1,5 +1,5 @@
 import p5 from 'p5';
-import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type ResolutionContext} from "../../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type ResolutionContext, type Uint8, type Alpha} from "../../../scene/types.ts";
 import {World} from "../../../scene/world.ts";
 import {P5GraphicProcessor} from "../../../scene/p5/p5_graphic_processor.ts";
 import {SceneClock} from "../../../scene/scene_clock.ts";
@@ -90,12 +90,12 @@ export async function tutorial_animation(p: p5, config: SketchConfig = DEFAULT_S
             }),
 
             fillColor: {
-                red: 255,
-                green: 100,
-                blue: (context: ResolutionContext) => {
-                    return 127 + 127 * Math.cos(Math.PI * 2 * context.playback.progress);
+                red: 255 as Uint8,
+                green: 100 as Uint8,
+                blue: (context: ResolutionContext): Uint8 => {
+                    return (127 + 127 * Math.cos(Math.PI * 2 * context.playback.progress)) as Uint8;
                 },
-                alpha: 1.0
+                alpha: 1.0 as Alpha
             },
             strokeWidth: 5,
             effects: [
@@ -106,10 +106,10 @@ export async function tutorial_animation(p: p5, config: SketchConfig = DEFAULT_S
                             return {
                                 ...element,
                                 strokeColor: {
-                                    red:   255 - (element.fillColor?.red   ?? 0),
-                                    green: 255 - (element.fillColor?.green ?? 0),
-                                    blue:  255 - (element.fillColor?.blue  ?? 0),
-                                    alpha: 1.0
+                                    red:   (255 - (element.fillColor?.red   ?? 0)) as Uint8,
+                                    green: (255 - (element.fillColor?.green ?? 0)) as Uint8,
+                                    blue:  (255 - (element.fillColor?.blue  ?? 0)) as Uint8,
+                                    alpha: 1.0 as Alpha
                                 }
                             }
                         }

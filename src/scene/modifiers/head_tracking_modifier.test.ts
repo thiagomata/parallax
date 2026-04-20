@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { HeadTrackingModifier, DEFAULT_HEAD_TRACKING_CONFIG } from "./head_tracking_modifier.ts";
-import type { ResolutionContext, DataProviderBundle } from "../types.ts";
+import type { ResolutionContext, DataProviderBundle, Alpha, FaceWidthRatio, SmoothingValue, DampingValue, SceneUnits } from "../types.ts";
 import type { FaceWorldData } from "../providers/head_tracking_data_provider.ts";
 import { SceneFace, DEFAULT_FACE_SCENE_CONFIG } from "../providers/scene_face.ts";
 
@@ -12,10 +12,10 @@ function createMockSceneFace(overrides: Partial<{
 }> = {}): SceneFace {
     return new SceneFace(
         DEFAULT_FACE_SCENE_CONFIG,
-        overrides.localPosition ?? { x: 0, y: 0, z: 0 },
+        overrides.localPosition ? { x: overrides.localPosition.x as SceneUnits, y: overrides.localPosition.y as SceneUnits, z: overrides.localPosition.z as SceneUnits } : { x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits },
         overrides.localRotation ?? { yaw: 0, pitch: 0, roll: 0 },
-        180,
-        1
+        180 as SceneUnits,
+        1 as FaceWidthRatio
     );
 }
 
@@ -28,7 +28,7 @@ function createMockContext(headData: FaceWorldData | null): ResolutionContext<Te
             pixelRatio: 1,
             playback: { speed: 1, loop: true, duration: 0 },
             debug: false,
-            alpha: 1,
+            alpha: 1 as Alpha,
             startPaused: false
         },
         projectionPool: {},
@@ -73,6 +73,7 @@ function createMockFaceWorldData(overrides: Partial<{
     return {
         face,
         sceneFace,
+        localPosition: sceneFace.localPosition,
         midpoint: sceneFace.localPosition,
         nose: overrides.nose ?? { x: 0, y: 0, z: 0 },
         eyes: overrides.eyes ?? { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
@@ -87,8 +88,8 @@ describe('HeadTrackingModifier', () => {
 
     // Helper to create modifier with no smoothing for testing raw values
     const createUnlimitedModifier = () => new HeadTrackingModifier({
-        smoothing: 1,
-        rotationSmoothing: 1,
+        smoothing: 1 as SmoothingValue,
+        rotationSmoothing: 1 as SmoothingValue,
         threshold: 0,
         rotationThreshold: 0,
     });
@@ -106,7 +107,7 @@ describe('HeadTrackingModifier', () => {
         });
 
         it('should accept custom config overrides', () => {
-            const mod = new HeadTrackingModifier({ damping: 0.8 });
+            const mod = new HeadTrackingModifier({ damping: 0.8 as DampingValue });
             expect(mod).toBeDefined();
         });
 

@@ -5,12 +5,12 @@ import type {
     FailableResult,
     ResolutionContext,
     Vector3,
+    SmoothingValue,
+    DampingValue,
 } from "../types.ts";
 import type { FaceWorldData, HeadTrackerDataProviderLib } from "../providers/head_tracking_data_provider.ts";
 
-/**
- * Optional limits for head tracking values
- */
+/** Optional limits for head tracking values */
 export interface HeadTrackingLimits {
     minX?: number;
     maxX?: number;
@@ -26,16 +26,30 @@ export interface HeadTrackingLimits {
     maxRoll?: number;
 }
 
-/**
- * Configuration for HeadTrackingModifier.
- */
+/** Optional limits for head tracking values */
+export interface HeadTrackingLimits {
+    minX?: number;
+    maxX?: number;
+    minY?: number;
+    maxY?: number;
+    minZ?: number;
+    maxZ?: number;
+    minPitch?: number;
+    maxPitch?: number;
+    minYaw?: number;
+    maxYaw?: number;
+    minRoll?: number;
+    maxRoll?: number;
+}
+
+/** Configuration for HeadTrackingModifier. */
 export interface HeadTrackingModifierConfig {
     /** Rotation intensity multiplier (0-1), higher values reduce head movement */
-    damping: number;
+    damping: DampingValue;
     /** Smoothing factor (0-1), lower = more smoothing */
-    smoothing: number;
+    smoothing: SmoothingValue;
     /** Smoothing factor for rotation (0-1), lower = more smoothing */
-    rotationSmoothing: number;
+    rotationSmoothing: SmoothingValue;
     /** Threshold for position - changes below this value are ignored */
     threshold: number;
     /** Threshold for rotation (in radians) - changes below this value are ignored */
@@ -49,9 +63,9 @@ export interface HeadTrackingModifierConfig {
 }
 
 export const DEFAULT_HEAD_TRACKING_CONFIG: HeadTrackingModifierConfig = {
-    damping: 1,
-    smoothing: 0.1,
-    rotationSmoothing: 0.1,
+    damping: 1 as DampingValue,
+    smoothing: 0.1 as SmoothingValue,
+    rotationSmoothing: 0.1 as SmoothingValue,
     threshold: 0.5,
     rotationThreshold: 0.01,
     offsetMode: false,
@@ -88,9 +102,9 @@ export class HeadTrackingModifier<TDataProviderLib extends DataProviderLib = Hea
         }
 
         const targetPosition = {
-            x: headData.midpoint.x,
-            y: headData.midpoint.y,
-            z: -headData.midpoint.z,
+            x: headData.localPosition.x,
+            y: headData.localPosition.y,
+            z: -headData.localPosition.z,
         };
 
         const targetRotation = {

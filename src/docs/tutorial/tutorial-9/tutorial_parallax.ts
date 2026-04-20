@@ -5,7 +5,7 @@ import { SceneClock } from "../../../scene/scene_clock.ts";
 import { HeadTrackingDataProvider } from "../../../scene/providers/head_tracking_data_provider.ts";
 import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type Vector3} from "../../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type Vector3, type DampingValue, type SceneUnits, type VideoPixels} from "../../../scene/types.ts";
 import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "../sketch_config.ts";
 import type { FaceConfig } from "../sketch_engine.types.ts";
 import { WorldSettings } from "../../../scene/world_settings.ts";
@@ -66,7 +66,15 @@ export async function tutorial_parallax(
     webCamProvider = webCamProvider ?? new WebCamDataProvider(p, 640, 480);
 
     let faceDataProvider = extraArgs?.faceDataProvider;
-    faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(p, 120, 650, false, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 300 }, faceConfig);
+    faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(p,
+        {
+            ...faceConfig,
+            baselineHeadPixels: 120 as VideoPixels,
+            baselineHeadSceneUnits: 180 as SceneUnits,
+            baseline: {x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits},
+            cameraPosition: {x: 0 as SceneUnits, y: 0 as SceneUnits, z: 300 as SceneUnits},
+        }
+    );
 
     const loader = new P5AssetLoader(p);
     const dataProviderLib: { webCam: WebCamDataProvider; headTracker: HeadTrackingDataProvider } = {
@@ -88,7 +96,7 @@ export async function tutorial_parallax(
 
     world.addModifierToProjection('head', new HeadTrackingModifier({
         disableRotation: false,
-        damping: 0.1,
+        damping: 0.1 as DampingValue,
     }), 'car');
 
     const floorY = 200;

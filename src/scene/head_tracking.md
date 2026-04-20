@@ -1,40 +1,42 @@
 # Head Tracking System
 
-This document describes the head tracking architecture in Parallax, including how data flows from the camera to the scene, and how to use the system.
+This document describes the head tracking architecture in Parallax, including how data flows from the camera to the
+scene, and how to use the system.
 
 ## Overview
 
-The head tracking system converts camera video into 3D head position and rotation data that drives the Parallax engine. It uses MediaPipe for face landmark detection and transforms the raw data into scene coordinates.
+The head tracking system converts camera video into 3D head position and rotation data that drives the Parallax engine.
+It uses MediaPipe for face landmark detection and transforms the raw data into scene coordinates.
 
 ```mermaid
 flowchart TB
     subgraph Input
         Video[Camera Video]
     end
-    
+
     subgraph Detection["Face Detection Layer"]
         Provider[MediaPipeFaceProvider]
         Parser[FaceParser]
         Face[Face Class]
     end
-    
+
     subgraph Provider["Data Provider Layer"]
         HTDP[HeadTrackingDataProvider]
         FWD[FaceWorldData]
     end
-    
+
     subgraph Engine["Engine Layer"]
         Stage[Stage]
         Context[ResolutionContext]
         Modifier[HeadTrackingModifier]
     end
-    
+
     subgraph Output["Outputs"]
         Stick[StickResult - rotation]
         Car[CarResult - position]
         Nudge[NudgeResult - movement]
     end
-    
+
     Video --> Provider
     Provider --> Parser
     Parser --> Face
@@ -54,52 +56,57 @@ flowchart TB
 
 **Purpose:** Convert raw video into semantic face data
 
-| Class | File | Responsibility |
-|-------|------|-----------------|
-| `MediaPipeFaceProvider` | `drivers/mediapipe/face_provider.ts` | Video capture, MediaPipe WASM loading, landmark detection |
-| `FaceParser` | `drivers/mediapipe/face_parser.ts` | Maps 478 MediaPipe landmarks to semantic landmarks (eyes, nose, ears, etc.) |
-| `Face` | `drivers/mediapipe/face.ts` | Pure computation: normalization, rotation extraction, feature access |
+| Class                   | File                                 | Responsibility                                                              |
+|-------------------------|--------------------------------------|-----------------------------------------------------------------------------|
+| `MediaPipeFaceProvider` | `drivers/mediapipe/face_provider.ts` | Video capture, MediaPipe WASM loading, landmark detection                   |
+| `FaceParser`            | `drivers/mediapipe/face_parser.ts`   | Maps 478 MediaPipe landmarks to semantic landmarks (eyes, nose, ears, etc.) |
+| `Face`                  | `drivers/mediapipe/face.ts`          | Pure computation: normalization, rotation extraction, feature access        |
 
 ### 2. Data Provider Layer
 
 **Purpose:** Transform face data into scene coordinates
 
-| Class | File | Responsibility |
-|-------|------|-----------------|
+| Class                      | File                                       | Responsibility                                                      |
+|----------------------------|--------------------------------------------|---------------------------------------------------------------------|
 | `HeadTrackingDataProvider` | `providers/head_tracking_data_provider.ts` | Converts Face to scene coordinates, computes Z-depth from head size |
-| `FaceWorldData` | `providers/head_tracking_data_provider.ts` | Container with transformed coordinates + rotation data |
+| `FaceWorldData`            | `providers/head_tracking_data_provider.ts` | Container with transformed coordinates + rotation data              |
 
 ### 3. Engine Layer
 
 **Purpose:** Integrate with Parallax engine via modifiers
 
-| Class | File | Responsibility |
-|-------|------|-----------------|
+| Class                  | File                                  | Responsibility                                               |
+|------------------------|---------------------------------------|--------------------------------------------------------------|
 | `HeadTrackingModifier` | `modifiers/head_tracking_modifier.ts` | Converts FaceWorldData to engine outputs (Stick, Car, Nudge) |
-| `Stage` | `stage.ts` | Manages data providers, builds ResolutionContext |
+| `Stage`                | `stage.ts`                            | Manages data providers, builds ResolutionContext             |
 
 ## Usage
 
 ### 1. Basic Setup with Stage
 
 ```typescript
-import { Stage } from './stage.ts';
-import { HeadTrackingDataProvider } from './providers/head_tracking_data_provider.ts';
-import type { HeadTrackerDataProviderLib } from './providers/head_tracking_data_provider.ts';
+import {Stage} from './stage.ts';
+import {HeadTrackingDataProvider} from './providers/head_tracking_data_provider.ts';
+import type {HeadTrackerDataProviderLib} from './providers/head_tracking_data_provider.ts';
 
 // Define your data provider library type
 type MySceneLib = HeadTrackerDataProviderLib;
 
 // Create and add the head tracking data provider
-const headTracker = new HeadTrackingDataProvider(p5, 120, 650);
+const headTracker = new HeadTrackingDataProvider(p5, {
+    baselineHeadPixels: 640,
+    baselineHeadSceneUnits: 100,
+    baseline: {x: 0, y: 0, z: 0},
+    cameraPosition: {x: 0, y: 0, z: 300}
+});
 
 // Create stage with typed (static) data providers
 const stage = new Stage<any, any, any, MySceneLib>(
-  settings,
-  loader,
-  {},
-  {},
-  { headTracker }
+    settings,
+    loader,
+    {},
+    {},
+    {headTracker}
 );
 
 // Initialize (loads MediaPipe)
@@ -109,7 +116,7 @@ await headTracker.init();
 ### 2. Using in Projections
 
 ```typescript
-import { HeadTrackingModifier } from './modifiers/head_tracking_modifier.ts';
+import {HeadTrackingModifier} from './modifiers/head_tracking_modifier.ts';
 
 const myProjection = {
     id: 'my-projection',
@@ -143,16 +150,16 @@ flowchart LR
         Width[Face Width in Frame]
         Expected[Expected Width]
     end
-    
+
     subgraph Calc
         Diff[Diff = Expected - Actual]
         Scale[Scale Factor]
     end
-    
+
     subgraph Output
         Z[Z Position in Scene]
     end
-    
+
     Width --> Diff
     Expected --> Diff
     Diff --> Scale
@@ -187,16 +194,16 @@ flowchart TB
     subgraph Raw["Raw MediaPipe (0-1)"]
         N[Nose: 0.5, 0.5]
     end
-    
+
     subgraph Face["Face Processing"]
         C[Center]
         Nz[Normalize]
     end
-    
+
     subgraph Scene["Scene Coordinates"]
         S[Nose: 0, 0, -Z]
     end
-    
+
     Raw --> C
     C --> Nz
     Nz --> S
@@ -210,13 +217,14 @@ Modifiers declare their data provider dependencies explicitly:
 // In HeadTrackingModifier
 export class HeadTrackingModifier<TDataProviderLib extends DataProviderLib = HeadTrackerDataProviderLib>
     implements StickModifier<TDataProviderLib>, CarModifier<TDataProviderLib>, NudgeModifier<TDataProviderLib> {
-    
+
     // This tells the system we need 'headTracker' in the data providers
     readonly requiredDataProviders: (keyof TDataProviderLib)[] = ['headTracker'];
 }
 ```
 
 This ensures:
+
 - **Compile-time safety** - TypeScript errors if `headTracker` isn't registered
 - **Explicit contracts** - Dependencies are visible in the type system
 - **No hidden coupling** - No constructor injection needed
@@ -228,19 +236,24 @@ This ensures:
 Output from `HeadTrackingDataProvider`:
 
 ```typescript
-interface FaceWorldData {
-    face: Face;                    // The raw Face object
-    sceneHeadWidth: number;        // Configured head width in scene units
-    midpoint: Vector3;             // Head position in scene coordinates
-    
-    // Transformed features (scene coordinates)
-    nose: Vector3;
-    eyes: { left: Vector3; right: Vector3; };
-    brows: { left: Vector3; right: Vector3; };
-    bounds: { left: Vector3; right: Vector3; top: Vector3; bottom: Vector3; };
-    
-    // Rotation (radians)
-    stick: { yaw: number; pitch: number; roll: number; };
+class FaceWorldData {
+    readonly face: Face<VideoWidthRatio>;    // Raw Face object with video coords
+    readonly sceneFace: SceneFace;            // Processed scene data
+
+    // Position helpers
+    get localPosition(): Vector3;             // Position relative to baseline
+    get worldPosition(): Vector3;             // Absolute position in scene
+
+    // Transformed features (scene coordinates) - all getters
+    get nose(): Vector3;
+
+    get eyes(): { left: Vector3; right: Vector3; };
+
+    get brows(): { left: Vector3; right: Vector3; };
+
+    get bounds(): { left: Vector3; right: Vector3; top: Vector3; bottom: Vector3; };
+
+    get stick(): { yaw: number; pitch: number; roll: number; };
 }
 ```
 
@@ -273,22 +286,40 @@ interface CarResult {
 
 ### HeadTrackingDataProvider
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `sceneHeadWidth` | 120 | Expected head width in scene units |
-| `sceneScreenWidth` | 650 | Screen/camera width in scene units |
-| `mirror` | false | Whether to mirror the video |
-| `panelPosition` | {x:0, y:0, z:0} | Panel position in scene |
-| `cameraPosition` | {x:0, y:0, z:300} | Camera position in scene |
+Configure via `FaceTrackingConfigBuilder`:
+
+| Parameter                | Default           | Description                         |
+|--------------------------|-------------------|-------------------------------------|
+| `videoWidthPixels`       | 1920              | Source video width in pixels        |
+| `videoHeightPixels`      | 1080              | Source video height in pixels       |
+| `baselineHeadPixels`     | 640               | Expected head width in video pixels |
+| `baselineHeadSceneUnits` | 100               | Head width in scene units           |
+| `baseline`               | {x:0, y:0, z:0}   | Panel/baseline position in scene    |
+| `cameraPosition`         | {x:0, y:0, z:300} | Camera position in scene            |
+| `depthScale`             | 1                 | Z-depth scaling factor              |
+| `mirror`                 | false             | Whether to mirror the video         |
+| `throttleThreshold`      | 1000              | Frame throttling threshold          |
+
+**Usage:**
+
+```typescript
+const headTracker = new HeadTrackingDataProvider(p5, {
+    baselineHeadPixels: 640,
+    baselineHeadSceneUnits: 120,
+    baseline: {x: 0, y: 0, z: 0},
+    cameraPosition: {x: 0, y: 0, z: 300},
+    mirror: false
+});
+```
 
 ### HeadTrackingModifier
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `travelRange` | 100 | X/Y position range in scene units |
-| `damping` | 0.5 | Rotation intensity multiplier (0-1) |
-| `lookDistance` | 1000 | Camera distance for stick |
-| `zTravelRange` | 500 | Z depth movement range |
+| Parameter      | Default | Description                         |
+|----------------|---------|-------------------------------------|
+| `travelRange`  | 100     | X/Y position range in scene units   |
+| `damping`      | 0.5     | Rotation intensity multiplier (0-1) |
+| `lookDistance` | 1000    | Camera distance for stick           |
+| `zTravelRange` | 500     | Z depth movement range              |
 
 ## Troubleshooting
 
@@ -305,13 +336,13 @@ Adjust the `damping` parameter - negative values can invert the direction.
 
 ### Face grows/shrinks unexpectedly
 
-This usually indicates the Z-depth calculation needs tuning. Adjust `sceneHeadWidth` to match your expected viewing distance.
+This usually indicates the Z-depth calculation needs tuning. Adjust `baselineHeadPixels` or `baselineHeadSceneUnits` to
+match your expected viewing distance.
 
 ## Files Reference
 
-
 | File                                                                                 | Purpose                    |
-| ------------------------------------------------------------------------------------ | -------------------------- |
+|--------------------------------------------------------------------------------------|----------------------------|
 | [drivers/mediapipe/face_provider.ts](drivers/mediapipe/face_provider.ts)             | Video capture & detection  |
 | [drivers/mediapipe/face_parser.ts](drivers/mediapipe/face_parser.ts)                 | Landmark mapping           |
 | [drivers/mediapipe/face.ts](drivers/mediapipe/face.ts)                               | Face computation           |

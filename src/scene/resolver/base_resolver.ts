@@ -64,9 +64,7 @@ export abstract class BaseResolver<
         return dynamic as D;
     }
 
-    /**
-     * Prepares the resolution groups for behaviors/effects.
-     */
+    /** Prepares the resolution groups for behaviors/effects. */
     protected abstract bundleBehaviors(instructions?: any[]): TResolutionGroup[];
 
     /**
@@ -118,9 +116,7 @@ export abstract class BaseResolver<
         return src as Unwrapped<T>;
     }
 
-    /**
-     * Compiles a value or function into a DynamicProperty.
-     */
+    /** Compiles a value or function into a DynamicProperty. */
     public compileProperty<V>(value: FlexibleSpec<V> | V): DynamicProperty<V, TResolved> {
         // Function -> Computed
         if (typeof value === 'function') {
@@ -152,9 +148,7 @@ export abstract class BaseResolver<
         return { kind: SPEC_KINDS.STATIC, value: value as V };
     }
 
-    /**
-     * Checks if an object contains only static primitives.
-     */
+    /** Checks if an object contains only static primitives. */
     protected isStaticData(val: any): boolean {
         if (typeof val === 'function') return false;
         if (this.isFailableResult(val)) return true;
@@ -165,9 +159,7 @@ export abstract class BaseResolver<
         return true;
     }
 
-    /**
-     * Internal Type Guard
-     */
+    /** Internal Type Guard */
     protected isDynamicProperty<T>(obj: unknown): obj is DynamicProperty<T> {
         return (
             typeof obj === 'object' &&

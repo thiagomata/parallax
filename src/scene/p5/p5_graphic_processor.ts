@@ -4,6 +4,7 @@ import {
     type AssetLoader, type ColorRGBA,
     type ElementAssets,
     type GraphicProcessor,
+    type Alpha,
     type ProjectionMatrix,
     type ProjectionTreeNode,
     type RenderTreeNode,
@@ -20,9 +21,12 @@ import {
     type ResolvedText,
     type ResolvedTorus,
     type ResolvedSceneState,
+    type Uint8,
     type Vector3,
     type Rotation3,
+    type Scalar,
     ELEMENT_TYPES,
+    multiplyByScalar,
 } from "../types.ts";
 import type {P5Bundler} from "./p5_asset_loader.ts";
 import p5 from "p5";
@@ -297,11 +301,20 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
     }
 
     private applyVisuals(props: ResolvedBaseVisual, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
-        const combinedAlpha = (props.alpha ?? 1) * state.settings.alpha;
+        const combinedAlpha = multiplyByScalar(
+            (props.alpha ?? (1 as Alpha)) as Alpha,
+            (state.settings.alpha as Scalar)
+        );
 
-        const videoNode = this.resolveVideoNode(props.video);
+        let videoSource = props.video;
+        // If video is a function, resolve it now
+        if (typeof videoSource === 'function') {
+            videoSource = videoSource(state as any);
+        }
+
+        const videoNode = this.resolveVideoNode(videoSource);
         const videoElt = videoNode?.elt ?? null;
-        const videoReady = !!videoElt && videoElt.readyState >= 2;
+        const videoReady = !!videoElt && videoElt.readyState >= 1 && videoElt.videoWidth > 0 && videoElt.videoHeight > 0;
 
         if (props.mirrorTextureHorizontal ?? false) {
             // Mirror video texture horizontally
@@ -341,7 +354,7 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         }
     }
 
-    private to8Bit = (val: number) => Math.round(val * 255);
+    private to8Bit = (val: Alpha): Uint8 => Math.round(val * 255) as Uint8;
 
 
     public drawHUDText(s: string, x: number, y: number): void {
@@ -360,16 +373,16 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         this.p.translate(pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
     }
 
-    private fill(color: ColorRGBA, alpha: number = 1): void {
-        const baseAlpha = color.alpha ?? 1;
-        const finalAlphaUnitInterval = alpha * baseAlpha;
+    private fill(color: ColorRGBA, alpha: Alpha = 1 as Alpha): void {
+        const baseAlpha = color.alpha ?? (1 as Alpha);
+        const finalAlphaUnitInterval = (baseAlpha * alpha) as Alpha;
         const finalAlphaUnsigned8Bits = this.to8Bit(finalAlphaUnitInterval);
         this.p.fill(color.red, color.green, color.blue, finalAlphaUnsigned8Bits);
     }
 
-    private stroke(color: ColorRGBA, weight: number = 1, globalAlpha: number = 1): void {
-        const baseAlpha = color.alpha ?? 1;
-        const finalAlphaUnitInterval = globalAlpha * baseAlpha;
+    private stroke(color: ColorRGBA, weight: number = 1, globalAlpha: Alpha = 1 as Alpha): void {
+        const baseAlpha = color.alpha ?? (1 as Alpha);
+        const finalAlphaUnitInterval = (globalAlpha * baseAlpha) as Alpha;
         const finalAlphaUnsigned8Bits = this.to8Bit(finalAlphaUnitInterval);
         this.p.strokeWeight(weight);
         this.p.stroke(color.red, color.green, color.blue, finalAlphaUnsigned8Bits);
@@ -481,9 +494,7 @@ export class P5GraphicProcessor implements GraphicProcessor<P5Bundler> {
         }
     }
 
-    /**
-     * Apply rotation (YXZ order: yaw, pitch, roll)
-     */
+    /** Apply rotation (YXZ order: yaw, pitch, roll) */
     private rotate(rotate: Rotation3 | undefined) {
         if (!rotate) return;
         

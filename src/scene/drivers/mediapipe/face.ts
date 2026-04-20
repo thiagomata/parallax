@@ -1,107 +1,111 @@
-import type {Rotation3, Vector3} from "../../types.ts";
+import type {FaceWidthRatio, RelativeRatio, Rotation3, Vector3} from "../../types.ts";
 import {wrapPi} from "../../utils/projection_utils.ts";
 
-interface RawLandmark {
-    readonly position: Readonly<Vector3>;
+export interface RawLandmark<T extends RelativeRatio<string>> {
+    /**
+     * The Position of the datapoint from the MediaPipe.
+     * It is [0..1] in the VideoWidthRatio
+     */
+    readonly position: Readonly<Vector3<T>>;
     /** Raw MediaPipe visibility score (0..1). Null when unknown/not provided. */
     readonly visibility: number | null;
     /** Internal quality gate: safe/reliable enough to use in geometry. */
     readonly isUsable: boolean;
 }
 
-export interface FaceData {
-    readonly nose: RawLandmark;
+export interface FaceData<T extends RelativeRatio<string>> {
+    readonly nose: RawLandmark<T>;
     readonly eyes: {
-        readonly left: RawLandmark;
-        readonly right: RawLandmark;
+        readonly left: RawLandmark<T>;
+        readonly right: RawLandmark<T>;
     };
     readonly brows: {
-        readonly left: RawLandmark;
-        readonly right: RawLandmark;
+        readonly left: RawLandmark<T>;
+        readonly right: RawLandmark<T>;
     }
     readonly mouth: {
-        readonly left: RawLandmark;
-        readonly right: RawLandmark;
+        readonly left: RawLandmark<T>;
+        readonly right: RawLandmark<T>;
     };
     readonly rig: {
-        readonly leftEar: RawLandmark;
-        readonly rightEar: RawLandmark;
-        readonly leftTemple: RawLandmark;
-        readonly rightTemple: RawLandmark;
+        readonly leftEar: RawLandmark<T>;
+        readonly rightEar: RawLandmark<T>;
+        readonly leftTemple: RawLandmark<T>;
+        readonly rightTemple: RawLandmark<T>;
     };
     readonly bounds: {
-        readonly middleTop: RawLandmark;
-        readonly middleBottom: RawLandmark;
+        readonly middleTop: RawLandmark<T>;
+        readonly middleBottom: RawLandmark<T>;
     };
 }
 
 export interface HeadProportions {
     width: {
-        ear_to_ear: number,
-        temple_to_temple: number,
-        eye_to_eye: number,
-        mouth_width: number,
+        ear_to_ear: FaceWidthRatio,
+        temple_to_temple: FaceWidthRatio,
+        eye_to_eye: FaceWidthRatio,
+        mouth_width: FaceWidthRatio,
     },
     depth: {
-        skull_center: number,
-        eye_plane: number,
-        nose_tip: number,
-        mouth_plane: number,
+        skull_center: FaceWidthRatio,
+        eye_plane: FaceWidthRatio,
+        nose_tip: FaceWidthRatio,
+        mouth_plane: FaceWidthRatio,
     },
     height: {
-        forehead_top: number,
-        eye_line: number,
-        nose_base: number,
-        mouth_line: number,
-        chin_tip: number,
+        forehead_top: FaceWidthRatio,
+        eye_line: FaceWidthRatio,
+        nose_base: FaceWidthRatio,
+        mouth_line: FaceWidthRatio,
+        chin_tip: FaceWidthRatio,
     },
     offset: {
-        ear_y: number
+        ear_y: FaceWidthRatio
     }
 }
 
 
 export const DEFAULT_HEAD_PROPORTIONS: HeadProportions = {
     width: {
-        ear_to_ear: 1.0,
-        temple_to_temple: 0.85,
-        eye_to_eye: 0.45,
-        mouth_width: 0.35
+        ear_to_ear: 1.0 as FaceWidthRatio,
+        temple_to_temple: 0.85 as FaceWidthRatio,
+        eye_to_eye: 0.45 as FaceWidthRatio,
+        mouth_width: 0.35 as FaceWidthRatio
     },
     depth: {
-        skull_center: 0.0,
-        eye_plane: -0.45,
-        nose_tip: -0.65,
-        mouth_plane: -0.50
+        skull_center: 0.0 as FaceWidthRatio,
+        eye_plane: -0.45 as FaceWidthRatio,
+        nose_tip: -0.65 as FaceWidthRatio,
+        mouth_plane: -0.50 as FaceWidthRatio
     },
     height: {
-        forehead_top: -0.6,  // UP is now negative
-        eye_line: -0.1,      // UP is now negative
-        nose_base: 0.2,      // DOWN is now positive
-        mouth_line: 0.4,     // DOWN is now positive
-        chin_tip: 0.7        // DOWN is now positive
+        forehead_top: -0.6 as FaceWidthRatio,  // UP is now negative
+        eye_line: -0.1 as FaceWidthRatio,      // UP is now negative
+        nose_base: 0.2 as FaceWidthRatio,      // DOWN is now positive
+        mouth_line: 0.4 as FaceWidthRatio,     // DOWN is now positive
+        chin_tip: 0.7 as FaceWidthRatio        // DOWN is now positive
     },
     offset: {
-        ear_y: -0.02,        // Slightly UP from center
+        ear_y: -0.02 as FaceWidthRatio,        // Slightly UP from center
     }
 } as const;
 
-export class Face {
+export class Face<T extends RelativeRatio<string>> {
 
-    readonly data: FaceData;
+    readonly data: FaceData<T>;
     readonly proportions: HeadProportions;
-    readonly skullCenter: RawLandmark;
+    readonly skullCenter: RawLandmark<T>;
     private normalized: boolean;
     private centered: boolean;
     private rotation?: {
         rotation: Rotation3;
-        face: Face;
+        face: Face<FaceWidthRatio>;
     };
-    private normalFace?: Face;
-    private centerFace?: Face;
+    private normalFace?: Face<FaceWidthRatio>;
+    private centerFace?: Face<T>;
     private faceWidth?: number;
 
-    public constructor(data: FaceData, proportions: HeadProportions = DEFAULT_HEAD_PROPORTIONS) {
+    public constructor(data: FaceData<T>, proportions: HeadProportions = DEFAULT_HEAD_PROPORTIONS) {
         this.data = data;
         this.proportions = proportions;
         this.skullCenter = this.getSkullCenter();
@@ -114,8 +118,8 @@ export class Face {
      * @param fn - transformation to apply to each landmark
      * @returns new Face with transformed landmarks
      */
-    private transform(fn: (lm: RawLandmark) => RawLandmark): Face {
-        const transformedData: FaceData = {
+    private transform(fn: (lm: RawLandmark<T>) => RawLandmark<T>): Face<T> {
+        const transformedData: FaceData<T> = {
             nose: fn(this.data.nose),
             eyes: {
                 left: fn(this.data.eyes.left),
@@ -148,14 +152,14 @@ export class Face {
      * @param offset - vector to subtract from all positions
      * @returns new Face with translated landmarks
      */
-    public translate(offset: Vector3): Face {
-        const translate = (lm: RawLandmark): RawLandmark => {
+    public translate(offset: Vector3): Face<T> {
+        const translate = (lm: RawLandmark<T>): RawLandmark<T> => {
             return {
                 ...lm,
                 position: {
-                    x: lm.position.x - offset.x,
-                    y: lm.position.y - offset.y,
-                    z: lm.position.z - offset.z
+                    x: (lm.position.x - offset.x) as T,
+                    y: (lm.position.y - offset.y) as T,
+                    z: (lm.position.z - offset.z) as T
                 }
             }
         };
@@ -168,7 +172,7 @@ export class Face {
      * @param useCache - whether to use cached centered face
      * @returns new Face centered at origin
      */
-    public center(useCache = true): Face {
+    public center(useCache = true): Face<T> {
         if (this.centered && useCache) {
             return this;
         }
@@ -203,7 +207,7 @@ export class Face {
      * and eye-to-eye lines. Uses anatomical proportions to estimate Z when ears unavailable.
      * @returns RawLandmark with position at center and visibility flag
      */
-    public getSkullCenter(): RawLandmark {
+    public getSkullCenter(): RawLandmark<T> {
         const props = this.proportions;
         const midpoints: Vector3[] = [];
 
@@ -229,7 +233,11 @@ export class Face {
         // If no stable midpoints or no height can be resolved, we can't find a valid skull center
         if (midpoints.length === 0 || !faceHeightExtraction.isUsable) {
             return {
-                position: {x: 0.5, y: 0.5, z: 0.5},
+                position: {
+                    x: 0.5 as T,
+                    y: 0.5 as T,
+                    z: 0.5 as T
+                },
                 visibility: null,
                 isUsable: false,
             };
@@ -259,7 +267,11 @@ export class Face {
         }
 
         return {
-            position: {x: centerX, y: centerY, z: centerZ},
+            position: {
+                x: centerX as T,
+                y: centerY as T,
+                z: centerZ as T
+            },
             visibility: null,
             isUsable: true,
         };
@@ -271,18 +283,18 @@ export class Face {
      * @param factor - multiplier for all coordinates
      * @returns new Face with scaled positions
      */
-    public scale(factor: number): Face {
+    public scale(factor: number): Face<T> {
         if (!Number.isFinite(factor)) {
             return this;
         }
         // Scale all positions (including skullCenter)
-        const scale = (lm: RawLandmark): RawLandmark => {
+        const scale = (lm: RawLandmark<T>): RawLandmark<T> => {
             return {
                 ...lm,
                 position: {
-                    x: lm.position.x * factor,
-                    y: lm.position.y * factor,
-                    z: lm.position.z * factor
+                    x: lm.position.x * factor as T,
+                    y: lm.position.y * factor as T,
+                    z: lm.position.z * factor as T
                 }
             }
         };
@@ -299,18 +311,18 @@ export class Face {
      * @param radians - rotation angle in radians
      * @returns new Face with X-axis rotation applied
      */
-    public rotateX(radians: number): Face {
+    public rotateX(radians: number): Face<T> {
         const cos = Math.cos(radians);
         const sin = Math.sin(radians);
 
-        const transform = (lm: RawLandmark): RawLandmark => {
+        const transform = (lm: RawLandmark<T>): RawLandmark<T> => {
             const { x, y, z } = lm.position;
             return {
                 ...lm,
                 position: {
                     x,
-                    y: y * cos - z * sin,
-                    z: y * sin + z * cos
+                    y: (y * cos - z * sin) as T,
+                    z: (y * sin + z * cos) as T
                 }
             };
         };
@@ -327,18 +339,18 @@ export class Face {
      * @param radians - rotation angle in radians
      * @returns new Face with Y-axis rotation applied
      */
-    public rotateY(radians: number): Face {
+    public rotateY(radians: number): Face<T> {
         const cos = Math.cos(radians);
         const sin = Math.sin(radians);
 
-        const transform = (lm: RawLandmark): RawLandmark => {
+        const transform = (lm: RawLandmark<T>): RawLandmark<T> => {
             const { x, y, z } = lm.position;
             return {
                 ...lm,
                 position: {
-                    x: x * cos + z * sin,
+                    x: ( x * cos + z * sin) as T,
                     y,
-                    z: -x * sin + z * cos
+                    z: (-x * sin + z * cos) as T,
                 }
             };
         };
@@ -355,17 +367,17 @@ export class Face {
      * @param radians - rotation angle in radians
      * @returns new Face with Z-axis rotation applied
      */
-    public rotateZ(radians: number): Face {
+    public rotateZ(radians: number): Face<T> {
         const cos = Math.cos(radians);
         const sin = Math.sin(radians);
 
-        const transform = (lm: RawLandmark): RawLandmark => {
+        const transform = (lm: RawLandmark<T>): RawLandmark<T> => {
             const { x, y, z } = lm.position;
             return {
                 ...lm,
                 position: {
-                    x: x * cos - y * sin,
-                    y: x * sin + y * cos,
+                    x: (x * cos - y * sin) as T,
+                    y: (x * sin + y * cos) as T,
                     z
                 }
             };
@@ -381,14 +393,14 @@ export class Face {
      * Normalizes face to canonical size (ear-to-ear = 1.0).
      * Scales face so measured width matches anatomical proportions.
      * @param useCache - whether to use cached normalized face
-     * @returns new Face normalized to canonical size
+     * @returns new Face normalized to canonical size (coordinates in FaceWidthRatio space where face width = 1.0)
      */
-    public normalize(useCache: boolean = true): Face {
+    public normalize(useCache: boolean = true): Face<FaceWidthRatio> {
         if (this.normalized && useCache) {
-            return this;
+            return this as unknown as Face<FaceWidthRatio>;
         }
         if (this.normalFace && useCache) {
-            return this.normalFace;
+            return this.normalFace as unknown as Face<FaceWidthRatio>;
         }
         const props = this.proportions;
 
@@ -397,7 +409,7 @@ export class Face {
         if (!Number.isFinite(measuredWidth) || measuredWidth <= 1e-12) {
             // If upstream data collapses landmarks (width ~ 0) avoid exploding scales.
             // Return a centered face so downstream computations stay stable.
-            return this.center(useCache);
+            return this.center(useCache) as unknown as Face<FaceWidthRatio>;
         }
 
         // Compute the scaling factor to reach canonical width
@@ -405,13 +417,13 @@ export class Face {
         const normalizedFace = this.scale(factor).center();
         normalizedFace.normalized = true;
         normalizedFace.centered = true;
-        this.normalFace = normalizedFace;
-        return normalizedFace;
+        this.normalFace = normalizedFace as unknown as Face<FaceWidthRatio>;
+        return normalizedFace as unknown as Face<FaceWidthRatio>;
     }
 
 
     /**
-     * Measures face width in normalized units.
+     * Measures face width in normalized units, where 1 is the full screen width.
      * Uses ear-to-ear if visible, otherwise computes from eye span.
      * @returns face width in normalized coordinates
      */
@@ -446,10 +458,10 @@ export class Face {
      */
     getRotation(): {
         rotation: Rotation3,
-        face: Face,
+        face: Face<FaceWidthRatio>,
     } {
         if (this.rotation) {
-            return this.rotation;
+            return this.rotation as { rotation: Rotation3, face: Face<FaceWidthRatio> };
         }
 
         let face = this.center().normalize();
@@ -471,7 +483,7 @@ export class Face {
                 yaw
             }
         }
-        return this.rotation;
+        return this.rotation as { rotation: Rotation3, face: Face<FaceWidthRatio> };
     }
 
     public get yaw(): number {
@@ -490,7 +502,7 @@ export class Face {
      * Returns the face after removing all the rotations.
      * All the elements in the face are in relative position of the face in neutral rotation.
      */
-    public get rebase(): Face {
+    public get rebase(): Face<FaceWidthRatio> {
         return this.getRotation().face;
     }
 

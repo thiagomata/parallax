@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { ResolutionContext, Vector3 } from '../types';
+import type { ResolutionContext, Vector3, Alpha } from '../types';
 import {CenterFocusModifier} from "./center_focus_modifier.ts";
 
 describe('CenterFocusModifier', () => {
@@ -25,7 +25,7 @@ describe('CenterFocusModifier', () => {
                 },
                 playback: { isLoop: true, timeSpeed: 1, startTime: 0 },
                 debug: false,
-                alpha: 1,
+                alpha: 1 as Alpha,
                 startPaused: false,
             },
             projectionPool: {},

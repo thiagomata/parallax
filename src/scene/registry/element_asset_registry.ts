@@ -47,9 +47,7 @@ export class ElementAssetRegistry<
         return this.elements.get(id);
     }
 
-    /**
-     * For the Frame Loop
-     */
+    /** For the Frame Loop */
     public all(): IterableIterator<BundleDynamicElement<any, TBundle>> {
         return this.elements.values();
     }

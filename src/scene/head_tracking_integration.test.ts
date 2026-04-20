@@ -14,6 +14,7 @@ const createMockFaceData = (): FaceWorldData => {
     return {
         face: {} as any,
         sceneHeadWidth: 120,
+        localPosition: { x: 50, y: -30, z: 100 },
         midpoint: { x: 50, y: -30, z: 100 },
         nose: { x: 0, y: 0, z: 0 },
         eyes: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },

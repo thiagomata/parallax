@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BaseResolver } from "./base_resolver.ts";
-import { SPEC_KINDS, WindowConfig, type ResolutionContext } from "../types.ts";
+import { SPEC_KINDS, WindowConfig, type ResolutionContext, type Alpha } from "../types.ts";
 
 type EffectGroup = {
     type: string;
@@ -35,7 +35,7 @@ const createContext = (): ResolutionContext => ({
         playback: { startTime: 0, timeSpeed: 1, isLoop: true },
         debug: false,
         startPaused: false,
-        alpha: 1,
+        alpha: 1 as Alpha,
     },
     projectionPool: {},
     elementPool: {},
