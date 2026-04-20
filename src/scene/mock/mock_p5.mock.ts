@@ -15,13 +15,13 @@ export function createMockCapture() {
 
 export function createMockVideo() {
     const listeners: Record<string, Function[]> = {};
-        const elt = {
-            readyState: 0,
-            currentTime: 0,
-            paused: false,
-            ended: false,
-        videoWidth: 1920,
-        videoHeight: 1080,
+    const elt = {
+        readyState: 0,
+        currentTime: 0,
+        paused: false,
+        ended: false,
+    videoWidth: 1920,
+    videoHeight: 1080,
         onloadedmetadata: null,
         onerror: null,
         playsInline: true,
@@ -55,9 +55,10 @@ export function createMockVideo() {
     };
 }
 
-export function createMockP5() {
+export function createMockP5(): any {
     const mockCapture = createMockCapture();
     const mockVideo = createMockVideo();
+    
     return {
         fill: vi.fn(),
         box: vi.fn(),
@@ -121,7 +122,7 @@ export function createMockP5() {
         NORMAL: 'normal',
         setup: vi.fn(),
         draw: vi.fn(),
-        createCapture: vi.fn().mockReturnValue(mockCapture),
+        
         createVideo: vi.fn().mockImplementation((url) => {
             mockVideo.src = Array.isArray(url) ? (url[0] ?? "") : (url ?? "");
             return mockVideo;

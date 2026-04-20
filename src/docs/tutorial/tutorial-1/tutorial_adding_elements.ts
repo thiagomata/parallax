@@ -4,7 +4,7 @@ import {P5GraphicProcessor} from "../../../scene/p5/p5_graphic_processor.ts";
 import {SceneClock} from "../../../scene/scene_clock.ts";
 import {P5AssetLoader, type P5Bundler} from "../../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type ResolutionContext} from "../../../scene/types.ts";
-import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "./../sketch_config.ts";
+import {DEFAULT_SKETCH_CONFIG, type SketchConfig, type P5SketchExtraArgs} from "./../sketch_engine.types.ts";
 import {WorldSettings} from "../../../scene/world_settings.ts";
 
 /**
@@ -41,7 +41,11 @@ export const adding_elements_explanation = `
 </div>
 `;
 
-export async function tutorial_adding_elements(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): Promise<World<P5Bundler, any, any>> {
+export async function tutorial_adding_elements(
+    p: p5, 
+    config: SketchConfig = DEFAULT_SKETCH_CONFIG,
+    extraArgs?: P5SketchExtraArgs
+): Promise<World<P5Bundler, any, any>> {
     let graphicProcessor: P5GraphicProcessor;
     let world: World<P5Bundler, any, any>;
 
@@ -56,7 +60,7 @@ export async function tutorial_adding_elements(p: p5, config: SketchConfig = DEF
     });
 
     const loader = new P5AssetLoader(p);
-    graphicProcessor = new P5GraphicProcessor(p, loader);
+    graphicProcessor = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
 
     world = new World<P5Bundler, any, any>(
         WorldSettings.fromLibs({clock, loader})

@@ -69,7 +69,8 @@ export async function tutorial_observer(
     extraArgs?: {
         faceConfig?: FaceConfig;
         faceDataProvider?: HeadTrackingDataProvider;
-        webCamProvider?: WebCamDataProvider
+        webCamProvider?: WebCamDataProvider;
+        graphicProcessor?: P5GraphicProcessor;
     },
 ): Promise<World<P5Bundler, any, any, ObserverDataProviderLib>> {
     const clock = config.clock ?? new SceneClock({
@@ -128,11 +129,13 @@ export async function tutorial_observer(
     );
 
     const loader = new P5AssetLoader(p);
-    let gp: P5GraphicProcessor;
+    let gp: P5GraphicProcessor = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
     
     p.setup = () => {
         p.createCanvas(config.width, config.height, p5.WEBGL);
-        gp = new P5GraphicProcessor(p, loader);
+        if (!extraArgs?.graphicProcessor) {
+            gp = new P5GraphicProcessor(p, loader);
+        }
     };
     const dataProviderLib: ObserverDataProviderLib = {
         webCam: webCamProvider, // needed as parent dependency for headTracker
@@ -387,7 +390,9 @@ export async function tutorial_observer(
 
     let initialized = false;
     p.draw = async () => {
-        if (!gp) return;
+        if (!gp) {
+            return;
+        }
 
         if (!initialized) {
             // Set fallback video capture for face tracking when webcam is not available
@@ -403,6 +408,7 @@ export async function tutorial_observer(
             const videoSelector = (ctx: ResolutionContext<ObserverDataProviderLib>) => {
                 // Use webcam if available and has a valid node
                 const webcamData = ctx.dataProviders.webCam;
+                
                 if (webcamData?.node) {
                     return webcamData.node;
                 }

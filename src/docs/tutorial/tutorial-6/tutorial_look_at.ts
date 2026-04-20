@@ -7,7 +7,7 @@ import {
     DEFAULT_SCENE_SETTINGS,
     ELEMENT_TYPES,
 } from "../../../scene/types.ts";
-import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "../sketch_config.ts";
+import { DEFAULT_SKETCH_CONFIG, type SketchConfig, type P5SketchExtraArgs } from "../sketch_engine.types.ts";
 import { WorldSettings } from "../../../scene/world_settings.ts";
 import { LookAtEffect } from "../../../scene/effects/look_at_effect.ts";
 import {COLORS} from "../../../scene/colors.ts";
@@ -45,7 +45,11 @@ export const look_at_explanation = `
 </div>
 `;
 
-export async function tutorial_look_at(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): Promise<World<P5Bundler, any, any>> {
+export async function tutorial_look_at(
+    p: p5, 
+    config: SketchConfig = DEFAULT_SKETCH_CONFIG,
+    extraArgs?: P5SketchExtraArgs
+): Promise<World<P5Bundler, any, any>> {
     let graphicProcessor: P5GraphicProcessor;
 
     const clock = config.clock ?? new SceneClock({
@@ -55,6 +59,7 @@ export async function tutorial_look_at(p: p5, config: SketchConfig = DEFAULT_SKE
     });
 
     const loader = new P5AssetLoader(p);
+    graphicProcessor = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
     
     const effects = {
         'look_at': LookAtEffect,
@@ -78,7 +83,9 @@ export async function tutorial_look_at(p: p5, config: SketchConfig = DEFAULT_SKE
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
-        graphicProcessor = new P5GraphicProcessor(p, loader);
+        if (!extraArgs?.graphicProcessor) {
+            graphicProcessor = new P5GraphicProcessor(p, loader);
+        }
 
         world.addSphere({
             type: ELEMENT_TYPES.SPHERE,

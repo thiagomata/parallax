@@ -6,7 +6,7 @@ import {OrbitModifier} from "../../../scene/modifiers/orbit_modifier.ts";
 import {CenterFocusModifier} from "../../../scene/modifiers/center_focus_modifier.ts";
 import {P5AssetLoader, type P5Bundler} from "../../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES} from "../../../scene/types.ts";
-import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "../sketch_config.ts";
+import {DEFAULT_SKETCH_CONFIG, type SketchConfig, type P5SketchExtraArgs} from "../sketch_engine.types.ts";
 import {WorldSettings} from "../../../scene/world_settings.ts";
 import {CenterOrbit} from "../../../scene/presets.ts";
 
@@ -48,7 +48,11 @@ export const camera_control_explanation = `
 </div>
 `;
 
-export async function tutorial_camera_control(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): Promise<World<P5Bundler, any, any>> {
+export async function tutorial_camera_control(
+    p: p5, 
+    config: SketchConfig = DEFAULT_SKETCH_CONFIG,
+    extraArgs?: P5SketchExtraArgs
+): Promise<World<P5Bundler, any, any>> {
     let graphicProcessor: P5GraphicProcessor;
 
     const clock = config.clock ?? new SceneClock({
@@ -57,6 +61,7 @@ export async function tutorial_camera_control(p: p5, config: SketchConfig = DEFA
         });
 
     const loader = new P5AssetLoader(p);
+    graphicProcessor = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
     const world = new World<P5Bundler, any, any>(
         WorldSettings.fromLibs({clock, loader})
     );
@@ -71,7 +76,9 @@ export async function tutorial_camera_control(p: p5, config: SketchConfig = DEFA
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
-        graphicProcessor = new P5GraphicProcessor(p, loader);
+        if (!extraArgs?.graphicProcessor) {
+            graphicProcessor = new P5GraphicProcessor(p, loader);
+        }
 
         for (let i = 0; i < 5; i++) {
             for (let j = 0; j < 5; j++) {
