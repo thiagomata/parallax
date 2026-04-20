@@ -32,13 +32,10 @@ export class MediaPipeFaceProvider implements FaceProvider {
     private readonly wasmPath: string;
     private readonly modelPath: string;
     private readonly config: FaceProviderConfig;
-    // private readonly mirror: boolean;
-    
+
     private lastFaceResult: Face<VideoWidthRatio> | null = null;
     private consecutiveNoFaceFrames = 0;
     private readonly throttleThreshold: number;
-    // private readonly videoWidth: number;
-    // private readonly videoHeight: number;
     private initPromise: Promise<void> | null = null;
     private initAttempt = 0;
 
@@ -168,7 +165,9 @@ export class MediaPipeFaceProvider implements FaceProvider {
                 faces: result.faceLandmarks.length,
                 landmarks: result.faceLandmarks[0].length,
             });
-            return { success: true, value: this.lastFaceResult };
+            if (this.lastFaceResult !== null && result.faceLandmarks.length > 0) {
+                return { success: true, value: this.lastFaceResult };
+            }
         }
 
         this.consecutiveNoFaceFrames++;

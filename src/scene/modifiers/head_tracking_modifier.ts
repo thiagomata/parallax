@@ -28,9 +28,23 @@ export interface HeadTrackingLimits {
     maxRoll?: number;
 }
 
-/**
- * Configuration for HeadTrackingModifier.
- */
+/** Optional limits for head tracking values */
+export interface HeadTrackingLimits {
+    minX?: number;
+    maxX?: number;
+    minY?: number;
+    maxY?: number;
+    minZ?: number;
+    maxZ?: number;
+    minPitch?: number;
+    maxPitch?: number;
+    minYaw?: number;
+    maxYaw?: number;
+    minRoll?: number;
+    maxRoll?: number;
+}
+
+/** Configuration for HeadTrackingModifier. */
 export interface HeadTrackingModifierConfig {
     /** Rotation intensity multiplier (0-1), higher values reduce head movement */
     damping: DampingValue;

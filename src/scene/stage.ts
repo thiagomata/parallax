@@ -79,18 +79,17 @@ export class Stage<
         this.projectionRegistry.register(DEFAULT_EYE_LOOK_AT);
     }
 
+    /** Returns the current scene settings. */
     public getSettings(): SceneSettings {
         return this.settings;
     }
 
+    /** Updates the window configuration. */
     public updateWindowConfig(config: WindowConfig): void {
         this.settings.window = config;
     }
 
-    /**
-     * Lazy builder - builds DynamicSceneState once and caches it.
-     * Invalidated when elements/projections are added/removed.
-     */
+    /** Lazy builder - builds DynamicSceneState once and caches it. */
     private getOrBuildDynamicState(): DynamicSceneState {
         if (this.cachedDynamicState) {
             return this.cachedDynamicState;
@@ -118,6 +117,7 @@ export class Stage<
         return this.cachedDynamicState;
     }
 
+    /** Adds an element blueprint to the scene. */
     public addElement(blueprint: { id: string } & Record<string, unknown>): void {
         if (this.elementRegistry.get(blueprint.id) !== undefined) {
             return; // Idempotent: ignore duplicate element add
@@ -130,22 +130,26 @@ export class Stage<
         this.distanceCache.clear();
     }
 
+    /** Removes an element by its ID. */
     public removeElement(id: string): void {
         this.elementRegistry.remove(id);
         this.cachedDynamicState = null;
         this.distanceCache.delete(id);
     }
 
+/** Removes a projection by its ID. */
     public removeProjection(id: string): void {
         this.projectionRegistry.delete(id);
         this.cachedDynamicState = null;
         this.distanceCache.clear();
     }
 
+    /** Retrieves an element by its ID. */
     public getElement(id: string): BundleDynamicElement<any, TGraphicBundle> | undefined {
         return this.elementRegistry.get(id);
     }
 
+    /** Adds a projection blueprint to the scene. */
     public addProjection(blueprint: BlueprintProjection): void {
         if (this.elementRegistry.get(blueprint.id) !== undefined) {
             throw new Error(`ID collision: Cannot add projection '${blueprint.id}' - an element with the same ID already exists.`);

@@ -2,9 +2,7 @@ import {DEFAULT_HEAD_PROPORTIONS, Face, type FaceData, type HeadProportions, typ
 import type {Vector3, VideoWidthRatio} from "../../types.ts";
 import {merge} from "../../utils/merge.ts";
 
-/**
- * Maps MediaPipe landmark indices to semantic face landmarks.
- */
+/** Maps MediaPipe landmark indices to semantic face landmarks. */
 export const INDEX = {
     NOSE: 1,
     EYE_LEFT: 33,
@@ -21,9 +19,7 @@ export const INDEX = {
     BOTTOM: 152
 };
 
-/**
- * Configuration for face parsing.
- */
+/** Configuration for face parsing. */
 export interface HeadParserConfig {
     /**
      * multiplier - depth sensitivity (default: 1.0)

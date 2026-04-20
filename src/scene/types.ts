@@ -15,14 +15,10 @@ export interface Vector3<T = number> {
     readonly z: T;
 }
 
-/**
- * A 3D vector in scene units.
- */
+/** A 3D vector in scene units. */
 export type Vector3Scene = Vector3<SceneUnits>;
 
-/**
- * A 3D vector in video pixels.
- */
+/** A 3D vector in video pixels. */
 export type Vector3Video = Vector3<VideoPixels>;
 
 /**
@@ -37,39 +33,40 @@ export interface Rotation3 {
     roll: number;
 }
 
-/**
- * A number with a unit marker for compile-time type safety.
- */
+/** A number with a unit marker for compile-time type safety. */
 export type Unit<T extends string> = number & { __unit: T };
 
-/**
- * A pure scalar (unit-less number) for operations that require no unit.
- */
+/** A pure scalar (unit-less number) for operations that require no unit. */
 export type Scalar = number & ({} extends { __unit: string } ? { __unit?: never } : never);
 
-/**
- * Unit-aware math functions for type-safe operations.
- */
+/** Unit-aware math functions for type-safe operations. */
+
+/** Scales a unit by a scalar value. */
 export function scale<UnitType extends string, T extends Unit<UnitType>>(unit: T, scalar: Scalar): T {
     return (unit * scalar) as T;
 }
 
+/** Divides a unit by a scalar value. */
 export function divide<UnitType extends string, T extends Unit<UnitType>>(unit: T, scalar: Scalar): T {
     return (unit / scalar) as T;
 }
 
+/** Adds two units of the same type. */
 export function add<UnitType extends string, T extends Unit<UnitType>>(a: T, b: T): T {
     return (a + b) as T;
 }
 
+/** Subtracts two units of the same type. */
 export function sub<UnitType extends string, T extends Unit<UnitType>>(a: T, b: T): T {
     return (a - b) as T;
 }
 
+/** Multiplies a unit by a scalar (alias for scale). */
 export function multiplyByScalar<UnitType extends string, T extends Unit<UnitType>>(unit: T, scalar: Scalar): T {
     return (unit * scalar) as T;
 }
 
+/** Divides two units, returning a Scalar. */
 export function divideUnits<UnitType extends string, T extends Unit<UnitType>>(a: T, b: T): Scalar {
     return (a / b) as Scalar;
 }
@@ -79,29 +76,16 @@ export function divideUnits<UnitType extends string, T extends Unit<UnitType>>(a
  * These types wrap the generic Unit<T> with specific unit names.
  */
 
-/**
- * Scene units - the primary dimensional unit in the 3D scene coordinate system.
- * Used for positions, sizes, and distances within the scene.
- */
+/** Scene units - the primary dimensional unit in the 3D scene coordinate system. */
 export type SceneUnits = Unit<'scene'>;
 
-/**
- * VideoPixels - pixel dimensions from the video stream (e.g., videoWidth, videoHeight).
- * Used for video dimensions and pixel-related measurements from the capture source.
- */
+/** VideoPixels - pixel dimensions from the video stream (e.g., videoWidth, videoHeight). */
 export type VideoPixels = Unit<'videoPixels'>;
 
-/**
- * Milliseconds - time duration in milliseconds.
- * Used for animation durations, timeouts, and timing-related values.
- */
+/** Milliseconds - time duration in milliseconds. */
 export type Milliseconds = Unit<'ms'>;
 
-/**
- * RelativeRatio - a relative value divided by a reference.
- * Use specific types (FaceWidthRatio, SceneWidthRatio, VideoWidthRatio) for type safety.
- * Value represents a proportion of the reference (e.g., 0.5 = 50% of reference).
- */
+/** RelativeRatio - a relative value divided by a reference. */
 export type RelativeRatio<R extends string> = Unit<`RelativeRatio/${R}`>;
 
 /**
@@ -117,27 +101,16 @@ export type VideoWidthRatio = RelativeRatio<'video_width'>;
  */
 export type Aspect = Unit<'aspect'>;
 
-/**
- * Scale - scale factor for transformations.
- * Used for scaling operations, zoom levels, and size multipliers.
- */
+/** Scale - scale factor for transformations. */
 export type Scale = Unit<'scale'>;
 
-/**
- * Normalized - a value in the range [0, 1] with a specific reference.
- * Use the specific types (Alpha, Progress, etc.) for type safety.
- */
+/** Normalized - a value in the range [0, 1] with a specific reference. */
 export type Normalized<R extends string> = Unit<`Normalized/${R}`>;
 
-/**
- * Percent - a percentage value in the range [0, 100] with a specific reference.
- * Use the specific types (ScreenPercent, CanvasPercent, etc.) for type safety.
- */
+/** Percent - a percentage value in the range [0, 100] with a specific reference. */
 export type Percent<R extends string> = Unit<`Percent/${R}`>;
 
-/**
- * Specific Normalized types (0-1 range)
- */
+/** Specific Normalized types (0-1 range) */
 export type Alpha = Normalized<'alpha'>;
 export type Progress = Normalized<'progress'>;
 export type SmoothingValue = Normalized<'smoothing'>;
@@ -295,6 +268,7 @@ export interface BaseProjection {
     readonly parentId?: string;
 }
 
+/** Type guard to check if a projection is of a specific type. */
 export function projectionIsType<T extends ProjectionType>(
     resolvedProjection: ResolvedProjection,
     type: T
@@ -348,12 +322,16 @@ export interface BlueprintProjectionRotation extends BaseBlueprintProjection {
 }
 
 export type BlueprintProjection = BlueprintProjectionLookAt | BlueprintProjectionRotation;
+
+/** Type guard to check if a blueprint projection is of a specific type. */
 export function blueprintIsType<T extends ProjectionType>(
     blueprintProjection: Partial<BlueprintProjection>,
     type: T
 ): blueprintProjection is Partial<BlueprintProjection> & { type: T } {
     return blueprintProjection.type === type;
 }
+
+/** Type guard to check if a blueprint projection uses a specific look mode. */
 export function blueprintLookModeIs<T extends LookMode>(
     blueprintProjection: Partial<BlueprintProjection>,
     lookMode: T
@@ -689,6 +667,7 @@ export interface ResolutionContext<TDataProviderLib extends DataProviderLib = Da
     };
 }
 
+/** Creates a new resolution context from a resolved scene state. */
 export function createResolution<TDataProviderLib extends DataProviderLib = DataProviderLib>(state: ResolvedSceneState):  ResolutionContext<TDataProviderLib> {
     return {
         elementPool: {},
