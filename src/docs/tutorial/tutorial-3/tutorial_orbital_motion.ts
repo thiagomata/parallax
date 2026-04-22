@@ -7,7 +7,7 @@ import {
     DEFAULT_SCENE_SETTINGS,
     ELEMENT_TYPES, type ResolutionContext, type Vector3, type Rotation3,
 } from "../../../scene/types.ts";
-import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "../sketch_config.ts";
+import {DEFAULT_SKETCH_CONFIG, type SketchConfig, type P5SketchExtraArgs} from "../sketch_engine.types.ts";
 import {WorldSettings} from "../../../scene/world_settings.ts";
 
 /**
@@ -43,7 +43,11 @@ export const orbital_motion_explanation = `
 </div>
 `;
 
-export async function tutorial_orbital_motion(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG): Promise<World<P5Bundler, any, any>> {
+export async function tutorial_orbital_motion(
+    p: p5, 
+    config: SketchConfig = DEFAULT_SKETCH_CONFIG,
+    extraArgs?: P5SketchExtraArgs
+): Promise<World<P5Bundler, any, any>> {
     let graphicProcessor: P5GraphicProcessor;
 
     const clock = config.clock ?? new SceneClock({
@@ -57,6 +61,7 @@ export async function tutorial_orbital_motion(p: p5, config: SketchConfig = DEFA
     });
 
     const loader = new P5AssetLoader(p);
+    graphicProcessor = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
     const world = new World<P5Bundler, any, any>(
         WorldSettings.fromLibs({clock, loader})
     );
@@ -91,7 +96,9 @@ export async function tutorial_orbital_motion(p: p5, config: SketchConfig = DEFA
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
-        graphicProcessor = new P5GraphicProcessor(p, loader);
+        if (!extraArgs?.graphicProcessor) {
+            graphicProcessor = new P5GraphicProcessor(p, loader);
+        }
     };
 
     world.complete();

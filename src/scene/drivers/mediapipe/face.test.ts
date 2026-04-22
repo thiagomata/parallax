@@ -211,7 +211,6 @@ describe('Face - yaw', () => {
         }
         
         const avgError = totalError / (2 * slices + 1);
-        // console.log("Yaw detection avg error:", avgError.toFixed(4));
         expect(avgError).toBeLessThan(0.2);
     });
 });
@@ -238,7 +237,6 @@ describe('Face - pitch', () => {
             const rotated = face.rotateX(angle);
             const pitch = rotated.pitch;
             const match = 100 * (1 + pitch)/(1 + angle);
-            // console.log("pitch input =",angle,", output =",pitch, match,"%");
             expect(match).toBeCloseTo(100, 5);
         }
     });
@@ -268,7 +266,6 @@ describe('Face - roll', () => {
             const rotated = face.rotateZ(angle);
             const roll = rotated.roll;
             const match = 100 * (1 + roll)/(1 + angle);
-            // console.log("roll input =",angle,", output =",roll, ".", match,"%");
             totalError += Math.abs(match - 100);
             // expect(match).toBeCloseTo(100, 5);
         }

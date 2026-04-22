@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
-import { DEFAULT_HEAD_PROPORTIONS, type FaceData, type HeadProportions } from "../drivers/mediapipe/face";
+import { DEFAULT_HEAD_PROPORTIONS, type FaceData, type HeadProportions, Face } from "../drivers/mediapipe/face";
 import { SceneFace, DEFAULT_FACE_SCENE_CONFIG } from "../providers/scene_face";
-import type { FaceWorldData } from "../providers/head_tracking_data_provider";
+import { FaceWorldData } from "../providers/head_tracking_data_provider";
 import type { FaceWidthRatio, RelativeRatio, SceneUnits, VideoWidthRatio } from "../types";
 
 export function createCanonicalHead<T extends RelativeRatio<string> = VideoWidthRatio>(H: HeadProportions = DEFAULT_HEAD_PROPORTIONS): FaceData<T> {
@@ -98,6 +98,24 @@ export function createMockSceneFace(overrides: {
     );
 }
 
+export class MockFaceWorldData extends FaceWorldData {
+    constructor(sceneFace: SceneFace = createMockSceneFace()) {
+        const mockFaceData = createCanonicalHead();
+        const mockFaceDataRebased = {
+            nose: mockFaceData.nose.position,
+            leftEye: mockFaceData.eyes.left.position,
+            rightEye: mockFaceData.eyes.right.position,
+        };
+        const mockFace = {
+            rebase: mockFaceDataRebased,
+            get nose() { return this.rebase.nose; },
+            get leftEye() { return this.rebase.leftEye; },
+            get rightEye() { return this.rebase.rightEye; },
+        };
+        super(mockFace as unknown as Face<VideoWidthRatio>, sceneFace);
+    }
+}
+
 export function createMockFaceWorldData(overrides: {
     sceneFace?: SceneFace;
     nose?: { x: number; y: number; z: number };
@@ -107,30 +125,7 @@ export function createMockFaceWorldData(overrides: {
     stick?: { yaw: number; pitch: number; roll: number };
 } = {}): FaceWorldData {
     const sceneFace = overrides.sceneFace ?? createMockSceneFace();
-    const mockFace = {
-        rebase: {
-            nose: { x: 0, y: 0, z: 0 },
-            leftEye: { x: 0, y: 0, z: 0 },
-            rightEye: { x: 0, y: 0, z: 0 },
-            leftBrow: { x: 0, y: 0, z: 0 },
-            rightBrow: { x: 0, y: 0, z: 0 },
-            leftEar: { x: 0, y: 0, z: 0 },
-            rightEar: { x: 0, y: 0, z: 0 },
-            middleTop: { x: 0, y: 0, z: 0 },
-            middleBottom: { x: 0, y: 0, z: 0 },
-        }
-    };
-
-    return {
-        face: mockFace as any,
-        sceneFace,
-        midpoint: sceneFace.localPosition,
-        nose: overrides.nose ?? { x: 0, y: 0, z: 0 },
-        eyes: overrides.eyes ?? { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
-        brows: overrides.brows ?? { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
-        bounds: overrides.bounds ?? { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 }, top: { x: 0, y: 0, z: 0 }, bottom: { x: 0, y: 0, z: 0 } },
-        stick: overrides.stick ?? { yaw: 0, pitch: 0, roll: 0 },
-    } as unknown as FaceWorldData;
+    return new MockFaceWorldData(sceneFace);
 }
 
 export function createMockHeadTrackingProvider(getDataMock: ReturnType<typeof vi.fn>) {
@@ -153,7 +148,7 @@ export function createMockHeadTrackingProvider(getDataMock: ReturnType<typeof vi
         type: 'headTracker' as const,
         provider: mockFaceProvider,
         getData: getDataMock,
-        getDataResult: () => ({ success: true as const, value: (getDataMock as any)() }),
+        getDataResult: () => ({ success: true as const, value: null as unknown }) as { success: boolean; value: unknown },
         getVideo: () => ({ success: true, value: mockVideoElement }),
         init: async () => {
             await mockFaceProvider.init();

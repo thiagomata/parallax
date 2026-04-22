@@ -1,5 +1,6 @@
 import type { EffectLib, ProjectionEffectLib, DataProviderLib } from "../../scene/types.ts";
 import type { P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
+import type { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
 import type { World } from "../../scene/world.ts";
 import type p5 from 'p5';
 import type { SketchConfig } from "./sketch_config.ts";
@@ -19,6 +20,7 @@ export interface FaceConfig {
 
 export interface P5SketchExtraArgs {
     faceConfig?: FaceConfig;
+    graphicProcessor?: P5GraphicProcessor;
 }
 
 export type P5Sketch = (

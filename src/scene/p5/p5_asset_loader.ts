@@ -12,6 +12,7 @@ import {
 export interface P5Bundler extends GraphicsBundle {
     readonly texture: p5.Image;
     readonly font: p5.Font;
+    readonly video: p5.MediaElement<HTMLVideoElement>;
 }
 
 export class P5AssetLoader implements AssetLoader<P5Bundler> {

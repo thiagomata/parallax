@@ -15,13 +15,13 @@ export function createMockCapture() {
 
 export function createMockVideo() {
     const listeners: Record<string, Function[]> = {};
-        const elt = {
-            readyState: 0,
-            currentTime: 0,
-            paused: false,
-            ended: false,
-        videoWidth: 1920,
-        videoHeight: 1080,
+    const elt = {
+        readyState: 0,
+        currentTime: 0,
+        paused: false,
+        ended: false,
+    videoWidth: 1920,
+    videoHeight: 1080,
         onloadedmetadata: null,
         onerror: null,
         playsInline: true,
@@ -42,6 +42,9 @@ export function createMockVideo() {
         elt,
         src: "",
         loop: vi.fn(),
+        pause: vi.fn(() => {
+            elt.paused = true;
+        }),
         autoplay: vi.fn(),
         volume: vi.fn(),
         hide: vi.fn(),
@@ -52,10 +55,13 @@ export function createMockVideo() {
     };
 }
 
-export function createMockP5() {
+export function createMockP5(): any {
     const mockCapture = createMockCapture();
     const mockVideo = createMockVideo();
+
     return {
+        VIDEO: 'video',
+        createCapture: vi.fn().mockReturnValue(mockCapture),
         fill: vi.fn(),
         box: vi.fn(),
         sphere: vi.fn(),
@@ -73,6 +79,8 @@ export function createMockP5() {
         ),
         createCanvas: vi.fn(),
         background: vi.fn(),
+        blendMode: vi.fn(),
+        BLEND: "BLEND",
         camera: vi.fn(),
         dist: vi.fn(
             (v1x, v1y, v1z, v2x, v2y, v2z) => {
@@ -93,7 +101,9 @@ export function createMockP5() {
         strokeWidth: vi.fn(),
         noStroke: vi.fn(),
         stroke: vi.fn(),
-        map: vi.fn(),
+        map: vi.fn((value, start1, stop1, start2, stop2) => {
+            return start2 + ((value - start1) * (stop2 - start2)) / (stop1 - start1);
+        }),
         noTint: vi.fn(),
         noFill: vi.fn(),
         line: vi.fn(),
@@ -118,14 +128,14 @@ export function createMockP5() {
         NORMAL: 'normal',
         setup: vi.fn(),
         draw: vi.fn(),
-        createCapture: vi.fn().mockReturnValue(mockCapture),
+        
         createVideo: vi.fn().mockImplementation((url) => {
             mockVideo.src = Array.isArray(url) ? (url[0] ?? "") : (url ?? "");
             return mockVideo;
         }),
         _mockCapture: mockCapture,
         _mockVideo: mockVideo,
-        lerp: vi.fn(),
+        lerp: vi.fn((start, stop, amt) => start + (stop - start) * amt),
         frustum: vi.fn(),
         loop: vi.fn(),
         noLoop: vi.fn(),

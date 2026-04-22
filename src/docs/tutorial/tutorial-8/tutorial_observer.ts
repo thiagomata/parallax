@@ -11,6 +11,7 @@ import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provid
 import type { VideoPixels } from "../../../scene/types.ts";
 import { VideoDataProvider } from "../../../scene/providers/video_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
+import type { VideoSource } from "../../../scene/video/types.ts";
 import {
     DEFAULT_SCENE_SETTINGS,
     ELEMENT_TYPES, LOOK_MODES, PROJECTION_TYPES,
@@ -63,13 +64,28 @@ export const observer_explanation = `
 `;
 
 
+export function createVideoSelector(
+    fallbackVideo: p5.MediaElement<HTMLVideoElement>
+): (ctx: ResolutionContext<ObserverDataProviderLib>) => VideoSource {
+    return (ctx) => {
+        const webcamData = ctx.dataProviders.webCam;
+        
+        if (webcamData?.node) {
+            return { kind: 'webCam', data: { node: webcamData.node } };
+        }
+        return { kind: 'video', data: { node: fallbackVideo } };
+    };
+}
+
+
 export async function tutorial_observer(
     p: p5,
     config: SketchConfig = DEFAULT_SKETCH_CONFIG,
     extraArgs?: {
         faceConfig?: FaceConfig;
         faceDataProvider?: HeadTrackingDataProvider;
-        webCamProvider?: WebCamDataProvider
+        webCamProvider?: WebCamDataProvider;
+        graphicProcessor?: P5GraphicProcessor;
     },
 ): Promise<World<P5Bundler, any, any, ObserverDataProviderLib>> {
     const clock = config.clock ?? new SceneClock({
@@ -128,11 +144,13 @@ export async function tutorial_observer(
     );
 
     const loader = new P5AssetLoader(p);
-    let gp: P5GraphicProcessor;
+    let gp: P5GraphicProcessor = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
     
     p.setup = () => {
         p.createCanvas(config.width, config.height, p5.WEBGL);
-        gp = new P5GraphicProcessor(p, loader);
+        if (!extraArgs?.graphicProcessor) {
+            gp = new P5GraphicProcessor(p, loader);
+        }
     };
     const dataProviderLib: ObserverDataProviderLib = {
         webCam: webCamProvider, // needed as parent dependency for headTracker
@@ -387,7 +405,9 @@ export async function tutorial_observer(
 
     let initialized = false;
     p.draw = async () => {
-        if (!gp) return;
+        if (!gp) {
+            return;
+        }
 
         if (!initialized) {
             // Set fallback video capture for face tracking when webcam is not available
@@ -400,15 +420,7 @@ export async function tutorial_observer(
 
             // Add video panel after world.complete()
             // Always show fallback video in panel (webcam is used for face tracking)
-            const videoSelector = (ctx: ResolutionContext<ObserverDataProviderLib>) => {
-                // Use webcam if available and has a valid node
-                const webcamData = ctx.dataProviders.webCam;
-                if (webcamData?.node) {
-                    return webcamData.node;
-                }
-                // Fallback to video
-                return fallbackVideo;
-            };
+            const videoSelector = createVideoSelector(fallbackVideo);
 
             world.addPanel({
                 type: ELEMENT_TYPES.PANEL,
@@ -442,7 +454,7 @@ export async function tutorial_observer(
             fallbackVideo.loop();
         }
 
-        // Let video play naturally - just render
+// Let video play naturally - just render
         p.background(20);
         const result = await world.step(gp);
         if (!result.running) return;

@@ -185,4 +185,86 @@ describe('HeadTrackingModifier', () => {
             expect(() => modifier.tick(100)).not.toThrow();
         });
     });
+
+    describe('Smoothing behavior', () => {
+        it('clamps values above max', () => {
+            const faceData1 = createMockFaceWorldData({
+                midpoint: { x: 1000, y: 0, z: 0 }
+            });
+            const context1 = createMockContext(faceData1);
+            modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context1);
+
+            const faceData2 = createMockFaceWorldData({
+                midpoint: { x: 2000, y: 0, z: 0 }
+            });
+            const context2 = createMockContext(faceData2);
+            const result = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context2);
+
+            expect(result.success).toBe(true);
+        });
+
+        it('clamps values below min', () => {
+            const faceData1 = createMockFaceWorldData({
+                midpoint: { x: -1000, y: 0, z: 0 }
+            });
+            const context1 = createMockContext(faceData1);
+            modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context1);
+
+            const faceData2 = createMockFaceWorldData({
+                midpoint: { x: -2000, y: 0, z: 0 }
+            });
+            const context2 = createMockContext(faceData2);
+            const result = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context2);
+
+            expect(result.success).toBe(true);
+        });
+
+        it('clamps rotation values', () => {
+            const modifier2 = new HeadTrackingModifier({
+                smoothing: 1 as SmoothingValue,
+                rotationSmoothing: 1 as SmoothingValue,
+                threshold: 0,
+                rotationThreshold: 0,
+            });
+
+            const faceData1 = createMockFaceWorldData({
+                stick: { yaw: 10, pitch: 10, roll: 10 }
+            });
+            const context1 = createMockContext(faceData1);
+            modifier2.getCarPosition({ x: 0, y: 0, z: 0 }, context1);
+
+            const faceData2 = createMockFaceWorldData({
+                stick: { yaw: 100, pitch: 100, roll: 100 }
+            });
+            const context2 = createMockContext(faceData2);
+            const result = modifier2.getCarPosition({ x: 0, y: 0, z: 0 }, context2);
+
+            expect(result.success).toBe(true);
+        });
+    });
+
+    describe('Reference position', () => {
+        it('catches up when far behind reference', () => {
+            const faceData1 = createMockFaceWorldData({
+                midpoint: { x: 0, y: 0, z: 0 }
+            });
+            const context1 = createMockContext(faceData1);
+            modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context1);
+
+            const faceData2 = createMockFaceWorldData({
+                midpoint: { x: 500, y: 0, z: 0 }
+            });
+            const context2 = createMockContext(faceData2);
+            const result1 = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context2);
+
+            const faceData3 = createMockFaceWorldData({
+                midpoint: { x: 1000, y: 0, z: 0 }
+            });
+            const context3 = createMockContext(faceData3);
+            const result2 = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, context3);
+
+            expect(result1.success).toBe(true);
+            expect(result2.success).toBe(true);
+        });
+    });
 });

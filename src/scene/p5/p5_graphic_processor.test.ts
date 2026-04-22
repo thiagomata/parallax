@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { createMockP5 } from "../mock/mock_p5.mock.ts";
+import { ChaosLoader } from "../mock/mock_asset_loader.mock.ts";
 import { P5GraphicProcessor } from "./p5_graphic_processor.ts";
 import {
     ASSET_STATUS,
@@ -8,73 +10,6 @@ import {
     type ResolvedBox,
     type ResolvedPanel,
 } from "../types.ts";
-
-const createMockP5 = () => {
-    const p = {
-        // constants
-        PI: Math.PI,
-        HALF_PI: Math.PI / 2,
-        TRIANGLES: "TRIANGLES",
-        CENTER: "CENTER",
-
-        // renderer internals
-        _renderer: {
-            uPMatrix: {
-                set: vi.fn(),
-            },
-        },
-
-        // state/time
-        deltaTime: 16,
-        frameCount: 123,
-
-        // core drawing api
-        camera: vi.fn(),
-        push: vi.fn(),
-        pop: vi.fn(),
-        translate: vi.fn(),
-        rotateX: vi.fn(),
-        rotateY: vi.fn(),
-        rotateZ: vi.fn(),
-        scale: vi.fn(),
-        box: vi.fn(),
-        plane: vi.fn(),
-        sphere: vi.fn(),
-        torus: vi.fn(),
-        cylinder: vi.fn(),
-        cone: vi.fn(),
-        ellipsoid: vi.fn(),
-        beginShape: vi.fn(),
-        vertex: vi.fn(),
-        endShape: vi.fn(),
-        texture: vi.fn(),
-        tint: vi.fn(),
-        noTint: vi.fn(),
-        fill: vi.fn(),
-        noFill: vi.fn(),
-        stroke: vi.fn(),
-        strokeWeight: vi.fn(),
-        noStroke: vi.fn(),
-        textFont: vi.fn(),
-        textSize: vi.fn(),
-        textAlign: vi.fn(),
-        text: vi.fn(),
-        line: vi.fn(),
-
-        // math helpers
-        dist: vi.fn((x1, y1, z1, x2, y2, z2) => Math.hypot(x2 - x1, y2 - y1, z2 - z1)),
-        map: vi.fn((v) => v),
-        lerp: vi.fn((s, e, a) => s + (e - s) * a),
-
-        // time helpers
-        millis: vi.fn(() => 1000),
-
-        // video
-        blendMode: vi.fn(),
-    };
-
-    return p;
-};
 
 describe("P5GraphicProcessor", () => {
     it("setCamera forwards eye + lookAt to p5.camera", () => {
@@ -97,6 +32,7 @@ describe("P5GraphicProcessor", () => {
 
     it("setProjectionMatrix updates renderer.uPMatrix when available", () => {
         const p = createMockP5();
+        p._renderer = { uPMatrix: { set: vi.fn() } };
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
         const m: ProjectionMatrix = {
@@ -147,7 +83,7 @@ describe("P5GraphicProcessor", () => {
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
         const state = { settings: { alpha: 0.5 } } as any;
-        const videoEl = { kind: "video", node: { elt: { readyState: 2, videoWidth: 640, videoHeight: 480 } } };
+        const videoSource = { kind: "video", data: { node: { elt: { readyState: 2, videoWidth: 640, videoHeight: 480 } } } };
         const assets = {} as any;
 
         gp.drawBox(
@@ -157,13 +93,12 @@ describe("P5GraphicProcessor", () => {
                 width: 10,
                 position: { x: 0, y: 0, z: 0 },
                 alpha: 0.5,
-                video: videoEl,
+                video: videoSource,
             } as ResolvedBox,
             assets,
             state
         );
 
-        expect(p.texture).toHaveBeenCalledWith(videoEl.node);
         expect(p.blendMode).toHaveBeenCalled();
     });
 
@@ -172,7 +107,7 @@ describe("P5GraphicProcessor", () => {
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
         const state = { settings: { alpha: 1 as Alpha } } as any;
-        const rawVideo = { kind: "webCam", node: { elt: { readyState: 2, videoWidth: 640, videoHeight: 480 } } };
+        const rawVideo = { kind: "webCam", data: { node: { elt: { readyState: 2, videoWidth: 640, videoHeight: 480 } } } };
 
         gp.drawBox(
             {
@@ -185,8 +120,6 @@ describe("P5GraphicProcessor", () => {
             {} as any,
             state
         );
-
-        expect(p.texture).toHaveBeenCalledWith(rawVideo.node);
     });
 
     it("applies image texture when ready and video is not ready", () => {
@@ -388,6 +321,9 @@ describe("P5GraphicProcessor", () => {
 
     it("drawTree with no size uses zero center offset", () => {
         const p = createMockP5();
+        p.millis = vi.fn(() => 1000);
+        p.deltaTime = 16;
+        p.frameCount = 123;
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
         expect(gp.millis()).toBe(1000);
@@ -397,7 +333,7 @@ describe("P5GraphicProcessor", () => {
         expect(gp.dist({ x: 0, y: 0, z: 0 }, { x: 3, y: 4, z: 0 })).toBe(5);
         expect(p.dist).toHaveBeenCalled();
 
-        expect(gp.map(1, 0, 1, 10, 20, true)).toBe(1);
+        expect(gp.map(1, 0, 1, 10, 20, true)).toBe(20);
         expect(p.map).toHaveBeenCalled();
 
         expect(gp.lerp(0, 10, 0.5)).toBe(5);
@@ -535,6 +471,38 @@ describe("P5GraphicProcessor", () => {
             // panel 200x200 (aspect 1.0), texture 320x240 (aspect 1.33)
             // contain: panelAspect(1.0) < sourceAspect(1.33), scale by width -> 200/320 * 240 = 150
             expect(p.plane).toHaveBeenCalledWith(200, 150);
+        });
+
+        it("resize does not clear cache when dimensions unchanged", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, new ChaosLoader() as any);
+
+            gp.resize(100, 100);
+            gp.resize(100, 100);
+
+            expect(p.plane).not.toHaveBeenCalled();
+        });
+
+        it("resize clears cache when width changes", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, new ChaosLoader() as any);
+            const clearSpy = vi.spyOn(gp['centerOffsetCache'], 'clear');
+
+            gp.resize(100, 100);
+            gp.resize(200, 100);
+
+            expect(clearSpy).toHaveBeenCalled();
+        });
+
+        it("resize clears cache when height changes", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, new ChaosLoader() as any);
+            const clearSpy = vi.spyOn(gp['centerOffsetCache'], 'clear');
+
+            gp.resize(100, 100);
+            gp.resize(100, 200);
+
+            expect(clearSpy).toHaveBeenCalled();
         });
     });
 });

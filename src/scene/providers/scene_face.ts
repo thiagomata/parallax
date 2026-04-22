@@ -131,8 +131,6 @@ export class SceneFaceBuilder {
         const skullOffsetX = -(this._skullCenterNormalized.x - 0.5) * config.sceneScreenWidth;
         const skullOffsetY = (this._skullCenterNormalized.y - 0.5) * config.sceneScreenWidth;
 
-        debugger;
-
         const localPosition: Vector3<SceneUnits> = {
             x: (localX + skullOffsetX) as SceneUnits,
             y: (localY + skullOffsetY) as SceneUnits,
