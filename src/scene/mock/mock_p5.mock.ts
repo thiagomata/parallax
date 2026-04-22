@@ -79,6 +79,8 @@ export function createMockP5(): any {
         ),
         createCanvas: vi.fn(),
         background: vi.fn(),
+        blendMode: vi.fn(),
+        BLEND: "BLEND",
         camera: vi.fn(),
         dist: vi.fn(
             (v1x, v1y, v1z, v2x, v2y, v2z) => {
@@ -99,7 +101,9 @@ export function createMockP5(): any {
         strokeWidth: vi.fn(),
         noStroke: vi.fn(),
         stroke: vi.fn(),
-        map: vi.fn(),
+        map: vi.fn((value, start1, stop1, start2, stop2) => {
+            return start2 + ((value - start1) * (stop2 - start2)) / (stop1 - start1);
+        }),
         noTint: vi.fn(),
         noFill: vi.fn(),
         line: vi.fn(),
@@ -131,7 +135,7 @@ export function createMockP5(): any {
         }),
         _mockCapture: mockCapture,
         _mockVideo: mockVideo,
-        lerp: vi.fn(),
+        lerp: vi.fn((start, stop, amt) => start + (stop - start) * amt),
         frustum: vi.fn(),
         loop: vi.fn(),
         noLoop: vi.fn(),

@@ -309,4 +309,78 @@ describe("HeadTrackingDataProvider", () => {
             expect(tracker.getStatus()).toBe("READY");
         });
     });
+
+    describe("getVideo", () => {
+        it("returns fallback video when webCamProvider exists but returns null", () => {
+            const mockProvider = MockFaceProvider(mockFace, "READY");
+            const mockWebCam = {
+                getVideo: vi.fn().mockReturnValue({ success: true, value: null }),
+            };
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(mockP5 as any, createConfig());
+            (tracker as any).provider = mockProvider;
+            (tracker as any).webCamProvider = mockWebCam;
+
+            const result = tracker.getVideo();
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(result.value).toBeNull();
+            }
+        });
+
+        it("returns error when both capture and webCamProvider are null", () => {
+            const mockProvider = MockFaceProvider(mockFace, "READY");
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(mockP5 as any, createConfig());
+            (tracker as any).provider = mockProvider;
+            (tracker as any).webCamProvider = null;
+
+            const result = tracker.getVideo();
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error).toBe("webCam parent provider not wired yet");
+            }
+        });
+    });
+
+    describe("resolveCapture with sourceProviders", () => {
+        it("returns capture from sourceProviders", () => {
+            const mockProvider = MockFaceProvider(mockFace, "READY");
+            const mockSourceProvider = {
+                getDataResult: vi.fn().mockReturnValue({ success: true, value: { mock: 'video' } }),
+            };
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(mockP5 as any, createConfig());
+            (tracker as any).provider = mockProvider;
+            (tracker as any).sourceProviders = [mockSourceProvider];
+
+            const capture = (tracker as any).resolveCapture();
+            expect(capture).toEqual({ mock: 'video' });
+        });
+
+        it("returns null when sourceProviders return failure", () => {
+            const mockProvider = MockFaceProvider(mockFace, "READY");
+            const mockSourceProvider = {
+                getDataResult: vi.fn().mockReturnValue({ success: false, error: 'No video' }),
+            };
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(mockP5 as any, createConfig());
+            (tracker as any).provider = mockProvider;
+            (tracker as any).sourceProviders = [mockSourceProvider];
+
+            const capture = (tracker as any).resolveCapture();
+            expect(capture).toBeNull();
+        });
+
+        it("setFallbackCapture sets the fallback capture", () => {
+            const mockProvider = MockFaceProvider(mockFace, "READY");
+            const mockP5 = createMockP5WithCapture();
+            const tracker = new HeadTrackingDataProvider(mockP5 as any, createConfig());
+            (tracker as any).provider = mockProvider;
+
+            tracker.setFallbackCapture({ mock: 'fallback' });
+            const capture = (tracker as any).resolveCapture();
+            expect(capture).toEqual({ mock: 'fallback' });
+        });
+    });
 });

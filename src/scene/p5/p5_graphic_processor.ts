@@ -100,6 +100,7 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
     }
 
     public setProjectionMatrix(m: ProjectionMatrix): void {
+        // public API do not provide the direct access to the projection matrix
         const renderer = (this.p as any)._renderer;
         if (renderer?.uPMatrix) {
             renderer.uPMatrix.set([
