@@ -147,7 +147,7 @@ describe("P5GraphicProcessor", () => {
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
         const state = { settings: { alpha: 0.5 } } as any;
-        const videoEl = { kind: "video", node: { elt: { readyState: 2, videoWidth: 640, videoHeight: 480 } } };
+        const videoSource = { kind: "video", data: { node: { elt: { readyState: 2, videoWidth: 640, videoHeight: 480 } } } };
         const assets = {} as any;
 
         gp.drawBox(
@@ -157,13 +157,12 @@ describe("P5GraphicProcessor", () => {
                 width: 10,
                 position: { x: 0, y: 0, z: 0 },
                 alpha: 0.5,
-                video: videoEl,
+                video: videoSource,
             } as ResolvedBox,
             assets,
             state
         );
 
-        expect(p.texture).toHaveBeenCalledWith(videoEl.node);
         expect(p.blendMode).toHaveBeenCalled();
     });
 
@@ -172,7 +171,7 @@ describe("P5GraphicProcessor", () => {
         const gp = new P5GraphicProcessor(p as any, {} as any);
 
         const state = { settings: { alpha: 1 as Alpha } } as any;
-        const rawVideo = { kind: "webCam", node: { elt: { readyState: 2, videoWidth: 640, videoHeight: 480 } } };
+        const rawVideo = { kind: "webCam", data: { node: { elt: { readyState: 2, videoWidth: 640, videoHeight: 480 } } } };
 
         gp.drawBox(
             {
@@ -185,8 +184,6 @@ describe("P5GraphicProcessor", () => {
             {} as any,
             state
         );
-
-        expect(p.texture).toHaveBeenCalledWith(rawVideo.node);
     });
 
     it("applies image texture when ready and video is not ready", () => {

@@ -100,7 +100,18 @@ export function createMockSceneFace(overrides: {
 
 export class MockFaceWorldData extends FaceWorldData {
     constructor(sceneFace: SceneFace = createMockSceneFace()) {
-        const mockFace = createCanonicalHead();
+        const mockFaceData = createCanonicalHead();
+        const mockFaceDataRebased = {
+            nose: mockFaceData.nose.position,
+            leftEye: mockFaceData.eyes.left.position,
+            rightEye: mockFaceData.eyes.right.position,
+        };
+        const mockFace = {
+            rebase: mockFaceDataRebased,
+            get nose() { return this.rebase.nose; },
+            get leftEye() { return this.rebase.leftEye; },
+            get rightEye() { return this.rebase.rightEye; },
+        };
         super(mockFace as unknown as Face<VideoWidthRatio>, sceneFace);
     }
 }
@@ -137,7 +148,7 @@ export function createMockHeadTrackingProvider(getDataMock: ReturnType<typeof vi
         type: 'headTracker' as const,
         provider: mockFaceProvider,
         getData: getDataMock,
-        getDataResult: () => ({ success: true as const, value: (getDataMock as any)() }),
+        getDataResult: () => ({ success: true as const, value: null as unknown }) as { success: boolean; value: unknown },
         getVideo: () => ({ success: true, value: mockVideoElement }),
         init: async () => {
             await mockFaceProvider.init();

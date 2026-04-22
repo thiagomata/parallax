@@ -11,6 +11,7 @@ import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provid
 import type { VideoPixels } from "../../../scene/types.ts";
 import { VideoDataProvider } from "../../../scene/providers/video_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
+import type { VideoSource } from "../../../scene/video/types.ts";
 import {
     DEFAULT_SCENE_SETTINGS,
     ELEMENT_TYPES, LOOK_MODES, PROJECTION_TYPES,
@@ -61,6 +62,20 @@ export const observer_explanation = `
 <a href="#tutorial-7">Always Face Camera</a>
 </div>
 `;
+
+
+export function createVideoSelector(
+    fallbackVideo: p5.MediaElement<HTMLVideoElement>
+): (ctx: ResolutionContext<ObserverDataProviderLib>) => VideoSource {
+    return (ctx) => {
+        const webcamData = ctx.dataProviders.webCam;
+        
+        if (webcamData?.node) {
+            return { kind: 'webCam', data: { node: webcamData.node } };
+        }
+        return { kind: 'video', data: { node: fallbackVideo } };
+    };
+}
 
 
 export async function tutorial_observer(
@@ -405,16 +420,7 @@ export async function tutorial_observer(
 
             // Add video panel after world.complete()
             // Always show fallback video in panel (webcam is used for face tracking)
-            const videoSelector = (ctx: ResolutionContext<ObserverDataProviderLib>) => {
-                // Use webcam if available and has a valid node
-                const webcamData = ctx.dataProviders.webCam;
-                
-                if (webcamData?.node) {
-                    return webcamData.node;
-                }
-                // Fallback to video
-                return fallbackVideo;
-            };
+            const videoSelector = createVideoSelector(fallbackVideo);
 
             world.addPanel({
                 type: ELEMENT_TYPES.PANEL,
@@ -448,7 +454,7 @@ export async function tutorial_observer(
             fallbackVideo.loop();
         }
 
-        // Let video play naturally - just render
+// Let video play naturally - just render
         p.background(20);
         const result = await world.step(gp);
         if (!result.running) return;

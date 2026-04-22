@@ -31,10 +31,12 @@ import type {P5Bundler} from "./p5_asset_loader.ts";
 import p5 from "p5";
 
 import { BaseGraphicProcessor } from "../graphic_processor.ts";
+import { P5VideoResolver } from "./p5_video_resolver.ts";
 
 export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
     public readonly loader: AssetLoader<P5Bundler>;
     private p: p5;
+    private videoResolver: P5VideoResolver;
 
     private centerOffsetCache = new Map<string, Vector3>();
     private lastWidth = 0;
@@ -44,6 +46,7 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
         super();
         this.p = p;
         this.loader = loader;
+        this.videoResolver = new P5VideoResolver({ texture: null, font: null, video: null } as unknown as P5Bundler, p);
     }
 
     protected push(): void {
@@ -55,39 +58,7 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
     }
 
     private resolveVideoNode(source: unknown): p5.MediaElement<HTMLVideoElement> | null {
-
-
-        const isMediaElement = (value: unknown): value is p5.MediaElement<HTMLVideoElement> => {
-            return !!value
-                && typeof value === "object"
-                && "elt" in value;
-        };
-
-        if (!source) return null;
-
-        if (typeof HTMLVideoElement !== "undefined" && source instanceof HTMLVideoElement) {
-            return new (p5 as any).MediaElement(source, this.p) as p5.MediaElement<HTMLVideoElement>;
-        }
-
-        if (typeof source !== "object") return null;
-
-        if (isMediaElement(source)) {
-            return source;
-        }
-
-        const candidate = source as { node?: unknown; elt?: unknown };
-
-        if (candidate.node) {
-            if (isMediaElement(candidate.node)) {
-                return candidate.node;
-            }
-        }
-
-        if (typeof HTMLVideoElement !== "undefined" && candidate.elt instanceof HTMLVideoElement) {
-            return new (p5 as any).MediaElement(candidate.elt, this.p) as p5.MediaElement<HTMLVideoElement>;
-        }
-
-        return null;
+        return this.videoResolver.resolve(source) as p5.MediaElement<HTMLVideoElement> | null;
     }
 
 

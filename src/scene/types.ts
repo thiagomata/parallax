@@ -484,6 +484,7 @@ export type FailableResult<T> =
 export interface GraphicsBundle {
     readonly texture: unknown;
     readonly font: unknown;
+    readonly video: unknown;
 }
 
 interface WindowConfigInput {
