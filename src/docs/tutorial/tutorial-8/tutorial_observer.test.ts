@@ -243,8 +243,6 @@ describe('Tutorial 8: The Observer', () => {
         const mockTracker = createMockHeadTrackingProvider(getDataMock);
         
         const mockWebCam = createMockWebCam();
-        console.log('[TEST-WEBCAM] mockWebCam:', mockWebCam);
-        console.log('[TEST-WEBCAM] mockWebCam.getData():', mockWebCam.getData());
 
         const world = await tutorial_observer(mockP5 as unknown as p5, {
             width: 500,

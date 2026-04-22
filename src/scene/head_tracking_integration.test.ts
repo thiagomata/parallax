@@ -121,10 +121,7 @@ describe('Head Tracking Integration', () => {
             };
             const eyeNode = findNode(root, 'eye');
             const screenNode = findNode(root, 'screen');
-            
-            // console.log('screen global:', screenNode?.props?.globalPosition);
-            // console.log('eye global:', eyeNode?.props?.globalPosition);
-            
+
             if (eyeNode && screenNode) {
                 cameraCallArgs = {
                     eye: eyeNode.props.globalPosition,
