@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial 10: Interactive Box Control | Parallax</title>
+    <link rel="stylesheet" href="/src/docs/style/tutorial.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&family=Noto+Emoji:wght@300..700&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <style>
+        body, .tab-btn, .tutorial-nav span {
+            font-family: 'Roboto', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <nav class="tutorial-nav"></nav>
+    
+    <main id="tutorial-root"></main>
+    
+    <script type="module">
+        import { initTutorialNav } from '/src/docs/tutorial/tutorial_nav.ts';
+        initTutorialNav();
+    </script>
+    <script type="module" src="/src/docs/tutorial/tutorial-10/tutorial.demo.ts"></script>
+</body>
+</html>

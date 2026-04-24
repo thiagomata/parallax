@@ -145,6 +145,35 @@ describe("P5GraphicProcessor", () => {
         expect(p.tint).toHaveBeenCalledWith(255, 255);
     });
 
+    it("tints textured elements with fillColor when present", () => {
+        const p = createMockP5();
+        const gp = new P5GraphicProcessor(p as any, {} as any);
+
+        const state = { settings: { alpha: 0.5 } } as any;
+        const img = { id: "img-1" };
+        const assets = {
+            texture: {
+                status: ASSET_STATUS.READY,
+                value: { internalRef: img },
+            },
+        } as any;
+
+        gp.drawBox(
+            {
+                id: "b",
+                type: ELEMENT_TYPES.BOX,
+                width: 10,
+                position: { x: 0, y: 0, z: 0 },
+                fillColor: { red: 10, green: 20, blue: 30, alpha: 0.5 },
+            } as ResolvedBox,
+            assets,
+            state
+        );
+
+        expect(p.texture).toHaveBeenCalledWith(img);
+        expect(p.tint).toHaveBeenCalledWith(10, 20, 30, 64);
+    });
+
     it("falls back to fill/noFill and stroke/noStroke when no texture is available", () => {
         const p = createMockP5();
         const gp = new P5GraphicProcessor(p as any, {} as any);
