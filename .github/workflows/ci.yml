@@ -104,7 +104,7 @@ jobs:
 
       - name: Prune Orphaned Previews
         run: |
-          if ! git ls-remote --heads origin gh-pages >/dev/null 2>&1; then
+          if ! git ls-remote --heads origin gh-pages | grep -q 'refs/heads/gh-pages$'; then
             echo "gh-pages branch does not exist yet; skipping preview cleanup."
             exit 0
           fi
