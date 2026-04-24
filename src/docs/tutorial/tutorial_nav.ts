@@ -1,4 +1,4 @@
-const TOTAL_TUTORIALS = 9;
+const TOTAL_TUTORIALS = 10;
 
 const icons = {
     home: '<i class="fas fa-list"></i>',

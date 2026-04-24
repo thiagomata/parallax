@@ -128,6 +128,9 @@ export class ProjectionResolver<
             projectionPool,
             elementPool: {},
             dataProviders,
+            previousStore: { global: {} },
+            nextStore: { global: {} },
+            element: {},
         };
 
         // Resolve Dynamic Properties (local space)
@@ -140,6 +143,9 @@ export class ProjectionResolver<
             projectionPool,
             elementPool: {},
             dataProviders,
+            previousStore: { global: {} },
+            nextStore: { global: {} },
+            element: {},
         };
 
         // Apply Modifiers in Local Space
@@ -378,6 +384,9 @@ export class ProjectionResolver<
             projectionPool,
             elementPool: {},
             dataProviders: {},
+            previousStore: { global: {} },
+            nextStore: { global: {} },
+            element: {},
         };
         return this.applyEffects(resolved, resolved.effects, resolutionContext);
     }

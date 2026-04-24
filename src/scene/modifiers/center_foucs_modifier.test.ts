@@ -31,6 +31,9 @@ describe('CenterFocusModifier', () => {
             projectionPool: {},
             elementPool: {},
             dataProviders: {},
+            previousStore: { global: {} },
+            nextStore: { global: {} },
+            element: {},
         };
     });
 

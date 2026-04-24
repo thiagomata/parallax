@@ -3,6 +3,7 @@ import {
     type BlueprintProjection,
     type BundleDynamicElement,
     type BundleResolvedElement,
+    type ExternalStore,
     type DataProviderTickContext,
     type DataProviderLib,
     type DynamicProjection,
@@ -54,6 +55,7 @@ export class Stage<
 
     private lastFrameState: ResolvedSceneState | null = null;
     private cachedDynamicState: DynamicSceneState | null = null;
+    private externalStore: ExternalStore = { global: {} };
     
     // Cache for distance calculations to reduce per-frame computation
     private distanceCache = new Map<string, number>();
@@ -320,6 +322,30 @@ export class Stage<
         if (!screenProjection) {
             throw new Error(`Screen projection '${STANDARD_PROJECTION_IDS.SCREEN}' not found`);
         }
+
+        // Get external store from previous frame or create new
+        const previousExternal = frameParams.previousResolved?.external ?? this.externalStore;
+        
+        // Deep copy previous store and freeze it (read-only)
+        const previousStore: ExternalStore = structuredClone(previousExternal);
+        Object.freeze(previousStore);
+        Object.freeze(previousStore.global);
+        
+        // Create mutable next store (copy from previous as starting point)
+        const nextStore: ExternalStore = structuredClone(previousExternal);
+
+        // Initialize element states from blueprint internal (if first time)
+        for (const entry of this.elementRegistry.getOrderedElements()) {
+            const id = entry.element.id;
+            if (!nextStore[id] && (entry.element as any).dynamic?.internal) {
+                nextStore[id] = { ...(entry.element as any).dynamic.internal };
+            } else if (!nextStore[id]) {
+                nextStore[id] = {};
+            }
+        }
+
+        // Get ordered elements for deterministic processing
+        const orderedElements = this.elementRegistry.getOrderedElements();
         
         // Uses GLOBAL projections
         const elementResolutionContext: ResolutionContext<TDataProviderLib> = {
@@ -329,23 +355,42 @@ export class Stage<
             projectionPool: projectionLookupRecord,
             elementPool: {},
             dataProviders: dataProvidersMap,
+            previousStore: previousStore,
+            nextStore: nextStore,
+            element: {},
         };
 
-        const renderQueue = Array.from(this.elementRegistry.all())
-            .map(element => {
-                const cachedDist = this.distanceCache.get(element.id);
-                if (cachedDist !== undefined) {
-                    return { element, distance: cachedDist };
-                }
-                const distance = graphicProcessor.dist(
-                    screenProjection.position,
-                    this.elementResolver.resolveProperty(element.dynamic.position, elementResolutionContext)
-                );
-                this.distanceCache.set(element.id, distance);
-                return { element, distance };
-            })
-            .sort((a, b) => b.distance - a.distance)
-            .map(pair => pair.element);
+        // Process elements in deterministic order (updateOrder)
+        const resolvedElements: Array<{ id: string; bundle: BundleResolvedElement<ResolvedElement, TGraphicBundle> }> = [];
+        
+        for (const orderedEntry of orderedElements) {
+            const element = orderedEntry.element;
+            
+            // Bind element's customer state
+            elementResolutionContext.element = nextStore[element.id] ?? {};
+            
+            const resolved = this.elementResolver.resolve(element, elementResolutionContext);
+            resolvedElements.push({
+                id: element.id,
+                bundle: resolved as BundleResolvedElement<ResolvedElement, TGraphicBundle>,
+            });
+        }
+        
+        // Now compute distance for rendering order (after properties are resolved)
+        const renderQueue = resolvedElements.map(pair => {
+            const cachedDist = this.distanceCache.get(pair.id);
+            if (cachedDist !== undefined) {
+                return { pair, distance: cachedDist };
+            }
+            const distance = graphicProcessor.dist(
+                screenProjection.position,
+                pair.bundle.resolved.position
+            );
+            this.distanceCache.set(pair.id, distance);
+            return { pair, distance };
+        })
+        .sort((a, b) => b.distance - a.distance)
+        .map(pair => pair.pair);
         
         // Invalidate cache periodically to handle dynamic elements
         const now = performance.now();
@@ -354,19 +399,14 @@ export class Stage<
             this.lastCacheUpdate = now;
         }
 
-        const resolvedElements = renderQueue.map(bundle => ({
-            id: bundle.id,
-            bundle: this.elementResolver.resolve(bundle, elementResolutionContext) as BundleResolvedElement<ResolvedElement, TGraphicBundle>,
-        }));
-
         // Build element pool for effects and lookups
         const elementPool: Record<string, ResolvedElement> = {};
-        for (const pair of resolvedElements) {
+        for (const pair of renderQueue) {
             elementPool[pair.id] = pair.bundle.resolved;
         }
 
         const resolvedMapElements = new Map(
-            resolvedElements.map(pair => [pair.id, pair.bundle.resolved])
+            renderQueue.map(pair => [pair.id, pair.bundle.resolved])
         );
 
         // Apply element effects (context has both pools)
@@ -377,9 +417,12 @@ export class Stage<
             projectionPool: projectionLookupRecord,
             elementPool: Object.fromEntries(resolvedMapElements),
             dataProviders: dataProvidersMap,
+            previousStore: previousStore,
+            nextStore: nextStore,
+            element: {},
         };
 
-        const finalElements = resolvedElements.map(pair => ({
+        const finalElements = renderQueue.map(pair => ({
             id: pair.id,
             bundle: this.elementResolver.effect(pair.bundle, effectContext),
         }));
@@ -392,6 +435,7 @@ export class Stage<
             playback: state.playback,
             elements: finalMapElements,
             projections: projectionLookup,
+            external: nextStore,
         };
 
         // Build render tree and draw
@@ -403,6 +447,7 @@ export class Stage<
 
         graphicProcessor.drawTree(renderTree, finalState);
 
+        this.externalStore = nextStore;
         this.lastFrameState = finalState;
 
         return finalState;
@@ -654,5 +699,9 @@ export class Stage<
             ...DEFAULT_SCREEN_ROTATION,
             ...blueprintScreen
         } as BlueprintProjection);
+    }
+
+    getExternalStore(): ExternalStore {
+        return this.externalStore;
     }
 }

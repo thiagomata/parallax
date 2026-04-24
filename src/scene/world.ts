@@ -298,6 +298,11 @@ export class World<
         this.stage.removeElement(id);
     }
 
+    /** Get the external store for reading/updating global state. */
+    public getExternalStore(): Record<string, unknown> {
+        return this.stage.getExternalStore();
+    }
+
     /** Get the current WindowConfig (for creating projections, etc.) */
     public getWindowConfig(): WindowConfig {
         return this.stage.getSettings().window;

@@ -309,14 +309,22 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
 
         if (videoReady) {
             this.p.blendMode(this.p.BLEND);
-            this.p.tint(255, this.to8Bit(combinedAlpha));
+            if (props.fillColor) {
+                this.tint(props.fillColor, combinedAlpha);
+            } else {
+                this.p.tint(255, this.to8Bit(combinedAlpha));
+            }
             if (videoNode) {
                 this.p.texture(videoNode);
             }
         } else if (assets.texture?.status === ASSET_STATUS.READY && assets.texture.value) {
             this.p.blendMode(this.p.BLEND);
             this.p.texture(assets.texture.value.internalRef);
-            this.p.tint(255, this.to8Bit(combinedAlpha));
+            if (props.fillColor) {
+                this.tint(props.fillColor, combinedAlpha);
+            } else {
+                this.p.tint(255, this.to8Bit(combinedAlpha));
+            }
         } else {
             this.p.noTint();
             if (props.fillColor) {
@@ -359,6 +367,13 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
         const finalAlphaUnitInterval = (baseAlpha * alpha) as Alpha;
         const finalAlphaUnsigned8Bits = this.to8Bit(finalAlphaUnitInterval);
         this.p.fill(color.red, color.green, color.blue, finalAlphaUnsigned8Bits);
+    }
+
+    private tint(color: ColorRGBA, alpha: Alpha = 1 as Alpha): void {
+        const baseAlpha = color.alpha ?? (1 as Alpha);
+        const finalAlphaUnitInterval = (baseAlpha * alpha) as Alpha;
+        const finalAlphaUnsigned8Bits = this.to8Bit(finalAlphaUnitInterval);
+        this.p.tint(color.red, color.green, color.blue, finalAlphaUnsigned8Bits);
     }
 
     private stroke(color: ColorRGBA, weight: number = 1, globalAlpha: Alpha = 1 as Alpha): void {

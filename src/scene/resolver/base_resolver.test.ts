@@ -40,6 +40,9 @@ const createContext = (): ResolutionContext => ({
     projectionPool: {},
     elementPool: {},
     dataProviders: {} as any,
+    previousStore: { global: {} },
+    nextStore: { global: {} },
+    element: {},
 });
 
 describe("BaseResolver", () => {
