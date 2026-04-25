@@ -63,6 +63,11 @@ jobs:
       - name: Build Project
         run: npm run build -- --base=${{ steps.context.outputs.base_path }}
 
+      - name: Write Version File
+        run: |
+          source_sha="${{ github.event.pull_request.head.sha || github.sha }}"
+          printf '%s\n' "$source_sha" > ./dist/version.txt
+
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
