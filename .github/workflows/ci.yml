@@ -125,6 +125,7 @@ jobs:
       - name: Copy main content
         run: |
           cp -r dist/* pages_dir/
+          cp -r .github pages_dir/
           ls pages_dir/
 
       - name: Commit and push
