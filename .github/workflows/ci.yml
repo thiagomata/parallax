@@ -2,9 +2,19 @@ name: CI and Deploy
 
 on:
   push:
-    branches: ['**']
+    branches:
+      - pages
+      - 'feature/**'
+      - 'bugfix/**'
   pull_request:
-    branches: [main]
+    branches:
+      - pages
+      - 'feature/**'
+      - 'bugfix/**'
+  delete:
+    branches:
+      - 'feature/**'
+      - 'bugfix/**'
   workflow_dispatch:
 
 permissions:
@@ -35,15 +45,15 @@ jobs:
       - name: Identify Context
         id: context
         run: |
-          if [[ "${{ github.ref_name }}" == "main" ]]; then
+          if [[ "${{ github.ref_name }}" == "pages" ]]; then
             echo "is_preview=false" >> "$GITHUB_OUTPUT"
             echo "preview_dir=" >> "$GITHUB_OUTPUT"
-            echo "base_path=/${{ github.event.repository.name }}/" >> "$GITHUB_OUTPUT"
+            echo "base_path=/" >> "$GITHUB_OUTPUT"
           else
             preview_slug=$(printf '%s' "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g')
             echo "is_preview=true" >> "$GITHUB_OUTPUT"
             echo "preview_dir=previews/${preview_slug}" >> "$GITHUB_OUTPUT"
-            echo "base_path=/${{ github.event.repository.name }}/previews/${preview_slug}/" >> "$GITHUB_OUTPUT"
+            echo "base_path=/previews/${preview_slug}/" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Install Dependencies
@@ -69,7 +79,7 @@ jobs:
 
   deploy-official:
     needs: test-and-build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/pages'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -83,7 +93,7 @@ jobs:
           path: ./dist
 
       - name: Deploy Main Site
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
@@ -110,7 +120,7 @@ jobs:
           fi
 
           active_previews=$(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin \
-            | grep -Ev '^(HEAD|main|gh-pages)$' \
+            | grep -Ev '^(HEAD|main|pages|gh-pages)$' \
             | sed 's#/#-#g')
 
           git clone --branch gh-pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh_pages_dir
@@ -138,10 +148,42 @@ jobs:
           path: ./dist
 
       - name: Deploy Preview
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
+          publish_branch: pages
           publish_dir: ./dist
           destination_dir: ${{ needs.test-and-build.outputs.preview_dir }}
           keep_files: true
+
+  prune-deleted-preview:
+    if: github.event_name == 'delete' && github.event.ref_type == 'branch' && (startsWith(github.event.ref, 'feature/') || startsWith(github.event.ref, 'bugfix/'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Remove Deleted Branch Preview
+        run: |
+          preview_slug=$(printf '%s' "${{ github.event.ref }}" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g')
+
+          if ! git ls-remote --heads origin gh-pages | grep -q 'refs/heads/gh-pages$'; then
+            echo "gh-pages branch does not exist yet; nothing to prune."
+            exit 0
+          fi
+
+          git clone --branch gh-pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh_pages_dir
+          cd gh_pages_dir
+
+          if [ -d "previews/${preview_slug}" ]; then
+            echo "Pruning deleted branch preview: previews/${preview_slug}"
+            rm -rf "previews/${preview_slug}"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "chore: prune deleted preview ${preview_slug}" || echo "Nothing to prune"
+            git push origin gh-pages
+          else
+            echo "No preview folder found for previews/${preview_slug}"
+          fi
