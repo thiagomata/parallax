@@ -3,11 +3,13 @@ name: CI and Deploy
 on:
   push:
     branches:
+      - main
       - pages
       - 'feature/**'
       - 'bugfix/**'
   pull_request:
     branches:
+      - main
       - pages
       - 'feature/**'
       - 'bugfix/**'
@@ -100,6 +102,39 @@ jobs:
           publish_branch: gh-pages
           publish_dir: ./dist
           keep_files: true
+
+  sync-pages:
+    needs: test-and-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: ./dist
+
+      - name: Clone pages branch
+        run: |
+          git clone --branch pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git pages_dir
+
+      - name: Copy main content
+        run: |
+          cp -r dist/* pages_dir/
+          ls pages_dir/
+
+      - name: Commit and push
+        working-directory: pages_dir
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "sync: update from main" || echo "Nothing to sync"
+          git push origin HEAD:pages
 
   deploy-preview:
     needs: test-and-build
