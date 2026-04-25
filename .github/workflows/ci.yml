@@ -41,12 +41,14 @@ jobs:
       - name: Identify Context
         id: context
         run: |
-          if [[ "${{ github.ref_name }}" == "main" ]]; then
+          branch_name="${{ github.head_ref || github.ref_name }}"
+
+          if [[ "${branch_name}" == "main" ]]; then
             echo "is_preview=false" >> "$GITHUB_OUTPUT"
             echo "preview_dir=" >> "$GITHUB_OUTPUT"
             echo "base_path=/${{ github.event.repository.name }}/" >> "$GITHUB_OUTPUT"
           else
-            preview_slug=$(printf '%s' "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g')
+            preview_slug=$(printf '%s' "$branch_name" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g')
             echo "is_preview=true" >> "$GITHUB_OUTPUT"
             echo "preview_dir=previews/${preview_slug}" >> "$GITHUB_OUTPUT"
             echo "base_path=/${{ github.event.repository.name }}/previews/${preview_slug}/" >> "$GITHUB_OUTPUT"
@@ -98,7 +100,7 @@ jobs:
 
   deploy-preview:
     needs: test-and-build
-    if: github.event_name == 'push' && needs.test-and-build.outputs.is_preview == 'true'
+    if: needs.test-and-build.outputs.is_preview == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
