@@ -22,6 +22,12 @@ jobs:
       preview_dir: ${{ steps.context.outputs.preview_dir }}
       base_path: ${{ steps.context.outputs.base_path }}
     steps:
+      - name: Log Trigger Context
+        run: |
+          echo "event_name=${GITHUB_EVENT_NAME}"
+          echo "ref_name=${GITHUB_REF_NAME}"
+          echo "ref=${GITHUB_REF}"
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
