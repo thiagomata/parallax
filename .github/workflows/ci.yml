@@ -48,7 +48,7 @@ jobs:
       - name: Identify Context
         id: context
         run: |
-          if [[ "${{ github.ref_name }}" == "pages" ]]; then
+          if [[ "${{ github.ref_name }}" == "pages" ]] || [[ "${{ github.ref_name }}" == "main" ]]; then
             echo "is_preview=false" >> "$GITHUB_OUTPUT"
             echo "preview_dir=" >> "$GITHUB_OUTPUT"
             echo "base_path=/" >> "$GITHUB_OUTPUT"
