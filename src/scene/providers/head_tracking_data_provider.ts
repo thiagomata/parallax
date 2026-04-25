@@ -16,6 +16,7 @@ import {
     type FaceSceneConfig,
 } from "./scene_face.ts";
 import {merge} from "../utils/merge.ts";
+import {appAssetPath} from "../../utils/app_paths.ts";
 
 /**
  * Data provider library type for head tracking.
@@ -169,8 +170,8 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
 
         this.provider = new MediaPipeFaceProvider(
             p,
-            "/parallax/wasm",
-            "/parallax/models/face_landmarker.task",
+            appAssetPath("wasm"),
+            appAssetPath("models/face_landmarker.task"),
             this.config,
             null
         );

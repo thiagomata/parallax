@@ -5,6 +5,7 @@ import {P5AssetLoader, type P5Bundler} from './p5_asset_loader';
 import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type ResolutionContext, type Vector3} from "../types.ts";
 import {SceneClock} from "../scene_clock.ts";
 import {WorldSettings} from "../world_settings.ts";
+import {appAssetPath} from "../../utils/app_paths.ts";
 
 new p5((p: p5) => {
     let world: World<P5Bundler, any, any>;
@@ -87,7 +88,7 @@ new p5((p: p5) => {
             text: "HELLO WORLD",
             size: 40,
             position: {x: 50, y: 0, z: 0},
-            font: {name: 'Roboto', path: '/parallax/fonts/Roboto-Regular.ttf'},
+            font: {name: 'Roboto', path: appAssetPath("fonts/Roboto-Regular.ttf")},
             fillColor: {red: 255, green: 0, blue: 255, alpha: 1}
         });
     };

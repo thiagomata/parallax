@@ -6,6 +6,7 @@ import {SceneClock} from "../../../scene/scene_clock.ts";
 import {P5AssetLoader, type P5Bundler} from "../../../scene/p5/p5_asset_loader.ts";
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig, type P5SketchExtraArgs} from "../sketch_engine.types.ts";
 import {WorldSettings} from "../../../scene/world_settings.ts";
+import {appAssetPath} from "../../../utils/app_paths.ts";
 
 /**
  * TUTORIAL: Loading Textures
@@ -88,7 +89,7 @@ export async function tutorial_textures(
                 roll: Math.PI * 2 * context.playback.progress,
             }),
             texture: {
-                path: '/parallax/img/target.png',
+                path: appAssetPath("img/target.png"),
                 width: 100,
                 height: 100,
             },
@@ -102,7 +103,7 @@ export async function tutorial_textures(
             position: {x: 0, y: 0, z: 50},
             font: {
                 name: 'Roboto',
-                path: '/parallax/fonts/Roboto-Regular.ttf'
+                path: appAssetPath("fonts/Roboto-Regular.ttf")
             },
             fillColor: {red: 0, green: 229, blue: 255}
         });
