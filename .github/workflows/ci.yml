@@ -3,11 +3,13 @@ name: CI and Deploy
 on:
   push:
     branches:
+      - main
       - pages
       - 'feature/**'
       - 'bugfix/**'
   pull_request:
     branches:
+      - main
       - pages
       - 'feature/**'
       - 'bugfix/**'
@@ -100,6 +102,21 @@ jobs:
           publish_branch: gh-pages
           publish_dir: ./dist
           keep_files: true
+
+  sync-pages:
+    needs: test-and-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: pages
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to pages
+        run: |
+          git push origin main:pages --force
 
   deploy-preview:
     needs: test-and-build
