@@ -125,6 +125,7 @@ jobs:
       - name: Copy main content
         run: |
           cp -r dist/* pages_dir/
+          cp -r .github pages_dir/
           ls pages_dir/
 
       - name: Commit and push
@@ -135,14 +136,6 @@ jobs:
           git add -A
           git commit -m "sync: update from main" || echo "Nothing to sync"
           git push origin HEAD:pages
-
-      - name: Deploy to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: ./dist
-          keep_files: true
 
   deploy-preview:
     needs: test-and-build
