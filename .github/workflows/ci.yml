@@ -136,6 +136,14 @@ jobs:
           git commit -m "sync: update from main" || echo "Nothing to sync"
           git push origin HEAD:pages
 
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./dist
+          keep_files: true
+
   deploy-preview:
     needs: test-and-build
     if: github.event_name == 'push' && needs.test-and-build.outputs.is_preview == 'true'
