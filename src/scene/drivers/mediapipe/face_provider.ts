@@ -6,6 +6,7 @@ import p5 from "p5";
 import type {Face} from "./face.ts";
 import type {FaceProvider} from "../../providers/face_provider.ts";
 import {merge} from "../../utils/merge.ts";
+import {appAssetPath} from "../../../utils/app_paths.ts";
 
 export type FaceProviderConfig = FaceTrackingConfig;
 
@@ -46,8 +47,8 @@ export class MediaPipeFaceProvider implements FaceProvider {
 
     constructor(
         p: p5,
-        wasmPath: string = "/parallax/wasm",
-        modelPath: string = "/parallax/models/face_landmarker.task",
+        wasmPath: string = appAssetPath("wasm"),
+        modelPath: string = appAssetPath("models/face_landmarker.task"),
         config: Partial<FaceProviderConfig> = {},
         capture: any | null | undefined = undefined
     ) {

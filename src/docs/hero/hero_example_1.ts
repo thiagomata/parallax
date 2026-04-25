@@ -7,6 +7,7 @@ import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type ResolutionContext} from "../
 import {DEFAULT_SKETCH_CONFIG, type SketchConfig} from "../tutorial/sketch_config.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
 import {CenterOrbit} from "../../scene/presets.ts";
+import {appAssetPath} from "../../utils/app_paths.ts";
 
 /**
  * HERO EXAMPLE: First Steps
@@ -125,7 +126,7 @@ export function heroExample1(p: p5, config: SketchConfig = DEFAULT_SKETCH_CONFIG
             position: { x: 50, y: 100, z: 0 },
             font: {
                 name: 'Roboto',
-                path: '/parallax/fonts/Roboto-Regular.ttf'
+                path: appAssetPath("fonts/Roboto-Regular.ttf")
             },
             fillColor: { red: 255, green: 0, blue: 255 },
             strokeColor: { red: 255, green: 255, blue: 255 }

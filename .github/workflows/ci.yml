@@ -2,30 +2,49 @@ name: CI and Deploy
 
 on:
   push:
-    branches: [ '**' ] # Matches all branches including sub-folders (feature/xyz)
+    branches: ['**']
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }} # Isolates runs per branch
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+    outputs:
+      is_preview: ${{ steps.context.outputs.is_preview }}
+      preview_dir: ${{ steps.context.outputs.preview_dir }}
+      base_path: ${{ steps.context.outputs.base_path }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: npm
+
+      - name: Identify Context
+        id: context
+        run: |
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "is_preview=false" >> "$GITHUB_OUTPUT"
+            echo "preview_dir=" >> "$GITHUB_OUTPUT"
+            echo "base_path=/${{ github.event.repository.name }}/" >> "$GITHUB_OUTPUT"
+          else
+            preview_slug=$(printf '%s' "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g')
+            echo "is_preview=true" >> "$GITHUB_OUTPUT"
+            echo "preview_dir=previews/${preview_slug}" >> "$GITHUB_OUTPUT"
+            echo "base_path=/${{ github.event.repository.name }}/previews/${preview_slug}/" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Install Dependencies
         run: npm ci
@@ -34,7 +53,7 @@ jobs:
         run: npm run coverage
 
       - name: Build Project
-        run: npm run build
+        run: npm run build -- --base=${{ steps.context.outputs.base_path }}
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
@@ -42,19 +61,87 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload Build Artifact
-        if: github.ref == 'refs/heads/main' # Only upload artifact if on main
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          path: './dist'
+          name: dist
+          path: ./dist
+          retention-days: 1
 
-  deploy:
+  deploy-official:
     needs: test-and-build
-    if: github.ref == 'refs/heads/main' # Guardrail: Only deploy the Single Source of Truth
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: ./dist
+
+      - name: Deploy Main Site
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./dist
+          keep_files: true
+
+  deploy-preview:
+    needs: test-and-build
+    if: github.event_name == 'push' && needs.test-and-build.outputs.is_preview == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch Preview Branches
+        run: git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune
+
+      - name: Prune Orphaned Previews
+        run: |
+          if ! git ls-remote --heads origin gh-pages | grep -q 'refs/heads/gh-pages$'; then
+            echo "gh-pages branch does not exist yet; skipping preview cleanup."
+            exit 0
+          fi
+
+          active_previews=$(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin \
+            | grep -Ev '^(HEAD|main|gh-pages)$' \
+            | sed 's#/#-#g')
+
+          git clone --branch gh-pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh_pages_dir
+          cd gh_pages_dir
+
+          for dir in previews/*; do
+            [ -d "$dir" ] || continue
+            preview_name="${dir#previews/}"
+            if ! printf '%s\n' "$active_previews" | grep -Fxq "$preview_name"; then
+              echo "Pruning orphaned preview: $preview_name"
+              rm -rf "$dir"
+            fi
+          done
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: prune orphaned previews" || echo "Nothing to prune"
+          git push origin gh-pages
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: ./dist
+
+      - name: Deploy Preview
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./dist
+          destination_dir: ${{ needs.test-and-build.outputs.preview_dir }}
+          keep_files: true
