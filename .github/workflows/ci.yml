@@ -149,6 +149,15 @@ jobs:
             git checkout main
           done <<< "$branches"
 
+      - name: Build single preview
+        if: needs.test-and-build.outputs.is_main != 'true'
+        run: |
+          slug=$(printf '%s' "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g')
+          base_path="/parallax/previews/${slug}/"
+          npm run build -- --base="$base_path"
+          mkdir -p "output/previews/${slug}"
+          cp -r dist/* "output/previews/${slug}/"
+
       - name: Copy .github folder
         run: cp -r .github output/
 
@@ -158,9 +167,17 @@ jobs:
           git clone --depth 1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git pages_dir
 
       - name: Copy build to pages branch
+        if: needs.test-and-build.outputs.is_main == 'true'
         run: |
           rm -rf pages_dir/*
           cp -r output/* pages_dir/
+
+      - name: Copy preview to pages branch
+        if: needs.test-and-build.outputs.is_main != 'true'
+        run: |
+          slug=$(printf '%s' "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g')
+          mkdir -p "pages_dir/previews/${slug}"
+          cp -r output/previews/${slug}/* "pages_dir/previews/${slug}/"
 
       - name: Commit and push
         working-directory: pages_dir
