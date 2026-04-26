@@ -139,14 +139,18 @@ jobs:
             slug=$(printf '%s' "$branch" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g')
             base_path="/parallax/previews/${slug}/"
             
-            git checkout "$branch"
-            
-            npm run build -- --base="$base_path"
-            
-            mkdir -p "output/previews/${slug}"
-            cp -r dist/* "output/previews/${slug}/"
-            
-            git checkout main
+            if git checkout "$branch" 2>/dev/null; then
+              if npm run build -- --base="$base_path" 2>/dev/null; then
+                mkdir -p "output/previews/${slug}"
+                cp -r dist/* "output/previews/${slug}/"
+                echo "✓ Built preview for $branch"
+              else
+                echo "⚠ Skipping $branch - build failed (may have breaking changes)"
+              fi
+              git checkout main
+            else
+              echo "⚠ Skipping $branch - could not checkout"
+            fi
           done <<< "$branches"
 
       - name: Build single preview
@@ -154,9 +158,13 @@ jobs:
         run: |
           slug=$(printf '%s' "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g')
           base_path="/parallax/previews/${slug}/"
-          npm run build -- --base="$base_path"
-          mkdir -p "output/previews/${slug}"
-          cp -r dist/* "output/previews/${slug}/"
+          if npm run build -- --base="$base_path" 2>/dev/null; then
+            mkdir -p "output/previews/${slug}"
+            cp -r dist/* "output/previews/${slug}/"
+            echo "✓ Built preview for ${{ github.ref_name }}"
+          else
+            echo "⚠ Build failed for ${{ github.ref_name }} - skipping preview deployment"
+          fi
 
       - name: Copy .github folder
         run: cp -r .github output/
