@@ -24,8 +24,8 @@ permissions:
   pages: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
 
 jobs:
   test-and-build:
@@ -48,7 +48,7 @@ jobs:
       - name: Identify Context
         id: context
         run: |
-          if [[ "${{ github.ref_name }}" == "pages" ]]; then
+          if [[ "${{ github.ref_name }}" == "pages" ]] || [[ "${{ github.ref_name }}" == "main" ]]; then
             echo "is_preview=false" >> "$GITHUB_OUTPUT"
             echo "preview_dir=" >> "$GITHUB_OUTPUT"
             echo "base_path=/" >> "$GITHUB_OUTPUT"
@@ -63,6 +63,7 @@ jobs:
         run: npm ci
 
       - name: Run Tests & Coverage
+        if: github.ref != 'refs/heads/pages'
         run: npm run coverage
 
       - name: Build Project
