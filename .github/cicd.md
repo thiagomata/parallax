@@ -45,6 +45,10 @@ flowchart TD
 - **Push to `main`**: Full rebuild of everything. Overwrites the entire `pages` branch (main site + all previews).
 - **Push to `feature/*` or `bugfix/*`**: Only updates that specific preview. Preserves existing main site and other previews in the `pages` branch.
 
+**Error handling:**
+- If a preview build fails (e.g., broken branch code), it is skipped and logged with a warning. The main site deployment continues normally.
+- This prevents one broken branch from blocking main releases.
+
 ## Branch Structure
 
 The `pages` branch serves as the deployment target for GitHub Pages:
@@ -88,15 +92,15 @@ Triggers on push to `main`, `feature/*`, or `bugfix/*`.
 **If push to `main`:**
 1. Build main site (from main branch code) with base path `/parallax/`
 2. Fetch all feature/* and bugfix/* branches
-3. Build each preview with base path `/parallax/previews/<slug>/`
+3. For each preview: try to build, if build fails skip and log warning
 4. Delete entire contents of `pages` branch
-5. Push all builds (main site + all previews) to `pages` branch
+5. Push all successfully built content (main site + valid previews) to `pages` branch
 
 **If push to feature/bugfix:**
 1. Clone existing `pages` branch (preserves existing main site and other previews)
-2. Build only the pushed branch with base path `/parallax/previews/<slug>/`
-3. Copy only to `previews/<slug>/` - no changes to root or other previews
-4. Push updated `pages` branch
+2. Try to build the pushed branch with base path `/parallax/previews/<slug>/`
+3. If build succeeds: copy to `previews/<slug>/` and push
+4. If build fails: skip preview deployment, main site remains unchanged
 
 ### prune-deleted-preview
 
