@@ -114,7 +114,7 @@ jobs:
         run: npm ci
 
       - name: Build main site
-        run: npm run build -- --base=/
+        run: npm run build -- --base=/parallax/
 
       - name: Create output directory
         run: mkdir -p output
@@ -135,7 +135,7 @@ jobs:
             echo "Building preview for: $branch"
             
             slug=$(printf '%s' "$branch" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g')
-            base_path="/previews/${slug}/"
+            base_path="/parallax/previews/${slug}/"
             
             git checkout "$branch"
             
@@ -201,7 +201,7 @@ jobs:
         run: npm ci
 
       - name: Build main site
-        run: npm run build -- --base=/
+        run: npm run build -- --base=/parallax/
 
       - name: Create output directory
         run: mkdir -p output
@@ -222,7 +222,7 @@ jobs:
             echo "Building preview for: $branch"
             
             slug=$(printf '%s' "$branch" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g')
-            base_path="/previews/${slug}/"
+            base_path="/parallax/previews/${slug}/"
             
             git checkout "$branch"
             
