@@ -24,18 +24,26 @@ flowchart TD
 
     D -->|Pass| E{Which branch?}
 
-    E -->|main| F[deploy: Build main + ALL branches]
-    E -->|feature/bugfix| G[deploy: Build single preview]
+    E -->|main| F[deploy: Rebuild main + ALL previews]
+    E -->|feature/bugfix| G[deploy: Update only that preview]
 
-    F --> H[Push to pages branch]
-    G --> H
+    F --> H[Overwrite entire pages branch]
+    G --> H1[Clone existing pages branch]
+    G --> H2[Update only previews/&lt;slug&gt;/]
+    H1 --> H2
 
     D -->|Fail| I[Stop]
 
     style F fill:#90EE90
     style G fill:#90EE90
-    style H fill:#87CEEB
+    style H fill:#FFB6C1
+    style H1 fill:#87CEEB
+    style H2 fill:#87CEEB
 ```
+
+**Key behavior:**
+- **Push to `main`**: Full rebuild of everything. Overwrites the entire `pages` branch (main site + all previews).
+- **Push to `feature/*` or `bugfix/*`**: Only updates that specific preview. Preserves existing main site and other previews in the `pages` branch.
 
 ## Branch Structure
 
@@ -78,16 +86,17 @@ Runs on every push to:
 Triggers on push to `main`, `feature/*`, or `bugfix/*`.
 
 **If push to `main`:**
-1. Build main site with base path `/parallax/`
+1. Build main site (from main branch code) with base path `/parallax/`
 2. Fetch all feature/* and bugfix/* branches
 3. Build each preview with base path `/parallax/previews/<slug>/`
-4. Combine all builds into output
-5. Push to `pages` branch
+4. Delete entire contents of `pages` branch
+5. Push all builds (main site + all previews) to `pages` branch
 
 **If push to feature/bugfix:**
-1. Clone existing `pages` branch
-2. Add/update preview folder at `previews/<slug>/`
-3. Push to `pages` branch
+1. Clone existing `pages` branch (preserves existing main site and other previews)
+2. Build only the pushed branch with base path `/parallax/previews/<slug>/`
+3. Copy only to `previews/<slug>/` - no changes to root or other previews
+4. Push updated `pages` branch
 
 ### prune-deleted-preview
 
