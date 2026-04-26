@@ -4,13 +4,11 @@ on:
   push:
     branches:
       - main
-      - pages
       - 'feature/**'
       - 'bugfix/**'
   pull_request:
     branches:
       - main
-      - pages
       - 'feature/**'
       - 'bugfix/**'
   delete:
@@ -34,6 +32,7 @@ jobs:
       is_preview: ${{ steps.context.outputs.is_preview }}
       preview_dir: ${{ steps.context.outputs.preview_dir }}
       base_path: ${{ steps.context.outputs.base_path }}
+      is_main: ${{ steps.context.outputs.is_main }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,22 +47,23 @@ jobs:
       - name: Identify Context
         id: context
         run: |
-          if [[ "${{ github.ref_name }}" == "pages" ]] || [[ "${{ github.ref_name }}" == "main" ]]; then
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
             echo "is_preview=false" >> "$GITHUB_OUTPUT"
+            echo "is_main=true" >> "$GITHUB_OUTPUT"
             echo "preview_dir=" >> "$GITHUB_OUTPUT"
-            echo "base_path=/" >> "$GITHUB_OUTPUT"
+            echo "base_path=/parallax/" >> "$GITHUB_OUTPUT"
           else
             preview_slug=$(printf '%s' "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g')
             echo "is_preview=true" >> "$GITHUB_OUTPUT"
+            echo "is_main=false" >> "$GITHUB_OUTPUT"
             echo "preview_dir=previews/${preview_slug}" >> "$GITHUB_OUTPUT"
-            echo "base_path=/previews/${preview_slug}/" >> "$GITHUB_OUTPUT"
+            echo "base_path=/parallax/previews/${preview_slug}/" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Install Dependencies
         run: npm ci
 
       - name: Run Tests & Coverage
-        if: github.ref != 'refs/heads/pages'
         run: npm run coverage
 
       - name: Build Project
@@ -81,15 +81,15 @@ jobs:
           path: ./dist
           retention-days: 1
 
-  sync-pages:
+  deploy:
     needs: test-and-build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: main
+          ref: ${{ github.ref_name }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -122,7 +122,8 @@ jobs:
       - name: Copy main build to output
         run: cp -r dist/* output/
 
-      - name: Build previews
+      - name: Build all previews
+        if: needs.test-and-build.outputs.is_main == 'true'
         run: |
           branches="${{ steps.branches.outputs.branches }}"
           if [ -z "$branches" ]; then
@@ -152,7 +153,8 @@ jobs:
 
       - name: Clone pages branch
         run: |
-          git clone --branch pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git pages_dir
+          git clone --branch pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git pages_dir || \
+          git clone --depth 1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git pages_dir
 
       - name: Copy build to pages branch
         run: |
@@ -165,127 +167,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "sync: update from main with all previews" || echo "Nothing to sync"
-          git push origin HEAD:pages
-
-  deploy-official:
-    needs: test-and-build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/pages'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: pages
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Fetch all branches
-        run: git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune
-
-      - name: Get active branches
-        id: branches
-        run: |
-          active_branches=$(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin \
-            | grep -E '^(feature/|bugfix/)' \
-            | sort)
-          echo "branches<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$active_branches" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Build main site
-        run: npm run build -- --base=/parallax/
-
-      - name: Create output directory
-        run: mkdir -p output
-
-      - name: Copy main build to output
-        run: cp -r dist/* output/
-
-      - name: Build previews
-        run: |
-          branches="${{ steps.branches.outputs.branches }}"
-          if [ -z "$branches" ]; then
-            echo "No feature/bugfix branches found, skipping previews"
-            exit 0
-          fi
-          
-          while IFS= read -r branch; do
-            [ -z "$branch" ] && continue
-            echo "Building preview for: $branch"
-            
-            slug=$(printf '%s' "$branch" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g')
-            base_path="/parallax/previews/${slug}/"
-            
-            git checkout "$branch"
-            
-            npm run build -- --base="$base_path"
-            
-            mkdir -p "output/previews/${slug}"
-            cp -r dist/* "output/previews/${slug}/"
-            
-            git checkout pages
-          done <<< "$branches"
-
-      - name: Copy .github folder
-        run: cp -r .github output/
-
-      - name: Clone pages branch
-        run: |
-          git clone --branch pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git pages_dir
-
-      - name: Copy build to pages branch
-        run: |
-          rm -rf pages_dir/*
-          cp -r output/* pages_dir/
-
-      - name: Commit and push
-        working-directory: pages_dir
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "deploy: rebuild main and all previews" || echo "Nothing to deploy"
-          git push origin HEAD:pages
-
-  deploy-preview:
-    needs: test-and-build
-    if: github.event_name == 'push' && needs.test-and-build.outputs.is_preview == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download Build Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: ./dist
-
-      - name: Clone pages branch
-        run: |
-          git clone --branch pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git pages_dir
-
-      - name: Copy preview to pages branch
-        run: |
-          mkdir -p "pages_dir/${{ needs.test-and-build.outputs.preview_dir }}"
-          cp -r dist/* "pages_dir/${{ needs.test-and-build.outputs.preview_dir }}/"
-
-      - name: Commit and push
-        working-directory: pages_dir
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "deploy: preview ${{ github.ref_name }}" || echo "Nothing to deploy"
+          git commit -m "deploy: update from ${{ github.ref_name }}" || echo "Nothing to deploy"
           git push origin HEAD:pages
 
   prune-deleted-preview:
