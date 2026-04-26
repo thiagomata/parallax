@@ -11,6 +11,7 @@ import {
     type ElementAssets,
     type GraphicProcessor,
     type GraphicsBundle,
+    type TextureSet,
     type MapToBlueprint,
     type BundleDynamicElement,
     type ResolvedElement,
@@ -62,8 +63,19 @@ export class ElementResolver<
 
         // Side-effects (Async Loading) are explicitly handled during preparation
         if (blueprint.texture) {
-            loader.hydrateTexture(blueprint.texture)
-                .then(asset => assets.texture = asset);
+            if (this.isTextureSet(blueprint.texture)) {
+                assets.textureVariants = {};
+                for (const [variantKey, ref] of Object.entries(blueprint.texture.variants)) {
+                    assets.textureVariants[variantKey] = { status: ASSET_STATUS.PENDING, value: null };
+                    loader.hydrateTexture(ref)
+                        .then(asset => {
+                            assets.textureVariants![variantKey] = asset;
+                        });
+                }
+            } else {
+                loader.hydrateTexture(blueprint.texture)
+                    .then(asset => assets.texture = asset);
+            }
         }
 
         if (blueprint.font) {
@@ -81,6 +93,7 @@ export class ElementResolver<
 
     /**
      * Phase: The Frame Loop (Structural Resolution)
+     * @param element BundleDynamicElement
      * @param context - ResolutionContext containing playback, settings, and pools
      */
     resolve<T extends ResolvedElement>(
@@ -89,6 +102,7 @@ export class ElementResolver<
     ): BundleResolvedElement {
         // Parent loopResolve performs the recursive unwrapping
         const resolved = this.loopResolve<DynamicElement<T>>(element.dynamic, context) as T;
+        this.resolveTextureAsset(resolved, element.assets, context);
 
         return {
             id: element.id,
@@ -180,5 +194,36 @@ export class ElementResolver<
             'kind' in obj &&
             Object.values(SPEC_KINDS).includes((obj as any).kind)
         );
+    }
+
+    private isTextureSet(texture: unknown): texture is TextureSet {
+        return (
+            typeof texture === 'object' &&
+            texture !== null &&
+            'kind' in texture &&
+            (texture as any).kind === 'texture-set' &&
+            'variants' in texture &&
+            'select' in texture
+        );
+    }
+
+    private resolveTextureAsset<T extends ResolvedElement>(
+        resolved: T,
+        assets: ElementAssets<TGraphicBundle>,
+        context: ResolutionContext
+    ): void {
+        if (!resolved.texture || !this.isTextureSet(resolved.texture)) {
+            return;
+        }
+
+        const selectedKey = resolved.texture.select(context);
+        const chosenKey = assets.textureVariants?.[selectedKey]
+            ? selectedKey
+            : resolved.texture.default;
+        const selectedAsset = chosenKey ? assets.textureVariants?.[chosenKey] : undefined;
+
+        if (selectedAsset) {
+            assets.texture = selectedAsset;
+        }
     }
 }

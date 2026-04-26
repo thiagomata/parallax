@@ -111,4 +111,97 @@ describe('AssetRegistry', () => {
             expect(Array.from(registry.all())).toHaveLength(0);
         });
     });
+
+    describe('updateOrder', () => {
+        it('should auto-assign sequential updateOrder when not provided', () => {
+            registry.register({
+                id: 'el-1',
+                type: ELEMENT_TYPES.BOX,
+                width: 1,
+                position: {x: 0, y: 0, z: 0}
+            });
+            registry.register({
+                id: 'el-2',
+                type: ELEMENT_TYPES.BOX,
+                width: 1,
+                position: {x: 0, y: 0, z: 0}
+            });
+            registry.register({
+                id: 'el-3',
+                type: ELEMENT_TYPES.BOX,
+                width: 1,
+                position: {x: 0, y: 0, z: 0}
+            });
+
+            expect(registry.getUpdateOrder('el-1')).toBe(0);
+            expect(registry.getUpdateOrder('el-2')).toBe(1);
+            expect(registry.getUpdateOrder('el-3')).toBe(2);
+        });
+
+        it('should use explicit updateOrder when provided', () => {
+            registry.register({
+                id: 'el-a',
+                type: ELEMENT_TYPES.BOX,
+                width: 1,
+                position: {x: 0, y: 0, z: 0},
+                updateOrder: 100
+            });
+            registry.register({
+                id: 'el-b',
+                type: ELEMENT_TYPES.BOX,
+                width: 1,
+                position: {x: 0, y: 0, z: 0}
+            });
+
+            expect(registry.getUpdateOrder('el-a')).toBe(100);
+            expect(registry.getUpdateOrder('el-b')).toBe(101);
+        });
+
+        it('should throw on duplicate updateOrder', () => {
+            registry.register({
+                id: 'el-first',
+                type: ELEMENT_TYPES.BOX,
+                width: 1,
+                position: {x: 0, y: 0, z: 0},
+                updateOrder: 50
+            });
+
+            expect(() => {
+                registry.register({
+                    id: 'el-duplicate',
+                    type: ELEMENT_TYPES.BOX,
+                    width: 1,
+                    position: {x: 0, y: 0, z: 0},
+                    updateOrder: 50
+                });
+            }).toThrow('updateOrder 50 already used');
+        });
+
+        it('should return elements in deterministic order', () => {
+            registry.register({
+                id: 'el-3',
+                type: ELEMENT_TYPES.BOX,
+                width: 1,
+                position: {x: 0, y: 0, z: 0},
+                updateOrder: 3
+            });
+            registry.register({
+                id: 'el-1',
+                type: ELEMENT_TYPES.BOX,
+                width: 1,
+                position: {x: 0, y: 0, z: 0},
+                updateOrder: 1
+            });
+            registry.register({
+                id: 'el-2',
+                type: ELEMENT_TYPES.BOX,
+                width: 1,
+                position: {x: 0, y: 0, z: 0},
+                updateOrder: 2
+            });
+
+            const ordered = registry.getOrderedElements();
+            expect(ordered.map(e => e.id)).toEqual(['el-1', 'el-2', 'el-3']);
+        });
+    });
 });

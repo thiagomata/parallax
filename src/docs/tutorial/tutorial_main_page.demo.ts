@@ -7,6 +7,7 @@ import {tutorial_look_at} from "./tutorial-6/tutorial_look_at.ts";
 import {tutorial_billboard} from "./tutorial-7/tutorial_billboard.ts";
 import {tutorial_observer} from "./tutorial-8/tutorial_observer.ts";
 import {tutorial_parallax} from "./tutorial-9/tutorial_parallax.ts";
+import {tutorial_interactive_box} from "./tutorial-10/tutorial_interactive_box.ts";
 
 export {
     tutorial_adding_elements,
@@ -18,4 +19,5 @@ export {
     tutorial_billboard,
     tutorial_observer,
     tutorial_parallax,
+    tutorial_interactive_box,
 };

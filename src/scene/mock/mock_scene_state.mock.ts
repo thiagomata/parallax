@@ -19,5 +19,6 @@ export function createMockState(
         } as ScenePlaybackState,
         elements: new Map(),
         projections: new Map(),
+        external: { global: {} },
     };
 }

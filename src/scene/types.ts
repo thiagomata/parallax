@@ -607,6 +607,7 @@ export interface ResolvedSceneState extends BaseSceneState {
     debugStateLog?: SceneStateDebugLog;
     elements: Map<string, ResolvedElement>;
     projections: Map<string, ResolvedProjectionWithGlobals>;
+    external: ExternalStore;
 }
 
 export const DEFAULT_CAMERA_FAR = 5000;
@@ -657,6 +658,11 @@ export interface Modifier {
 
 }
 
+export interface ExternalStore {
+    global: Record<string, unknown>;
+    [elementId: string]: Record<string, unknown>;
+}
+
 export interface ResolutionContext<TDataProviderLib extends DataProviderLib = DataProviderLib> {
     previousResolved: ResolvedSceneState | null;
     playback: ScenePlaybackState;
@@ -666,17 +672,23 @@ export interface ResolutionContext<TDataProviderLib extends DataProviderLib = Da
     dataProviders: {
         [K in keyof TDataProviderLib]: ReturnType<TDataProviderLib[K]['getData']>;
     };
+    previousStore: ExternalStore;
+    nextStore: ExternalStore;
+    element: Record<string, unknown>;
 }
 
 /** Creates a new resolution context from a resolved scene state. */
-export function createResolution<TDataProviderLib extends DataProviderLib = DataProviderLib>(state: ResolvedSceneState):  ResolutionContext<TDataProviderLib> {
+export function createResolution<TDataProviderLib extends DataProviderLib = DataProviderLib>(state: ResolvedSceneState, external: ExternalStore = { global: {} }):  ResolutionContext<TDataProviderLib> {
     return {
         elementPool: {},
         projectionPool: {},
         playback: state.playback,
         previousResolved: state,
         settings: state.settings,
-        dataProviders: {} as any
+        dataProviders: {} as any,
+        previousStore: external,
+        nextStore: external,
+        element: {},
     }
 }
 
@@ -716,6 +728,30 @@ export interface TextureRef {
     readonly alpha?: number;
 }
 
+export interface TextureSet<TKey extends string = string> {
+    readonly kind: 'texture-set';
+    readonly default: TKey;
+    readonly variants: Record<TKey, TextureRef>;
+    readonly select: (context: ResolutionContext) => TKey;
+}
+
+export type TextureSpec<TKey extends string = string> = TextureRef | TextureSet<TKey>;
+
+export function textureSet<const TVariants extends Record<string, TextureRef>>(
+    spec: {
+        readonly default: keyof TVariants & string;
+        readonly variants: TVariants;
+        readonly select: (context: ResolutionContext) => keyof TVariants & string;
+    }
+): TextureSet<keyof TVariants & string> {
+    return {
+        kind: 'texture-set',
+        default: spec.default,
+        variants: spec.variants,
+        select: spec.select,
+    };
+}
+
 export interface TextureInstance<TTexture = unknown> {
     readonly texture: TextureRef;
     readonly internalRef: TTexture;
@@ -745,6 +781,7 @@ export type FontAsset<TFont = unknown> =
 
 export interface ElementAssets<TBundle extends GraphicsBundle> {
     texture?: TextureAsset<TBundle['texture']>;
+    textureVariants?: Record<string, TextureAsset<TBundle['texture']>>;
     font?: FontAsset<TBundle['font']>;
 }
 
@@ -882,6 +919,8 @@ export const STATIC_ELEMENT_KEYS = ['type', 'texture', 'font', 'id'] as const;
 type StaticKeys = typeof STATIC_ELEMENT_KEYS[number];
 export type MapToBlueprint<T, TDataProviderLib extends DataProviderLib = DataProviderLib> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K], TDataProviderLib>; } & {
     effects?: EffectBlueprint[];
+    updateOrder?: number;
+    internal?: Record<string, unknown>;
 };
 // export type MapToDynamic<T> = { [K in keyof T]: K extends StaticKeys ? T[K] : DynamicProperty<T[K]>; } & {
 //     effects?: EffectResolutionGroup[];
@@ -959,7 +998,7 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     /** Parent  position to look at when lookMode is LOOK_AT */
     readonly lookAt?: Vector3;
 
-    readonly texture?: TextureRef;
+    readonly texture?: TextureSpec;
     readonly video?: any;
     readonly font?: FontRef;
     readonly effects?: EffectBlueprint[];
