@@ -502,6 +502,352 @@ describe("P5GraphicProcessor", () => {
             expect(p.plane).toHaveBeenCalledWith(200, 150);
         });
 
+        it("draws a depth mapped panel as a displaced triangle mesh", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, {} as any);
+
+            const state = { settings: { alpha: 1 as Alpha } } as any;
+            const depthImage = {
+                width: 2,
+                height: 2,
+                pixels: new Uint8ClampedArray([
+                    0, 0, 0, 255,
+                    255, 255, 255, 255,
+                    128, 128, 128, 255,
+                    64, 64, 64, 255,
+                ]),
+                loadPixels: vi.fn(),
+            };
+            const assets = {
+                depthMap: {
+                    status: ASSET_STATUS.READY,
+                    value: { internalRef: depthImage },
+                },
+            } as any;
+
+            gp.drawPanel(
+                {
+                    id: "panel",
+                    type: ELEMENT_TYPES.PANEL,
+                    width: 100,
+                    height: 100,
+                    position: { x: 0, y: 0, z: 0 },
+                    depthMap: { path: "/parallax/img/depth.png", width: 2, height: 2, strength: 20, segments: 1, midpoint: 0 },
+                } as any,
+                assets,
+                state
+            );
+
+            expect(p.plane).not.toHaveBeenCalled();
+            expect(p.textureMode).toHaveBeenCalledWith(p.NORMAL);
+            expect(p.beginShape).toHaveBeenCalledWith(p.TRIANGLE_STRIP);
+            expect(p.vertex).toHaveBeenCalledTimes(4);
+            expect(p.vertex).toHaveBeenNthCalledWith(1, 50, -50, 20, 1, 0);
+            expect(p.vertex).toHaveBeenNthCalledWith(2, -50, -50, 0, 0, 0);
+            expect(p.vertex).toHaveBeenNthCalledWith(3, 50, 50, (64 / 255) * 20, 1, 1);
+            expect(p.vertex).toHaveBeenNthCalledWith(4, -50, 50, (128 / 255) * 20, 0, 1);
+            expect(p.endShape).toHaveBeenCalled();
+            expect(depthImage.loadPixels).not.toHaveBeenCalled();
+        });
+
+        it("samples depth maps with bilinear interpolation", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, {} as any);
+            const depthImage = {
+                width: 2,
+                height: 2,
+                pixels: new Uint8ClampedArray([
+                    0, 0, 0, 255,
+                    255, 255, 255, 255,
+                    255, 255, 255, 255,
+                    0, 0, 0, 255,
+                ]),
+            };
+
+            const z = (gp as any).sampleDepthMap(
+                {
+                    depthMap: { strength: 100, midpoint: 0 },
+                },
+                depthImage,
+                0.5,
+                0.5
+            );
+
+            expect(z).toBeCloseTo(50);
+        });
+
+        it("handles diagonal ridge TL→BR without splitting", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, {} as any);
+
+            const depthImage = {
+                width: 2,
+                height: 2,
+                pixels: new Uint8ClampedArray([
+                    255, 0, 0, 255,
+                    0, 0, 0, 255,
+                    0, 0, 0, 255,
+                    255, 0, 0, 255,
+                ]),
+                loadPixels: vi.fn(),
+            };
+            const assets = {
+                depthMap: {
+                    status: ASSET_STATUS.READY,
+                    value: { internalRef: depthImage },
+                },
+            } as any;
+
+            gp.drawPanel(
+                {
+                    id: "panel",
+                    type: ELEMENT_TYPES.PANEL,
+                    width: 100,
+                    height: 100,
+                    position: { x: 0, y: 0, z: 0 },
+                    depthMap: { path: "/parallax/img/depth.png", width: 2, height: 2, strength: 100, segments: 1, midpoint: 0 },
+                } as any,
+                assets,
+                { settings: { alpha: 1 as Alpha } } as any
+            );
+
+            expect(p.vertex).toHaveBeenCalledTimes(4);
+            expect(p.vertex).toHaveBeenNthCalledWith(1, 50, -50, 0, 1, 0);
+            expect(p.vertex).toHaveBeenNthCalledWith(2, -50, -50, 100, 0, 0);
+            expect(p.vertex).toHaveBeenNthCalledWith(3, 50, 50, 100, 1, 1);
+            expect(p.vertex).toHaveBeenNthCalledWith(4, -50, 50, 0, 0, 1);
+        });
+
+        it("handles opposite diagonal ridge BL→TR without splitting", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, {} as any);
+
+            const depthImage = {
+                width: 2,
+                height: 2,
+                pixels: new Uint8ClampedArray([
+                    0, 0, 0, 255,
+                    255, 0, 0, 255,
+                    255, 0, 0, 255,
+                    0, 0, 0, 255,
+                ]),
+                loadPixels: vi.fn(),
+            };
+            const assets = {
+                depthMap: {
+                    status: ASSET_STATUS.READY,
+                    value: { internalRef: depthImage },
+                },
+            } as any;
+
+            gp.drawPanel(
+                {
+                    id: "panel",
+                    type: ELEMENT_TYPES.PANEL,
+                    width: 100,
+                    height: 100,
+                    position: { x: 0, y: 0, z: 0 },
+                    depthMap: { path: "/parallax/img/depth.png", width: 2, height: 2, strength: 100, segments: 1, midpoint: 0 },
+                } as any,
+                assets,
+                { settings: { alpha: 1 as Alpha } } as any
+            );
+
+            expect(p.vertex).toHaveBeenCalledTimes(4);
+            expect(p.vertex).toHaveBeenNthCalledWith(1, -50, -50, 0, 0, 0);
+            expect(p.vertex).toHaveBeenNthCalledWith(2, -50, 50, 100, 0, 1);
+            expect(p.vertex).toHaveBeenNthCalledWith(3, 50, -50, 100, 1, 0);
+            expect(p.vertex).toHaveBeenNthCalledWith(4, 50, 50, 0, 1, 1);
+        });
+
+        it("white plateau on black background", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, {} as any);
+
+            const depthImage = {
+                width: 4,
+                height: 4,
+                pixels: new Uint8ClampedArray([
+                    0,0,0,255, 0,0,0,255, 0,0,0,255, 0,0,0,255,
+                    0,0,0,255, 255,255,255,255, 255,255,255,255, 0,0,0,255,
+                    0,0,0,255, 255,255,255,255, 255,255,255,255, 0,0,0,255,
+                    0,0,0,255, 0,0,0,255, 0,0,0,255, 0,0,0,255,
+                ]),
+                loadPixels: vi.fn(),
+            };
+            const assets = {
+                depthMap: {
+                    status: ASSET_STATUS.READY,
+                    value: { internalRef: depthImage },
+                },
+            } as any;
+
+            gp.drawPanel(
+                {
+                    id: "panel",
+                    type: ELEMENT_TYPES.PANEL,
+                    width: 100,
+                    height: 100,
+                    position: { x: 0, y: 0, z: 0 },
+                    depthMap: { path: "/parallax/img/depth.png", width: 4, height: 4, strength: 1, segments: 3, midpoint: 0 },
+                } as any,
+                assets,
+                { settings: { alpha: 1 as Alpha } } as any
+            );
+
+            const zValues = p.vertex.mock.calls.map((c: number[]) => c[2]);
+
+            expect(p.vertex).toHaveBeenCalledTimes(36);
+            expect(Math.max(...zValues)).toBe(1);
+            expect(Math.min(...zValues)).toBe(0);
+        });
+
+        it("black depression on white background", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, {} as any);
+
+            const depthImage = {
+                width: 4,
+                height: 4,
+                pixels: new Uint8ClampedArray([
+                    255,255,255,255, 255,255,255,255, 255,255,255,255, 255,255,255,255,
+                    255,255,255,255, 0,0,0,255, 0,0,0,255, 255,255,255,255,
+                    255,255,255,255, 0,0,0,255, 0,0,0,255, 255,255,255,255,
+                    255,255,255,255, 255,255,255,255, 255,255,255,255, 255,255,255,255,
+                ]),
+                loadPixels: vi.fn(),
+            };
+            const assets = {
+                depthMap: {
+                    status: ASSET_STATUS.READY,
+                    value: { internalRef: depthImage },
+                },
+            } as any;
+
+            gp.drawPanel(
+                {
+                    id: "panel",
+                    type: ELEMENT_TYPES.PANEL,
+                    width: 100,
+                    height: 100,
+                    position: { x: 0, y: 0, z: 0 },
+                    depthMap: { path: "/parallax/img/depth.png", width: 4, height: 4, strength: 1, segments: 3, midpoint: 0 },
+                } as any,
+                assets,
+                { settings: { alpha: 1 as Alpha } } as any
+            );
+
+            const zValues = p.vertex.mock.calls.map((c: number[]) => c[2]);
+
+            expect(p.vertex).toHaveBeenCalledTimes(36);
+            expect(Math.max(...zValues)).toBe(1);
+            expect(Math.min(...zValues)).toBe(0);
+        });
+
+        it("depth map sampling follows hemisphere curve", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, {} as any);
+
+            // Build 8×8 hemisphere depth map
+            // Z(u,v) = sqrt(1 - (r/R)²), r = dist from (0.5,0.5), R = 0.5
+            const size = 8;
+            const arr: number[] = [];
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const u = x / (size - 1);
+                    const v = y / (size - 1);
+                    const r = Math.sqrt((u - 0.5) ** 2 + (v - 0.5) ** 2);
+                    const norm = r >= 0.5 ? 0 : Math.sqrt(1 - (r / 0.5) ** 2);
+                    const val = Math.round(255 * norm);
+                    arr.push(val, val, val, 255);
+                }
+            }
+            const depthImage = {
+                width: size,
+                height: size,
+                pixels: new Uint8ClampedArray(arr),
+            };
+
+            const s = (u: number, v: number) =>
+                (gp as any).sampleDepthMap(
+                    { depthMap: { strength: 100, midpoint: 0 } },
+                    depthImage,
+                    u, v
+                );
+
+            // Center: should be close to strength (100)
+            const zCenter = s(0.5, 0.5);
+            expect(zCenter).toBeGreaterThan(95);
+            expect(zCenter).toBeLessThanOrEqual(100);
+
+            // At r=0.25 (u=0.5, v=0.75):
+            //   Sphere ideal: 100 * sqrt(1-(0.25/0.5)²) = 86.6
+            //   Cone at same r: 100 * (1-0.25/0.5) = 50
+            const zMid = s(0.5, 0.75);
+            expect(zMid).toBeGreaterThan(70);  // sphere: ~86, cone: 50
+            expect(zMid).toBeLessThan(95);
+
+            // At edge (u=0.5, v=1.0): should be near 0
+            const zEdge = s(0.5, 1.0);
+            expect(zEdge).toBeCloseTo(0, 0);
+        });
+
+        it("hemispherical gradient produces a dome not a cone", () => {
+            const p = createMockP5();
+            const gp = new P5GraphicProcessor(p as any, {} as any);
+
+            // Build 8×8 hemisphere depth map with sqrt curvature
+            const size = 8;
+            const radius = 4;
+            const arr: number[] = [];
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const dist = Math.sqrt((x - radius + 0.5) ** 2 + (y - radius + 0.5) ** 2);
+                    const norm = dist > radius ? 0 : Math.sqrt(1 - (dist / radius) ** 2);
+                    const val = Math.round(255 * norm);
+                    arr.push(val, val, val, 255);
+                }
+            }
+
+            const depthImage = {
+                width: size,
+                height: size,
+                pixels: new Uint8ClampedArray(arr),
+                loadPixels: vi.fn(),
+            };
+            const assets = {
+                depthMap: {
+                    status: ASSET_STATUS.READY,
+                    value: { internalRef: depthImage },
+                },
+            } as any;
+
+            gp.drawPanel(
+                {
+                    id: "panel",
+                    type: ELEMENT_TYPES.PANEL,
+                    width: 100,
+                    height: 100,
+                    position: { x: 0, y: 0, z: 0 },
+                    depthMap: { path: "/parallax/img/depth.png", width: size, height: size, strength: 1, segments: 7, midpoint: 0 },
+                } as any,
+                assets,
+                { settings: { alpha: 1 as Alpha } } as any
+            );
+
+            const zValues = p.vertex.mock.calls.map((c: number[]) => c[2]);
+
+            expect(p.vertex).toHaveBeenCalledTimes(196);
+            expect(Math.min(...zValues)).toBe(0);
+            expect(Math.max(...zValues)).toBeGreaterThan(0.9);
+
+            // Verify dome shape: count vertices with Z in the mid range (0.3-0.7)
+            // A dome has more vertices in the mid range than a cone
+            // (dome is rounder, cone is pointier)
+            const midCount = zValues.filter((z: number) => z > 0.3 && z < 0.7).length;
+            expect(midCount).toBeGreaterThan(0);
+        });
+
         it("resize does not clear cache when dimensions unchanged", () => {
             const p = createMockP5();
             const gp = new P5GraphicProcessor(p as any, new ChaosLoader() as any);

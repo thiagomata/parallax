@@ -437,7 +437,7 @@ export async function tutorial_observer(
                     z: panelPosition.z + panelScreenZDistance,
                 },
                 video: videoSelector,
-                fillColor:  COLORS.blue,
+                fallbackColor:  COLORS.blue,
             });
 
             initialized = true;

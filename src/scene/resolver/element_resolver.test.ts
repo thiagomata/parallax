@@ -167,4 +167,34 @@ describe("ElementResolver", () => {
         });
         expect(activeResolved.assets.texture?.value?.texture.path).toBe("/parallax/img/arrow.png");
     });
+
+    it("preloads panel depth maps through the texture loader", async () => {
+        const resolver = new ElementResolver<any, any>({});
+        const loader = {
+            hydrateTexture: vi.fn((ref: any) => Promise.resolve({
+                status: ASSET_STATUS.READY,
+                value: { texture: ref, internalRef: { id: ref.path } },
+            })),
+            hydrateFont: vi.fn(),
+            waitForAllAssets: vi.fn(),
+        } as any;
+
+        const bundle = resolver.prepare(
+            {
+                id: "panel-1",
+                type: ELEMENT_TYPES.PANEL,
+                width: 20,
+                height: 20,
+                position: { x: 0, y: 0, z: 0 },
+                depthMap: { path: "/parallax/img/depth.png", width: 100, height: 100 },
+            } as any,
+            loader
+        );
+
+        await Promise.resolve();
+
+        expect(loader.hydrateTexture).toHaveBeenCalledWith({ path: "/parallax/img/depth.png", width: 100, height: 100 });
+        expect(bundle.assets.depthMap?.status).toBe(ASSET_STATUS.READY);
+        expect(bundle.assets.depthMap?.value?.texture.path).toBe("/parallax/img/depth.png");
+    });
 });

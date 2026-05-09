@@ -25,6 +25,9 @@ describe("sketch_engine.live", () => {
 
             const worldModule = getModule("world");
             expect(worldModule).toHaveProperty("World");
+
+            const appPathsModule = getModule("../../../utils/app_paths.ts");
+            expect(appPathsModule).toHaveProperty("appAssetPath");
         });
 
         it("returns default undefined for unknown paths", async () => {

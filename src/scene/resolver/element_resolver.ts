@@ -31,7 +31,7 @@ export class ElementResolver<
      * Properties protected from the Dynamic Engine.
      * These remain static IDs or metadata used by the Loader/Processor.
      */
-    readonly staticKeys: string[] = ["texture", "font", "id", "type", "effects"];
+    readonly staticKeys: string[] = ["texture", "depthMap", "font", "id", "type", "effects"];
 
     constructor(effectLib: TEffectLib= {} as TEffectLib) {
         super(effectLib);
@@ -52,6 +52,10 @@ export class ElementResolver<
 
         const assets: ElementAssets<TGraphicBundle> = {
             texture: blueprint.texture ? {status: ASSET_STATUS.PENDING, value: null} : {
+                status: ASSET_STATUS.READY,
+                value: null
+            },
+            depthMap: blueprint.depthMap ? {status: ASSET_STATUS.PENDING, value: null} : {
                 status: ASSET_STATUS.READY,
                 value: null
             },
@@ -76,6 +80,11 @@ export class ElementResolver<
                 loader.hydrateTexture(blueprint.texture)
                     .then(asset => assets.texture = asset);
             }
+        }
+
+        if (blueprint.depthMap) {
+            loader.hydrateTexture(blueprint.depthMap)
+                .then(asset => assets.depthMap = asset);
         }
 
         if (blueprint.font) {

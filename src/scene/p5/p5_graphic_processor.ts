@@ -39,6 +39,7 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
     private videoResolver: P5VideoResolver;
 
     private centerOffsetCache = new Map<string, Vector3>();
+    private depthMapGridCache = new Map<string, number[]>();
     private lastWidth = 0;
     private lastHeight = 0;
 
@@ -135,8 +136,209 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
 
         const { width: drawWidth, height: drawHeight } = this.computeFitDimensions(props, assets);
 
-        this.p.plane(drawWidth, drawHeight);
+        if (assets.depthMap?.status === ASSET_STATUS.READY && assets.depthMap.value) {
+            this.drawDepthMappedPanel(props, assets.depthMap.value.internalRef, drawWidth, drawHeight);
+        } else {
+            this.p.plane(drawWidth, drawHeight);
+        }
         this.p.pop();
+    }
+
+    private drawDepthMappedPanel(
+        props: ResolvedPanel,
+        depthMap: p5.Image,
+        drawWidth: number,
+        drawHeight: number
+    ): void {
+        const dm = props.depthMap;
+        const segments = this.getDepthMapSegments(dm);
+        const strength = dm?.strength ?? 40;
+        const midpoint = dm?.midpoint ?? 0.5;
+        const invert = dm?.invert ?? false;
+        const mode = dm?.sampleMode ?? "average";
+
+        this.prepareDepthMapPixels(depthMap);
+        const grid = this.getOrCreateDepthMapGrid(props.id, segments, depthMap, mode);
+        this.p.textureMode(this.p.NORMAL);
+
+        for (let row = 0; row < segments; row++) {
+            for (let col = 0; col < segments; col++) {
+                const u0 = col / segments;
+                const u1 = (col + 1) / segments;
+                const v0 = row / segments;
+                const v1 = (row + 1) / segments;
+
+                const tlIdx = row * (segments + 1) + col;
+                const trIdx = row * (segments + 1) + col + 1;
+                const blIdx = (row + 1) * (segments + 1) + col;
+                const brIdx = (row + 1) * (segments + 1) + col + 1;
+
+                const rawTl = grid[tlIdx];
+                const rawTr = grid[trIdx];
+                const rawBl = grid[blIdx];
+                const rawBr = grid[brIdx];
+
+                const zTl = ((invert ? 1 - rawTl : rawTl) - midpoint) * strength;
+                const zTr = ((invert ? 1 - rawTr : rawTr) - midpoint) * strength;
+                const zBl = ((invert ? 1 - rawBl : rawBl) - midpoint) * strength;
+                const zBr = ((invert ? 1 - rawBr : rawBr) - midpoint) * strength;
+
+                const x0 = (u0 - 0.5) * drawWidth;
+                const x1 = (u1 - 0.5) * drawWidth;
+                const y0 = (v0 - 0.5) * drawHeight;
+                const y1 = (v1 - 0.5) * drawHeight;
+
+                const diffRidge = Math.abs(zTl - zBr);
+                const diffCross = Math.abs(zBl - zTr);
+                const useRidgeDiag = diffRidge < diffCross || (diffRidge === diffCross && zTl + zBr >= zBl + zTr);
+
+                this.p.beginShape(this.p.TRIANGLE_STRIP);
+                if (useRidgeDiag) {
+                    this.p.vertex(x1, y0, zTr, u1, v0);
+                    this.p.vertex(x0, y0, zTl, u0, v0);
+                    this.p.vertex(x1, y1, zBr, u1, v1);
+                    this.p.vertex(x0, y1, zBl, u0, v1);
+                } else {
+                    this.p.vertex(x0, y0, zTl, u0, v0);
+                    this.p.vertex(x0, y1, zBl, u0, v1);
+                    this.p.vertex(x1, y0, zTr, u1, v0);
+                    this.p.vertex(x1, y1, zBr, u1, v1);
+                }
+                this.p.endShape();
+            }
+        }
+    }
+
+    private getOrCreateDepthMapGrid(
+        panelId: string,
+        segments: number,
+        depthMap: p5.Image,
+        mode: string
+    ): number[] {
+        const img = depthMap as any;
+        const srcW = Math.max(1, img.width);
+        const srcH = Math.max(1, img.height);
+        const key = `${panelId}|${segments}|${srcW}x${srcH}|${mode}`;
+
+        let grid = this.depthMapGridCache.get(key);
+        if (grid) return grid;
+
+        const pixels = img.pixels as number[] | Uint8ClampedArray | undefined;
+        if (!pixels || pixels.length === 0) {
+            grid = new Array((segments + 1) * (segments + 1)).fill(0);
+            this.depthMapGridCache.set(key, grid);
+            return grid;
+        }
+
+        const n = segments + 1;
+        const m = srcW - 1;
+        const p = srcH - 1;
+        grid = new Array(n * n);
+
+        for (let j = 0; j < n; j++) {
+            for (let i = 0; i < n; i++) {
+                if (mode === "bilinear") {
+                    const u = i / segments;
+                    const v = j / segments;
+                    grid[j * n + i] = this.sampleDepthMapBilinear(pixels, srcW, srcH, u, v);
+                    continue;
+                }
+
+                const uMin = Math.max(0, (i - 0.5) / segments);
+                const uMax = Math.min(1, (i + 0.5) / segments);
+                const vMin = Math.max(0, (j - 0.5) / segments);
+                const vMax = Math.min(1, (j + 0.5) / segments);
+
+                const pxMin = Math.max(0, Math.ceil(uMin * m - 0.5 + 1e-9));
+                const pxMax = Math.min(srcW - 1, Math.floor(uMax * m + 0.5 - 1e-9));
+                const pyMin = Math.max(0, Math.ceil(vMin * p - 0.5 + 1e-9));
+                const pyMax = Math.min(srcH - 1, Math.floor(vMax * p + 0.5 - 1e-9));
+
+                let agg = mode === "max" ? 0 : mode === "min" ? Infinity : 0;
+                let count = 0;
+                for (let py = pyMin; py <= pyMax; py++) {
+                    for (let px = pxMin; px <= pxMax; px++) {
+                        const sample = pixels[(py * srcW + px) * 4] / 255;
+                        if (mode === "max") {
+                            agg = Math.max(agg, sample);
+                        } else if (mode === "min") {
+                            agg = Math.min(agg, sample);
+                        } else {
+                            agg += sample;
+                        }
+                        count++;
+                    }
+                }
+                grid[j * n + i] = mode === "average"
+                    ? (count > 0 ? agg / count : 0)
+                    : (count > 0 ? agg : 0);
+            }
+        }
+
+        this.depthMapGridCache.set(key, grid);
+        return grid;
+    }
+
+    private getDepthMapSegments(depthMap: ResolvedPanel['depthMap']): number {
+        const requested = depthMap?.segments ?? 32;
+        return Math.max(1, Math.min(1024, Math.floor(requested)));
+    }
+
+    private prepareDepthMapPixels(depthMap: p5.Image): void {
+        const image = depthMap as any;
+        if (typeof image.loadPixels === "function" && (!image.pixels || image.pixels.length === 0)) {
+            image.loadPixels();
+        }
+    }
+
+    private sampleDepthMap(props: ResolvedPanel, depthMap: p5.Image, u: number, v: number): number {
+        const image = depthMap as any;
+        const dm = props.depthMap;
+        const width = Math.max(1, Math.floor(image.width ?? dm?.width ?? 1));
+        const height = Math.max(1, Math.floor(image.height ?? dm?.height ?? 1));
+        let brightness = this.sampleDepthMapBilinear(image.pixels as number[] | Uint8ClampedArray | undefined, width, height, u, v);
+
+        if (dm?.invert) {
+            brightness = 1 - brightness;
+        }
+
+        const strength = dm?.strength ?? 40;
+        const midpoint = dm?.midpoint ?? 0.5;
+        return (brightness - midpoint) * strength;
+    }
+
+    private sampleDepthMapBilinear(
+        pixels: number[] | Uint8ClampedArray | undefined,
+        width: number,
+        height: number,
+        u: number,
+        v: number
+    ): number {
+        if (!pixels || pixels.length < width * height * 4) {
+            return 0;
+        }
+
+        const x = Math.min(width - 1, Math.max(0, u * (width - 1)));
+        const y = Math.min(height - 1, Math.max(0, v * (height - 1)));
+        const x0 = Math.floor(x);
+        const y0 = Math.floor(y);
+        const x1 = Math.min(width - 1, x0 + 1);
+        const y1 = Math.min(height - 1, y0 + 1);
+        const tx = x - x0;
+        const ty = y - y0;
+
+        const top = this.lerp(this.sampleDepthMapPixel(pixels, width, x0, y0), this.sampleDepthMapPixel(pixels, width, x1, y0), tx);
+        const bottom = this.lerp(this.sampleDepthMapPixel(pixels, width, x0, y1), this.sampleDepthMapPixel(pixels, width, x1, y1), tx);
+        return this.lerp(top, bottom, ty);
+    }
+
+    private sampleDepthMapPixel(
+        pixels: number[] | Uint8ClampedArray,
+        width: number,
+        x: number,
+        y: number
+    ): number {
+        return pixels[(y * width + x) * 4] / 255;
     }
 
     private computeFitDimensions(props: ResolvedPanel, assets: ElementAssets<P5Bundler>): { width: number; height: number } {
@@ -327,9 +529,10 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
             }
         } else {
             this.p.noTint();
-            if (props.fillColor) {
-                const f = props.fillColor;
-                this.fill(f, combinedAlpha);
+            if (props.fallbackColor) {
+                this.fill(props.fallbackColor, combinedAlpha);
+            } else if (props.fillColor) {
+                this.fill(props.fillColor, combinedAlpha);
             } else {
                 this.p.noFill();
             }

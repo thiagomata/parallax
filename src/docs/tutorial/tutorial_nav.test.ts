@@ -27,7 +27,7 @@ describe("tutorial_nav", () => {
         expect(links).toHaveLength(2);
         expect(links[0].getAttribute("href")).toBe("../index.html");
         expect(links[1].getAttribute("href")).toBe("../tutorial-2/index.html");
-        expect(nav!.textContent).toContain("1 / 10");
+        expect(nav!.textContent).toContain("1 / 11");
     });
 
     it("creates nav for middle tutorial (shows prev and next)", async () => {
@@ -47,7 +47,7 @@ describe("tutorial_nav", () => {
         expect(links[1].getAttribute("href")).toBe("../tutorial-6/index.html");
     });
 
-    it("creates nav for last tutorial (shows prev only)", async () => {
+    it("creates nav for tutorial 10 with a next link", async () => {
         vi.stubGlobal("window", {
             location: new URL("http://localhost/tutorial-10/index.html"),
         });
@@ -61,7 +61,26 @@ describe("tutorial_nav", () => {
         const links = nav!.querySelectorAll("a");
         expect(links).toHaveLength(2);
         expect(links[0].getAttribute("href")).toBe("../tutorial-9/index.html");
+        expect(links[1].getAttribute("href")).toBe("../tutorial-11/index.html");
+        expect(nav!.textContent).toContain("10 / 11");
+    });
+
+    it("creates nav for last tutorial (shows prev only)", async () => {
+        vi.stubGlobal("window", {
+            location: new URL("http://localhost/tutorial-11/index.html"),
+        });
+        document.body.innerHTML = "";
+
+        const { initTutorialNav } = await import("./tutorial_nav.ts");
+        initTutorialNav();
+
+        const nav = document.querySelector("nav.tutorial-nav");
+        expect(nav).toBeTruthy();
+        const links = nav!.querySelectorAll("a");
+        expect(links).toHaveLength(2);
+        expect(links[0].getAttribute("href")).toBe("../tutorial-10/index.html");
         expect(links[1].getAttribute("href")).toBe("../index.html");
+        expect(nav!.textContent).toContain("11 / 11");
     });
 
     it("replaces existing nav when called twice", async () => {
@@ -75,6 +94,6 @@ describe("tutorial_nav", () => {
 
         const navs = document.querySelectorAll("nav.tutorial-nav");
         expect(navs).toHaveLength(1);
-        expect(navs[0].textContent).toContain("2 / 10");
+        expect(navs[0].textContent).toContain("2 / 11");
     });
 });
