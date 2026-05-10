@@ -126,6 +126,8 @@ export function createMockP5(): any {
         
         WEBGL: 'webgl',
         NORMAL: 'normal',
+        TRIANGLES: 'triangles',
+        TRIANGLE_STRIP: 'triangle_strip',
         setup: vi.fn(),
         draw: vi.fn(),
         

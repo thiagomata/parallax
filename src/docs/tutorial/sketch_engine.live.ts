@@ -24,6 +24,7 @@ import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifi
 import { HEAD_TRACKED_PRESET } from "../../scene/presets.ts";
 import { COLORS } from "../../scene/colors.ts";
 import { DEFAULT_SKETCH_CONFIG, type P5Sketch } from "./sketch_engine.types.ts";
+import { APP_BASE_URL, appAssetPath } from "../../utils/app_paths.ts";
 
 /**
  * ARCHITECTURAL EXPOSURE
@@ -54,6 +55,8 @@ Object.assign(window, {
     HeadTrackingDataProvider,
     HeadTrackingModifier,
     COLORS,
+    APP_BASE_URL,
+    appAssetPath,
 });
 
 const moduleExports: Record<string, Record<string, unknown>> = {
@@ -113,6 +116,10 @@ const moduleExports: Record<string, Record<string, unknown>> = {
     },
     'colors': {
         COLORS: (window as Window & typeof globalThis & { COLORS: typeof COLORS }).COLORS,
+    },
+    'app_paths': {
+        APP_BASE_URL: (window as Window & typeof globalThis & { APP_BASE_URL: typeof APP_BASE_URL }).APP_BASE_URL,
+        appAssetPath: (window as Window & typeof globalThis & { appAssetPath: typeof appAssetPath }).appAssetPath,
     },
     'p5': {
         default: (window as Window & typeof globalThis & { p5: typeof p5 }).p5,

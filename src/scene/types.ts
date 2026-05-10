@@ -728,6 +728,16 @@ export interface TextureRef {
     readonly alpha?: number;
 }
 
+export interface DepthMapRef extends TextureRef {
+    readonly sampleMode?: DepthMapSampleMode;
+    readonly strength?: number;
+    readonly segments?: number;
+    readonly midpoint?: number;
+    readonly invert?: boolean;
+}
+
+export type DepthMapSampleMode = "average" | "max" | "min" | "bilinear";
+
 export interface TextureSet<TKey extends string = string> {
     readonly kind: 'texture-set';
     readonly default: TKey;
@@ -782,6 +792,7 @@ export type FontAsset<TFont = unknown> =
 export interface ElementAssets<TBundle extends GraphicsBundle> {
     texture?: TextureAsset<TBundle['texture']>;
     textureVariants?: Record<string, TextureAsset<TBundle['texture']>>;
+    depthMap?: TextureAsset<TBundle['texture']>;
     font?: FontAsset<TBundle['font']>;
 }
 
@@ -915,7 +926,7 @@ export type FlexibleSpec<T, TDataProviderLib extends DataProviderLib = DataProvi
     | (T extends object ? BlueprintTree<T, TDataProviderLib> : never);
 export type BlueprintTree<T, TDataProviderLib extends DataProviderLib = DataProviderLib> = { [K in keyof T]?: FlexibleSpec<T[K], TDataProviderLib>; };
 
-export const STATIC_ELEMENT_KEYS = ['type', 'texture', 'font', 'id'] as const;
+export const STATIC_ELEMENT_KEYS = ['type', 'texture', 'depthMap', 'font', 'id'] as const;
 type StaticKeys = typeof STATIC_ELEMENT_KEYS[number];
 export type MapToBlueprint<T, TDataProviderLib extends DataProviderLib = DataProviderLib> = { -readonly [K in keyof T]: K extends StaticKeys ? T[K] : FlexibleSpec<T[K], TDataProviderLib>; } & {
     effects?: EffectBlueprint[];
@@ -986,6 +997,7 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     readonly alpha?: Alpha;
 
     readonly fillColor?: ColorRGBA;
+    readonly fallbackColor?: ColorRGBA;
     readonly strokeColor?: ColorRGBA;
     readonly strokeWidth?: number;
 
@@ -999,6 +1011,7 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     readonly lookAt?: Vector3;
 
     readonly texture?: TextureSpec;
+    readonly depthMap?: DepthMapRef;
     readonly video?: any;
     readonly font?: FontRef;
     readonly effects?: EffectBlueprint[];
