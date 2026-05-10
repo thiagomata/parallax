@@ -550,32 +550,6 @@ describe("P5GraphicProcessor", () => {
             expect(depthImage.loadPixels).not.toHaveBeenCalled();
         });
 
-        it("samples depth maps with bilinear interpolation", () => {
-            const p = createMockP5();
-            const gp = new P5GraphicProcessor(p as any, {} as any);
-            const depthImage = {
-                width: 2,
-                height: 2,
-                pixels: new Uint8ClampedArray([
-                    0, 0, 0, 255,
-                    255, 255, 255, 255,
-                    255, 255, 255, 255,
-                    0, 0, 0, 255,
-                ]),
-            };
-
-            const z = (gp as any).sampleDepthMap(
-                {
-                    depthMap: { strength: 100, midpoint: 0 },
-                },
-                depthImage,
-                0.5,
-                0.5
-            );
-
-            expect(z).toBeCloseTo(50);
-        });
-
         it("handles diagonal ridge TL→BR without splitting", () => {
             const p = createMockP5();
             const gp = new P5GraphicProcessor(p as any, {} as any);
@@ -742,54 +716,6 @@ describe("P5GraphicProcessor", () => {
             expect(p.vertex).toHaveBeenCalledTimes(36);
             expect(Math.max(...zValues)).toBe(1);
             expect(Math.min(...zValues)).toBe(0);
-        });
-
-        it("depth map sampling follows hemisphere curve", () => {
-            const p = createMockP5();
-            const gp = new P5GraphicProcessor(p as any, {} as any);
-
-            // Build 8×8 hemisphere depth map
-            // Z(u,v) = sqrt(1 - (r/R)²), r = dist from (0.5,0.5), R = 0.5
-            const size = 8;
-            const arr: number[] = [];
-            for (let y = 0; y < size; y++) {
-                for (let x = 0; x < size; x++) {
-                    const u = x / (size - 1);
-                    const v = y / (size - 1);
-                    const r = Math.sqrt((u - 0.5) ** 2 + (v - 0.5) ** 2);
-                    const norm = r >= 0.5 ? 0 : Math.sqrt(1 - (r / 0.5) ** 2);
-                    const val = Math.round(255 * norm);
-                    arr.push(val, val, val, 255);
-                }
-            }
-            const depthImage = {
-                width: size,
-                height: size,
-                pixels: new Uint8ClampedArray(arr),
-            };
-
-            const s = (u: number, v: number) =>
-                (gp as any).sampleDepthMap(
-                    { depthMap: { strength: 100, midpoint: 0 } },
-                    depthImage,
-                    u, v
-                );
-
-            // Center: should be close to strength (100)
-            const zCenter = s(0.5, 0.5);
-            expect(zCenter).toBeGreaterThan(95);
-            expect(zCenter).toBeLessThanOrEqual(100);
-
-            // At r=0.25 (u=0.5, v=0.75):
-            //   Sphere ideal: 100 * sqrt(1-(0.25/0.5)²) = 86.6
-            //   Cone at same r: 100 * (1-0.25/0.5) = 50
-            const zMid = s(0.5, 0.75);
-            expect(zMid).toBeGreaterThan(70);  // sphere: ~86, cone: 50
-            expect(zMid).toBeLessThan(95);
-
-            // At edge (u=0.5, v=1.0): should be near 0
-            const zEdge = s(0.5, 1.0);
-            expect(zEdge).toBeCloseTo(0, 0);
         });
 
         it("hemispherical gradient produces a dome not a cone", () => {
