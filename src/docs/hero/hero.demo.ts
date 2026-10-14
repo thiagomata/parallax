@@ -5,9 +5,10 @@ import 'prismjs/components/prism-javascript';
 import '@fortawesome/fontawesome-free/css/all.css';
 import '../../docs/style/style.css';
 import '../../docs/style/tutorial.css';
+import './figcraft.css';
 
-import {heroParallax, heroParallaxExplanation} from "./hero_parallax.ts";
-import heroCode from './hero_parallax.ts?raw';
+import {figcraftParallax, figcraftExplanation} from "./figcraft_parallax.ts";
+import heroCode from './figcraft_parallax.ts?raw';
 
 import { 
     DEFAULT_SKETCH_CONFIG, 
@@ -18,6 +19,12 @@ import {
 import { extractSketchFunction } from "../tutorial/sketch_engine.live.ts";
 
 import {tutorialStepTemplate} from "../tutorial/tutorial.template.ts";
+
+function controlIcon(paused: boolean): string {
+    return paused
+        ? '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4v16l13-8z"/></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>';
+}
 
 export async function renderStep(
     containerId: string,
@@ -60,12 +67,26 @@ export async function renderStep(
 
     const editorBox = stepMain.querySelector('.editor-box') as HTMLElement;
     const canvasBox = stepMain.querySelector('.canvas-box') as HTMLElement;
+    canvasBox.dataset.aspectRatio = String(1654 / 1323);
     const consolePanel = stepMain.querySelector('.console-panel') as HTMLElement;
 
     const playBtn = stepMain.querySelector('.play-btn') as HTMLButtonElement;
     const resetBtn = stepMain.querySelector('.reset-btn') as HTMLButtonElement;
     const copyBtn = stepMain.querySelector('.copy-btn') as HTMLButtonElement;
     const pauseBtn = stepMain.querySelector('.pause-btn') as HTMLButtonElement;
+
+    playBtn.innerHTML = controlIcon(true);
+    playBtn.setAttribute('aria-label', 'Run code');
+    resetBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></svg>';
+    resetBtn.setAttribute('aria-label', 'Reset code');
+    copyBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 4H4v11" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+    copyBtn.setAttribute('aria-label', 'Copy code');
+    pauseBtn.innerHTML = controlIcon(false);
+    pauseBtn.setAttribute('aria-label', 'Pause');
+    stepMain.querySelectorAll('.fullscreen-btn').forEach(button => {
+        button.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></svg>';
+        button.setAttribute('aria-label', 'Fullscreen');
+    });
 
     const sketchConfig: SketchConfig = { 
         ...DEFAULT_SKETCH_CONFIG, 
@@ -75,6 +96,17 @@ export async function renderStep(
         paused: false 
     };
     
+    const heading = document.querySelector('header h1');
+    const pageTitle = heading?.textContent?.split(' — Zoom')[0] ?? 'Parallax';
+    canvasBox.addEventListener('observerchange', event => {
+        const { zoom, closeness } = (event as CustomEvent<{ zoom: number; closeness: number }>).detail;
+        const shade = Math.round(closeness * 255);
+        canvasBox.style.borderColor = `rgb(${shade}, ${shade}, ${shade})`;
+        const title = `${pageTitle} — Zoom ${Math.round(zoom * 100)}%`;
+        if (heading && heading.textContent !== title) heading.textContent = title;
+        if (document.title !== title) document.title = title;
+    });
+
     let { currentP5 } = await sketchEngine.createSketchInstance(
         initialSketch, 
         sketchConfig, 
@@ -115,7 +147,8 @@ export async function renderStep(
 
             sketchConfig.paused = false;
             pauseBtn.dataset.paused = 'false';
-            pauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            pauseBtn.innerHTML = controlIcon(false);
+            pauseBtn.setAttribute('aria-label', 'Pause');
 
             const log = document.createElement('div');
             log.className = 'log-entry info';
@@ -179,14 +212,16 @@ export async function renderStep(
             currentP5.loop();
             sketchConfig.paused = false;
             pauseBtn.dataset.paused = 'false';
-            pauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            pauseBtn.innerHTML = controlIcon(false);
+            pauseBtn.setAttribute('aria-label', 'Pause');
         } else {
             currentP5.noLoop();
             sketchConfig.paused = true;
             pauseBtn.dataset.paused = 'true';
-            pauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+            pauseBtn.innerHTML = controlIcon(true);
+            pauseBtn.setAttribute('aria-label', 'Resume');
         }
     });
 }
 
-renderStep('hero-demo-1', 'Face-following parallax demo', heroParallax, heroCode, heroParallaxExplanation);
+renderStep('hero-demo-1', 'Living Parallax', figcraftParallax, heroCode, figcraftExplanation);

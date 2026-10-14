@@ -370,6 +370,10 @@ export class World<
         };
     }
 
+    public resizeViewport(width: number, height: number): void {
+        this.stage.updateWindowConfig(WindowConfig.create({ width, height }));
+    }
+
     public async step(gp: GraphicProcessor<TBundle>): Promise<WorldStepResult> {
         if (this._status !== 'ready' && this._status !== 'error') {
             return { running: false, error: null, status: this._status, errorCount: this._errorCount };

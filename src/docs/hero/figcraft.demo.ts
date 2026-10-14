@@ -1,0 +1,227 @@
+import Prism from 'prismjs';
+import 'prismjs/themes/prism-tomorrow.css';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-javascript';
+import '@fortawesome/fontawesome-free/css/all.css';
+import '../../docs/style/style.css';
+import '../../docs/style/tutorial.css';
+import './figcraft.css';
+
+import {figcraftParallax, figcraftExplanation} from "./figcraft_parallax.ts";
+import heroCode from './figcraft_parallax.ts?raw';
+
+import { 
+    DEFAULT_SKETCH_CONFIG, 
+    type SketchConfig,
+    sketchEngine,
+    type P5Sketch,
+} from "../tutorial/sketch_engine.ts";
+import { extractSketchFunction } from "../tutorial/sketch_engine.live.ts";
+
+import {tutorialStepTemplate} from "../tutorial/tutorial.template.ts";
+
+function controlIcon(paused: boolean): string {
+    return paused
+        ? '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4v16l13-8z"/></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>';
+}
+
+export async function renderStep(
+    containerId: string,
+    title: string,
+    initialSketch: P5Sketch,
+    source: string,
+    explanation: string = '',
+    config: Partial<SketchConfig> = {}
+) {
+    const root = document.getElementById('tutorial-root');
+    if (!root) return;
+
+    let stepMain = document.getElementById(`step-${containerId}`);
+    if (!stepMain) {
+        stepMain = tutorialStepTemplate({ containerId, title, source, explanation });
+        root.appendChild(stepMain);
+    } else {
+        // Update existing content
+        const previewSection = stepMain.querySelector('[data-content="preview"]');
+        const codeSection = stepMain.querySelector('[data-content="code"]');
+        const learnSection = stepMain.querySelector('[data-content="learn"]');
+        
+        if (previewSection) {
+            const anchor = previewSection.querySelector('.step-anchor');
+            if (anchor) anchor.innerHTML = `<span>${title}</span>`;
+        }
+        if (codeSection) {
+            const anchor = codeSection.querySelector('.step-anchor');
+            if (anchor) anchor.innerHTML = `<div class="status-dot"></div><span>${title}</span>`;
+            const codeEl = codeSection.querySelector('.editor-box code');
+            if (codeEl) {
+                codeEl.innerHTML = Prism.highlight(source, Prism.languages.typescript, 'typescript');
+            }
+        }
+        if (learnSection) {
+            const learnContent = learnSection.querySelector('.learn-content');
+            if (learnContent) learnContent.innerHTML = explanation;
+        }
+    }
+
+    const editorBox = stepMain.querySelector('.editor-box') as HTMLElement;
+    const canvasBox = stepMain.querySelector('.canvas-box') as HTMLElement;
+    canvasBox.dataset.aspectRatio = String(1654 / 1323);
+    const consolePanel = stepMain.querySelector('.console-panel') as HTMLElement;
+
+    const playBtn = stepMain.querySelector('.play-btn') as HTMLButtonElement;
+    const resetBtn = stepMain.querySelector('.reset-btn') as HTMLButtonElement;
+    const copyBtn = stepMain.querySelector('.copy-btn') as HTMLButtonElement;
+    const pauseBtn = stepMain.querySelector('.pause-btn') as HTMLButtonElement;
+
+    playBtn.innerHTML = controlIcon(true);
+    playBtn.setAttribute('aria-label', 'Run code');
+    resetBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></svg>';
+    resetBtn.setAttribute('aria-label', 'Reset code');
+    copyBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 4H4v11" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+    copyBtn.setAttribute('aria-label', 'Copy code');
+    pauseBtn.innerHTML = controlIcon(false);
+    pauseBtn.setAttribute('aria-label', 'Pause');
+    stepMain.querySelectorAll('.fullscreen-btn').forEach(button => {
+        button.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></svg>';
+        button.setAttribute('aria-label', 'Fullscreen');
+    });
+
+    const sketchConfig: SketchConfig = { 
+        ...DEFAULT_SKETCH_CONFIG, 
+        ...config, 
+        width: canvasBox?.clientWidth || 500, 
+        height: canvasBox?.clientHeight || 400, 
+        paused: false 
+    };
+    
+    const heading = document.querySelector('header h1');
+    const pageTitle = heading?.textContent?.split(' — Zoom')[0] ?? 'Parallax';
+    canvasBox.addEventListener('observerchange', event => {
+        const { zoom, closeness } = (event as CustomEvent<{ zoom: number; closeness: number }>).detail;
+        const shade = Math.round(closeness * 255);
+        canvasBox.style.borderColor = `rgb(${shade}, ${shade}, ${shade})`;
+        const title = `${pageTitle} — Zoom ${Math.round(zoom * 100)}%`;
+        if (heading && heading.textContent !== title) heading.textContent = title;
+        if (document.title !== title) document.title = title;
+    });
+
+    let { currentP5 } = await sketchEngine.createSketchInstance(
+        initialSketch, 
+        sketchConfig, 
+        canvasBox, 
+        containerId
+    );
+
+    // Tab switching
+    const tabBtns = stepMain.querySelectorAll('.tab-btn');
+    const contentSections = stepMain.querySelectorAll('.step-content');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.getAttribute('data-tab');
+            
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            contentSections.forEach(section => {
+                if (section.getAttribute('data-content') === tab) {
+                    section.classList.add('active');
+                } else {
+                    section.classList.remove('active');
+                }
+            });
+        });
+    });
+
+    const executeUpdate = async () => {
+        consolePanel.style.display = 'block';
+        consolePanel.innerHTML = '';
+
+        try {
+            const { fn } = extractSketchFunction(editorBox.innerText);
+            
+            const result = await sketchEngine.createSketchInstance(fn, sketchConfig, canvasBox, containerId);
+            currentP5 = result.currentP5;
+
+            sketchConfig.paused = false;
+            pauseBtn.dataset.paused = 'false';
+            pauseBtn.innerHTML = controlIcon(false);
+            pauseBtn.setAttribute('aria-label', 'Pause');
+
+            const log = document.createElement('div');
+            log.className = 'log-entry info';
+            log.textContent = `[Engine] Hydration successful.`;
+            consolePanel.appendChild(log);
+        } catch (e: unknown) {
+            console.error('executeUpdate error:', e);
+            const log = document.createElement('div');
+            log.className = 'log-entry info';
+            log.style.color = 'var(--error)';
+            log.textContent = e instanceof Error ? `Error: ${e.message}\n\nStack:\n${e.stack}` : String(e);
+            log.style.whiteSpace = 'pre-wrap';
+            log.style.fontSize = '11px';
+            consolePanel.appendChild(log);
+        }
+    };
+
+    playBtn.addEventListener('click', executeUpdate);
+
+    resetBtn.addEventListener('click', () => {
+        const codeEl = stepMain.querySelector('.editor-box code');
+        if (codeEl) {
+            codeEl.innerHTML = Prism.highlight(source, Prism.languages.typescript, 'typescript');
+        }
+        executeUpdate();
+    });
+
+    copyBtn.addEventListener('click', () => navigator.clipboard.writeText(editorBox.innerText));
+
+    // Fullscreen button - hidden on mobile
+    const isMobile = () => 
+        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints > 0 && window.innerWidth < 769);
+    
+    stepMain.querySelectorAll('.fullscreen-btn').forEach(btn => {
+        if (isMobile()) {
+            (btn as HTMLElement).style.display = 'none';
+            return;
+        }
+        
+        btn.addEventListener('click', () => {
+            const canvasBox = stepMain.querySelector('.canvas-box');
+            if (canvasBox) {
+                if (document.fullscreenElement || (document as Document & { webkitFullscreenElement?: Element }).webkitFullscreenElement) {
+                    document.exitFullscreen?.() || (document as Document & { webkitExitFullscreen?: () => void }).webkitExitFullscreen?.();
+                } else {
+                    const requestFS = 
+                        canvasBox.requestFullscreen?.bind(canvasBox) ||
+                        (canvasBox as HTMLElement & { webkitRequestFullscreen?: () => void }).webkitRequestFullscreen?.bind(canvasBox);
+                    requestFS?.();
+                }
+            }
+        });
+    });
+
+    pauseBtn.addEventListener('click', () => {
+        if (!currentP5) return;
+        const paused = pauseBtn.dataset.paused === 'true';
+
+        if (paused) {
+            currentP5.loop();
+            sketchConfig.paused = false;
+            pauseBtn.dataset.paused = 'false';
+            pauseBtn.innerHTML = controlIcon(false);
+            pauseBtn.setAttribute('aria-label', 'Pause');
+        } else {
+            currentP5.noLoop();
+            sketchConfig.paused = true;
+            pauseBtn.dataset.paused = 'true';
+            pauseBtn.innerHTML = controlIcon(true);
+            pauseBtn.setAttribute('aria-label', 'Resume');
+        }
+    });
+}
+
+renderStep('hero-demo-1', 'FigCraft layered parallax', figcraftParallax, heroCode, figcraftExplanation);

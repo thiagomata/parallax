@@ -64,7 +64,7 @@ describe("Sketch bootstrap modules", () => {
             return 1;
         });
 
-        const sketchFn = vi.fn().mockResolvedValue({ sceneClock: { getSettings: () => ({}) } });
+        const sketchFn = vi.fn().mockResolvedValue({ sceneClock: { getSettings: () => ({}) }, resizeViewport: vi.fn() });
         const config = {
             ...DEFAULT_SKETCH_CONFIG,
             width: 1,
@@ -79,7 +79,7 @@ describe("Sketch bootstrap modules", () => {
         expect(config.width).toBe(640);
         expect(config.height).toBe(480);
 
-        const nextSketchFn = vi.fn().mockResolvedValue({ sceneClock: { getSettings: () => ({}) } });
+        const nextSketchFn = vi.fn().mockResolvedValue({ sceneClock: { getSettings: () => ({}) }, resizeViewport: vi.fn() });
         await engine.createSketchInstance(nextSketchFn as any, config as any, canvasBox, "container-1");
 
         expect(mockState.instances[0].noLoop).toHaveBeenCalled();
