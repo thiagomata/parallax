@@ -41,7 +41,7 @@ export async function figcraftParallax(
     const observerDistance = 1600;
     const minimumZoom = 1.18;
     const farthestObserverDepth = observerDistance / minimumZoom - observerDistance;
-    const nearestObserverDepth = -1400;
+    const nearestObserverDepth = -1480;
     const clampDepth = (depth: number) => Math.max(nearestObserverDepth, Math.min(farthestObserverDepth, depth));
     const faceConfig = extraArgs?.faceConfig;
     let webCamProvider = extraArgs?.webCamProvider;
