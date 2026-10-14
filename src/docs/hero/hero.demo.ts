@@ -6,8 +6,8 @@ import '@fortawesome/fontawesome-free/css/all.css';
 import '../../docs/style/style.css';
 import '../../docs/style/tutorial.css';
 
-import {tutorial_observer, observer_explanation} from "../tutorial/tutorial-8/tutorial_observer.ts";
-import observerCode from '../tutorial/tutorial-8/tutorial_observer.ts?raw';
+import {heroExample1, heroExample1_explanation} from './hero_example_1.ts';
+import heroExampleCode from './hero_example_1.ts?raw';
 
 import { 
     DEFAULT_SKETCH_CONFIG, 
@@ -189,4 +189,4 @@ export async function renderStep(
     });
 }
 
-renderStep('hero-demo-1', 'Face-following parallax demo', tutorial_observer, observerCode, observer_explanation);
+renderStep('hero-demo-1', 'Interactive parallax scene', heroExample1, heroExampleCode, heroExample1_explanation);

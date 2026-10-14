@@ -270,7 +270,15 @@ export async function tutorial_observer(
             parentId: 'bigBox',
             width: 1920,
             height: 1080,
-            position: { x: 0, y: 0, z: layer.z },
+            position: (ctx) => {
+                const face = getFaceData(ctx);
+                const depthProgress = (layer.z + 320) / 320;
+                return {
+                    x: -face.worldPosition.x * depthProgress,
+                    y: -face.worldPosition.y * depthProgress,
+                    z: layer.z + face.worldPosition.z * (0.25 + depthProgress * 0.75),
+                };
+            },
             texture: {
                 path: appAssetPath(`img/castle/${layer.file}`),
                 width: 1920,
@@ -447,11 +455,6 @@ export async function tutorial_observer(
         alpha: 0.5,
         fillColor: { red: 255, green: 255, blue: 255 },
     });
-
-    p.setup = () => {
-        p.createCanvas(config.width, config.height, p.WEBGL);
-        gp = new P5GraphicProcessor(p, loader);
-    };
 
     let initialized = false;
     p.draw = async () => {
