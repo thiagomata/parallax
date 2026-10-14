@@ -155,7 +155,7 @@ describe('Tutorial 10: Parallax Head-Tracked VR View', () => {
 });
 
 
-it('keeps bounded pointer controls available when camera initialization fails', async () => {
+it.each(['ERROR', 'READY'])('keeps bounded pointer controls available with camera status %s', async cameraStatus => {
     const { World } = await import('../../../scene/world.ts');
     const spy = vi.spyOn(World.prototype, 'addModifierToProjection');
     const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -163,10 +163,10 @@ it('keeps bounded pointer controls available when camera initialization fails', 
     const canvas = document.createElement('canvas');
     canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 640, height: 480 }) as DOMRect;
     mock.createCanvas.mockReturnValue({ elt: canvas });
-    const tracker = { init: async () => { throw new Error('camera blocked'); }, getData: () => null, tick: () => {} };
+    const tracker = { init: async () => { if (cameraStatus === 'ERROR') throw new Error('camera blocked'); }, getData: () => null, tick: () => {} };
     await tutorial_parallax(mock as unknown as p5, { width: 640, height: 480, paused: false }, {
         faceDataProvider: tracker,
-        webCamProvider: { getStatus: () => 'ERROR', getData: () => null, tick: () => {} },
+        webCamProvider: { getStatus: () => cameraStatus, getData: () => null, tick: () => {} },
     } as any);
     await mock.setup();
     const status = vi.fn();
@@ -176,6 +176,28 @@ it('keeps bounded pointer controls available when camera initialization fails', 
     const modifier = spy.mock.calls.find(([id]) => id === 'head')![1] as any;
     const result = modifier.getCarPosition({}, { dataProviders: { headTracker: null } });
     expect(result.value.position).toEqual({ x: 150, y: -100, z: 100 });
-    expect(status.mock.calls[0][0].detail).toContain('Camera unavailable');
+    expect(status.mock.calls[0][0].detail).toContain(cameraStatus === 'READY' ? 'No face detected' : 'Camera unavailable');
+    modifier.getCarPosition({}, { dataProviders: { headTracker: null } });
+    expect(status).toHaveBeenCalledTimes(1);
+    const tracked = modifier.getCarPosition({ x: 0, y: 0, z: 0 }, { dataProviders: { headTracker: createMockFaceWorldData() } });
+    expect(tracked.success).toBe(true);
+    expect(status.mock.calls[1][0].detail).toBe('Head tracking active.');
+    modifier.tick(1);
     spy.mockRestore(); warning.mockRestore();
+});
+
+it('allows pointer resolution while the camera is still starting', async () => {
+    const { World } = await import('../../../scene/world.ts');
+    const spy = vi.spyOn(World.prototype, 'addModifierToProjection');
+    const mock = createMockP5();
+    let finish!: () => void;
+    const pending = tutorial_parallax(mock as unknown as p5, { width: 640, height: 480, paused: false }, {
+        faceDataProvider: { init: () => new Promise<void>(resolve => { finish = resolve; }) },
+        webCamProvider: { getStatus: () => 'INITIALIZING' },
+    } as any);
+    const modifier = spy.mock.calls.find(([id]) => id === 'head')![1] as any;
+    expect(modifier.getCarPosition({}, { dataProviders: { headTracker: null } }).success).toBe(true);
+    finish();
+    await pending;
+    spy.mockRestore();
 });
