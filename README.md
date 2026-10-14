@@ -4,6 +4,8 @@
 [![Live Demo](https://img.shields.io/badge/Demo-Live_Preview-brightgreen)](https://thiagomata.github.io/parallax/)
 [![tutorial](https://img.shields.io/badge/Tutorial-Hands_On-brightgreen)](https://thiagomata.github.io/parallax/docs/tutorial/)
 
+Try the [live Parallax demo](https://thiagomata.github.io/parallax/) or jump straight to the [face-following observer example](https://thiagomata.github.io/parallax/docs/tutorial/tutorial-8/).
+
 Parallax is a **Deterministic Scene Orchestrator** designed for high-fidelity 3D interactive experiences. It operates as
 a strict state-to-state transformation engine, decoupling spatial intent from hardware-level rendering.
 

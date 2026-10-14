@@ -6,15 +6,18 @@ on:
       - main
       - 'feature/**'
       - 'bugfix/**'
+      - 'release/**'
   pull_request:
     branches:
       - main
       - 'feature/**'
       - 'bugfix/**'
+      - 'release/**'
   delete:
     branches:
       - 'feature/**'
       - 'bugfix/**'
+      - 'release/**'
   workflow_dispatch:
 
 permissions:
@@ -105,7 +108,7 @@ jobs:
         id: branches
         run: |
           active_branches=$(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin \
-            | grep -E '^(feature/|bugfix/)' \
+            | grep -E '^(feature/|bugfix/|release/)' \
             | sort)
           echo "branches<<EOF" >> "$GITHUB_OUTPUT"
           echo "$active_branches" >> "$GITHUB_OUTPUT"
@@ -189,7 +192,7 @@ jobs:
           git push origin HEAD:pages
 
   prune-deleted-preview:
-    if: github.event_name == 'delete' && github.event.ref_type == 'branch' && (startsWith(github.event.ref, 'feature/') || startsWith(github.event.ref, 'bugfix/'))
+    if: github.event_name == 'delete' && github.event.ref_type == 'branch' && (startsWith(github.event.ref, 'feature/') || startsWith(github.event.ref, 'bugfix/') || startsWith(github.event.ref, 'release/'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -37,13 +37,13 @@ const VIDEO_SOURCE_ORDER = ["webCam", "video"] as const;
  */
 export const observer_explanation = `
 <div class="concept">
-<p>The parallax engine uses <strong>MediaPipe Face Mesh</strong> to detect 468 facial landmarks in real-time from your webcam. This tutorial visualizes all the tracked data including the face bounding box, nose position, eye positions, and face orientation (yaw, pitch, roll). If camera access is blocked, it can fall back to a prerecorded demo clip so the panel and face-following behavior still make sense.</p>
+<p>The parallax engine uses <strong>MediaPipe Face Mesh</strong> to detect 468 facial landmarks in real-time from your webcam. This tutorial visualizes all the tracked data including the face bounding box, nose position, eye positions, and face orientation (yaw, pitch, roll). If camera access or face detection is unavailable, move the mouse to steer the view and scroll to change depth.</p>
 </div>
 
 <h3>How It Works</h3>
 <ol>
 <li><strong>HeadTrackingDataProvider</strong> - Initializes MediaPipe and processes video frames to extract face landmarks.</li>
-<li><strong>Fallback Video</strong> - If the webcam is unavailable, the tutorial can switch to a looping MP4 demo source instead of leaving a blank panel.</li>
+<li><strong>Fallback Input</strong> - If the webcam or face detector is unavailable, mouse movement controls position and scroll controls depth while the looping MP4 keeps the panel active.</li>
 <li><strong>Face Position</strong> - The face midpoint (between eyes) is tracked as x, y, z coordinates. Use <code>ctx.dataProviders['headTracker']</code> to access face data.</li>
 <li><strong>Face Rotation</strong> - Head orientation is calculated as yaw (turning left/right), pitch (nodding up/down), and roll (tilting sideways).</li>
 <li><strong>Debug Visualization</strong> - Colored boxes show nose (red), left eye (green), right eye (blue), and face bounds (yellow, cyan, magenta, orange).</li>
@@ -89,6 +89,33 @@ export async function tutorial_observer(
         graphicProcessor?: P5GraphicProcessor;
     },
 ): Promise<World<P5Bundler, any, any, ObserverDataProviderLib>> {
+    const fallbackInput = { x: 0, y: 0, depth: 0 };
+    const fallbackFace = () => {
+        const position = {
+            x: fallbackInput.x,
+            y: fallbackInput.y,
+            z: fallbackInput.depth,
+        };
+        return {
+            worldPosition: position,
+            localPosition: position,
+            stick: { yaw: fallbackInput.x / 500, pitch: fallbackInput.y / 500, roll: 0 },
+            nose: { x: position.x, y: position.y, z: position.z + 50 },
+            eyes: {
+                left: { x: position.x - 50, y: position.y - 50, z: position.z + 40 },
+                right: { x: position.x + 50, y: position.y - 50, z: position.z + 40 },
+            },
+            bounds: {
+                left: { x: position.x - 120, y: position.y, z: position.z },
+                right: { x: position.x + 120, y: position.y, z: position.z },
+                top: { x: position.x, y: position.y - 150, z: position.z },
+                bottom: { x: position.x, y: position.y + 150, z: position.z },
+            },
+        };
+    };
+    const getFaceData = (ctx: ResolutionContext<ObserverDataProviderLib>) =>
+        ctx.dataProviders.headTracker ?? fallbackFace();
+
     const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
@@ -152,6 +179,14 @@ export async function tutorial_observer(
         if (!extraArgs?.graphicProcessor) {
             gp = new P5GraphicProcessor(p, loader);
         }
+        const updatePointer = (event: MouseEvent) => {
+            fallbackInput.x = ((event.clientX / window.innerWidth) - 0.5) * 500;
+            fallbackInput.y = ((event.clientY / window.innerHeight) - 0.5) * 350;
+        };
+        window.addEventListener('mousemove', updatePointer, { passive: true });
+        window.addEventListener('wheel', (event) => {
+            fallbackInput.depth = Math.max(-250, Math.min(250, fallbackInput.depth + event.deltaY * 0.25));
+        }, { passive: true });
     };
     const dataProviderLib: ObserverDataProviderLib = {
         webCam: webCamProvider, // needed as parent dependency for headTracker
@@ -229,8 +264,7 @@ export async function tutorial_observer(
         height: baselineHeadSceneUnits * 1.8,
         depth: baselineHeadSceneUnits,
         position: (ctx) => {
-            const face = ctx.dataProviders['headTracker'];
-            if (!face) return { x: 0, y: 0, z: 0 };
+            const face = getFaceData(ctx);
             return {
                 x: face.worldPosition.x,
                 y: face.worldPosition.y,
@@ -238,8 +272,7 @@ export async function tutorial_observer(
             };
         },
         rotate: (ctx) => {
-            const face = ctx.dataProviders['headTracker'];
-            if (!face) return { pitch: 0, yaw: 0, roll: 0 };
+            const face = getFaceData(ctx);
             return {
                 yaw:   face.stick.yaw,
                 pitch: face.stick.pitch,
@@ -258,8 +291,7 @@ export async function tutorial_observer(
         height: boxSize,
         depth: boxSize,
         position: (ctx) => {
-            const face = ctx.dataProviders['headTracker'];
-            if (!face) return { x: 0, y: 0, z: 0 };
+            const face = getFaceData(ctx);
             return face.nose;
         },
         fillColor: COLORS.red,
@@ -274,8 +306,7 @@ export async function tutorial_observer(
         height: boxSize,
         depth: boxSize,
         position: (ctx) => {
-            const face = ctx.dataProviders['headTracker'];
-            if (!face) return { x: 0, y: 0, z: 0 };
+            const face = getFaceData(ctx);
             return {
                 x: face.eyes.left.x,
                 y: face.eyes.left.y,
@@ -294,8 +325,7 @@ export async function tutorial_observer(
         height: boxSize,
         depth: boxSize,
         position: (ctx) => {
-            const face = ctx.dataProviders['headTracker'];
-            if (!face) return { x: 0, y: 0, z: 0 };
+            const face = getFaceData(ctx);
             return face.eyes.right;
         },
         fillColor: { red: 0, green: 0, blue: 255 },
@@ -310,8 +340,7 @@ export async function tutorial_observer(
         height: boxSize,
         depth: boxSize,
         position: (ctx) => {
-            const face = ctx.dataProviders['headTracker'];
-            if (!face) return { x: 0, y: 0, z: 0 };
+            const face = getFaceData(ctx);
             return face.bounds.left;
         },
         fillColor: { red: 255, green: 255, blue: 0 },
@@ -326,8 +355,7 @@ export async function tutorial_observer(
         height: boxSize,
         depth: boxSize,
         position: (ctx) => {
-            const face = ctx.dataProviders['headTracker'];
-            if (!face) return { x: 0, y: 0, z: 0 };
+            const face = getFaceData(ctx);
             return face.bounds.right;
         },
         fillColor: { red: 0, green: 255, blue: 255 },
@@ -342,8 +370,7 @@ export async function tutorial_observer(
         height: boxSize,
         depth: boxSize,
         position: (ctx) => {
-            const face = ctx.dataProviders['headTracker'];
-            if (!face) return { x: 0, y: 0, z: 0 };
+            const face = getFaceData(ctx);
             return face.bounds.top;
         },
         fillColor: { red: 255, green: 0, blue: 255 },
@@ -358,8 +385,7 @@ export async function tutorial_observer(
         height: boxSize,
         depth: boxSize,
         position: (ctx) => {
-            const face = ctx.dataProviders['headTracker'];
-            if (!face) return { x: 0, y: 0, z: 0 };
+            const face = getFaceData(ctx);
             return face.bounds.bottom;
         },
         fillColor: { red: 255, green: 165, blue: 0 },
