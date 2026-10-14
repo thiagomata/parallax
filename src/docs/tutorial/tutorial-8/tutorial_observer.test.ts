@@ -442,6 +442,48 @@ describe('Tutorial 8: The Observer', () => {
         expect(world.getElement('videoPanel')).toBeDefined();
     });
 
+    it('does not initialize twice when draw overlaps a pending tracker startup', async () => {
+        const mockP5 = createMockP5();
+        mockP5.millis.mockReturnValue(0);
+
+        const clock = new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
+            playback: {
+                ...DEFAULT_SCENE_SETTINGS.playback,
+                duration: 10000,
+                isLoop: true
+            }
+        });
+
+        const face1 = createMockFaceWorldData();
+        const getDataMock = vi.fn().mockReturnValue(face1);
+        const mockTracker = createMockHeadTrackingProvider(getDataMock);
+        let finishInitialization!: () => void;
+        const mockInit = vi.fn(() => new Promise<void>(resolve => { finishInitialization = resolve; }));
+        const mockSetFallbackCapture = vi.fn();
+        mockTracker.init = mockInit;
+        (mockTracker as any).setFallbackCapture = mockSetFallbackCapture;
+
+        const world = await tutorial_observer(mockP5 as unknown as p5, {
+            width: 500,
+            height: 400,
+            clock,
+            paused: false
+        }, { faceDataProvider: mockTracker } as any);
+
+        await mockP5.setup();
+        const firstFrame = mockP5.draw();
+        await mockP5.draw();
+        expect(mockInit).toHaveBeenCalledTimes(1);
+        finishInitialization();
+        await firstFrame;
+
+        expect(mockInit).toHaveBeenCalled();
+        expect(mockSetFallbackCapture).toHaveBeenCalled();
+        expect(world.getElement('videoPanel')).toBeDefined();
+        expect(world.getElement('castle-background')).toBeUndefined();
+    });
+
     it('video selector returns fallback video when webcam is not available', async () => {
         const mockP5 = createMockP5();
         mockP5.millis.mockReturnValue(0);

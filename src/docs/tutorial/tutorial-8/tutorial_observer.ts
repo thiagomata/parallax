@@ -37,13 +37,13 @@ const VIDEO_SOURCE_ORDER = ["webCam", "video"] as const;
  */
 export const observer_explanation = `
 <div class="concept">
-<p>The parallax engine uses <strong>MediaPipe Face Mesh</strong> to detect 468 facial landmarks in real-time from your webcam. This castle scene is built from five depth layers, so moving your head creates a gentle 3D parallax effect. If camera access or face detection is unavailable, move the mouse to steer the view and scroll to change depth.</p>
+<p>The parallax engine uses <strong>MediaPipe Face Mesh</strong> to detect 468 facial landmarks in real-time from your webcam. This tutorial visualizes all the tracked data including the face bounding box, nose position, eye positions, and face orientation (yaw, pitch, roll). If camera access is blocked, it can fall back to a prerecorded demo clip so the panel and face-following behavior still make sense.</p>
 </div>
 
 <h3>How It Works</h3>
 <ol>
 <li><strong>HeadTrackingDataProvider</strong> - Initializes MediaPipe and processes video frames to extract face landmarks.</li>
-<li><strong>Fallback Input</strong> - If the webcam or face detector is unavailable, mouse movement controls position and scroll controls depth while the looping MP4 keeps the panel active.</li>
+<li><strong>Fallback Video</strong> - If the webcam is unavailable, the tutorial can switch to a looping MP4 demo source instead of leaving a blank panel.</li>
 <li><strong>Face Position</strong> - The face midpoint (between eyes) is tracked as x, y, z coordinates. Use <code>ctx.dataProviders['headTracker']</code> to access face data.</li>
 <li><strong>Face Rotation</strong> - Head orientation is calculated as yaw (turning left/right), pitch (nodding up/down), and roll (tilting sideways).</li>
 <li><strong>Debug Visualization</strong> - Colored boxes show nose (red), left eye (green), right eye (blue), and face bounds (yellow, cyan, magenta, orange).</li>
@@ -89,33 +89,6 @@ export async function tutorial_observer(
         graphicProcessor?: P5GraphicProcessor;
     },
 ): Promise<World<P5Bundler, any, any, ObserverDataProviderLib>> {
-    const fallbackInput = { x: 0, y: 0, depth: 0 };
-    const fallbackFace = () => {
-        const position = {
-            x: fallbackInput.x,
-            y: fallbackInput.y,
-            z: fallbackInput.depth,
-        };
-        return {
-            worldPosition: position,
-            localPosition: position,
-            stick: { yaw: fallbackInput.x / 500, pitch: fallbackInput.y / 500, roll: 0 },
-            nose: { x: position.x, y: position.y, z: position.z + 50 },
-            eyes: {
-                left: { x: position.x - 50, y: position.y - 50, z: position.z + 40 },
-                right: { x: position.x + 50, y: position.y - 50, z: position.z + 40 },
-            },
-            bounds: {
-                left: { x: position.x - 120, y: position.y, z: position.z },
-                right: { x: position.x + 120, y: position.y, z: position.z },
-                top: { x: position.x, y: position.y - 150, z: position.z },
-                bottom: { x: position.x, y: position.y + 150, z: position.z },
-            },
-        };
-    };
-    const getFaceData = (ctx: ResolutionContext<ObserverDataProviderLib>) =>
-        ctx.dataProviders.headTracker ?? fallbackFace();
-
     const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
@@ -174,20 +147,6 @@ export async function tutorial_observer(
     const loader = new P5AssetLoader(p);
     let gp: P5GraphicProcessor = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
     
-    p.setup = () => {
-        p.createCanvas(config.width, config.height, p.WEBGL);
-        if (!extraArgs?.graphicProcessor) {
-            gp = new P5GraphicProcessor(p, loader);
-        }
-        const updatePointer = (event: MouseEvent) => {
-            fallbackInput.x = ((event.clientX / window.innerWidth) - 0.5) * 500;
-            fallbackInput.y = ((event.clientY / window.innerHeight) - 0.5) * 350;
-        };
-        window.addEventListener('mousemove', updatePointer, { passive: true });
-        window.addEventListener('wheel', (event) => {
-            fallbackInput.depth = Math.max(-250, Math.min(250, fallbackInput.depth + event.deltaY * 0.25));
-        }, { passive: true });
-    };
     const dataProviderLib: ObserverDataProviderLib = {
         webCam: webCamProvider, // needed as parent dependency for headTracker
         video: fallbackVideoProvider,
@@ -256,37 +215,6 @@ export async function tutorial_observer(
         position: { x:0, y:0, z: 0 },  // screen position
     });
 
-    const castleLayers = [
-        { id: 'castle-background', file: 'cast-l5-background.jpg', z: -320 },
-        { id: 'castle-horizon', file: 'cast-l4.gif', z: -240 },
-        { id: 'castle-town', file: 'cast-l3.gif', z: -160 },
-        { id: 'castle-foreground', file: 'cast-l2.gif', z: -80 },
-        { id: 'castle-canopy', file: 'cast-l1.gif', z: 0 },
-    ];
-    for (const layer of castleLayers) {
-        world.addPanel({
-            type: ELEMENT_TYPES.PANEL,
-            id: layer.id,
-            parentId: 'bigBox',
-            width: 1920,
-            height: 1080,
-            position: (ctx) => {
-                const face = getFaceData(ctx);
-                const depthProgress = (layer.z + 320) / 320;
-                return {
-                    x: -face.worldPosition.x * depthProgress,
-                    y: -face.worldPosition.y * depthProgress,
-                    z: layer.z + face.worldPosition.z * (0.25 + depthProgress * 0.75),
-                };
-            },
-            texture: {
-                path: appAssetPath(`img/castle/${layer.file}`),
-                width: 1920,
-                height: 1080,
-            },
-        });
-    }
-
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'faceBox',
@@ -295,7 +223,8 @@ export async function tutorial_observer(
         height: baselineHeadSceneUnits * 1.8,
         depth: baselineHeadSceneUnits,
         position: (ctx) => {
-            const face = getFaceData(ctx);
+            const face = ctx.dataProviders['headTracker'];
+            if (!face) return { x: 0, y: 0, z: 0 };
             return {
                 x: face.worldPosition.x,
                 y: face.worldPosition.y,
@@ -303,7 +232,8 @@ export async function tutorial_observer(
             };
         },
         rotate: (ctx) => {
-            const face = getFaceData(ctx);
+            const face = ctx.dataProviders['headTracker'];
+            if (!face) return { pitch: 0, yaw: 0, roll: 0 };
             return {
                 yaw:   face.stick.yaw,
                 pitch: face.stick.pitch,
@@ -322,7 +252,8 @@ export async function tutorial_observer(
         height: boxSize,
         depth: boxSize,
         position: (ctx) => {
-            const face = getFaceData(ctx);
+            const face = ctx.dataProviders['headTracker'];
+            if (!face) return { x: 0, y: 0, z: 0 };
             return face.nose;
         },
         fillColor: COLORS.red,
@@ -337,7 +268,8 @@ export async function tutorial_observer(
         height: boxSize,
         depth: boxSize,
         position: (ctx) => {
-            const face = getFaceData(ctx);
+            const face = ctx.dataProviders['headTracker'];
+            if (!face) return { x: 0, y: 0, z: 0 };
             return {
                 x: face.eyes.left.x,
                 y: face.eyes.left.y,
@@ -356,7 +288,8 @@ export async function tutorial_observer(
         height: boxSize,
         depth: boxSize,
         position: (ctx) => {
-            const face = getFaceData(ctx);
+            const face = ctx.dataProviders['headTracker'];
+            if (!face) return { x: 0, y: 0, z: 0 };
             return face.eyes.right;
         },
         fillColor: { red: 0, green: 0, blue: 255 },
@@ -371,7 +304,8 @@ export async function tutorial_observer(
         height: boxSize,
         depth: boxSize,
         position: (ctx) => {
-            const face = getFaceData(ctx);
+            const face = ctx.dataProviders['headTracker'];
+            if (!face) return { x: 0, y: 0, z: 0 };
             return face.bounds.left;
         },
         fillColor: { red: 255, green: 255, blue: 0 },
@@ -386,7 +320,8 @@ export async function tutorial_observer(
         height: boxSize,
         depth: boxSize,
         position: (ctx) => {
-            const face = getFaceData(ctx);
+            const face = ctx.dataProviders['headTracker'];
+            if (!face) return { x: 0, y: 0, z: 0 };
             return face.bounds.right;
         },
         fillColor: { red: 0, green: 255, blue: 255 },
@@ -401,7 +336,8 @@ export async function tutorial_observer(
         height: boxSize,
         depth: boxSize,
         position: (ctx) => {
-            const face = getFaceData(ctx);
+            const face = ctx.dataProviders['headTracker'];
+            if (!face) return { x: 0, y: 0, z: 0 };
             return face.bounds.top;
         },
         fillColor: { red: 255, green: 0, blue: 255 },
@@ -416,7 +352,8 @@ export async function tutorial_observer(
         height: boxSize,
         depth: boxSize,
         position: (ctx) => {
-            const face = getFaceData(ctx);
+            const face = ctx.dataProviders['headTracker'];
+            if (!face) return { x: 0, y: 0, z: 0 };
             return face.bounds.bottom;
         },
         fillColor: { red: 255, green: 165, blue: 0 },
@@ -456,8 +393,17 @@ export async function tutorial_observer(
         fillColor: { red: 255, green: 255, blue: 255 },
     });
 
+    p.setup = () => {
+        p.createCanvas(config.width, config.height, p.WEBGL);
+        gp = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
+    };
+
     let initialized = false;
+    let rendering = false;
     p.draw = async () => {
+        if (rendering) return;
+        rendering = true;
+        try {
         if (!gp) {
             return;
         }
@@ -489,7 +435,7 @@ export async function tutorial_observer(
                     z: panelPosition.z + panelScreenZDistance,
                 },
                 video: videoSelector,
-                fillColor:  COLORS.blue,
+                fillColor: COLORS.white,
             });
 
             initialized = true;
@@ -511,6 +457,9 @@ export async function tutorial_observer(
         p.background(20);
         const result = await world.step(gp);
         if (!result.running) return;
+        } finally {
+            rendering = false;
+        }
     };
 
     return world;
