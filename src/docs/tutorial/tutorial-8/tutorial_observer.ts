@@ -37,7 +37,7 @@ const VIDEO_SOURCE_ORDER = ["webCam", "video"] as const;
  */
 export const observer_explanation = `
 <div class="concept">
-<p>The parallax engine uses <strong>MediaPipe Face Mesh</strong> to detect 468 facial landmarks in real-time from your webcam. This tutorial visualizes all the tracked data including the face bounding box, nose position, eye positions, and face orientation (yaw, pitch, roll). If camera access or face detection is unavailable, move the mouse to steer the view and scroll to change depth.</p>
+<p>The parallax engine uses <strong>MediaPipe Face Mesh</strong> to detect 468 facial landmarks in real-time from your webcam. This castle scene is built from five depth layers, so moving your head creates a gentle 3D parallax effect. If camera access or face detection is unavailable, move the mouse to steer the view and scroll to change depth.</p>
 </div>
 
 <h3>How It Works</h3>
@@ -255,6 +255,29 @@ export async function tutorial_observer(
         width: 500,
         position: { x:0, y:0, z: 0 },  // screen position
     });
+
+    const castleLayers = [
+        { id: 'castle-background', file: 'cast-l5-background.jpg', z: -320 },
+        { id: 'castle-horizon', file: 'cast-l4.gif', z: -240 },
+        { id: 'castle-town', file: 'cast-l3.gif', z: -160 },
+        { id: 'castle-foreground', file: 'cast-l2.gif', z: -80 },
+        { id: 'castle-canopy', file: 'cast-l1.gif', z: 0 },
+    ];
+    for (const layer of castleLayers) {
+        world.addPanel({
+            type: ELEMENT_TYPES.PANEL,
+            id: layer.id,
+            parentId: 'bigBox',
+            width: 1920,
+            height: 1080,
+            position: { x: 0, y: 0, z: layer.z },
+            texture: {
+                path: appAssetPath(`img/castle/${layer.file}`),
+                width: 1920,
+                height: 1080,
+            },
+        });
+    }
 
     world.addBox({
         type: ELEMENT_TYPES.BOX,
