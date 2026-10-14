@@ -96,15 +96,10 @@ export async function renderStep(
         paused: false 
     };
     
-    const heading = document.querySelector('header h1');
-    const pageTitle = heading?.textContent?.split(' — Zoom')[0] ?? 'Parallax';
     canvasBox.addEventListener('observerchange', event => {
-        const { zoom, closeness } = (event as CustomEvent<{ zoom: number; closeness: number }>).detail;
+        const { closeness } = (event as CustomEvent<{ closeness: number }>).detail;
         const shade = Math.round(closeness * 255);
         canvasBox.style.borderColor = `rgb(${shade}, ${shade}, ${shade})`;
-        const title = `${pageTitle} — Zoom ${Math.round(zoom * 100)}%`;
-        if (heading && heading.textContent !== title) heading.textContent = title;
-        if (document.title !== title) document.title = title;
     });
 
     let { currentP5 } = await sketchEngine.createSketchInstance(
