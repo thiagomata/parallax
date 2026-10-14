@@ -175,7 +175,7 @@ export async function tutorial_observer(
     let gp: P5GraphicProcessor = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
     
     p.setup = () => {
-        p.createCanvas(config.width, config.height, p5.WEBGL);
+        p.createCanvas(config.width, config.height, p.WEBGL);
         if (!extraArgs?.graphicProcessor) {
             gp = new P5GraphicProcessor(p, loader);
         }
