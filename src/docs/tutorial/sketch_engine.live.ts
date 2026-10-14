@@ -1,3 +1,5 @@
+import { WebCamDataProvider } from "../../scene/providers/web_cam_data_provider.ts";
+import { appAssetPath } from "../../utils/app_paths.ts";
 import { transform } from 'sucrase';
 import p5 from 'p5';
 import { World } from "../../scene/world.ts";
@@ -111,6 +113,8 @@ const moduleExports: Record<string, Record<string, unknown>> = {
     'head_tracking_modifier': {
         HeadTrackingModifier: (window as Window & typeof globalThis & { HeadTrackingModifier: typeof HeadTrackingModifier }).HeadTrackingModifier,
     },
+    'web_cam_data_provider': { WebCamDataProvider },
+    'app_paths': { appAssetPath },
     'colors': {
         COLORS: (window as Window & typeof globalThis & { COLORS: typeof COLORS }).COLORS,
     },
