@@ -1,23 +1,45 @@
-import {tutorial_adding_elements} from "./tutorial-1/tutorial_adding_elements.ts";
-import {tutorial_animation} from "./tutorial-2/tutorial_animation.ts";
-import {tutorial_orbital_motion} from "./tutorial-3/tutorial_orbital_motion.ts";
-import {tutorial_camera_control} from "./tutorial-4/tutorial_camera_control.ts";
-import {tutorial_textures} from "./tutorial-5/tutorial_textures.ts";
-import {tutorial_look_at} from "./tutorial-6/tutorial_look_at.ts";
-import {tutorial_billboard} from "./tutorial-7/tutorial_billboard.ts";
-import {tutorial_observer} from "./tutorial-8/tutorial_observer.ts";
-import {tutorial_parallax} from "./tutorial-9/tutorial_parallax.ts";
-import {tutorial_interactive_box} from "./tutorial-10/tutorial_interactive_box.ts";
+import '../style/style.css';
+import '../style/tutorial.css';
+import {TUTORIALS} from "./tutorial_index_meta.ts";
 
-export {
-    tutorial_adding_elements,
-    tutorial_animation,
-    tutorial_orbital_motion,
-    tutorial_camera_control,
-    tutorial_textures,
-    tutorial_look_at,
-    tutorial_billboard,
-    tutorial_observer,
-    tutorial_parallax,
-    tutorial_interactive_box,
-};
+function createTutorialIndex() {
+    const root = document.getElementById('tutorial-root');
+    if (!root) return;
+
+    const index = document.createElement('div');
+    index.className = 'tutorial-index';
+
+    const header = document.createElement('div');
+    header.className = 'tutorial-index-header';
+    header.innerHTML = '<h1>Tutorials</h1><p>Step-by-step guide to building parallax scenes with the Parallax engine.</p>';
+    index.appendChild(header);
+
+    const grid = document.createElement('div');
+    grid.className = 'tutorial-grid';
+
+    for (const t of TUTORIALS) {
+        const card = document.createElement('a');
+        card.className = 'tutorial-card';
+        card.href = t.path;
+
+        const num = document.createElement('div');
+        num.className = 'tutorial-num';
+        num.textContent = String(t.num);
+
+        const info = document.createElement('div');
+        info.className = 'tutorial-info';
+
+        const title = document.createElement('h3');
+        title.textContent = t.title;
+
+        info.appendChild(title);
+        card.appendChild(num);
+        card.appendChild(info);
+        grid.appendChild(card);
+    }
+
+    index.appendChild(grid);
+    root.appendChild(index);
+}
+
+createTutorialIndex();
