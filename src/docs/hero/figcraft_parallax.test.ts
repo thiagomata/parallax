@@ -20,7 +20,7 @@ async function createScene(fn = figcraftParallax) {
 }
 
 describe('Main scene declarations', () => {
-    it('declares mountain compensation, title colors, and layering instead of overriding drawing', async () => {
+    it('declares static layer geometry, title colors, and layering instead of overriding drawing', async () => {
         const panels = vi.spyOn(World.prototype, 'addPanel');
         const modifiers = vi.spyOn(World.prototype, 'addModifierToProjection');
         const { canvas } = await createScene();
@@ -33,13 +33,16 @@ describe('Main scene declarations', () => {
         expect(outline.renderOrder).toBeGreaterThan(title.renderOrder);
         expect(outline.renderOrder).toBeLessThan(house.renderOrder);
         expect(mountain.depthTest).toBe(false);
+        // Layer size/position are baked world-space values, not a per-frame formula:
+        // the real camera dolly (via the head car modifier) drives zoom, not the panels.
+        expect(typeof mountain.width).toBe('number');
         const modifier = modifiers.mock.calls.find(([id]) => id === 'head')![1] as any;
         modifier.getCarPosition({}, { dataProviders: { headTracker: null } });
-        const originalWidth = mountain.width();
+        const originalWidth = mountain.width;
         const originalBlue = title.fillColor().blue;
         canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: -1000 }));
         modifier.getCarPosition({}, { dataProviders: { headTracker: null } });
-        expect(mountain.width()).toBeLessThan(originalWidth);
+        expect(mountain.width).toBe(originalWidth);
         expect(title.fillColor().blue).toBeLessThan(originalBlue);
         expect(outline.fillColor().red).toBeGreaterThan(0);
         panels.mockRestore(); modifiers.mockRestore();
