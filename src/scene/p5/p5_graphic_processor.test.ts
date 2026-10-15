@@ -535,25 +535,3 @@ describe("P5GraphicProcessor", () => {
         });
     });
 });
-
-describe('Transparent panel depth state', () => {
-    it('restores depth testing even when panel drawing throws', () => {
-        const p = createMockP5();
-        const gl = { DEPTH_TEST: 2929, isEnabled: vi.fn(() => true), disable: vi.fn(), enable: vi.fn() };
-        Object.assign(p, { drawingContext: gl });
-        p.plane.mockImplementation(() => { throw new Error('draw failed'); });
-        const gp = new P5GraphicProcessor(p as any, {} as any);
-        expect(() => gp.drawPanel({ id: 'overlay', type: ELEMENT_TYPES.PANEL, width: 20, height: 10, depthTest: false } as any, {}, { settings: { alpha: 1 } } as any)).toThrow('draw failed');
-        expect(gl.disable).toHaveBeenCalledWith(gl.DEPTH_TEST);
-        expect(gl.enable).toHaveBeenCalledWith(gl.DEPTH_TEST);
-    });
-
-    it('leaves a previously disabled depth test disabled', () => {
-        const p = createMockP5();
-        const gl = { DEPTH_TEST: 2929, isEnabled: vi.fn(() => false), disable: vi.fn(), enable: vi.fn() };
-        Object.assign(p, { drawingContext: gl });
-        const gp = new P5GraphicProcessor(p as any, {} as any);
-        gp.drawPanel({ id: 'overlay', type: ELEMENT_TYPES.PANEL, width: 20, height: 10, depthTest: false } as any, {}, { settings: { alpha: 1 } } as any);
-        expect(gl.enable).not.toHaveBeenCalled();
-    });
-});

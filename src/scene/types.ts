@@ -985,10 +985,6 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     /** Alpha/opacity in range [0, 1] */
     readonly alpha?: Alpha;
 
-    /** Explicit painter order; omitted elements retain distance sorting. */
-    readonly renderOrder?: number;
-    /** Disable depth testing for intentionally layered transparent artwork. */
-    readonly depthTest?: boolean;
     readonly fillColor?: ColorRGBA;
     readonly strokeColor?: ColorRGBA;
     readonly strokeWidth?: number;

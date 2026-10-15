@@ -130,19 +130,13 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
     }
 
     public drawPanel(props: ResolvedPanel, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
-        const gl = this.p.drawingContext as WebGLRenderingContext | undefined;
-        const manageDepth = props.depthTest === false && !!gl?.isEnabled;
-        const depthEnabled = manageDepth && gl!.isEnabled(gl!.DEPTH_TEST);
         this.p.push();
-        try {
-            if (manageDepth) gl!.disable(gl!.DEPTH_TEST);
-            this.applyContext(props, assets, state);
-            const { width, height } = this.computeFitDimensions(props, assets);
-            this.p.plane(width, height);
-        } finally {
-            if (depthEnabled) gl!.enable(gl!.DEPTH_TEST);
-            this.p.pop();
-        }
+        this.applyContext(props, assets, state);
+
+        const { width: drawWidth, height: drawHeight } = this.computeFitDimensions(props, assets);
+
+        this.p.plane(drawWidth, drawHeight);
+        this.p.pop();
     }
 
     private computeFitDimensions(props: ResolvedPanel, assets: ElementAssets<P5Bundler>): { width: number; height: number } {

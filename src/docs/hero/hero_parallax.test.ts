@@ -29,10 +29,11 @@ describe('Main scene declarations', () => {
         const title = panel('parallax-title');
         const outline = panel('parallax-title-outline');
         const house = panel('figcraft-layer-434');
-        expect(title.renderOrder).toBeLessThan(house.renderOrder);
-        expect(outline.renderOrder).toBeGreaterThan(title.renderOrder);
-        expect(outline.renderOrder).toBeLessThan(house.renderOrder);
-        expect(mountain.depthTest).toBe(false);
+        // No renderOrder/depthTest override: real z plus the engine's distance sort and
+        // depth test place these correctly, same as every other element in the scene.
+        expect(title.position.z).toBeLessThan(house.position.z);
+        expect(outline.position.z).toBeGreaterThan(title.position.z);
+        expect(outline.position.z).toBeLessThan(house.position.z);
         // Layer size/position are baked world-space values, not a per-frame formula:
         // the real camera dolly (via the head car modifier) drives zoom, not the panels.
         expect(typeof mountain.width).toBe('number');

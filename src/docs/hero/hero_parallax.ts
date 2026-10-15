@@ -160,14 +160,12 @@ export async function heroParallax(
     // no matter how far you zoom. Reading the head projection's resolved z keeps this
     // tied to the engine's actual camera position instead of a second tracked variable.
     const recedingLayerIds = new Set([304, 309]);
-    layers.forEach((layer, index) => {
+    layers.forEach(layer => {
         const recedes = recedingLayerIds.has(layer.id);
         // Computed once at setup from the layer's fixed reference z - not re-derived per frame.
         const scale = sceneScale * (observerDistance - layer.z) / observerDistance;
         world.addPanel({
             id: `figcraft-layer-${layer.id}`,
-            renderOrder: layer.id === 508 ? 14.5 : 10 + index,
-            depthTest: false,
             type: ELEMENT_TYPES.PANEL,
             width: layer.width * scale,
             height: layer.height * scale,
@@ -192,7 +190,6 @@ export async function heroParallax(
 
     world.addFloor({
         id: 'scene-floor',
-        renderOrder: 0,
         type: ELEMENT_TYPES.FLOOR,
         width: 10000,
         depth: 7000,
@@ -205,8 +202,6 @@ export async function heroParallax(
     const titleScale = sceneScale * (observerDistance - titleZ) / observerDistance;
     world.addPanel({
         id: 'parallax-title',
-        renderOrder: 13.5,
-        depthTest: false,
         fillColor: () => ({ red: 255, green: Math.round(255 - closeness() * 25), blue: Math.round(255 - closeness() * 225) } as ColorRGBA),
         type: ELEMENT_TYPES.PANEL,
         width: 700 * titleScale,
@@ -218,11 +213,10 @@ export async function heroParallax(
     world.addPanel({
         id: 'parallax-title-outline',
         type: ELEMENT_TYPES.PANEL,
-        renderOrder: 13.6,
-        depthTest: false,
         width: 700 * titleScale,
         height: 130 * titleScale,
-        position: { x: 0, y: (210 - centerY) * titleScale, z: titleZ },
+        // Nudged 1 unit closer than the fill so the two coplanar panels don't z-fight.
+        position: { x: 0, y: (210 - centerY) * titleScale, z: titleZ + 1 },
         texture: { path: appAssetPath('img/figcraft/parallax-outline.png'), width: 700, height: 130 },
         fillColor: () => ({ red: Math.round(closeness() * 139), green: Math.round(closeness() * 69), blue: Math.round(closeness() * 19) } as ColorRGBA),
     });

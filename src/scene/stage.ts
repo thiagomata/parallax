@@ -389,14 +389,7 @@ export class Stage<
             this.distanceCache.set(pair.id, distance);
             return { pair, distance };
         })
-        .sort((a, b) => {
-            const orderA = a.pair.bundle.resolved.renderOrder;
-            const orderB = b.pair.bundle.resolved.renderOrder;
-            if (orderA !== undefined || orderB !== undefined) {
-                return (orderA ?? 0) - (orderB ?? 0) || b.distance - a.distance;
-            }
-            return b.distance - a.distance;
-        })
+        .sort((a, b) => b.distance - a.distance)
         .map(pair => pair.pair);
         
         // Invalidate cache periodically to handle dynamic elements
