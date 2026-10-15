@@ -19,7 +19,7 @@ import {appAssetPath} from "../../utils/app_paths.ts";
  * Experience depth through head movement.
  */
 export const heroParallaxExplanation = `
-<p>The original FigCraft layers form this scene, preserving their page positions at the reference viewpoint. Move your head to see the layers shift with perspective. If no face is tracked, move the pointer over the canvas and scroll to change depth.</p>
+<p>Illustrated layers - sky, snow-capped mountains, and a cliffside village - sit at different depths to create a living parallax scene. Move your head to see them shift with real perspective. If no camera is available, move the pointer over the canvas and scroll to look around.</p>
 `;
 
 export async function heroParallax(
@@ -165,7 +165,7 @@ export async function heroParallax(
         // Computed once at setup from the layer's fixed reference z - not re-derived per frame.
         const scale = sceneScale * (observerDistance - layer.z) / observerDistance;
         world.addPanel({
-            id: `figcraft-layer-${layer.id}`,
+            id: `hero-layer-${layer.id}`,
             type: ELEMENT_TYPES.PANEL,
             width: layer.width * scale,
             height: layer.height * scale,
@@ -181,7 +181,7 @@ export async function heroParallax(
                     z: layer.z,
                 },
             texture: {
-                path: appAssetPath(`img/figcraft/layer-${layer.id}.png`),
+                path: appAssetPath(`img/hero/layer-${layer.id}.png`),
                 width: layer.width,
                 height: layer.height,
             },
@@ -207,7 +207,7 @@ export async function heroParallax(
         width: 700 * titleScale,
         height: 130 * titleScale,
         position: { x: 0, y: (210 - centerY) * titleScale, z: titleZ },
-        texture: { path: appAssetPath('img/figcraft/parallax-title.png'), width: 700, height: 130 },
+        texture: { path: appAssetPath('img/hero/parallax-title.png'), width: 700, height: 130 },
     });
 
     world.addPanel({
@@ -217,7 +217,7 @@ export async function heroParallax(
         height: 130 * titleScale,
         // Nudged 1 unit closer than the fill so the two coplanar panels don't z-fight.
         position: { x: 0, y: (210 - centerY) * titleScale, z: titleZ + 1 },
-        texture: { path: appAssetPath('img/figcraft/parallax-outline.png'), width: 700, height: 130 },
+        texture: { path: appAssetPath('img/hero/parallax-outline.png'), width: 700, height: 130 },
         fillColor: () => ({ red: Math.round(closeness() * 139), green: Math.round(closeness() * 69), blue: Math.round(closeness() * 19) } as ColorRGBA),
     });
     const gp = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);

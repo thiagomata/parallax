@@ -25,10 +25,10 @@ describe('Main scene declarations', () => {
         const modifiers = vi.spyOn(World.prototype, 'addModifierToProjection');
         const { canvas } = await createScene();
         const panel = (id: string) => panels.mock.calls.find(([props]) => props.id === id)![0] as any;
-        const mountain = panel('figcraft-layer-304');
+        const mountain = panel('hero-layer-304');
         const title = panel('parallax-title');
         const outline = panel('parallax-title-outline');
-        const house = panel('figcraft-layer-434');
+        const house = panel('hero-layer-434');
         // No renderOrder/depthTest override: real z plus the engine's distance sort and
         // depth test place these correctly, same as every other element in the scene.
         expect(title.position.z).toBeLessThan(house.position.z);
