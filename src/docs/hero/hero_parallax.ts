@@ -138,26 +138,22 @@ export async function heroParallax(
     world.addModifierToProjection('head', observerModifier, 'car');
 
     // Separate image panels create depth with the head-tracked camera.
+    const centerX = 1;
     const centerY = 217;
     const sceneScale = 1920 / 1641;
     // Full export bounds, including artwork outside component boxes.
-    // panelWidth/panelHeight/panelX/panelY are the real world-space size and position each
-    // layer needs at its z so it reads at its original composed size once perspective is
-    // applied - baked ahead of time instead of recomputed from scratch on every load.
-    // width/height (raw export pixels) stay separate: they describe the source texture, not
-    // the panel geometry.
     const layers = [
-        {"id": 304, "name": "layer6", "width": 1653.238, "height": 983.0, "z": -3000, "panelWidth": 5561.166215722121, "panelHeight": 3306.617915904936, "panelX": 22.26500914076792, "panelY": -502.8884826325411},
-        {"id": 309, "name": "layer 5", "width": 1700.5, "height": 1098.904, "z": -2300, "panelWidth": 4849.6892138939675, "panelHeight": 3133.9858135283366, "panelX": -144.7349177330896, "panelY": 300.7406215722121},
-        {"id": 357, "name": "layer4", "width": 1268.0, "height": 750.378, "z": -1600, "panelWidth": 2967.166361974406, "panelHeight": 1755.9119561243147, "panelX": -465.6672760511883, "panelY": 346.7676782449726},
-        {"id": 403, "name": "layer3-left-land", "width": 719.197, "height": 506.5, "z": -900, "panelWidth": 1314.8025594149908, "panelHeight": 925.9597806215721, "panelX": -856.3098720292504, "panelY": 503.199268738574},
-        {"id": 434, "name": "layer3-right-house", "width": 907.76, "height": 564.037, "z": -900, "panelWidth": 1659.5246800731259, "panelHeight": 1031.1462522851918, "panelX": 636.416819012797, "panelY": 511.9168190127971},
-        {"id": 466, "name": "layer2-Left House", "width": 1482.0, "height": 711.433, "z": -350, "panelWidth": 2113.27239488117, "panelHeight": 1014.474844606947, "panelX": -96.96526508226691, "panelY": 398.864478976234},
-        {"id": 497, "name": "layer2-right land", "width": 871.486, "height": 301.008, "z": -350, "panelWidth": 1242.7039853747715, "panelHeight": 429.2253016453382, "panelX": 532.9567458866545, "panelY": 725.106252285192},
-        {"id": 508, "name": "layer2-Tree", "width": 221.0, "height": 813.0, "z": -750, "panelWidth": 379.7806215722121, "panelHeight": 1397.111517367459, "panelX": 703.7111517367459, "panelY": 124.58866544789764},
-        {"id": 517, "name": "layer2-Right House", "width": 298.0, "height": 494.088, "z": -350, "panelWidth": 424.93601462522855, "panelHeight": 704.5496160877515, "panelX": 815.6489945155394, "panelY": 315.19985374771477},
-        {"id": 559, "name": "layer2-post", "width": 69.5, "height": 309.0, "z": -350, "panelWidth": 99.10420475319927, "panelHeight": 440.6215722120658, "panelX": 591.4168190127971, "panelY": 390},
-        {"id": 565, "name": "Layer1", "width": 1699.0, "height": 1212.0, "z": 0, "panelWidth": 1987.8610603290676, "panelHeight": 1418.0621572212067, "panelX": 40.36563071297989, "panelY": 301.86471663619744},
+        {"id": 304, "name": "layer6", "width": 1653.238, "height": 983.0, "x": -819.0, "y": -424.0, "z": -3000},
+        {"id": 309, "name": "layer 5", "width": 1700.5, "height": 1098.904, "x": -900.0, "y": -227.0, "z": -2300},
+        {"id": 357, "name": "layer4", "width": 1268.0, "height": 750.378, "x": -732.0, "y": -0.0, "z": -2000},
+        {"id": 403, "name": "layer3-left-land", "width": 719.197, "height": 506.5, "x": -827.0, "y": 239.0, "z": -900},
+        {"id": 434, "name": "layer3-right-house", "width": 907.76, "height": 564.037, "x": -104.76, "y": 215.0, "z": -900},
+        {"id": 466, "name": "layer2-Left House", "width": 1482.0, "height": 711.433, "x": -808.0, "y": 141.0, "z": -350},
+        {"id": 497, "name": "layer2-right land", "width": 871.486, "height": 301.008, "x": -60.989999999999995, "y": 575.0, "z": -350},
+        {"id": 508, "name": "layer2-Tree", "width": 221.0, "height": 813.0, "x": 150.0, "y": -117.0, "z": -650},
+        {"id": 517, "name": "layer2-Right House", "width": 298.0, "height": 494.088, "x": 424.0, "y": 191.0, "z": -350},
+        {"id": 559, "name": "layer2-post", "width": 69.5, "height": 309.0, "x": 181.0, "y": 336.0, "z": -350},
+        {"id": 565, "name": "Layer1", "width": 1699.0, "height": 1212.0, "x": -814.0, "y": -131.0, "z": 0},
     ];
     // The sky and mountains (304, 309) are the backdrop: they recede with the camera so
     // their distance from the eye - and therefore their apparent size - never changes,
@@ -166,22 +162,24 @@ export async function heroParallax(
     const recedingLayerIds = new Set([304, 309]);
     layers.forEach((layer, index) => {
         const recedes = recedingLayerIds.has(layer.id);
+        // Computed once at setup from the layer's fixed reference z - not re-derived per frame.
+        const scale = sceneScale * (observerDistance - layer.z) / observerDistance;
         world.addPanel({
             id: `figcraft-layer-${layer.id}`,
             renderOrder: layer.id === 508 ? 14.5 : 10 + index,
             depthTest: false,
             type: ELEMENT_TYPES.PANEL,
-            width: layer.panelWidth,
-            height: layer.panelHeight,
+            width: layer.width * scale,
+            height: layer.height * scale,
             position: recedes
                 ? (context => ({
-                    x: layer.panelX,
-                    y: layer.panelY,
+                    x: (layer.x + layer.width / 2 - centerX) * scale,
+                    y: (layer.y + layer.height / 2 - centerY) * scale,
                     z: (context.projectionPool['head']?.position.z ?? 0) + layer.z,
                 }))
                 : {
-                    x: layer.panelX,
-                    y: layer.panelY,
+                    x: (layer.x + layer.width / 2 - centerX) * scale,
+                    y: (layer.y + layer.height / 2 - centerY) * scale,
                     z: layer.z,
                 },
             texture: {
