@@ -1,7 +1,7 @@
-.figcraft-page .step-row { height: auto; min-height: 0; }
-.figcraft-page .canvas-side { flex: none; height: auto; }
-.figcraft-page .canvas-wrapper { flex: none; height: auto; justify-content: center; }
-.figcraft-page .canvas-box {
+.hero-parallax-page .step-row { height: auto; min-height: 0; }
+.hero-parallax-page .canvas-side { flex: none; height: auto; }
+.hero-parallax-page .canvas-wrapper { flex: none; height: auto; justify-content: center; }
+.hero-parallax-page .canvas-box {
     flex: none;
     width: min(100%, calc((100dvh - 160px) * 1.25));
     height: auto;
@@ -9,32 +9,32 @@
     min-width: 0;
     min-height: 0;
 }
-.figcraft-page .canvas-box canvas { width: 100% !important; height: 100% !important; }
-.figcraft-page .step-content[data-content="code"] { min-height: 75dvh; }
+.hero-parallax-page .canvas-box canvas { width: 100% !important; height: 100% !important; }
+.hero-parallax-page .step-content[data-content="code"] { min-height: 75dvh; }
 
-.figcraft-page .canvas-box:fullscreen,
-.figcraft-page .canvas-box:-webkit-full-screen {
+.hero-parallax-page .canvas-box:fullscreen,
+.hero-parallax-page .canvas-box:-webkit-full-screen {
     width: 100vw;
     height: 100dvh;
     aspect-ratio: auto;
     border-radius: 0;
 }
 
-.figcraft-page .step-content[data-content="code"].active {
+.hero-parallax-page .step-content[data-content="code"].active {
     height: 75dvh;
     min-height: 400px;
 }
-.figcraft-page .step-content[data-content="code"] > .code-side {
+.hero-parallax-page .step-content[data-content="code"] > .code-side {
     display: flex !important;
     height: 100%;
     min-height: 0;
     width: 100%;
 }
-.figcraft-page .editor-box { flex: 1; min-height: 0; overflow: auto; }
+.hero-parallax-page .editor-box { flex: 1; min-height: 0; overflow: auto; }
 
 
-.figcraft-page .canvas-box:fullscreen canvas,
-.figcraft-page .canvas-box:-webkit-full-screen canvas {
+.hero-parallax-page .canvas-box:fullscreen canvas,
+.hero-parallax-page .canvas-box:-webkit-full-screen canvas {
     width: min(100vw, calc(100dvh * 1.25019)) !important;
     height: min(100dvh, calc(100vw / 1.25019)) !important;
 }

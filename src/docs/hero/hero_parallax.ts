@@ -18,11 +18,11 @@ import {appAssetPath} from "../../utils/app_paths.ts";
  * 
  * Experience depth through head movement.
  */
-export const figcraftExplanation = `
+export const heroParallaxExplanation = `
 <p>The original FigCraft layers form this scene, preserving their page positions at the reference viewpoint. Move your head to see the layers shift with perspective. If no face is tracked, move the pointer over the canvas and scroll to change depth.</p>
 `;
 
-export async function figcraftParallax(
+export async function heroParallax(
     p: p5,
     config: SketchConfig = DEFAULT_SKETCH_CONFIG,
     extraArgs?: { faceConfig?: FaceConfig; faceDataProvider?: HeadTrackingDataProvider; webCamProvider?: WebCamDataProvider } & P5SketchExtraArgs,

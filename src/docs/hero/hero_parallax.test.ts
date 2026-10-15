@@ -2,11 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 import p5 from 'p5';
 import { World } from '../../scene/world.ts';
 import { createMockP5 } from '../../scene/mock/mock_p5.mock.ts';
-import { figcraftParallax } from './figcraft_parallax.ts';
+import { heroParallax } from './hero_parallax.ts';
 import { extractSketchFunction } from '../tutorial/sketch_engine.live.ts';
-import source from './figcraft_parallax.ts?raw';
+import source from './hero_parallax.ts?raw';
 
-async function createScene(fn = figcraftParallax) {
+async function createScene(fn = heroParallax) {
     const mock = createMockP5();
     const parent = document.createElement('div');
     const canvas = document.createElement('canvas');
@@ -50,7 +50,7 @@ describe('Main scene declarations', () => {
 
     it('runs the editable source with the same engine modules', async () => {
         const { fn } = extractSketchFunction(source);
-        const { world } = await createScene(fn as typeof figcraftParallax);
+        const { world } = await createScene(fn as typeof heroParallax);
         expect(world.getElement('parallax-title-outline')).toBeDefined();
     });
 });

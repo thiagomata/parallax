@@ -14,7 +14,6 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: './index.html',
-                figcraft: './figcraft.html',
                 'docs/tutorial': './docs/tutorial/index.html',
                 'docs/tutorial/tutorial-1': './docs/tutorial/tutorial-1/index.html',
                 'docs/tutorial/tutorial-2': './docs/tutorial/tutorial-2/index.html',

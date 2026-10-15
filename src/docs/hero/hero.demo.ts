@@ -5,10 +5,10 @@ import 'prismjs/components/prism-javascript';
 import '@fortawesome/fontawesome-free/css/all.css';
 import '../../docs/style/style.css';
 import '../../docs/style/tutorial.css';
-import './figcraft.css';
+import './hero_parallax.css';
 
-import {figcraftParallax, figcraftExplanation} from "./figcraft_parallax.ts";
-import heroCode from './figcraft_parallax.ts?raw';
+import {heroParallax, heroParallaxExplanation} from "./hero_parallax.ts";
+import heroCode from './hero_parallax.ts?raw';
 
 import { 
     DEFAULT_SKETCH_CONFIG, 
@@ -219,4 +219,4 @@ export async function renderStep(
     });
 }
 
-renderStep('hero-demo-1', 'Living Parallax', figcraftParallax, heroCode, figcraftExplanation);
+renderStep('hero-demo-1', 'Living Parallax', heroParallax, heroCode, heroParallaxExplanation);
