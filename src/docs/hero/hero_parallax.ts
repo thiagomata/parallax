@@ -159,7 +159,13 @@ export async function heroParallax(
         {"id": 559, "name": "layer2-post", "width": 69.5, "height": 309.0, "z": -350, "panelWidth": 99.10420475319927, "panelHeight": 440.6215722120658, "panelX": 591.4168190127971, "panelY": 390},
         {"id": 565, "name": "Layer1", "width": 1699.0, "height": 1212.0, "z": 0, "panelWidth": 1987.8610603290676, "panelHeight": 1418.0621572212067, "panelX": 40.36563071297989, "panelY": 301.86471663619744},
     ];
+    // The sky and mountains (304, 309) are the backdrop: they recede with the camera so
+    // their distance from the eye - and therefore their apparent size - never changes,
+    // no matter how far you zoom. Reading the head projection's resolved z keeps this
+    // tied to the engine's actual camera position instead of a second tracked variable.
+    const recedingLayerIds = new Set([304, 309]);
     layers.forEach((layer, index) => {
+        const recedes = recedingLayerIds.has(layer.id);
         world.addPanel({
             id: `figcraft-layer-${layer.id}`,
             renderOrder: layer.id === 508 ? 14.5 : 10 + index,
@@ -167,11 +173,17 @@ export async function heroParallax(
             type: ELEMENT_TYPES.PANEL,
             width: layer.panelWidth,
             height: layer.panelHeight,
-            position: {
-                x: layer.panelX,
-                y: layer.panelY,
-                z: layer.z,
-            },
+            position: recedes
+                ? (context => ({
+                    x: layer.panelX,
+                    y: layer.panelY,
+                    z: (context.projectionPool['head']?.position.z ?? 0) + layer.z,
+                }))
+                : {
+                    x: layer.panelX,
+                    y: layer.panelY,
+                    z: layer.z,
+                },
             texture: {
                 path: appAssetPath(`img/figcraft/layer-${layer.id}.png`),
                 width: layer.width,
