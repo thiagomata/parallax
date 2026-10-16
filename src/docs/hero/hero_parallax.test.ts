@@ -20,38 +20,31 @@ async function createScene(fn = heroParallax) {
 }
 
 describe('Main scene declarations', () => {
-    it('declares static layer geometry, title colors, and layering instead of overriding drawing', async () => {
-        const panels = vi.spyOn(World.prototype, 'addPanel');
+    it('declares the tunnel, targets, and marker cubes, with a keyboard-driven head rotation', async () => {
+        const { world } = await createScene();
+        expect(world.getElement('tunnel-0')).toBeDefined();
+        expect(world.getElement('target-1')).toBeDefined();
+        expect(world.getElement('center-cube')).toBeDefined();
+        expect(world.getElement('left-cube')).toBeDefined();
+        expect(world.getElement('right-cube')).toBeDefined();
+        expect(world.getElement('far-cube')).toBeDefined();
+        expect(world.getElement('front-cube')).toBeDefined();
+    });
+
+    it('rotates the head via arrow keys through the ExternalStore', async () => {
         const modifiers = vi.spyOn(World.prototype, 'addModifierToProjection');
-        const { canvas } = await createScene();
-        const panel = (id: string) => panels.mock.calls.find(([props]) => props.id === id)![0] as any;
-        const mountain = panel('hero-layer-304');
-        const title = panel('parallax-title');
-        const outline = panel('parallax-title-outline');
-        const house = panel('hero-layer-434');
-        // No renderOrder/depthTest override: real z plus the engine's distance sort and
-        // depth test place these correctly, same as every other element in the scene.
-        expect(title.position.z).toBeLessThan(house.position.z);
-        expect(outline.position.z).toBeGreaterThan(title.position.z);
-        expect(outline.position.z).toBeLessThan(house.position.z);
-        // Layer size/position are baked world-space values, not a per-frame formula:
-        // the real camera dolly (via the head car modifier) drives zoom, not the panels.
-        expect(typeof mountain.width).toBe('number');
+        const { world } = await createScene();
         const modifier = modifiers.mock.calls.find(([id]) => id === 'head')![1] as any;
-        modifier.getCarPosition({}, { dataProviders: { headTracker: null } });
-        const originalWidth = mountain.width;
-        const originalBlue = title.fillColor().blue;
-        canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: -1000 }));
-        modifier.getCarPosition({}, { dataProviders: { headTracker: null } });
-        expect(mountain.width).toBe(originalWidth);
-        expect(title.fillColor().blue).toBeLessThan(originalBlue);
-        expect(outline.fillColor().red).toBeGreaterThan(0);
-        panels.mockRestore(); modifiers.mockRestore();
+        const store = world.getExternalStore() as any;
+        store.global = { keys: { ArrowRight: true } };
+        const result = modifier.getCarPosition({}, { dataProviders: { headTracker: null }, previousStore: store, nextStore: {} });
+        expect(result.value.rotation.yaw).toBeGreaterThan(0);
+        modifiers.mockRestore();
     });
 
     it('runs the editable source with the same engine modules', async () => {
         const { fn } = extractSketchFunction(source);
         const { world } = await createScene(fn as typeof heroParallax);
-        expect(world.getElement('parallax-title-outline')).toBeDefined();
+        expect(world.getElement('center-cube')).toBeDefined();
     });
 });
