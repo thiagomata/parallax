@@ -279,7 +279,7 @@ describe('Scene lifecycle', () => {
         const world = await heroParallax(mock as unknown as p5, Object.assign(config, { width: 640, height: 480 }) as any,
             { faceDataProvider: tracker, webCamProvider: tracker, graphicProcessor: createMockGraphicProcessor(), ...extra } as any);
         await mock.setup();
-        return { mock, world };
+        return { mock, world, canvas };
     }
 
     it('starts paused when configured, and the draw loop follows the pause toggle', async () => {
@@ -300,10 +300,36 @@ describe('Scene lifecycle', () => {
         expect(world.isPaused()).toBe(true);
     });
 
+    it('announces sceneready once, after every texture has loaded and a frame is drawn', async () => {
+        const { mock, canvas } = await createConfiguredScene({ paused: false });
+        const ready = vi.fn();
+        canvas.addEventListener('sceneready', ready);
+        await Promise.resolve(); // let the textures-loaded promise settle
+
+        await mock.draw();
+        await mock.draw();
+
+        expect(ready).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the scene without waiting for head tracking, which starts after the textures', async () => {
+        const init = vi.fn(() => new Promise<void>(() => {})); // head tracking that never finishes
+        const { mock, canvas } = await createConfiguredScene({ paused: false }, { faceDataProvider: { ...tracker, init } });
+        const ready = vi.fn();
+        canvas.addEventListener('sceneready', ready);
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        await mock.draw();
+
+        expect(init).toHaveBeenCalledTimes(1);
+        expect(ready).toHaveBeenCalledTimes(1);
+    });
+
     it('keeps the pointer controls when the camera fails to start', async () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const failing = { ...tracker, init: async () => { throw new Error('no camera'); } };
         await createConfiguredScene({ paused: false }, { faceDataProvider: failing });
+        await new Promise(resolve => setTimeout(resolve, 0)); // head tracking starts after the textures
         expect(warn).toHaveBeenCalledWith('Camera unavailable; pointer controls remain active.', expect.any(Error));
         warn.mockRestore();
     });

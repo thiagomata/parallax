@@ -248,7 +248,7 @@ export async function heroParallax(
             const keyRotation = resolveKeyRotation();
             resolveKeyZoom();
             if (context.dataProviders.headTracker && !debugHeadOverride) {
-                announceStatus('Head tracking active.');
+                announceStatus('Head tracking on - move your head to look around.');
                 const result = headModifier.getCarPosition(position, context);
                 if (!result.success) return result;
                 return {
@@ -265,11 +265,11 @@ export async function heroParallax(
                 };
             }
             const cameraReady = webCamProvider?.getStatus?.() === 'READY';
-            announceStatus(cameraReady
-                ? 'No face detected. Move the mouse to look around and scroll to change depth.'
-                : initialized
-                    ? 'Camera unavailable. Move the mouse to look around and scroll to change depth.'
-                    : 'Starting camera. Mouse and scroll controls are active.');
+            announceStatus(!initialized
+                ? 'Head tracking is loading - meanwhile, move the mouse to look around; scroll or W / S to zoom.'
+                : cameraReady
+                    ? 'No face found - move the mouse to look around; scroll or W / S to zoom.'
+                    : 'Camera unavailable - move the mouse to look around; scroll or W / S to zoom.');
             return { success: true, value: { name: 'Pointer fallback', position: placeHead(pointer), rotation: keyRotation } };
         },
     };
@@ -722,6 +722,12 @@ export async function heroParallax(
 
     world.complete();
 
+    // Every texture was requested as its panel was added above. Once they have all loaded,
+    // the draw loop tells the page ('sceneready'), so it can drop its loading screen.
+    let texturesLoaded = false;
+    let readyAnnounced = false;
+    const texturesReady = loader.waitForAllAssets().then(() => { texturesLoaded = true; });
+
     // Keyboard: record which keys are held (read each frame in section 2). Keys typed into
     // text fields - like the Code tab editor - are ignored, so typing never moves the camera.
     const isTyping = (event: KeyboardEvent) => {
@@ -752,6 +758,10 @@ export async function heroParallax(
         p.background(145, 101, 148);
         if (gp) {
             const result = await world.step(gp);
+            if (texturesLoaded && !readyAnnounced) {
+                readyAnnounced = true;
+                canvasElement?.dispatchEvent(new CustomEvent('sceneready', { bubbles: true }));
+            }
             if (!result.running) return;
             // announceObserver(); // observer debug readout - see below
         }
@@ -773,14 +783,21 @@ export async function heroParallax(
     //     canvasElement?.dispatchEvent(new CustomEvent('observerchange', { detail: observer, bubbles: true }));
     // };
 
-    // Start the webcam last: if it fails, the mouse and keys keep working.
-    try {
-        await faceDataProvider.init();
-    } catch (error) {
-        console.warn('Camera unavailable; pointer controls remain active.', error);
-    }
-    initialized = true;
+    // Render right away - the scene shows as soon as its textures are in.
     gp = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
+
+    // Head tracking downloads ~13 MB (face model + WebAssembly), so it starts only once the
+    // textures have loaded - on slow connections it would otherwise hold back the scene.
+    // Nothing waits for it: the mouse, wheel and keys drive the camera until it's ready, and
+    // keep doing so if the camera is unavailable.
+    void texturesReady.then(async () => {
+        try {
+            await faceDataProvider.init();
+        } catch (error) {
+            console.warn('Camera unavailable; pointer controls remain active.', error);
+        }
+        initialized = true;
+    });
 
     return world;
 }
