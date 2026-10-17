@@ -493,6 +493,30 @@ export async function heroParallax(
         ],
     });
 
+    // Layer 04 - a plain panel fixed in 3D space (no follow effect), at the image's own size
+    // and proportions, centered on the starting view axis.
+    world.addPanel({
+        id: 'layer-04',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: 696,
+        height: 507,
+        position: { x:  -350, y: 50, z: -1000 },
+        texture: { path: appAssetPath('img/hero/layer-04.png'), width: 696, height: 507 },
+    });
+    world.addPanel({
+        id: 'layer-04-mirror',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: 696,
+        height: 507,
+        mirrorTextureHorizontal: true,
+        position: { x:  -350 - 696, y: 50, z: -1000 },
+        texture: { path: appAssetPath('img/hero/layer-04.png'), width: 696, height: 507 },
+    });
+
     world.addBox({
         id: 'far-cube',
         type: ELEMENT_TYPES.BOX,
