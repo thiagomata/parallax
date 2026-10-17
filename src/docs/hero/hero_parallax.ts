@@ -112,6 +112,14 @@ export async function heroParallax(
                 Object.assign(pointer, position);
             },
             release: () => { debugHeadOverride = false; },
+            // Resolved global positions of the camera rig, e.g. to see where the render
+            // camera (eye -> looking at screen) actually is.
+            projections: () => Object.fromEntries(
+                [...(world.getCurrenState()?.projections ?? new Map()).entries()].map(([id, projection]) => {
+                    const { x, y, z } = projection.globalPosition ?? projection.position;
+                    return [id, { x: Math.round(x), y: Math.round(y), z: Math.round(z) }];
+                }),
+            ),
         };
     }
     let canvasElement: HTMLElement | undefined;
@@ -145,6 +153,23 @@ export async function heroParallax(
         if (pressedKeys.ArrowDown) keyPitch = Math.min(maxKeyPitch, keyPitch + keyRotationSpeed);
         return { yaw: keyYaw, pitch: keyPitch, roll: 0 };
     };
+    // Starting camera: offset added to the tracked/pointer head position, so the resting
+    // view starts further back and lower than the raw tracker origin. The eye sits 100 in
+    // front of the head, so the resting eye is at (0, 60, 250).
+    const startHeadOffset = { x: 0, y: 60, z: 150 };
+    // Zoom limits on the head's z (after the offset). Nothing else limits head tracking.
+    // Applies to head tracking, the pointer fallback and heroDebug.
+    // - Zoom out: layer-11 (the foreground frame) is sized to frame the view from the
+    //   resting eye; any further back shows its edges, so the head stops at the start z.
+    // - Zoom in: stop the eye at z -150, 150 in front of layer-11 (z -300), instead of
+    //   passing through it into the scene.
+    const maxZoomOutHeadZ = 150;
+    const maxZoomInHeadZ = -250;
+    const placeHead = (position: Vector3): Vector3 => ({
+        x: position.x + startHeadOffset.x,
+        y: position.y + startHeadOffset.y,
+        z: Math.min(maxZoomOutHeadZ, Math.max(maxZoomInHeadZ, position.z + startHeadOffset.z)),
+    });
     const observerModifier: CarModifier<typeof dataProviderLib> = {
         name: 'Head tracking with pointer fallback',
         active: true,
@@ -164,6 +189,7 @@ export async function heroParallax(
                     success: true,
                     value: {
                         ...result.value,
+                        position: placeHead(result.value.position),
                         rotation: {
                             yaw: (result.value.rotation?.yaw ?? 0) + keyRotation.yaw,
                             pitch: (result.value.rotation?.pitch ?? 0) + keyRotation.pitch,
@@ -178,7 +204,7 @@ export async function heroParallax(
                 : initialized
                     ? 'Camera unavailable. Move the mouse to look around and scroll to change depth.'
                     : 'Starting camera. Mouse and scroll controls are active.');
-            return { success: true, value: { name: 'Pointer fallback', position: { ...pointer }, rotation: keyRotation } };
+            return { success: true, value: { name: 'Pointer fallback', position: placeHead(pointer), rotation: keyRotation } };
         },
     };
     world.addModifierToProjection('head', observerModifier, 'car');
@@ -271,71 +297,71 @@ export async function heroParallax(
             rotate: {pitch: Math.PI / 2, yaw: 0, roll: 0}
         });
     }
-    createTarget({x: 0, y: 0, z: 0});
-    createTarget({x: -70, y: -10, z: 50});
-    createTarget({x: 50, y: 10, z: 80});
-    createTarget({x: 10, y: -80, z: 30});
-    createTarget({x: 10, y: -200, z: 10});
-    createTarget({x: -30, y: 30, z: 90});
-    createTarget({x: 50, y: -50, z: 70});
-    createTarget({x: -30, y: -20, z: 20});
-    createTarget({x: -130, y: -120, z: 200});
-    createTarget({x: 130, y: 120, z: 250});
-    createTarget({x: 200, y: 200, z: 400});
-    createTarget({x: -200, y: -200, z: 500});
+    // createTarget({x: 0, y: 0, z: 0});
+    // createTarget({x: -70, y: -10, z: 50});
+    // createTarget({x: 50, y: 10, z: 80});
+    // createTarget({x: 10, y: -80, z: 30});
+    // createTarget({x: 10, y: -200, z: 10});
+    // createTarget({x: -30, y: 30, z: 90});
+    // createTarget({x: 50, y: -50, z: 70});
+    // createTarget({x: -30, y: -20, z: 20});
+    // createTarget({x: -130, y: -120, z: 200});
+    // createTarget({x: 130, y: 120, z: 250});
+    // createTarget({x: 200, y: 200, z: 400});
+    // createTarget({x: -200, y: -200, z: 500});
 
-    createTarget({x: -150, y: 0, z: 100});
-    createTarget({x: 150, y: 0, z: 120});
-    createTarget({x: 0, y: 150, z: 150});
-    createTarget({x: 0, y: -150, z: 180});
-    createTarget({x: -100, y: 100, z: 200});
-    createTarget({x: 100, y: -100, z: 220});
-    createTarget({x: -180, y: -50, z: 300});
-    createTarget({x: 180, y: 50, z: 320});
-    createTarget({x: 50, y: 180, z: 350});
-    createTarget({x: -50, y: -180, z: 380});
-    createTarget({x: -220, y: 100, z: 450});
-    createTarget({x: 220, y: -100, z: 480});
-    createTarget({x: 100, y: 200, z: 520});
-    createTarget({x: -100, y: -200, z: 550});
-    createTarget({x: 60, y: 0, z: -50});
-    createTarget({x: -80, y: 50, z: -30});
-    createTarget({x: 80, y: -50, z: -40});
-    createTarget({x: 0, y: -100, z: -20});
-    createTarget({x: 0, y: 100, z: -10});
+    // createTarget({x: -150, y: 0, z: 100});
+    // createTarget({x: 150, y: 0, z: 120});
+    // createTarget({x: 0, y: 150, z: 150});
+    // createTarget({x: 0, y: -150, z: 180});
+    // createTarget({x: -100, y: 100, z: 200});
+    // createTarget({x: 100, y: -100, z: 220});
+    // createTarget({x: -180, y: -50, z: 300});
+    // createTarget({x: 180, y: 50, z: 320});
+    // createTarget({x: 50, y: 180, z: 350});
+    // createTarget({x: -50, y: -180, z: 380});
+    // createTarget({x: -220, y: 100, z: 450});
+    // createTarget({x: 220, y: -100, z: 480});
+    // createTarget({x: 100, y: 200, z: 520});
+    // createTarget({x: -100, y: -200, z: 550});
+    // createTarget({x: 60, y: 0, z: -50});
+    // createTarget({x: -80, y: 50, z: -30});
+    // createTarget({x: 80, y: -50, z: -40});
+    // createTarget({x: 0, y: -100, z: -20});
+    // createTarget({x: 0, y: 100, z: -10});
 
-    world.addBox({
-        id: 'center-cube',
-        type: ELEMENT_TYPES.BOX,
-        width: 50,
-        strokeWidth: 1,
-        strokeColor: COLORS.white,
-        position: { x: 0, y: floorY, z: 0 },
-        fillColor: COLORS.red,
-    });
+    // world.addBox({
+    //     id: 'center-cube',
+    //     type: ELEMENT_TYPES.BOX,
+    //     width: 50,
+    //     strokeWidth: 1,
+    //     strokeColor: COLORS.white,
+    //     position: { x: 0, y: floorY, z: 0 },
+    //     fillColor: COLORS.red,
+    // });
 
     const mountainWidth = 1603;
     const mountainHeight = 847;
     const mountainPanelWidth = 150;
     const mountainPanelHeight = mountainPanelWidth * mountainHeight / mountainWidth;
 
-    world.addPanel({
-        id: 'left-cube',
-        type: ELEMENT_TYPES.PANEL,
-        width: mountainPanelWidth,
-        height: mountainPanelHeight,
-        position: { x: -150, y: floorY, z: -100 },
-        texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
-    });
+    // world.addPanel({
+    //     id: 'left-cube',
+    //     type: ELEMENT_TYPES.PANEL,
+    //     width: mountainPanelWidth,
+    //     height: mountainPanelHeight,
+    //     position: { x: -150, y: floorY, z: -100 },
+    //     texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
+    // });
 
-    world.addPanel({
-        id: 'right-cube',
-        type: ELEMENT_TYPES.PANEL,
-        width: mountainPanelWidth,
-        height: mountainPanelHeight,
-        position: { x: 150, y: floorY, z: -100 },
-        texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
-    });
+    // world.addPanel({
+    //     id: 'right-cube',
+    //     type: ELEMENT_TYPES.PANEL,
+    //     width: mountainPanelWidth,
+    //     height: mountainPanelHeight,
+    //     position: { x: 150, y: floorY, z: -100 },
+    //     texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
+    // });
 
     // Mountain backdrop - a big distant panel of the same mountain artwork.
     // Plain `follow` (position only, no rotation tracking) keeps it a fixed
@@ -583,12 +609,12 @@ export async function heroParallax(
         texture: { path: appAssetPath('img/hero/layer-06.png'), width: 221, height: 813 },
     });
 
-    // Layers 07/08 - the nearest foreground pieces (in front of the tree), plain fixed panels
-    // at the images' own sizes, both resting on roughly the same ground line (bottom ~y 350):
-    // 07 is the dark cliff house on the left, 08 the waterfall land strip on the right.
-    // They overlap on screen, so they must NOT share a z: equal depths z-fight (flicker as
-    // the observer moves). 07 sits slightly behind, as the land was drawn over the house
-    // in the original artwork.
+    // // Layers 07/08 - the nearest foreground pieces (in front of the tree), plain fixed panels
+    // // at the images' own sizes, both resting on roughly the same ground line (bottom ~y 350):
+    // // 07 is the dark cliff house on the left, 08 the waterfall land strip on the right.
+    // // They overlap on screen, so they must NOT share a z: equal depths z-fight (flicker as
+    // // the observer moves). 07 sits slightly behind, as the land was drawn over the house
+    // // in the original artwork.
     world.addPanel({
         id: 'layer-07',
         type: ELEMENT_TYPES.PANEL,
@@ -607,29 +633,95 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: 872,
         height: 302,
-        position: { x: 300, y: 200, z: -400 },
+        position: { x: 470, y: 200, z: -400 },
         texture: { path: appAssetPath('img/hero/layer-08.png'), width: 872, height: 302 },
     });
 
-    world.addBox({
-        id: 'far-cube',
-        type: ELEMENT_TYPES.BOX,
-        width: 30,
-        strokeWidth: 1,
-        strokeColor: COLORS.white,
-        position: { x: 0, y: floorY, z: -300 },
-        fillColor: COLORS.cyan,
+    // // Layers 09/10 - the crooked house and the lamp post beside it, from the same nearest
+    // // group as 07/08: plain fixed panels at the images' own sizes on the same ground line
+    // // (bottom ~y 347), each at its own z so nothing overlapping shares a depth.
+    world.addPanel({
+        id: 'layer-09',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: 299,
+        height: 495,
+        position: { x: 400, y: 100, z: -380 },
+        texture: { path: appAssetPath('img/hero/layer-09.png'), width: 299, height: 495 },
     });
 
-    world.addBox({
-        id: 'front-cube',
-        type: ELEMENT_TYPES.BOX,
-        width: 30,
-        strokeWidth: 1,
-        strokeColor: COLORS.white,
-        position: { x: 0, y: floorY, z: -30 },
-        fillColor: COLORS.purple,
+    world.addPanel({
+        id: 'layer-10',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: 70,
+        height: 309,
+        position: { x: 140, y: 192, z: -370 },
+        texture: { path: appAssetPath('img/hero/layer-10.png'), width: 70, height: 309 },
     });
+
+    // Layer 11 - the nearest layer, the foreground frame (ground across the bottom, tower on
+    // the right). Scaled down from the image (same proportions) to just fill the starting
+    // view at this depth - at 1699 wide it would be ~3x the view this close to the eye.
+    world.addPanel({
+        id: 'layer-11',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: 913,
+        height: 651,
+        position: { x: 0, y: 52, z: -300 },
+        texture: { path: appAssetPath('img/hero/layer-11.png'), width: 1699, height: 1212 },
+    });
+
+    // Parallax title - restored from the earlier layered version: between the village
+    // (layer-05, z -1200) and the far mountains (layer-03, z -2000), near the view center.
+    // The outline is white strokes tinted black, 10 in front of the fill so the two
+    // overlapping panels never share a depth.
+    world.addPanel({
+        id: 'parallax-title',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: 820,
+        height: 152,
+        position: { x: 0, y: -270, z: -1500 },
+        texture: { path: appAssetPath('img/hero/parallax-title.png'), width: 700, height: 130 },
+    });
+
+    world.addPanel({
+        id: 'parallax-title-outline',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: 820,
+        height: 152,
+        position: { x: 0, y: -270, z: -1490 },
+        fillColor: { red: 0, green: 0, blue: 0 },
+        texture: { path: appAssetPath('img/hero/parallax-outline.png'), width: 700, height: 130 },
+    });
+
+    // world.addBox({
+    //     id: 'far-cube',
+    //     type: ELEMENT_TYPES.BOX,
+    //     width: 30,
+    //     strokeWidth: 1,
+    //     strokeColor: COLORS.white,
+    //     position: { x: 0, y: floorY, z: -300 },
+    //     fillColor: COLORS.cyan,
+    // });
+
+    // world.addBox({
+    //     id: 'front-cube',
+    //     type: ELEMENT_TYPES.BOX,
+    //     width: 30,
+    //     strokeWidth: 1,
+    //     strokeColor: COLORS.white,
+    //     position: { x: 0, y: floorY, z: -30 },
+    //     fillColor: COLORS.purple,
+    // });
 
     // Ground floor - `position` is its local offset from the camera's own
     // view (forward + down), rotated by the camera's current orientation via
