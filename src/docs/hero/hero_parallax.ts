@@ -19,9 +19,42 @@ import { LookAtEffect } from "../../scene/effects/look_at_effect.ts";
 /**
  * MAIN DEMO: 3D Parallax Depth
  *
- * Layered parallax scene (camera-following mountain boxes, fixed artwork layers, title,
- * floor and roof) seen through tutorial-9's head-tracked camera, with keyboard-driven
- * camera rotation always on, additive on top of head tracking.
+ * A painting split into layers and placed at different depths. As your head moves (webcam
+ * head tracking, or the mouse / wheel / keys as a fallback) the camera moves with it, and
+ * near layers shift more than far ones - that difference is the parallax.
+ *
+ * HOW TO READ THIS FILE
+ *   1. World and camera rig ......... engine setup, the head-tracked camera
+ *   2. Controls and limits .......... keys, start position, zoom and side limits
+ *   3. Far scenery (moves with you) . mountain boxes 01-03
+ *   4. Artwork layers (fixed) ....... layers 04-11 and the post light
+ *   5. Title ........................ fill + outline, tinted by distance
+ *   6. Floor and roof
+ *   7. Canvas, input and draw loop
+ *
+ * COORDINATES (p5 WEBGL): +x right, +y DOWN, -z away from you. One unit is roughly one
+ * pixel of artwork, so most fixed layers use their image's own size. The eye rests at
+ * (0, 60, 150) and can travel in depth from z 250 (max zoom out) to z -1100.
+ *
+ * THREE WAYS A LAYER MOVES
+ *   - Follows the camera fully (layers 01/02, floor, roof): always the same distance
+ *     away, like the sky and far mountains. They stop following together past a bound
+ *     (mountainFollowBounds), so they never slide into the fixed layers in front.
+ *   - Follows the camera sideways only (layer 03): fixed depth, so it shows some
+ *     parallax as you lean in and out.
+ *   - Fixed in space (layers 04-11, title, post light): the strongest parallax.
+ *
+ * RULES FOR EVERY LAYER (src/docs/hero/hero_parallax.test.ts checks the first two)
+ *   - Panels that overlap on screen must not share a z: equal depths flicker
+ *     (z-fighting). Even a 3-10 unit difference is enough.
+ *   - The camera-following group must stay rigid and behind layer 03.
+ *   - Textured panels use alphaCutoff: 0.5 so their transparent pixels never hide what
+ *     is behind them, whatever the draw order.
+ *   - Pieces meant to fit together must move the same way (follow vs fixed, tilting vs
+ *     upright); mixing them is what opens gaps at the seams.
+ *
+ * DEBUGGING: on localhost the console has `heroDebug.setHead({ x, y, z })`, `release()`
+ * and `projections()` - see section 1.
  */
 export const heroParallaxExplanation = `
 <p>3D parallax depth, head-tracked. If no camera is available, move the pointer over the canvas and scroll to change depth, use the arrow keys to look around, or W / S to zoom in and out.</p>
@@ -72,6 +105,8 @@ export async function heroParallax(
         })
     );
 
+    // ── 1. World and camera rig ────────────────────────────────────────────────────
+
     world.startLoading();
     world.enableDefaultPerspective(config.width, config.height, Math.PI / 4, true);
 
@@ -79,9 +114,9 @@ export async function heroParallax(
         world.pause();
     }
 
-    // Same preset as tutorial-9, except 'head' switches to ROTATION mode (from the preset's
-    // default LOOK_AT) so the keyboard-driven rotation below actually pivots the camera
-    // instead of being ignored in favor of a fixed lookAt target.
+    // The camera rig from tutorial-9: a 'head' that moves with your tracked head, an 'eye'
+    // 100 in front of it, and a 'screen' it looks at. 'head' uses ROTATION mode (instead of
+    // the preset's LOOK_AT) so turning - head rotation and arrow keys - pivots the view.
     world.loadPreset({
         ...HEAD_TRACKED_PRESET,
         projectors: HEAD_TRACKED_PRESET.projectors.map(projector =>
@@ -98,12 +133,13 @@ export async function heroParallax(
         ),
     });
 
+    // Head position from the mouse / wheel, used when no face is tracked.
     const pointer = { x: 0, y: 0, z: 0 };
-    // Local-dev-only debug hook: place the head exactly (no clamping), e.g. from the console
-    // `heroDebug.setHead({ x: 0, y: 10, z: 515 })`, to reproduce views that head tracking
-    // reaches but the mouse/wheel ranges can't. While set it overrides head tracking (the
-    // on-canvas readout shows the resulting eye position); `heroDebug.release()` hands
-    // control back to the camera.
+    // Debug hook (localhost only), from the browser console:
+    //   heroDebug.setHead({ x: 0, y: 10, z: 515 })  place the head exactly; overrides tracking
+    //   heroDebug.release()                         hand control back to head tracking
+    //   heroDebug.projections()                     head / eye / screen world positions
+    // Use it to reproduce a reported view. Keep the mouse off the canvas while it's set.
     let debugHeadOverride = false;
     // A hostname check, not import.meta.env.DEV: this source also runs as the Code tab's
     // editable sketch (compiled via new Function), where import.meta is a syntax error.
@@ -132,34 +168,31 @@ export async function heroParallax(
         lastStatus = message;
         canvasElement?.dispatchEvent(new CustomEvent('observerstatus', { bubbles: true, detail: message }));
     };
+    // Head tracking turns the camera by the face's angle x damping (0.1), so even a large
+    // head turn only turns the view ~0.1 rad - the arrow keys are limited to match.
     const headModifier = new HeadTrackingModifier({
         disableRotation: false,
         damping: 0.1 as DampingValue,
     });
-    // Keyboard rotation - plain closure state, NOT routed through the engine's
-    // ExternalStore (previousStore/nextStore). Car/nudge/stick modifiers are resolved
-    // in projection_resolver.ts with a hardcoded `{ global: {} }` store on every call
-    // (see `resolve()` there), so anything written to the real ExternalStore via
-    // getExternalStore() is invisible to a CarModifier's context - it never carries
-    // keyboard (or any other externally-synced) state. Tracking it here directly
-    // sidesteps that engine bug for this one modifier.
+    // ── 2. Controls and limits ──────────────────────────────────────────────────────
+    // Arrow keys turn, W / S zoom. Keys held right now (filled by the listeners in section
+    // 7) are read once per frame by the observer modifier below.
     const pressedKeys: Record<string, boolean> = {};
-    // Arrow keys turn only as far as head tracking can: the tracker turns the camera by the
-    // face's angle x damping (0.1), so even a ~1 rad (60deg) head turn moves it ~0.1 rad.
+    // Arrow keys turn at most 0.1 rad - the same range head tracking reaches.
     const keyRotationSpeed = 0.005;
     const maxKeyRotation = 0.1;
-    // Max look left/right (15deg), for the face rotation and arrow keys combined: layer-11
-    // (the foreground frame) only covers the view up to this turn - see the side limit below.
+    // Total left/right turn cap (15deg, head + keys): layer-11, the foreground frame, only
+    // covers the view up to this turn - see the side limit below.
     const maxYaw = 0.26;
     let keyYaw = 0;
     let keyPitch = 0;
-    // W / S zoom: a head depth offset while held, added before the zoom limits in placeHead,
-    // so it can't exceed them and adds on top of head tracking or the mouse wheel.
+    // W / S zoom: a depth offset added to the head in placeHead (before the zoom limits), so
+    // it adds to head tracking or the wheel and can never pass the limits.
     const keyZoomSpeed = 8;
     let keyZoom = 0;
     const resolveKeyZoom = () => {
-        // Kept within the zoom limits measured from the start (head z 50: -1200 .. 150), so
-        // holding a key past a limit doesn't build up a hidden offset to unwind.
+        // Kept within the reachable range (from head z 50: -1200 .. 150), so holding a key
+        // past a limit doesn't build up an offset you'd have to hold the other key to undo.
         if (pressedKeys.KeyW) keyZoom = Math.max(-1250, keyZoom - keyZoomSpeed);
         if (pressedKeys.KeyS) keyZoom = Math.min(100, keyZoom + keyZoomSpeed);
     };
@@ -170,27 +203,27 @@ export async function heroParallax(
         if (pressedKeys.ArrowDown) keyPitch = Math.min(maxKeyRotation, keyPitch + keyRotationSpeed);
         return { yaw: keyYaw, pitch: keyPitch, roll: 0 };
     };
-    // Starting camera: offset added to the tracked/pointer head position, so the resting
-    // view starts lower than the raw tracker origin and a bit in front of the max zoom-out.
-    // The eye sits 100 in front of the head, so the resting eye is at (0, 60, 150).
+    // Where the camera starts: added to every head position (tracked, mouse or debug). The
+    // eye sits 100 in front of the head, so the resting eye is at (0, 60, 150) - a bit
+    // lower than the tracker origin and 100 in front of the max zoom out.
     const startHeadOffset = { x: 0, y: 60, z: 50 };
-    // Zoom limits on the head's z (after the offset). Nothing else limits head tracking.
-    // Applies to head tracking, the pointer fallback and heroDebug.
-    // - Zoom out: layer-11 (the foreground frame) is sized to frame the view from eye z
-    //   250; any further back shows its edges, so the head stops at z 150. From the start
-    //   that leaves 100 of lean-back room (50 of real head movement with headDepthGain).
-    // - Zoom in: fly through the layers, like the earlier layered version - each panel
-    //   grows huge as you approach and vanishes as you pass it. Stops with the eye at
-    //   z -1100, just past the title (z -1000) and before layer-05 (z -1200).
-    // Leaning moves the head twice as far in depth (headDepthGain), so the fly-through is
-    // reachable with real head movement.
+    // Depth (zoom) limits on the head, applied in placeHead to every input:
+    //   - Zoom out stops at head z 150 (eye z 250): layer-11 is sized to frame the view from
+    //     there, and any further back would show its edges.
+    //   - Zoom in stops at head z -1200 (eye z -1100): you fly through the layers - each
+    //     grows as you approach and vanishes as you pass - ending just past the title
+    //     (z -1000) and before layer-05 (z -1200).
+    // headDepthGain doubles head movement in depth, so the fly-through is reachable by
+    // actually leaning in.
     const headDepthGain = 2;
     const maxZoomOutHeadZ = 150;
     const maxZoomInHeadZ = -1200;
-    // Side limit, only restrictive when far back: layer-11's edges are 825 either side of
-    // center at z -300, and the view (35.8deg half-width) turned up to maxYaw reaches
-    // distance * 1.23 sideways (tan(35.8deg + 15deg)). So the head may move sideways
-    // 825 - distance * 1.23: ~150 at the start (distance 550), ~640 at max zoom-in (150).
+    // Turns a raw head position into the camera's head position: adds the start offset and
+    // key zoom, then applies the zoom limits and the side limit.
+    // Side limit: layer-11's edges are 825 either side of center (at z -300). A view
+    // (35.8deg half-width) turned the full 15deg reaches distance x 1.23 sideways
+    // (tan 50.8deg), so the head may move 825 - distance x 1.23 sideways - tight when far
+    // back (~270 at the start), loose when close, unlimited once past layer-11.
     const placeHead = (position: Vector3): Vector3 => {
         const z = Math.min(maxZoomOutHeadZ, Math.max(maxZoomInHeadZ, startHeadOffset.z + position.z * headDepthGain + keyZoom));
         const distanceToLayer11 = z + 100 + 300;
@@ -202,6 +235,8 @@ export async function heroParallax(
         };
     };
     const clampYaw = (yaw: number) => Math.max(-maxYaw, Math.min(maxYaw, yaw));
+    // The camera's position each frame: head tracking when a face is tracked, otherwise the
+    // mouse / wheel; either way passed through placeHead and combined with the arrow keys.
     const observerModifier: CarModifier<typeof dataProviderLib> = {
         name: 'Head tracking with pointer fallback',
         active: true,
@@ -209,9 +244,7 @@ export async function heroParallax(
         requiredDataProviders: [],
         tick: sceneId => headModifier.tick(sceneId),
         getCarPosition: (position, context) => {
-            // Read every frame regardless of branch, so arrow-key rotation always works
-            // (including on top of head tracking) - makes debugging the scene much easier
-            // than having to disable the camera first.
+            // Keys are read every frame, so they also work on top of head tracking.
             const keyRotation = resolveKeyRotation();
             resolveKeyZoom();
             if (context.dataProviders.headTracker && !debugHeadOverride) {
@@ -242,24 +275,23 @@ export async function heroParallax(
     };
     world.addModifierToProjection('head', observerModifier, 'car');
 
+    // ── 3. Far scenery (moves with you) ─────────────────────────────────────────────
+    // Three nested "boxes" - a backdrop with two side walls each:
+    //   01 the sunset sky, 02 the mountains, 03 the far village.
+    // 01 and 02 follow the camera's position (not its rotation), so they stay the same
+    // distance away like real distant scenery; 02 and 03 are 0.9x and 0.8x copies of 01's
+    // box geometry, so all three line up. All backdrops share layer-02's proportions.
     const mountainWidth = 1603;
     const mountainHeight = 847;
 
-    // Mountain backdrop - a big distant panel of the same mountain artwork.
-    // Plain `follow` (position only, no rotation tracking) keeps it a fixed
-    // distance away as the observer moves, like real distant scenery, but it
-    // does NOT re-center on wherever the camera is looking: panning/tilting
-    // the view slides it toward the edge and out of frame like an actual
-    // fixed landmark, instead of staying glued to the center of your gaze.
     const mountainBackdropWidth = 4000;
     const mountainBackdropHeight = mountainBackdropWidth * mountainHeight / mountainWidth;
     const mountainBackdropDistance = -2500;
-    // Layers 01/02 follow the camera's z, but layer 03 sits at a fixed world z. Left
-    // unbounded, moving back (+z) slides layer 02 onto layer 03's plane (observer z ~250)
-    // and they z-fight. Bounding the followed camera z stops both following boxes - rigidly,
-    // walls included - at least mountainMinGap behind layer 03. The floor and roof share the
-    // same bounds: if they kept following while the boxes stopped, the roof's far edge would
-    // drift below the backdrop's top and open a black band of sky between them.
+    // Layers 01/02 follow the camera in depth but layer 03 doesn't, so leaning back would
+    // slide 02 onto 03 and they'd flicker. This bound stops everything that follows the
+    // camera (boxes 01/02, floor, roof) together, at least mountainMinGap behind layer 03.
+    // Sharing one bound keeps the group rigid - if one piece kept following, its seams
+    // would open.
     const mountainMinGap = 100;
     const mountainFollowBounds = {
         max: { z: mountainBackdropDistance * 0.8 - mountainBackdropDistance * 0.9 - mountainMinGap },
@@ -271,7 +303,7 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: mountainBackdropWidth,
         height: mountainBackdropHeight,
-        // 450 up so its top edge reaches the top of the view (layer-01 is the sky).
+        // Raised 450 so the sky's top edge stays above the view, even at max zoom out.
         position: { x: 0, y: -450, z: mountainBackdropDistance },
         texture: { path: appAssetPath('img/hero/layer-01.png'), width: mountainWidth, height: mountainHeight },
         effects: [
@@ -292,22 +324,17 @@ export async function heroParallax(
         ],
     });
 
-    // Side walls - same mountain artwork, folded 90 degrees off the backdrop's left/right
-    // edges so they read as the side faces of a box around the observer. Each is mirrored
-    // horizontally, so the edge touching the backdrop reflects it like a fold in a mirror,
-    // instead of abruptly restarting the image. Same plain `follow` as the backdrop, so the
-    // whole box stays rigidly together as the observer moves.
+    // Side walls: the same artwork, hinged on each backdrop edge and splayed 45deg toward
+    // you like an open stage set, so turning or moving sideways doesn't reveal empty space.
+    // They follow the camera exactly like their backdrop, so each box moves as one piece.
     const mountainSideDepth = 3000;
     const mountainBackdropHalfWidth = mountainBackdropWidth / 2;
-    // Fold angle of each wall off the backdrop's edge: 0 = flat continuation of the
-    // backdrop, PI/2 = square box. 45 degrees splays the walls outward like an open stage
-    // set. Each wall hinges on the backdrop's edge, so its center sits half a wall along the
-    // folded direction from that edge (yaw is p5's rotateY: local +x -> (cos, -sin) in x/z).
+    // Fold angle off the backdrop's edge: 0 = flat continuation, PI/2 = square box. The
+    // wall's center sits half a wall along the folded direction from its hinge (yaw is
+    // p5's rotateY: local +x -> (cos, -sin) in x/z).
     const mountainSideFold = Math.PI / 4;
-    // Walls extend mountainSeamOverlap past the hinge, tucked behind the backdrop: two quads
-    // that merely share an edge leave a sub-pixel crack (separate transforms round
-    // differently), and with nothing behind layer 01 that crack shows as a black line in
-    // the sky. The outer end stays where it was; only the hidden end grows.
+    // Each wall reaches 20 past its hinge, tucked behind the backdrop: two panels that only
+    // share an edge leave a hairline crack (each transform rounds differently).
     const mountainSeamOverlap = 20;
     const mountainSideLength = mountainSideDepth + mountainSeamOverlap;
     const mountainSideCenterOffset = (mountainSideDepth - mountainSeamOverlap) / 2;
@@ -380,10 +407,9 @@ export async function heroParallax(
         ],
     });
 
-    // Layer 03 - third box, in front of layer 02 at 0.8 scale, with the same splayed
-    // side walls (origin-anchored scaling keeps them hinged on its backdrop's edges).
-    // Unlike layers 01/02 it follows the camera on x/y only, not z: it keeps a fixed world
-    // depth, so leaning in/out brings it closer/further - nearer scenery that has parallax.
+    // Layer 03 - the far village, at 0.8x. Unlike 01/02 it follows the camera sideways
+    // only (axis z: false): its depth is fixed, so leaning in and out brings it closer and
+    // further - nearer scenery with some parallax.
     const layer03Width = 1234;
     const layer03Height = 669;
 
@@ -433,8 +459,13 @@ export async function heroParallax(
         ],
     });
 
-    // Layer 04 - a plain panel fixed in 3D space (no follow effect), at the image's own size
-    // and proportions, left of the view axis, with a mirrored copy extending it further left.
+    // ── 4. Artwork layers (fixed in space) ──────────────────────────────────────────
+    // Plain panels with no follow effect, mostly at their image's own size. Nearer layers
+    // move more as you move - that's where the strongest parallax comes from. Every
+    // overlapping pair needs its own z (see the rules at the top).
+
+    // Layer 04 - land and houses, left of center. The mirrored copy (10 behind, so the seam
+    // can't flicker) extends it further left.
     world.addPanel({
         id: 'layer-04',
         type: ELEMENT_TYPES.PANEL,
@@ -457,6 +488,7 @@ export async function heroParallax(
         texture: { path: appAssetPath('img/hero/layer-04.png'), width: 696, height: 507 },
     });
 
+    // Layer 05 - the right-hand house and land, with a mirrored copy extending it right.
     world.addPanel({
         id: 'layer-05',
         type: ELEMENT_TYPES.PANEL,
@@ -479,8 +511,7 @@ export async function heroParallax(
         texture: { path: appAssetPath('img/hero/layer-05.png'), width: 908, height: 565 },
     });
 
-    // Layer 06 - the tall tree: plain fixed panel at the image's own size, right of center
-    // and in front of the layer 04/05 land, as it stood in the original artwork.
+    // Layer 06 - the tall tree, right of center, in front of the 04/05 land.
     world.addPanel({
         id: 'layer-06',
         type: ELEMENT_TYPES.PANEL,
@@ -492,12 +523,9 @@ export async function heroParallax(
         texture: { path: appAssetPath('img/hero/layer-06.png'), width: 221, height: 813 },
     });
 
-    // // Layers 07/08 - the nearest foreground pieces (in front of the tree), plain fixed panels
-    // // at the images' own sizes, both resting on roughly the same ground line (bottom ~y 350):
-    // // 07 is the dark cliff house on the left, 08 the waterfall land strip on the right.
-    // // They overlap on screen, so they must NOT share a z: equal depths z-fight (flicker as
-    // // the observer moves). 07 sits slightly behind, as the land was drawn over the house
-    // // in the original artwork.
+    // Layers 07/08 - the nearest group: 07 the dark cliff house (left), 08 the waterfall land
+    // (right). They overlap on screen, so 07 sits 20 behind 08 - as in the original, where
+    // the land is drawn over the house.
     world.addPanel({
         id: 'layer-07',
         type: ELEMENT_TYPES.PANEL,
@@ -520,9 +548,7 @@ export async function heroParallax(
         texture: { path: appAssetPath('img/hero/layer-08.png'), width: 872, height: 302 },
     });
 
-    // // Layers 09/10 - the crooked house and the lamp post beside it, from the same nearest
-    // // group as 07/08: plain fixed panels at the images' own sizes on the same ground line
-    // // (bottom ~y 347), each at its own z so nothing overlapping shares a depth.
+    // Layers 09/10 - the crooked house and the lamp post, in the same nearest group.
     world.addPanel({
         id: 'layer-09',
         type: ELEMENT_TYPES.PANEL,
@@ -546,12 +572,12 @@ export async function heroParallax(
         texture: { path: appAssetPath('img/hero/layer-10.png'), width: 70, height: 309 },
     });
 
-    // Post light - the lamp post's lit lantern, laid over layer-10's own lantern head:
-    // scaled down to match it (~0.19x the image), mirrored like the post, 3 in front of it.
-    // It flickers through its tint (brightness), not its alpha - with alphaCutoff, an alpha
-    // below 0.5 would make it vanish. Sines at unrelated speeds on the scene clock give a
-    // never-repeating shimmer (0.75-1.0) plus an occasional deeper dip (~0.5); it pauses
-    // with the scene.
+    // Post light - the lamp's lit lantern, laid over layer-10's lantern (~0.19x the image,
+    // mirrored like the post, 3 in front of it).
+    // It flickers by brightness (its tint), not alpha: with alphaCutoff, an alpha below 0.5
+    // would make it vanish. Sines at unrelated speeds on the scene clock give a shimmer
+    // (75-100%) that never visibly repeats, plus an occasional dip (~50%). Tune: 0.125 =
+    // shimmer strength, 0.35 = dip depth, 0.92 = dip rarity. It pauses with the scene.
     const postLightBrightness = (seconds: number) => {
         const shimmer = 0.5 * Math.sin(seconds * 11) + 0.3 * Math.sin(seconds * 23.7) + 0.2 * Math.sin(seconds * 4.3);
         const dip = Math.sin(seconds * 1.7) * Math.sin(seconds * 2.9) > 0.92 ? 0.35 : 0;
@@ -573,10 +599,10 @@ export async function heroParallax(
         texture: { path: appAssetPath('img/hero/post-light.png'), width: 255, height: 219 },
     });
 
-    // Layer 11 - the nearest layer, the foreground frame (ground across the bottom, tower on
-    // the right), at the image's proportions. Wide enough (edges at +-825) that, with the
-    // head's side limit and the 15deg turn cap above, its edges never come into view.
-    // Bottom at y ~400, below the view's bottom from the starting eye.
+    // Layer 11 - the foreground frame (ground across the bottom, tower on the right), the
+    // nearest layer. Kept at the image's proportions but not its size: it's sized so its
+    // edges (+-825) never come into view within the zoom, side and turn limits of section 2.
+    // Resize it together with those limits.
     world.addPanel({
         id: 'layer-11',
         type: ELEMENT_TYPES.PANEL,
@@ -588,15 +614,14 @@ export async function heroParallax(
         texture: { path: appAssetPath('img/hero/layer-11.png'), width: 1699, height: 1212 },
     });
 
-    // Parallax title - restored from the earlier layered version: between the village
-    // (layer-05, z -1200) and the far mountains (layer-03, z -2000), near the view center.
-    // The outline is white strokes tinted black, 3 in front of the fill: enough that the two
-    // overlapping panels never share a depth (no z-fighting), too little to notice.
+    // ── 5. Title ────────────────────────────────────────────────────────────────────
+    // Between layer-05 (z -1200) and the far village (layer-03, z -2000). Two panels: the
+    // fill, and the outline 3 in front of it (white strokes, tinted) - enough to never
+    // share a depth, too little to see.
     //
-    // Both warm up as the observer approaches, like the earlier version: tintByCloseness
-    // returns a fillColor that blends from `far` (at the starting view, eye ~1150 in front
-    // of the element) to `near` (at the element), driven by the real eye position - head
-    // tracking, wheel and W / S.
+    // Both change colour as you approach: tintByCloseness returns a fillColor that blends
+    // from `far` (the starting view, ~1150 away) to `near` (at the element), from the real
+    // eye position - so head tracking, the wheel and W / S all drive it.
     const tintByCloseness = (far: ColorRGBA, near: ColorRGBA, elementZ: number) =>
         (context: ResolutionContext) => {
             const eye = context.projectionPool[STANDARD_PROJECTION_IDS.EYE] as ResolvedProjectionWithGlobals | undefined;
@@ -614,8 +639,7 @@ export async function heroParallax(
         width: 820,
         height: 152,
         position: { x: 0, y: -270, z: -1000 },
-        // White (the artwork as-is) to cyan; multiplied by the cream artwork it reads as mint
-        // part-way in. (The earlier version used gold: 255, 230, 30.)
+        // White (the artwork as-is) to cyan; tinting the cream artwork reads as mint part-way.
         fillColor: tintByCloseness(
             { red: 255, green: 255, blue: 255 } as ColorRGBA,
             { red: 0, green: 255, blue: 255 } as ColorRGBA,
@@ -632,7 +656,7 @@ export async function heroParallax(
         width: 820,
         height: 152,
         position: { x: 0, y: -270, z: -997 },
-        // Black to the old brown.
+        // Black to brown.
         fillColor: tintByCloseness(
             { red: 0, green: 0, blue: 0 } as ColorRGBA,
             { red: 139, green: 69, blue: 19 } as ColorRGBA,
@@ -641,12 +665,10 @@ export async function heroParallax(
         texture: { path: appAssetPath('img/hero/parallax-outline.png'), width: 700, height: 130 },
     });
 
-    // Ground floor - `position` is its local offset from the camera's own
-    // view (forward + down), rotated by the camera's current orientation via
-    // `followRotation`, so it always reads as "the ground ahead of you":
-    // mostly underfoot when looking down, ahead and below when looking
-    // forward. Far enough to feel distant, never receding out of view since
-    // it's rigidly tied to wherever the observer is looking.
+    // ── 6. Floor and roof ───────────────────────────────────────────────────────────
+    // Floor (the water under the waterfall): its position is an offset from the camera's
+    // view - ahead and below - and with followRotation it tilts with the view, so it always
+    // reads as "the surface ahead of you". Note the roof below does NOT tilt.
     const floorForward = -600;
     const floorDrop = 400;
     world.addFloor({
@@ -661,13 +683,10 @@ export async function heroParallax(
         ],
     });
 
-    // Roof - a level sky ceiling above the observer (negative y is up in p5). It must stay
-    // matched to the mountain backdrops, which never tilt: with `followRotation` the roof
-    // pitched up with the head-tracked camera, its far edge swung above the backdrop's top
-    // and opened a black band of sky between them. So it follows position only (bounded
-    // like the boxes) and is wide enough to also cover above the splayed walls.
-    // 2500 above the eye so it doesn't crop the mountain tops; still low enough that its far
-    // edge (~20.7deg up) stays hidden behind the backdrop's top (~23.8deg up).
+    // Roof - a level ceiling in the sky colour, 2500 above the eye (high enough not to crop
+    // the mountain tops). It follows position only, never rotation: the backdrops never
+    // tilt, so a tilting roof would pull away from them and open a gap in the sky. Wide
+    // enough to cover above the splayed walls.
     world.addFloor({
         id: 'roof',
         type: ELEMENT_TYPES.FLOOR,
@@ -680,8 +699,11 @@ export async function heroParallax(
         ],
     });
 
+    // ── 7. Canvas, input and draw loop ──────────────────────────────────────────────
+
     let gp: P5GraphicProcessor;
 
+    // Mouse fallback: pointer position moves the head sideways / up-down, the wheel in depth.
     p.setup = () => {
         const canvas = p.createCanvas(config.width, config.height, p.WEBGL);
         canvasElement = canvas?.elt;
@@ -693,17 +715,15 @@ export async function heroParallax(
         });
         canvasElement?.addEventListener('wheel', event => {
             event.preventDefault();
-            // Wheel range reaches the full fly-through (x headDepthGain): -700 -> eye past the title.
+            // -700..100 covers the full zoom range once doubled by headDepthGain.
             pointer.z = Math.max(-700, Math.min(100, pointer.z + (event as WheelEvent).deltaY * 0.25));
         }, { passive: false });
     };
 
     world.complete();
 
-    // Keyboard controls - see the note above resolveKeyRotation for why these land in
-    // a plain closure object (pressedKeys) rather than the engine's ExternalStore.
-    // Ignore keys typed into text fields (e.g. the Code tab editor), so typing never moves
-    // the camera.
+    // Keyboard: record which keys are held (read each frame in section 2). Keys typed into
+    // text fields - like the Code tab editor - are ignored, so typing never moves the camera.
     const isTyping = (event: KeyboardEvent) => {
         const target = event.target as HTMLElement | null;
         return !!target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
@@ -711,8 +731,8 @@ export async function heroParallax(
     window.addEventListener('keydown', (event: KeyboardEvent) => {
         if (isTyping(event)) return;
         if (event.key.startsWith('Arrow')) event.preventDefault();
-        // Physical codes too (KeyW / KeyS): unaffected by Shift or layout, so a key can't
-        // stay stuck when its key-up arrives with a different event.key.
+        // Physical codes too (KeyW / KeyS) ignore Shift and keyboard layout, so a key can't
+        // stay stuck when its key-up arrives as a different event.key.
         pressedKeys[event.key] = true;
         pressedKeys[event.code] = true;
     });
@@ -728,8 +748,7 @@ export async function heroParallax(
             world.resume();
         }
 
-        // Clear to layer-01's sky color, not black: any view that slips past the scene's
-        // edges (e.g. between the roof's far edge and the mountain tops) reads as sky.
+        // Clear to the sky colour, not black: any view past the scene's edges reads as sky.
         p.background(145, 101, 148);
         if (gp) {
             const result = await world.step(gp);
@@ -738,8 +757,8 @@ export async function heroParallax(
         }
     };
 
-    // Observer debug readout - disabled; uncomment it (and its call in p.draw, plus the
-    // listener in hero.demo.ts) to show the eye position over the canvas again.
+    // Optional debug readout of the eye position over the canvas, switched off. To enable:
+    // uncomment this block, its call in p.draw, and the listener in hero.demo.ts.
     // // Debug readout: report the observer's (eye's) global position to the page, which
     // // shows it in the title. Only fires when the rounded position actually changes.
     // let lastObserverKey = '';
@@ -754,6 +773,7 @@ export async function heroParallax(
     //     canvasElement?.dispatchEvent(new CustomEvent('observerchange', { detail: observer, bubbles: true }));
     // };
 
+    // Start the webcam last: if it fails, the mouse and keys keep working.
     try {
         await faceDataProvider.init();
     } catch (error) {
