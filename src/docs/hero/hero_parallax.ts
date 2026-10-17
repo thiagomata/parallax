@@ -144,32 +144,50 @@ export async function heroParallax(
     const pressedKeys: Record<string, boolean> = {};
     const keyRotationSpeed = 0.03;
     const maxKeyPitch = Math.PI / 3;
+    // Max look left/right (15deg), for the face rotation and arrow keys combined: layer-11
+    // (the foreground frame) only covers the view up to this turn - see the side limit below.
+    const maxYaw = 0.26;
     let keyYaw = 0;
     let keyPitch = 0;
     const resolveKeyRotation = () => {
-        if (pressedKeys.ArrowLeft) keyYaw -= keyRotationSpeed;
-        if (pressedKeys.ArrowRight) keyYaw += keyRotationSpeed;
+        if (pressedKeys.ArrowLeft) keyYaw = Math.max(-maxYaw, keyYaw - keyRotationSpeed);
+        if (pressedKeys.ArrowRight) keyYaw = Math.min(maxYaw, keyYaw + keyRotationSpeed);
         if (pressedKeys.ArrowUp) keyPitch = Math.max(-maxKeyPitch, keyPitch - keyRotationSpeed);
         if (pressedKeys.ArrowDown) keyPitch = Math.min(maxKeyPitch, keyPitch + keyRotationSpeed);
         return { yaw: keyYaw, pitch: keyPitch, roll: 0 };
     };
     // Starting camera: offset added to the tracked/pointer head position, so the resting
-    // view starts further back and lower than the raw tracker origin. The eye sits 100 in
-    // front of the head, so the resting eye is at (0, 60, 250).
-    const startHeadOffset = { x: 0, y: 60, z: 150 };
+    // view starts lower than the raw tracker origin and a bit in front of the max zoom-out.
+    // The eye sits 100 in front of the head, so the resting eye is at (0, 60, 150).
+    const startHeadOffset = { x: 0, y: 60, z: 50 };
     // Zoom limits on the head's z (after the offset). Nothing else limits head tracking.
     // Applies to head tracking, the pointer fallback and heroDebug.
-    // - Zoom out: layer-11 (the foreground frame) is sized to frame the view from the
-    //   resting eye; any further back shows its edges, so the head stops at the start z.
-    // - Zoom in: stop the eye at z -150, 150 in front of layer-11 (z -300), instead of
-    //   passing through it into the scene.
+    // - Zoom out: layer-11 (the foreground frame) is sized to frame the view from eye z
+    //   250; any further back shows its edges, so the head stops at z 150. From the start
+    //   that leaves 100 of lean-back room (50 of real head movement with headDepthGain).
+    // - Zoom in: fly through the layers, like the earlier layered version - each panel
+    //   grows huge as you approach and vanishes as you pass it. Stops with the eye at
+    //   z -1100, just past the title (z -1000) and before layer-05 (z -1200).
+    // Leaning moves the head twice as far in depth (headDepthGain), so the fly-through is
+    // reachable with real head movement.
+    const headDepthGain = 2;
     const maxZoomOutHeadZ = 150;
-    const maxZoomInHeadZ = -250;
-    const placeHead = (position: Vector3): Vector3 => ({
-        x: position.x + startHeadOffset.x,
-        y: position.y + startHeadOffset.y,
-        z: Math.min(maxZoomOutHeadZ, Math.max(maxZoomInHeadZ, position.z + startHeadOffset.z)),
-    });
+    const maxZoomInHeadZ = -1200;
+    // Side limit, only restrictive when far back: layer-11's edges are 825 either side of
+    // center at z -300, and the view (35.8deg half-width) turned up to maxYaw reaches
+    // distance * 1.23 sideways (tan(35.8deg + 15deg)). So the head may move sideways
+    // 825 - distance * 1.23: ~150 at the start (distance 550), ~640 at max zoom-in (150).
+    const placeHead = (position: Vector3): Vector3 => {
+        const z = Math.min(maxZoomOutHeadZ, Math.max(maxZoomInHeadZ, startHeadOffset.z + position.z * headDepthGain));
+        const distanceToLayer11 = z + 100 + 300;
+        const maxSide = 825 - distanceToLayer11 * 1.23;
+        return {
+            x: Math.max(-maxSide, Math.min(maxSide, position.x + startHeadOffset.x)),
+            y: position.y + startHeadOffset.y,
+            z,
+        };
+    };
+    const clampYaw = (yaw: number) => Math.max(-maxYaw, Math.min(maxYaw, yaw));
     const observerModifier: CarModifier<typeof dataProviderLib> = {
         name: 'Head tracking with pointer fallback',
         active: true,
@@ -191,7 +209,7 @@ export async function heroParallax(
                         ...result.value,
                         position: placeHead(result.value.position),
                         rotation: {
-                            yaw: (result.value.rotation?.yaw ?? 0) + keyRotation.yaw,
+                            yaw: clampYaw((result.value.rotation?.yaw ?? 0) + keyRotation.yaw),
                             pitch: (result.value.rotation?.pitch ?? 0) + keyRotation.pitch,
                             roll: result.value.rotation?.roll ?? 0,
                         },
@@ -647,7 +665,7 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: 299,
         height: 495,
-        position: { x: 400, y: 100, z: -380 },
+        position: { x: 460, y: 100, z: -680 },
         texture: { path: appAssetPath('img/hero/layer-09.png'), width: 299, height: 495 },
     });
 
@@ -658,21 +676,23 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: 70,
         height: 309,
-        position: { x: 140, y: 192, z: -370 },
+        mirrorTextureHorizontal: true,
+        position: { x: -140, y: 0, z: -380 },
         texture: { path: appAssetPath('img/hero/layer-10.png'), width: 70, height: 309 },
     });
 
     // Layer 11 - the nearest layer, the foreground frame (ground across the bottom, tower on
-    // the right). Scaled down from the image (same proportions) to just fill the starting
-    // view at this depth - at 1699 wide it would be ~3x the view this close to the eye.
+    // the right), at the image's proportions. Wide enough (edges at +-825) that, with the
+    // head's side limit and the 15deg turn cap above, its edges never come into view.
+    // Bottom at y ~400, below the view's bottom from the starting eye.
     world.addPanel({
         id: 'layer-11',
         type: ELEMENT_TYPES.PANEL,
         fitMode: 'fill',
         alphaCutoff: 0.5,
-        width: 913,
-        height: 651,
-        position: { x: 0, y: 52, z: -300 },
+        width: 1650,
+        height: 1177,
+        position: { x: 0, y: -100, z: -300 },
         texture: { path: appAssetPath('img/hero/layer-11.png'), width: 1699, height: 1212 },
     });
 
@@ -687,7 +707,7 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: 820,
         height: 152,
-        position: { x: 0, y: -270, z: -1500 },
+        position: { x: 0, y: -270, z: -1000 },
         texture: { path: appAssetPath('img/hero/parallax-title.png'), width: 700, height: 130 },
     });
 
@@ -698,7 +718,7 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: 820,
         height: 152,
-        position: { x: 0, y: -270, z: -1490 },
+        position: { x: 0, y: -270, z: -1000 },
         fillColor: { red: 0, green: 0, blue: 0 },
         texture: { path: appAssetPath('img/hero/parallax-outline.png'), width: 700, height: 130 },
     });
@@ -774,7 +794,8 @@ export async function heroParallax(
         });
         canvasElement?.addEventListener('wheel', event => {
             event.preventDefault();
-            pointer.z = Math.max(-50, Math.min(100, pointer.z + (event as WheelEvent).deltaY * 0.25));
+            // Wheel range reaches the full fly-through (x headDepthGain): -700 -> eye past the title.
+            pointer.z = Math.max(-700, Math.min(100, pointer.z + (event as WheelEvent).deltaY * 0.25));
         }, { passive: false });
     };
 
