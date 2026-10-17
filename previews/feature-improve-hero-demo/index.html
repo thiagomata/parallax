@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parallax | Living Documentation</title>
+    <style>body{background:#0a0a0a;margin:0}</style>
+    <!-- Loading screen for the 3D demo. Inline (not in a CSS file) so it shows before any
+         JavaScript or stylesheet has downloaded; hero.demo.ts later moves it over the canvas
+         and fades it out once the scene is ready. -->
+    <link rel="preload" as="image" href="/parallax/previews/feature-improve-hero-demo/img/hero/loading-bw.jpg" fetchpriority="high">
+    <style>
+        .hero-boot { position: relative; width: min(calc(100% - 40px), 820px); aspect-ratio: 1654 / 1323; margin: 20px auto; border-radius: 8px; overflow: hidden; background: #222; }
+        .hero-boot.in-canvas { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; border-radius: 0; z-index: 1; pointer-events: none; transition: opacity 0.6s ease; }
+        .hero-boot.loaded { opacity: 0; }
+        .hero-boot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .hero-loading-label { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; padding: 10px 18px; border-radius: 6px; background: rgba(0, 0, 0, 0.65); color: #fff; font: 600 1.15rem/1.3 sans-serif; letter-spacing: 0.02em; white-space: nowrap; animation: hero-loading-pulse 1.4s ease-in-out infinite; }
+        @keyframes hero-loading-pulse { 50% { opacity: 0.55; } }
+    </style>
+  <script type="module" crossorigin src="/parallax/previews/feature-improve-hero-demo/assets/main-C4QQdgUZ.js"></script>
+  <link rel="modulepreload" crossorigin href="/parallax/previews/feature-improve-hero-demo/assets/tutorial-BEflRuS4.js">
+  <link rel="modulepreload" crossorigin href="/parallax/previews/feature-improve-hero-demo/assets/tutorial.template-DV1wKfyA.js">
+  <link rel="stylesheet" crossorigin href="/parallax/previews/feature-improve-hero-demo/assets/tutorial-C3ydUZN5.css">
+  <link rel="stylesheet" crossorigin href="/parallax/previews/feature-improve-hero-demo/assets/tutorial-Cg1sXqY3.css">
+  <link rel="stylesheet" crossorigin href="/parallax/previews/feature-improve-hero-demo/assets/main-rQExVa1w.css">
+</head>
+<body class="hero-parallax-page">
+
+<header style="max-width: 900px; margin: 40px auto; padding: 0 20px; font-family: sans-serif;">
+    <h1 style="color: #38bdf8; margin: 0; font-size: 2.5rem; letter-spacing: -1px;">Parallax Engine</h1>
+    <p style="color: #888; font-style: italic; font-size: 1.1rem; margin-top: 5px;">
+        Deterministic 3D state-to-state transformation.
+    </p>
+
+    <div style="margin-top: 30px; line-height: 1.7; color: #ccc;">
+        <p>
+            Parallax is a strictly-typed engine designed to decouple <strong>spatial intent</strong> from the rendering pipeline.
+            By treating 3D transformations as pure data, it allows for frame-independent motion that can be rendered via p5.js, Three.js, or even raw CSS.
+        </p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 40px;">
+        <div style="background: #222; padding: 20px; border-radius: 8px; border-left: 4px solid #38bdf8;">
+            <h3 style="margin-top: 0; color: #fff;">🚗 Car (Base)</h3>
+            <p style="font-size: 0.9rem; color: #aaa; margin-bottom: 0;">Primary anchors. Defines the fundamental position and trajectory of an object in space.</p>
+        </div>
+        <div style="background: #222; padding: 20px; border-radius: 8px; border-left: 4px solid #00e5ff;">
+            <h3 style="margin-top: 0; color: #fff;">🫷 Nudge (Offset)</h3>
+            <p style="font-size: 0.9rem; color: #aaa; margin-bottom: 0;">Secondary offsets. Layered noise, reactions, or micro-movements applied on top of the base.</p>
+        </div>
+        <div style="background: #222; padding: 20px; border-radius: 8px; border-left: 4px solid #7dd3fc;">
+            <h3 style="margin-top: 0; color: #fff;">🕹️ Stick (Gaze)</h3>
+            <p style="font-size: 0.9rem; color: #aaa; margin-bottom: 0;">Spherical gaze. Controls the orientation and "LookAt" logic independently of position.</p>
+        </div>
+    </div>
+
+    <div style="margin-top: 40px; padding: 15px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px;">
+        <p style="margin: 0; font-size: 0.9rem; color: #7dd3fc;">
+            <strong>Deterministic Resolution:</strong> Every frame is calculated based on a normalized <code>progress</code> (0.0 to 1.0).
+            This ensures the animation is perfectly repeatable and easy to debug.
+        </p>
+    </div>
+</header>
+
+<nav style="max-width: 900px; margin: 20px auto; padding: 0 20px; font-family: sans-serif;">
+    <div style="display: flex; align-items: center; gap: 15px; padding: 20px; background: #1e1e1e; border-radius: 8px; border: 1px solid #333;">
+        <span style="font-size: 1.5rem;">📚</span>
+        <div style="flex-grow: 1;">
+            <h4 style="margin: 0; color: #fff;">Ready to dive in?</h4>
+            <p style="margin: 5px 0 0; font-size: 0.9rem; color: #888;">Follow the step-by-step guide to build your first parallax scene.</p>
+        </div>
+        <a href="./docs/tutorial/tutorial-1/index.html"
+           style="background: #38bdf8; color: #0f172a; padding: 10px 20px; border-radius: 6px; font-weight: bold; text-decoration: none; transition: opacity 0.2s;">
+            Start Tutorial →
+        </a>
+    </div>
+</nav>
+
+<main id="tutorial-root">
+    <div id="hero-boot" class="hero-boot" role="status" aria-live="polite">
+        <img src="/parallax/previews/feature-improve-hero-demo/img/hero/loading-bw.jpg" alt="" fetchpriority="high">
+        <p class="hero-loading-label">Loading the 3D scene…</p>
+    </div>
+</main>
+
+<footer style="max-width: 900px; margin: 50px auto; padding: 20px; border-top: 1px solid #333; text-align: center; color: #666;">
+    <p>
+        <a href="https://github.com/thiagomata/parallax/" style="color: #38bdf8; text-decoration: none;">
+            Interactive Parallax Engine.
+        </a>
+        Edit the code to see real-time layer transformations.
+    </p>
+</footer>
+
+
+</body>
+</html>
