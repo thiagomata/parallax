@@ -342,6 +342,19 @@ describe("World", () => {
             expect(mockGp.setProjectionMatrix).toHaveBeenCalled();
         });
 
+        it("still renders the frozen scene while paused, reporting not running", async () => {
+            (mockStage.render as ReturnType<typeof vi.fn>).mockReturnValue({
+                projections: new Map([["eye", {}], ["screen", {}]]),
+            });
+            world.pause();
+
+            const result = await world.step(mockGp);
+
+            expect(mockStage.render).toHaveBeenCalled();
+            expect(result.running).toBe(false);
+            expect(result.error).toBeNull();
+        });
+
         it("should return error status when eye or screen is missing", async () => {
             (mockStage.render as ReturnType<typeof vi.fn>).mockReturnValue({
                 projections: new Map(),
