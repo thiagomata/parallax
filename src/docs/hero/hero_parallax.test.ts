@@ -184,6 +184,36 @@ describe('Post light', () => {
     });
 });
 
+describe('Title colors', () => {
+    const atEyeZ = (z: number) => ({ projectionPool: { eye: { position: { x: 0, y: 0, z }, globalPosition: { x: 0, y: 0, z } } } });
+
+    it('warms from black at the start to brown at the title as the observer approaches', async () => {
+        const { byId } = await createInspectedScene();
+        const fillColor = byId('parallax-title-outline').fillColor;
+
+        expect(fillColor(atEyeZ(150))).toEqual({ red: 0, green: 0, blue: 0 });
+        expect(fillColor(atEyeZ(-997))).toEqual({ red: 139, green: 69, blue: 19 });
+        const reds = [150, -100, -400, -700, -997].map(z => fillColor(atEyeZ(z)).red);
+        expect(reds).toEqual([...reds].sort((a, b) => a - b));
+    });
+
+    it('tints the fill from the artwork as-is (white) to cyan with the same closeness', async () => {
+        const { byId } = await createInspectedScene();
+        const fillColor = byId('parallax-title').fillColor;
+
+        expect(fillColor(atEyeZ(150))).toEqual({ red: 255, green: 255, blue: 255 });
+        expect(fillColor(atEyeZ(-1000))).toEqual({ red: 0, green: 255, blue: 255 });
+        const reds = [150, -100, -400, -700, -1000].map(z => fillColor(atEyeZ(z)).red);
+        expect(reds).toEqual([...reds].sort((a, b) => b - a));
+    });
+
+    it('keeps the starting colors when no camera is resolved', async () => {
+        const { byId } = await createInspectedScene();
+        expect(byId('parallax-title-outline').fillColor({ projectionPool: {} })).toEqual({ red: 0, green: 0, blue: 0 });
+        expect(byId('parallax-title').fillColor({ projectionPool: {} })).toEqual({ red: 255, green: 255, blue: 255 });
+    });
+});
+
 describe('Scene rules', () => {
     it('never puts two overlapping fixed panels at the same depth (they would z-fight)', async () => {
         const { blueprints } = await createInspectedScene();

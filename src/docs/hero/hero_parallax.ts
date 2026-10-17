@@ -5,7 +5,7 @@ import { SceneClock } from "../../scene/scene_clock.ts";
 import { HeadTrackingDataProvider } from "../../scene/providers/head_tracking_data_provider.ts";
 import { WebCamDataProvider } from "../../scene/providers/web_cam_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, STANDARD_PROJECTION_IDS, type CarModifier, type ColorRGBA, type Vector3, type DampingValue, type SceneUnits, type VideoPixels} from "../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, STANDARD_PROJECTION_IDS, type CarModifier, type ResolvedProjectionWithGlobals, type ResolutionContext, type ColorRGBA, type Vector3, type DampingValue, type SceneUnits, type VideoPixels} from "../../scene/types.ts";
 import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "../tutorial/sketch_config.ts";
 import type { FaceConfig, P5SketchExtraArgs } from "../tutorial/sketch_engine.types.ts";
 import { WorldSettings } from "../../scene/world_settings.ts";
@@ -591,6 +591,20 @@ export async function heroParallax(
     // (layer-05, z -1200) and the far mountains (layer-03, z -2000), near the view center.
     // The outline is white strokes tinted black, 3 in front of the fill: enough that the two
     // overlapping panels never share a depth (no z-fighting), too little to notice.
+    //
+    // Both warm up as the observer approaches, like the earlier version: tintByCloseness
+    // returns a fillColor that blends from `far` (at the starting view, eye ~1150 in front
+    // of the element) to `near` (at the element), driven by the real eye position - head
+    // tracking, wheel and W / S.
+    const tintByCloseness = (far: ColorRGBA, near: ColorRGBA, elementZ: number) =>
+        (context: ResolutionContext) => {
+            const eye = context.projectionPool[STANDARD_PROJECTION_IDS.EYE] as ResolvedProjectionWithGlobals | undefined;
+            const eyeZ = eye ? (eye.globalPosition ?? eye.position).z : 150;
+            const closeness = Math.max(0, Math.min(1, 1 - (eyeZ - elementZ) / 1150));
+            const blend = (from: number, to: number) => Math.round(from + (to - from) * closeness);
+            return { red: blend(far.red, near.red), green: blend(far.green, near.green), blue: blend(far.blue, near.blue) } as ColorRGBA;
+        };
+
     world.addPanel({
         id: 'parallax-title',
         type: ELEMENT_TYPES.PANEL,
@@ -599,6 +613,13 @@ export async function heroParallax(
         width: 820,
         height: 152,
         position: { x: 0, y: -270, z: -1000 },
+        // White (the artwork as-is) to cyan; multiplied by the cream artwork it reads as mint
+        // part-way in. (The earlier version used gold: 255, 230, 30.)
+        fillColor: tintByCloseness(
+            { red: 255, green: 255, blue: 255 } as ColorRGBA,
+            { red: 0, green: 255, blue: 255 } as ColorRGBA,
+            -1000,
+        ),
         texture: { path: appAssetPath('img/hero/parallax-title.png'), width: 700, height: 130 },
     });
 
@@ -610,7 +631,12 @@ export async function heroParallax(
         width: 820,
         height: 152,
         position: { x: 0, y: -270, z: -997 },
-        fillColor: { red: 0, green: 0, blue: 0 },
+        // Black to the old brown.
+        fillColor: tintByCloseness(
+            { red: 0, green: 0, blue: 0 } as ColorRGBA,
+            { red: 139, green: 69, blue: 19 } as ColorRGBA,
+            -997,
+        ),
         texture: { path: appAssetPath('img/hero/parallax-outline.png'), width: 700, height: 130 },
     });
 
@@ -707,23 +733,25 @@ export async function heroParallax(
         if (gp) {
             const result = await world.step(gp);
             if (!result.running) return;
-            announceObserver();
+            // announceObserver(); // observer debug readout - see below
         }
     };
 
-    // Debug readout: report the observer's (eye's) global position to the page, which
-    // shows it in the title. Only fires when the rounded position actually changes.
-    let lastObserverKey = '';
-    const announceObserver = () => {
-        const eye = world.getCurrenState()?.projections.get(STANDARD_PROJECTION_IDS.EYE);
-        if (!eye) return;
-        const position = eye.globalPosition ?? eye.position;
-        const observer = { x: Math.round(position.x), y: Math.round(position.y), z: Math.round(position.z) };
-        const key = `${observer.x},${observer.y},${observer.z}`;
-        if (key === lastObserverKey) return;
-        lastObserverKey = key;
-        canvasElement?.dispatchEvent(new CustomEvent('observerchange', { detail: observer, bubbles: true }));
-    };
+    // Observer debug readout - disabled; uncomment it (and its call in p.draw, plus the
+    // listener in hero.demo.ts) to show the eye position over the canvas again.
+    // // Debug readout: report the observer's (eye's) global position to the page, which
+    // // shows it in the title. Only fires when the rounded position actually changes.
+    // let lastObserverKey = '';
+    // const announceObserver = () => {
+    //     const eye = world.getCurrenState()?.projections.get(STANDARD_PROJECTION_IDS.EYE);
+    //     if (!eye) return;
+    //     const position = eye.globalPosition ?? eye.position;
+    //     const observer = { x: Math.round(position.x), y: Math.round(position.y), z: Math.round(position.z) };
+    //     const key = `${observer.x},${observer.y},${observer.z}`;
+    //     if (key === lastObserverKey) return;
+    //     lastObserverKey = key;
+    //     canvasElement?.dispatchEvent(new CustomEvent('observerchange', { detail: observer, bubbles: true }));
+    // };
 
     try {
         await faceDataProvider.init();
