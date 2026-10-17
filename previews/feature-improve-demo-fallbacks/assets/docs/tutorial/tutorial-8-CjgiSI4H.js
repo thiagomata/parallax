@@ -1,2 +1,0 @@
-import"../../presets-BKaSnyJe.js";import"../../tutorial.template-FaivO5ij.js";import{o,t as i}from"../../tutorial_observer-BV_Vcdk_.js";import{s as t}from"../../tutorial_observer-DTNXhgKy.js";import{i as r,a as e}from"../../tutorial_nav-DeyKee3E.js";import"../../web_cam_data_provider-CEAE653O.js";const a=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||navigator.maxTouchPoints>0,s=a?void 0:{throttleThreshold:0,videoWidth:640,videoHeight:480};r("tutorial-8","8. The Observer",i,t,o,{},s);e();
-//# sourceMappingURL=tutorial-8-CjgiSI4H.js.map
