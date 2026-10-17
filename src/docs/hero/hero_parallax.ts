@@ -454,7 +454,7 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: mountainBackdropWidth * 0.8,
         height: mountainBackdropHeight * 0.8,
-        position: { x: 0, y: 0, z: mountainBackdropDistance * 0.8 },
+        position: { x: -100, y: -200, z: mountainBackdropDistance * 0.8 },
         texture: { path: appAssetPath('img/hero/layer-03.png'), width: layer03Width, height: layer03Height },
         effects: [
             { type: 'follow', settings: { follow: 'CAMERA', axis: { x: true, y: true, z: false } } },
@@ -468,7 +468,7 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: mountainSideDepth * 0.8,
         height: mountainBackdropHeight * 0.8,
-        position: { x: -mountainSideX * 0.8, y: 0, z: mountainSideZ * 0.8 },
+        position: { x: -100 + -mountainSideX * 0.8, y: -200, z: mountainSideZ * 0.8 },
         rotate: { pitch: 0, yaw: mountainSideLeftYaw, roll: 0 },
         mirrorTextureHorizontal: false,
         texture: { path: appAssetPath('img/hero/layer-03.png'), width: layer03Width, height: layer03Height },
@@ -494,7 +494,7 @@ export async function heroParallax(
     });
 
     // Layer 04 - a plain panel fixed in 3D space (no follow effect), at the image's own size
-    // and proportions, centered on the starting view axis.
+    // and proportions, left of the view axis, with a mirrored copy extending it further left.
     world.addPanel({
         id: 'layer-04',
         type: ELEMENT_TYPES.PANEL,
@@ -502,7 +502,7 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: 696,
         height: 507,
-        position: { x:  -350, y: 50, z: -1000 },
+        position: { x:  -350, y: 50, z: -800 },
         texture: { path: appAssetPath('img/hero/layer-04.png'), width: 696, height: 507 },
     });
     world.addPanel({
@@ -513,8 +513,30 @@ export async function heroParallax(
         width: 696,
         height: 507,
         mirrorTextureHorizontal: true,
-        position: { x:  -350 - 696, y: 50, z: -1000 },
+        position: { x:  -350 - 696, y: 50, z: -800 },
         texture: { path: appAssetPath('img/hero/layer-04.png'), width: 696, height: 507 },
+    });
+
+    world.addPanel({
+        id: 'layer-05',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: 908,
+        height: 565,
+        position: { x: 550, y: 50, z: -1200 },
+        texture: { path: appAssetPath('img/hero/layer-05.png'), width: 908, height: 565 },
+    });
+    world.addPanel({
+        id: 'layer-05-mirror',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: 908,
+        height: 565,
+        mirrorTextureHorizontal: true,
+        position: { x: 550 + 908, y: 50, z: -1200 },
+        texture: { path: appAssetPath('img/hero/layer-05.png'), width: 908, height: 565 },
     });
 
     world.addBox({
