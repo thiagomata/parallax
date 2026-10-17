@@ -244,8 +244,20 @@ interface EffectBundle<TID, TConfig, E, TDataProviderLib = DataProviderLib> {
     apply(current: E, context: ResolutionContext<TDataProviderLib>, settings: TConfig, pool: Record<string, E>): E;
 }
 
-// Built-in effects include: LookAtEffect, TransformEffect
+// Built-in effects include: LookAtEffect, TransformEffect, FollowEffect
 ```
+
+`FollowEffect` keeps an element at a fixed offset from the camera (or another element) - e.g. a
+distant backdrop that stays the same distance away. Options: `axis` to follow only some axes,
+`followRotation` to turn with the target, and `targetBounds` to stop following past a limit, so a
+group of followers stops together instead of sliding into fixed elements.
+
+### Transparent Textures
+
+Textured elements can set `alphaCutoff` (0-1). Pixels whose alpha is below it are discarded instead of
+drawn, so a cutout's transparent areas never hide what is behind them, whatever the draw order. Use it
+on layered artwork (e.g. `alphaCutoff: 0.5` on every panel of the hero demo).
+
 
 Effects run during the resolution phase, enabling:
 
@@ -278,3 +290,27 @@ When the canvas size changes (e.g., fullscreen mode), update the world perspecti
 instance.resizeCanvas(newWidth, newHeight, true);
 world.enableDefaultPerspective(newWidth, newHeight);
 ```
+
+---
+
+## 🧪 Development
+
+```bash
+npm install
+npx playwright install chromium   # once: the browser tests and capture script use it
+npm run dev                       # http://localhost:5173/parallax/
+npm test                          # type check + unit tests (happy-dom) + browser tests (*.browser.test.ts)
+npm run coverage
+```
+
+* **Browser tests** (`*.browser.test.ts`) run in headless Chromium for what a mocked p5 can't check -
+  e.g. reading pixels back from WebGL to prove `alphaCutoff` lets the scene behind show through.
+* **Loading screens**: every demo page shows a black-and-white still of its scene
+  (`public/img/loading/<page>.jpg`) from its HTML, before any JavaScript, and fades it out when the
+  sketch engine sends `sceneready` on the canvas box (assets loaded and drawn). After changing a scene,
+  regenerate its still and commit it:
+
+  ```bash
+  npm run capture-loading              # all pages
+  npm run capture-loading -- tutorial-5
+  ```

@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "npm run type-check && vitest",
     "coverage": "vitest run --coverage",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "capture-loading": "node scripts/capture-loading.mjs"
   },
   "devDependencies": {
     "@codecov/vite-plugin": "^1.9.1",

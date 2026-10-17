@@ -54,3 +54,26 @@
     white-space: pre;
     pointer-events: none;
 }
+
+/* Status line over the canvas (see hero.demo.ts): which controls are active right now.
+   The loading screen has its own static stylesheet (public/css/loading-screen.css), so it
+   shows before this one has loaded. */
+.hero-parallax-page .hero-status {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    z-index: 2;
+    margin: 0;
+    max-width: calc(100% - 24px);
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    font: 600 14px/1.3 sans-serif;
+    text-align: center;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+}
+.hero-parallax-page .hero-status:empty,
+.hero-parallax-page .hero-status.hidden { opacity: 0; }

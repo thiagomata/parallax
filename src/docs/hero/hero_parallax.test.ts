@@ -271,15 +271,16 @@ describe('Scene rules', () => {
 
 describe('Scene lifecycle', () => {
     const tracker = { init: async () => {}, tick: () => {}, getData: () => null };
-    async function createConfiguredScene(config: { paused: boolean }, extra: Record<string, unknown> = {}) {
+    async function createConfiguredScene(config: { paused: boolean }, extra: Record<string, unknown> = {}, prepare?: (mock: ReturnType<typeof createMockP5>) => void) {
         const mock = createMockP5();
+        prepare?.(mock);
         const canvas = document.createElement('canvas');
         mock.createCanvas.mockReturnValue({ elt: canvas });
         // Pass the config object itself (not a copy): the draw loop reads config.paused live.
         const world = await heroParallax(mock as unknown as p5, Object.assign(config, { width: 640, height: 480 }) as any,
             { faceDataProvider: tracker, webCamProvider: tracker, graphicProcessor: createMockGraphicProcessor(), ...extra } as any);
         await mock.setup();
-        return { mock, world };
+        return { mock, world, canvas };
     }
 
     it('starts paused when configured, and the draw loop follows the pause toggle', async () => {
@@ -300,10 +301,29 @@ describe('Scene lifecycle', () => {
         expect(world.isPaused()).toBe(true);
     });
 
+    it('renders without waiting for head tracking, which starts only after the textures', async () => {
+        const init = vi.fn(() => new Promise<void>(() => {})); // head tracking that never finishes
+        const pendingTextures: Array<() => void> = [];
+        const { mock } = await createConfiguredScene({ paused: false }, { faceDataProvider: { ...tracker, init } },
+            mock => mock.loadImage.mockImplementation((_path: unknown, success: () => void) => { pendingTextures.push(success); }));
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(pendingTextures.length).toBeGreaterThan(0);
+        expect(init).not.toHaveBeenCalled(); // textures still loading: head tracking waits
+
+        pendingTextures.forEach(loaded => loaded());
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(init).toHaveBeenCalledTimes(1);
+
+        mock.background.mockClear();
+        await mock.draw(); // still draws while head tracking is pending
+        expect(mock.background).toHaveBeenCalled();
+    });
+
     it('keeps the pointer controls when the camera fails to start', async () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const failing = { ...tracker, init: async () => { throw new Error('no camera'); } };
         await createConfiguredScene({ paused: false }, { faceDataProvider: failing });
+        await new Promise(resolve => setTimeout(resolve, 0)); // head tracking starts after the textures
         expect(warn).toHaveBeenCalledWith('Camera unavailable; pointer controls remain active.', expect.any(Error));
         warn.mockRestore();
     });

@@ -8,6 +8,7 @@ import '../../docs/style/tutorial.css';
 import './hero_parallax.css';
 
 import {heroParallax, heroParallaxExplanation} from "./hero_parallax.ts";
+import { attachLoadingScreen } from "../tutorial/loading_screen.ts";
 import heroCode from './hero_parallax.ts?raw';
 
 import { 
@@ -108,6 +109,49 @@ export async function renderStep(
     //     observerReadout.textContent = `observer  x ${x}  y ${y}  z ${z}`;
     // });
 
+    // Loading screen (already shown by index.html before any JS): moved over the canvas until
+    // the sketch engine reports 'sceneready', then faded out. Shown again for each re-run.
+    const loadingScreen = attachLoadingScreen(canvasBox, 'img/loading/hero.jpg');
+    // Status line over the canvas: what controls are active right now (head tracking, or
+    // the mouse and keys while it loads / if there's no camera). Only shown once the scene
+    // is visible - while the loading screen covers it, "use the mouse" would seem broken.
+    // Hides itself a few seconds after head tracking takes over.
+    const statusLine = document.createElement('p');
+    statusLine.className = 'hero-status';
+    statusLine.setAttribute('role', 'status');
+    canvasBox.appendChild(statusLine);
+    let sceneVisible = false;
+    let latestStatus = '';
+    let statusTimer: ReturnType<typeof setTimeout> | undefined;
+    const renderStatus = () => {
+        clearTimeout(statusTimer);
+        if (!sceneVisible) {
+            statusLine.classList.add('hidden');
+            return;
+        }
+        if (statusLine.parentElement !== canvasBox) canvasBox.appendChild(statusLine);
+        statusLine.textContent = latestStatus;
+        statusLine.classList.remove('hidden');
+        if (latestStatus.startsWith('Head tracking on')) {
+            statusTimer = setTimeout(() => statusLine.classList.add('hidden'), 4000);
+        }
+    };
+    canvasBox.addEventListener('observerstatus', event => {
+        latestStatus = (event as CustomEvent<string>).detail;
+        renderStatus();
+    });
+
+    const showLoading = () => {
+        sceneVisible = false;
+        renderStatus();
+        loadingScreen.show();
+    };
+    canvasBox.addEventListener('sceneready', () => {
+        sceneVisible = true;
+        renderStatus();
+    });
+
+    showLoading();
     let { currentP5 } = await sketchEngine.createSketchInstance(
         initialSketch, 
         sketchConfig, 
@@ -143,6 +187,7 @@ export async function renderStep(
         try {
             const { fn } = extractSketchFunction(editorBox.innerText);
             
+            showLoading();
             const result = await sketchEngine.createSketchInstance(fn, sketchConfig, canvasBox, containerId);
             currentP5 = result.currentP5;
 

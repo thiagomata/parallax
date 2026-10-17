@@ -14,10 +14,19 @@
             font-family: 'Roboto', sans-serif;
         }
     </style>
+    <!-- Loading screen: static CSS + image so it shows before any JavaScript (see
+         public/css/loading-screen.css). -->
+    <link rel="stylesheet" href="/css/loading-screen.css">
+    <link rel="preload" as="image" href="/img/loading/tutorial-10.jpg" fetchpriority="high">
 </head>
 <body>
     <nav class="tutorial-nav"></nav>
-    <main id="tutorial-root"></main>
+    <main id="tutorial-root">
+        <div id="scene-loading" class="scene-loading" role="status" aria-live="polite">
+            <img src="/img/loading/tutorial-10.jpg" alt="" fetchpriority="high">
+            <p class="scene-loading-label">Loading the 3D scene…</p>
+        </div>
+    </main>
     <script type="module">
         import { initTutorialNav } from '/src/docs/tutorial/tutorial_nav.ts';
         initTutorialNav();

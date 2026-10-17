@@ -1,5 +1,6 @@
 import {SceneClock} from "./scene_clock.ts";
 import {
+    type AssetLoader,
     type BlueprintBox,
     type BlueprintCone,
     type BlueprintCylinder,
@@ -71,12 +72,22 @@ export class World<
     private _status: WorldStatus = 'uninitialized';
     private _error: Error | null = null;
     private _errorCount: number = 0;
+    private readonly loader: AssetLoader<TBundle> | undefined;
 
     constructor(
         worldSettings: WorldSettings<TBundle, TElementEffectLib, TProjectionEffectLib, TDataProviderLib>
     ) {
         this.sceneClock = worldSettings.clock
         this.stage = worldSettings.stage;
+        this.loader = worldSettings.loader;
+    }
+
+    /**
+     * Resolves once every asset requested so far (textures, fonts) has finished loading or
+     * failed. Elements request their assets when added, so call it after building the scene.
+     */
+    public whenAssetsLoaded(): Promise<void> {
+        return this.loader?.waitForAllAssets() ?? Promise.resolve();
     }
 
     get status(): WorldStatus { return this._status; }

@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parallax | Living Documentation</title>
     <style>body{background:#0a0a0a;margin:0}</style>
+    <!-- Loading screen for the 3D demo: static CSS + image so it shows before any JavaScript
+         (see public/css/loading-screen.css). -->
+    <link rel="stylesheet" href="/css/loading-screen.css">
+    <link rel="preload" as="image" href="/img/loading/hero.jpg" fetchpriority="high">
 </head>
 <body class="hero-parallax-page">
 
@@ -58,7 +62,12 @@
     </div>
 </nav>
 
-<main id="tutorial-root"></main>
+<main id="tutorial-root">
+    <div id="scene-loading" class="scene-loading" role="status" aria-live="polite">
+        <img src="/img/loading/hero.jpg" alt="" fetchpriority="high">
+        <p class="scene-loading-label">Loading the 3D scene…</p>
+    </div>
+</main>
 
 <footer style="max-width: 900px; margin: 50px auto; padding: 20px; border-top: 1px solid #333; text-align: center; color: #666;">
     <p>
