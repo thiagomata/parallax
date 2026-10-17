@@ -174,6 +174,47 @@ describe("P5GraphicProcessor", () => {
         expect(p.tint).toHaveBeenCalledWith(10, 20, 30, 64);
     });
 
+    describe("depthTest: false", () => {
+        const withGl = () => {
+            const p = createMockP5() as any;
+            const gl = { DEPTH_TEST: 0x0b71, isEnabled: vi.fn(() => true), disable: vi.fn(), enable: vi.fn() };
+            p.drawingContext = gl;
+            return { p, gl };
+        };
+        const state = { settings: { alpha: 1 as Alpha } } as any;
+
+        it("turns the GPU depth test off for the element and back on afterwards", () => {
+            const { p, gl } = withGl();
+            const gp = new P5GraphicProcessor(p, {} as any);
+
+            gp.drawPanel({ id: "panel", type: ELEMENT_TYPES.PANEL, width: 10, height: 10, position: { x: 0, y: 0, z: 0 }, depthTest: false } as ResolvedPanel, {} as any, state);
+
+            expect(gl.disable).toHaveBeenCalledWith(gl.DEPTH_TEST);
+            expect(gl.enable).toHaveBeenCalledWith(gl.DEPTH_TEST);
+            expect(p.plane).toHaveBeenCalled();
+        });
+
+        it("leaves the depth test alone by default", () => {
+            const { p, gl } = withGl();
+            const gp = new P5GraphicProcessor(p, {} as any);
+
+            gp.drawPanel({ id: "panel", type: ELEMENT_TYPES.PANEL, width: 10, height: 10, position: { x: 0, y: 0, z: 0 } } as ResolvedPanel, {} as any, state);
+
+            expect(gl.disable).not.toHaveBeenCalled();
+            expect(gl.enable).not.toHaveBeenCalled();
+        });
+    });
+
+    it("drawFloor lays a width x depth plane flat", () => {
+        const p = createMockP5() as any;
+        const gp = new P5GraphicProcessor(p, {} as any);
+
+        gp.drawFloor({ id: "floor", type: ELEMENT_TYPES.FLOOR, width: 600, depth: 400, position: { x: 0, y: 0, z: 0 } } as any, {} as any, { settings: { alpha: 1 as Alpha } } as any);
+
+        expect(p.rotateX).toHaveBeenCalledWith(Math.PI / 2);
+        expect(p.plane).toHaveBeenCalledWith(600, 400);
+    });
+
     describe("alphaCutoff", () => {
         const readyTexture = () => ({
             texture: { status: ASSET_STATUS.READY, value: { internalRef: { id: "img-1" } } },

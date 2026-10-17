@@ -520,6 +520,21 @@ describe("Stage", () => {
         });
     });
 
+    it("orders elements by renderOrder before distance", () => {
+        const gp = { dist: vi.fn(() => 42), drawTree: vi.fn(), setCameraTree: vi.fn() } as any;
+        stage.addElement({ id: "late", type: ELEMENT_TYPES.BOX, width: 1, renderOrder: 2, position: { x: 0, y: 0, z: 0 } } as any);
+        stage.addElement({ id: "early", type: ELEMENT_TYPES.BOX, width: 1, renderOrder: 1, position: { x: 0, y: 0, z: 0 } } as any);
+        stage.addElement({ id: "unordered", type: ELEMENT_TYPES.BOX, width: 1, position: { x: 0, y: 0, z: 0 } } as any);
+
+        const state = stage.render(gp, {
+            playback: { now: 0, delta: 0, frameCount: 0, progress: 0 },
+            previousResolved: null,
+            sceneId: 1,
+        });
+
+        expect([...state.elements!.keys()]).toEqual(["unordered", "early", "late"]);
+    });
+
     it("clears the distance cache when the cache interval expires", () => {
         const gp = {
             dist: vi.fn(() => 42),

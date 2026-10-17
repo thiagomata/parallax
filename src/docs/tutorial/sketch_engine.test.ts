@@ -17,6 +17,7 @@ vi.mock("p5", () => {
         public remove = vi.fn();
         public resizeCanvas = vi.fn();
         public loop = vi.fn();
+        public redraw = vi.fn();
         public setup = vi.fn();
         public draw = vi.fn();
         public canvas: HTMLCanvasElement;
@@ -87,6 +88,32 @@ describe("Sketch bootstrap modules", () => {
         expect(engine.getP5Instance("container-1")).toBeDefined();
         expect(nextSketchFn).toHaveBeenCalledTimes(1);
 
+        raf.mockRestore();
+    });
+
+    it("fits fullscreen canvases to the box aspect ratio and resizes the world", async () => {
+        const { SketchEngine, DEFAULT_SKETCH_CONFIG } = await import("./sketch_engine.ts");
+        const engine = new SketchEngine();
+        const canvasBox = document.createElement("div");
+        canvasBox.dataset.aspectRatio = "2";
+        Object.defineProperty(canvasBox, "clientWidth", { value: 640, configurable: true });
+        Object.defineProperty(canvasBox, "clientHeight", { value: 480, configurable: true });
+        const raf = vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb: FrameRequestCallback) => { cb(0); return 1; });
+        const world = { sceneClock: { getSettings: () => ({}) }, resizeViewport: vi.fn() };
+        await engine.createSketchInstance(vi.fn().mockResolvedValue(world) as any, { ...DEFAULT_SKETCH_CONFIG, paused: false } as any, canvasBox, "fullscreen-box");
+        const instance = mockState.instances[0] as any;
+        instance.resizeCanvas.mockClear();
+
+        Object.defineProperty(document, "fullscreenElement", { value: canvasBox, configurable: true });
+        Object.defineProperty(window, "innerWidth", { value: 1200, configurable: true });
+        Object.defineProperty(window, "innerHeight", { value: 800, configurable: true });
+        document.dispatchEvent(new Event("fullscreenchange"));
+
+        // 1200x800 screen, 2:1 box: full width, letterboxed height.
+        expect(instance.resizeCanvas).toHaveBeenCalledWith(1200, 600, true);
+        expect(world.resizeViewport).toHaveBeenCalledWith(1200, 600);
+
+        Object.defineProperty(document, "fullscreenElement", { value: null, configurable: true });
         raf.mockRestore();
     });
 

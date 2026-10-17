@@ -185,6 +185,12 @@ describe('FollowEffect', () => {
     });
 
     describe('follow: element by ID', () => {
+        it('should return current when there is no previous frame to follow from yet', () => {
+            const element = createElement({ x: 1, y: 2, z: 3 });
+            const result = FollowEffect.apply(element, createContext({}, null), { follow: 'some-element', enabled: true }, {});
+            expect(result.position).toEqual({ x: 1, y: 2, z: 3 });
+        });
+
         it('should offset position to follow target element', () => {
             const element = createElement({ x: 0, y: 0, z: -500 });
             const targetElement = createElement({ x: 100, y: 0, z: 0 });

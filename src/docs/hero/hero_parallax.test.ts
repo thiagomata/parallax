@@ -4,6 +4,7 @@ import { World } from '../../scene/world.ts';
 import { createMockP5 } from '../../scene/mock/mock_p5.mock.ts';
 import { heroParallax } from './hero_parallax.ts';
 import { extractSketchFunction } from '../tutorial/sketch_engine.live.ts';
+import { createMockGraphicProcessor } from '../../scene/mock/mock_graphic_processor.mock.ts';
 import source from './hero_parallax.ts?raw';
 
 async function createScene(fn = heroParallax) {
@@ -111,6 +112,15 @@ describe('Observer limits', () => {
         expect(rotation.pitch).toBeCloseTo(-0.1);
         window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight' }));
         window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowUp' }));
+
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+        for (let frame = 0; frame < 120; frame++) observe();
+        const turnedBack = observe().rotation;
+        expect(turnedBack.yaw).toBeCloseTo(-0.1);
+        expect(turnedBack.pitch).toBeCloseTo(0.1);
+        window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowLeft' }));
+        window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowDown' }));
     });
 });
 
@@ -256,5 +266,86 @@ describe('Scene rules', () => {
 
         const layer02AtBound = bounds.max.z + byId('mountain-backdrop-02').position.z;
         expect(layer02AtBound).toBeLessThanOrEqual(byId('mountain-backdrop-03').position.z - 100);
+    });
+});
+
+describe('Scene lifecycle', () => {
+    const tracker = { init: async () => {}, tick: () => {}, getData: () => null };
+    async function createConfiguredScene(config: { paused: boolean }, extra: Record<string, unknown> = {}) {
+        const mock = createMockP5();
+        const canvas = document.createElement('canvas');
+        mock.createCanvas.mockReturnValue({ elt: canvas });
+        // Pass the config object itself (not a copy): the draw loop reads config.paused live.
+        const world = await heroParallax(mock as unknown as p5, Object.assign(config, { width: 640, height: 480 }) as any,
+            { faceDataProvider: tracker, webCamProvider: tracker, graphicProcessor: createMockGraphicProcessor(), ...extra } as any);
+        await mock.setup();
+        return { mock, world };
+    }
+
+    it('starts paused when configured, and the draw loop follows the pause toggle', async () => {
+        const config = { paused: true };
+        const { mock, world } = await createConfiguredScene(config);
+        // world.complete() clears the early pause; the first frame re-applies it before
+        // anything is stepped.
+        await mock.draw();
+        expect(world.isPaused()).toBe(true);
+
+        config.paused = false;
+        await mock.draw();
+        expect(world.isPaused()).toBe(false);
+        expect(mock.background).toHaveBeenCalledWith(145, 101, 148); // cleared to the sky color
+
+        config.paused = true;
+        await mock.draw();
+        expect(world.isPaused()).toBe(true);
+    });
+
+    it('keeps the pointer controls when the camera fails to start', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const failing = { ...tracker, init: async () => { throw new Error('no camera'); } };
+        await createConfiguredScene({ paused: false }, { faceDataProvider: failing });
+        expect(warn).toHaveBeenCalledWith('Camera unavailable; pointer controls remain active.', expect.any(Error));
+        warn.mockRestore();
+    });
+});
+
+describe('Head tracking', () => {
+    const face = (x: number, z: number, yaw: number) => ({
+        localPosition: { x, y: 0, z },
+        stick: { yaw, pitch: 0, roll: 0 },
+    });
+
+    it('places the tracked head with the start offset, zoom limits and turn cap', async () => {
+        const modifiers = vi.spyOn(World.prototype, 'addModifierToProjection');
+        await createScene();
+        const observer = modifiers.mock.calls.find(([id]) => id === 'head')![1] as any;
+        modifiers.mockRestore();
+        const track = (headTracker: unknown) => observer.getCarPosition({}, { dataProviders: { headTracker } }).value;
+
+        expect(track(face(0, 0, 0)).position).toEqual({ x: 0, y: 60, z: 50 }); // first frame calibrates
+        let value = track(face(40, -500, 5));
+        for (let frame = 0; frame < 600; frame++) value = track(face(40, -500, 5));
+
+        expect(Math.abs(value.position.x - 40)).toBeLessThan(1); // the modifier stops within its movement threshold
+        expect(value.position.z).toBe(150); // leaning far back stops at the max zoom out
+        expect(value.rotation.yaw).toBeCloseTo(0.26); // 5 rad x damping 0.1 = 0.5, capped at 15deg
+        expect(() => observer.tick(1)).not.toThrow();
+    });
+
+    it('lets heroDebug override head tracking until released, and report the camera rig', async () => {
+        const modifiers = vi.spyOn(World.prototype, 'addModifierToProjection');
+        await createScene();
+        const observer = modifiers.mock.calls.find(([id]) => id === 'head')![1] as any;
+        modifiers.mockRestore();
+        const heroDebug = (window as any).heroDebug;
+        const tracked = { dataProviders: { headTracker: face(0, 0, 0) } };
+
+        heroDebug.setHead({ x: 30, y: 0, z: -100 });
+        expect(observer.getCarPosition({}, tracked).value.name).toBe('Pointer fallback');
+        expect(observer.getCarPosition({}, tracked).value.position).toEqual({ x: 30, y: 60, z: -150 });
+
+        heroDebug.release();
+        expect(observer.getCarPosition({}, tracked).value.name).not.toBe('Pointer fallback');
+        expect(heroDebug.projections()).toEqual(expect.any(Object));
     });
 });
