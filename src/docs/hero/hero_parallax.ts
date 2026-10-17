@@ -5,7 +5,7 @@ import { SceneClock } from "../../scene/scene_clock.ts";
 import { HeadTrackingDataProvider } from "../../scene/providers/head_tracking_data_provider.ts";
 import { WebCamDataProvider } from "../../scene/providers/web_cam_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, STANDARD_PROJECTION_IDS, type CarModifier, type Vector3, type DampingValue, type SceneUnits, type VideoPixels} from "../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, STANDARD_PROJECTION_IDS, type CarModifier, type ColorRGBA, type Vector3, type DampingValue, type SceneUnits, type VideoPixels} from "../../scene/types.ts";
 import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "../tutorial/sketch_config.ts";
 import type { FaceConfig, P5SketchExtraArgs } from "../tutorial/sketch_engine.types.ts";
 import { WorldSettings } from "../../scene/world_settings.ts";
@@ -144,18 +144,20 @@ export async function heroParallax(
     // keyboard (or any other externally-synced) state. Tracking it here directly
     // sidesteps that engine bug for this one modifier.
     const pressedKeys: Record<string, boolean> = {};
-    const keyRotationSpeed = 0.03;
-    const maxKeyPitch = Math.PI / 3;
+    // Arrow keys turn only as far as head tracking can: the tracker turns the camera by the
+    // face's angle x damping (0.1), so even a ~1 rad (60deg) head turn moves it ~0.1 rad.
+    const keyRotationSpeed = 0.005;
+    const maxKeyRotation = 0.1;
     // Max look left/right (15deg), for the face rotation and arrow keys combined: layer-11
     // (the foreground frame) only covers the view up to this turn - see the side limit below.
     const maxYaw = 0.26;
     let keyYaw = 0;
     let keyPitch = 0;
     const resolveKeyRotation = () => {
-        if (pressedKeys.ArrowLeft) keyYaw = Math.max(-maxYaw, keyYaw - keyRotationSpeed);
-        if (pressedKeys.ArrowRight) keyYaw = Math.min(maxYaw, keyYaw + keyRotationSpeed);
-        if (pressedKeys.ArrowUp) keyPitch = Math.max(-maxKeyPitch, keyPitch - keyRotationSpeed);
-        if (pressedKeys.ArrowDown) keyPitch = Math.min(maxKeyPitch, keyPitch + keyRotationSpeed);
+        if (pressedKeys.ArrowLeft) keyYaw = Math.max(-maxKeyRotation, keyYaw - keyRotationSpeed);
+        if (pressedKeys.ArrowRight) keyYaw = Math.min(maxKeyRotation, keyYaw + keyRotationSpeed);
+        if (pressedKeys.ArrowUp) keyPitch = Math.max(-maxKeyRotation, keyPitch - keyRotationSpeed);
+        if (pressedKeys.ArrowDown) keyPitch = Math.min(maxKeyRotation, keyPitch + keyRotationSpeed);
         return { yaw: keyYaw, pitch: keyPitch, roll: 0 };
     };
     // Starting camera: offset added to the tracked/pointer head position, so the resting
@@ -530,6 +532,33 @@ export async function heroParallax(
         mirrorTextureHorizontal: true,
         position: { x: -140, y: 0, z: -380 },
         texture: { path: appAssetPath('img/hero/layer-10.png'), width: 70, height: 309 },
+    });
+
+    // Post light - the lamp post's lit lantern, laid over layer-10's own lantern head:
+    // scaled down to match it (~0.19x the image), mirrored like the post, 3 in front of it.
+    // It flickers through its tint (brightness), not its alpha - with alphaCutoff, an alpha
+    // below 0.5 would make it vanish. Sines at unrelated speeds on the scene clock give a
+    // never-repeating shimmer (0.75-1.0) plus an occasional deeper dip (~0.5); it pauses
+    // with the scene.
+    const postLightBrightness = (seconds: number) => {
+        const shimmer = 0.5 * Math.sin(seconds * 11) + 0.3 * Math.sin(seconds * 23.7) + 0.2 * Math.sin(seconds * 4.3);
+        const dip = Math.sin(seconds * 1.7) * Math.sin(seconds * 2.9) > 0.92 ? 0.35 : 0;
+        return 0.875 + 0.125 * shimmer - dip;
+    };
+    world.addPanel({
+        id: 'post-light',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        fillColor: context => {
+            const brightness = postLightBrightness(context.playback.now / 1000);
+            return { red: Math.round(255 * brightness), green: Math.round(240 * brightness), blue: Math.round(210 * brightness) } as ColorRGBA;
+        },
+        width: 48,
+        height: 41,
+        mirrorTextureHorizontal: true,
+        position: { x: -132, y: -141, z: -377 },
+        texture: { path: appAssetPath('img/hero/post-light.png'), width: 255, height: 219 },
     });
 
     // Layer 11 - the nearest layer, the foreground frame (ground across the bottom, tower on
