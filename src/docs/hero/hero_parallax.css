@@ -56,8 +56,8 @@
 }
 
 /* Status line over the canvas (see hero.demo.ts): which controls are active right now.
-   The loading screen's own styles live inline in index.html, so it shows before this
-   stylesheet has loaded. */
+   The loading screen has its own static stylesheet (public/css/loading-screen.css), so it
+   shows before this one has loaded. */
 .hero-parallax-page .hero-status {
     position: absolute;
     left: 50%;

@@ -136,6 +136,18 @@ export class SketchEngine {
         this.p5Instances.set(containerId, currentP5);
         this.containerElements.set(containerId, canvasBox);
 
+        // 'sceneready' on the canvas box once the scene's assets have loaded and two more
+        // frames have drawn (so the frame on screen is fully textured). Pages use it to drop
+        // their loading screen; scripts/capture-loading.mjs waits for it before capturing.
+        // Skipped if this sketch was replaced in the meantime (e.g. a quick re-run).
+        const readyP5 = currentP5;
+        void (world.whenAssetsLoaded?.() ?? Promise.resolve()).then(() => {
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                if (this.p5Instances.get(containerId) !== readyP5) return;
+                canvasBox.dispatchEvent(new CustomEvent('sceneready'));
+            }));
+        });
+
         const doResize = () => {
             if (currentP5 && !(currentP5 as p5 & { _setupDone?: boolean })._setupDone) {
                 requestAnimationFrame(doResize);

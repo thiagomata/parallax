@@ -11,6 +11,7 @@ import {
 } from "./sketch_engine.ts";
 import { extractSketchFunction } from "./sketch_engine.live.ts";
 import {tutorialStepTemplate} from "./tutorial.template.ts";
+import { attachLoadingScreen } from "./loading_screen.ts";
 
 function toggleFS(id: string) {
     const element = document.getElementById(id);
@@ -48,6 +49,9 @@ export function initTutorial(
     const copyBtn = stepMain.querySelector('.code-side .copy-btn') as HTMLButtonElement;
     const pauseBtn = stepMain.querySelector('.pause-btn') as HTMLButtonElement;
     const canvasSide = stepMain.querySelector('.canvas-side') as HTMLElement;
+    // Loading screen (already shown by the page's HTML before any JS) over the canvas until the
+    // scene is ready; shown again for each re-run. Image: public/img/loading/<containerId>.jpg.
+    const loadingScreen = attachLoadingScreen(canvasBox, `img/loading/${containerId}.jpg`);
     
     requestAnimationFrame(async () => {
         const sketchConfig: SketchConfig = { 
@@ -58,6 +62,7 @@ export function initTutorial(
             paused: false 
         };
         
+        loadingScreen.show();
         let { currentP5 } = await sketchEngine.createSketchInstance(
             initialSketch, 
             sketchConfig, 
@@ -90,6 +95,7 @@ export function initTutorial(
             consolePanel.innerHTML = '';
             try {
                 const { fn } = extractSketchFunction(editorBox.innerText);
+                loadingScreen.show();
                 const result = await sketchEngine.createSketchInstance(fn, sketchConfig, canvasBox, containerId);
                 currentP5 = result.currentP5;
                 sketchConfig.paused = false;

@@ -53,6 +53,12 @@ import { LookAtEffect } from "../../scene/effects/look_at_effect.ts";
  *   - Pieces meant to fit together must move the same way (follow vs fixed, tilting vs
  *     upright); mixing them is what opens gaps at the seams.
  *
+ * LOADING ORDER: the page's HTML shows a black-and-white still (public/img/loading/hero.jpg)
+ * before any JavaScript; once the textures load the sketch engine sends 'sceneready' and
+ * the scene appears with mouse / keys active; only then does head tracking (~13 MB) start
+ * downloading, taking over when ready. After changing the scene, refresh the still with
+ * `npm run capture-loading -- hero`.
+ *
  * DEBUGGING: on localhost the console has `heroDebug.setHead({ x, y, z })`, `release()`
  * and `projections()` - see section 1.
  */
@@ -722,11 +728,9 @@ export async function heroParallax(
 
     world.complete();
 
-    // Every texture was requested as its panel was added above. Once they have all loaded,
-    // the draw loop tells the page ('sceneready'), so it can drop its loading screen.
-    let texturesLoaded = false;
-    let readyAnnounced = false;
-    const texturesReady = loader.waitForAllAssets().then(() => { texturesLoaded = true; });
+    // Every texture was requested as its panel was added above; this resolves once they have
+    // all loaded. (The sketch engine then tells the page 'sceneready' for its loading screen.)
+    const texturesReady = world.whenAssetsLoaded();
 
     // Keyboard: record which keys are held (read each frame in section 2). Keys typed into
     // text fields - like the Code tab editor - are ignored, so typing never moves the camera.
@@ -758,10 +762,6 @@ export async function heroParallax(
         p.background(145, 101, 148);
         if (gp) {
             const result = await world.step(gp);
-            if (texturesLoaded && !readyAnnounced) {
-                readyAnnounced = true;
-                canvasElement?.dispatchEvent(new CustomEvent('sceneready', { bubbles: true }));
-            }
             if (!result.running) return;
             // announceObserver(); // observer debug readout - see below
         }

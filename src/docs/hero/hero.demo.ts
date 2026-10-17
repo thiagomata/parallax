@@ -8,7 +8,7 @@ import '../../docs/style/tutorial.css';
 import './hero_parallax.css';
 
 import {heroParallax, heroParallaxExplanation} from "./hero_parallax.ts";
-import { appAssetPath } from "../../utils/app_paths.ts";
+import { attachLoadingScreen } from "../tutorial/loading_screen.ts";
 import heroCode from './hero_parallax.ts?raw';
 
 import { 
@@ -25,21 +25,6 @@ function controlIcon(paused: boolean): string {
     return paused
         ? '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4v16l13-8z"/></svg>'
         : '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>';
-}
-
-// Fallback when the page has no static loading screen (#hero-boot in index.html).
-function createLoadingScreen(): HTMLElement {
-    const screen = document.createElement('div');
-    screen.className = 'hero-boot';
-    screen.setAttribute('role', 'status');
-    const image = document.createElement('img');
-    image.src = appAssetPath('img/hero/loading-bw.jpg');
-    image.alt = '';
-    const label = document.createElement('p');
-    label.className = 'hero-loading-label';
-    label.textContent = 'Loading the 3D scene…';
-    screen.append(image, label);
-    return screen;
 }
 
 export async function renderStep(
@@ -124,13 +109,9 @@ export async function renderStep(
     //     observerReadout.textContent = `observer  x ${x}  y ${y}  z ${z}`;
     // });
 
-    // Loading screen: index.html already shows it (#hero-boot, a black-and-white still of the
-    // starting view saying "Loading the 3D scene…") before any JavaScript has downloaded.
-    // Here it moves over the canvas and stays until the scene reports every texture has
-    // loaded ('sceneready', from hero_parallax.ts), then fades out. Shown again for each
-    // re-run from the Code tab.
-    const loadingScreen = document.getElementById('hero-boot') ?? createLoadingScreen();
-    loadingScreen.classList.add('in-canvas');
+    // Loading screen (already shown by index.html before any JS): moved over the canvas until
+    // the sketch engine reports 'sceneready', then faded out. Shown again for each re-run.
+    const loadingScreen = attachLoadingScreen(canvasBox, 'img/loading/hero.jpg');
     // Status line over the canvas: what controls are active right now (head tracking, or
     // the mouse and keys while it loads / if there's no camera). Only shown once the scene
     // is visible - while the loading screen covers it, "use the mouse" would seem broken.
@@ -163,11 +144,9 @@ export async function renderStep(
     const showLoading = () => {
         sceneVisible = false;
         renderStatus();
-        loadingScreen.classList.remove('loaded');
-        if (loadingScreen.parentElement !== canvasBox) canvasBox.appendChild(loadingScreen);
+        loadingScreen.show();
     };
     canvasBox.addEventListener('sceneready', () => {
-        loadingScreen.classList.add('loaded');
         sceneVisible = true;
         renderStatus();
     });

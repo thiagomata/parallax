@@ -91,6 +91,48 @@ describe("Sketch bootstrap modules", () => {
         raf.mockRestore();
     });
 
+    it("sends sceneready on the canvas box once the scene's assets have loaded", async () => {
+        const { SketchEngine, DEFAULT_SKETCH_CONFIG } = await import("./sketch_engine.ts");
+        const engine = new SketchEngine();
+        const canvasBox = document.createElement("div");
+        const raf = vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb: FrameRequestCallback) => { cb(0); return 1; });
+        let assetsLoaded!: () => void;
+        const world = { sceneClock: { getSettings: () => ({}) }, resizeViewport: vi.fn(), whenAssetsLoaded: () => new Promise<void>(resolve => { assetsLoaded = resolve; }) };
+        const ready = vi.fn();
+        canvasBox.addEventListener("sceneready", ready);
+
+        await engine.createSketchInstance(vi.fn().mockResolvedValue(world) as any, { ...DEFAULT_SKETCH_CONFIG } as any, canvasBox, "ready-box");
+        await Promise.resolve();
+        expect(ready).not.toHaveBeenCalled(); // still loading
+
+        assetsLoaded();
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(ready).toHaveBeenCalledTimes(1);
+        raf.mockRestore();
+    });
+
+    it("skips sceneready for a sketch that was replaced before its assets loaded", async () => {
+        const { SketchEngine, DEFAULT_SKETCH_CONFIG } = await import("./sketch_engine.ts");
+        const engine = new SketchEngine();
+        const canvasBox = document.createElement("div");
+        const raf = vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb: FrameRequestCallback) => { cb(0); return 1; });
+        let firstLoaded!: () => void;
+        const first = { sceneClock: { getSettings: () => ({}) }, resizeViewport: vi.fn(), whenAssetsLoaded: () => new Promise<void>(resolve => { firstLoaded = resolve; }) };
+        const second = { sceneClock: { getSettings: () => ({}) }, resizeViewport: vi.fn(), whenAssetsLoaded: () => new Promise<void>(() => {}) };
+        const ready = vi.fn();
+        canvasBox.addEventListener("sceneready", ready);
+
+        await engine.createSketchInstance(vi.fn().mockResolvedValue(first) as any, { ...DEFAULT_SKETCH_CONFIG } as any, canvasBox, "rerun-box");
+        await engine.createSketchInstance(vi.fn().mockResolvedValue(second) as any, { ...DEFAULT_SKETCH_CONFIG } as any, canvasBox, "rerun-box");
+        firstLoaded();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(ready).not.toHaveBeenCalled();
+        raf.mockRestore();
+    });
+
     it("fits fullscreen canvases to the box aspect ratio and resizes the world", async () => {
         const { SketchEngine, DEFAULT_SKETCH_CONFIG } = await import("./sketch_engine.ts");
         const engine = new SketchEngine();
