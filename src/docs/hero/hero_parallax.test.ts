@@ -114,6 +114,62 @@ describe('Observer limits', () => {
     });
 });
 
+describe('Keyboard zoom (W / S)', () => {
+    const press = (code: string, key: string, target: EventTarget = window) =>
+        target.dispatchEvent(new KeyboardEvent('keydown', { code, key, bubbles: true }));
+    const release = (code: string, key: string) =>
+        window.dispatchEvent(new KeyboardEvent('keyup', { code, key }));
+
+    it('zooms in while W is held, up to the zoom-in limit', async () => {
+        const { observe } = await createInspectedScene();
+        press('KeyW', 'w');
+        observe();
+        expect(observe().position.z).toBe(50 - 16);
+        for (let frame = 0; frame < 400; frame++) observe();
+        expect(observe().position.z).toBe(-1200);
+        release('KeyW', 'w');
+    });
+
+    it('zooms out while S is held, up to the max zoom out', async () => {
+        const { observe } = await createInspectedScene();
+        press('KeyS', 's');
+        for (let frame = 0; frame < 400; frame++) observe();
+        expect(observe().position.z).toBe(150);
+        release('KeyS', 's');
+    });
+
+    it('responds right away after holding a key past a limit (no hidden build-up)', async () => {
+        const { observe } = await createInspectedScene();
+        press('KeyS', 's');
+        for (let frame = 0; frame < 400; frame++) observe();
+        release('KeyS', 's');
+        press('KeyW', 'w');
+        observe();
+        expect(observe().position.z).toBeLessThan(150);
+        release('KeyW', 'w');
+    });
+
+    it('releases the key even when Shift changed its key-up', async () => {
+        const { observe } = await createInspectedScene();
+        press('KeyW', 'w');
+        observe();
+        release('KeyW', 'W');
+        const z = observe().position.z;
+        expect(observe().position.z).toBe(z);
+    });
+
+    it('ignores keys typed into text fields', async () => {
+        const { observe } = await createInspectedScene();
+        const editor = document.createElement('textarea');
+        document.body.appendChild(editor);
+        press('KeyW', 'w', editor);
+        observe();
+        expect(observe().position.z).toBe(50);
+        release('KeyW', 'w');
+        editor.remove();
+    });
+});
+
 describe('Post light', () => {
     it('flickers its brightness through the tint, never its alpha', async () => {
         const { byId } = await createInspectedScene();

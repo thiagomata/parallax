@@ -24,7 +24,7 @@ import { LookAtEffect } from "../../scene/effects/look_at_effect.ts";
  * camera rotation always on, additive on top of head tracking.
  */
 export const heroParallaxExplanation = `
-<p>3D parallax depth, head-tracked. If no camera is available, move the pointer over the canvas and scroll to change depth, or use the arrow keys to look around.</p>
+<p>3D parallax depth, head-tracked. If no camera is available, move the pointer over the canvas and scroll to change depth, use the arrow keys to look around, or W / S to zoom in and out.</p>
 `;
 
 export async function heroParallax(
@@ -153,6 +153,16 @@ export async function heroParallax(
     const maxYaw = 0.26;
     let keyYaw = 0;
     let keyPitch = 0;
+    // W / S zoom: a head depth offset while held, added before the zoom limits in placeHead,
+    // so it can't exceed them and adds on top of head tracking or the mouse wheel.
+    const keyZoomSpeed = 8;
+    let keyZoom = 0;
+    const resolveKeyZoom = () => {
+        // Kept within the zoom limits measured from the start (head z 50: -1200 .. 150), so
+        // holding a key past a limit doesn't build up a hidden offset to unwind.
+        if (pressedKeys.KeyW) keyZoom = Math.max(-1250, keyZoom - keyZoomSpeed);
+        if (pressedKeys.KeyS) keyZoom = Math.min(100, keyZoom + keyZoomSpeed);
+    };
     const resolveKeyRotation = () => {
         if (pressedKeys.ArrowLeft) keyYaw = Math.max(-maxKeyRotation, keyYaw - keyRotationSpeed);
         if (pressedKeys.ArrowRight) keyYaw = Math.min(maxKeyRotation, keyYaw + keyRotationSpeed);
@@ -182,7 +192,7 @@ export async function heroParallax(
     // distance * 1.23 sideways (tan(35.8deg + 15deg)). So the head may move sideways
     // 825 - distance * 1.23: ~150 at the start (distance 550), ~640 at max zoom-in (150).
     const placeHead = (position: Vector3): Vector3 => {
-        const z = Math.min(maxZoomOutHeadZ, Math.max(maxZoomInHeadZ, startHeadOffset.z + position.z * headDepthGain));
+        const z = Math.min(maxZoomOutHeadZ, Math.max(maxZoomInHeadZ, startHeadOffset.z + position.z * headDepthGain + keyZoom));
         const distanceToLayer11 = z + 100 + 300;
         const maxSide = 825 - distanceToLayer11 * 1.23;
         return {
@@ -203,6 +213,7 @@ export async function heroParallax(
             // (including on top of head tracking) - makes debugging the scene much easier
             // than having to disable the camera first.
             const keyRotation = resolveKeyRotation();
+            resolveKeyZoom();
             if (context.dataProviders.headTracker && !debugHeadOverride) {
                 announceStatus('Head tracking active.');
                 const result = headModifier.getCarPosition(position, context);
@@ -557,7 +568,7 @@ export async function heroParallax(
         width: 48,
         height: 41,
         mirrorTextureHorizontal: true,
-        position: { x: -132, y: -141, z: -377 },
+        position: { x: -130, y: -135, z: -377 },
         texture: { path: appAssetPath('img/hero/post-light.png'), width: 255, height: 219 },
     });
 
@@ -664,12 +675,23 @@ export async function heroParallax(
 
     // Keyboard controls - see the note above resolveKeyRotation for why these land in
     // a plain closure object (pressedKeys) rather than the engine's ExternalStore.
+    // Ignore keys typed into text fields (e.g. the Code tab editor), so typing never moves
+    // the camera.
+    const isTyping = (event: KeyboardEvent) => {
+        const target = event.target as HTMLElement | null;
+        return !!target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+    };
     window.addEventListener('keydown', (event: KeyboardEvent) => {
+        if (isTyping(event)) return;
         if (event.key.startsWith('Arrow')) event.preventDefault();
+        // Physical codes too (KeyW / KeyS): unaffected by Shift or layout, so a key can't
+        // stay stuck when its key-up arrives with a different event.key.
         pressedKeys[event.key] = true;
+        pressedKeys[event.code] = true;
     });
     window.addEventListener('keyup', (event: KeyboardEvent) => {
         pressedKeys[event.key] = false;
+        pressedKeys[event.code] = false;
     });
 
     p.draw = async () => {
