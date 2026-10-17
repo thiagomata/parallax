@@ -96,10 +96,14 @@ export async function renderStep(
         paused: false 
     };
     
+    // Debug readout: the scene reports the observer's (eye's) position; show it in a small
+    // label over the canvas. Re-attached on each update in case a sketch reset clears the box.
+    const observerReadout = document.createElement('div');
+    observerReadout.className = 'observer-readout';
     canvasBox.addEventListener('observerchange', event => {
-        const { closeness } = (event as CustomEvent<{ closeness: number }>).detail;
-        const shade = Math.round(closeness * 255);
-        canvasBox.style.borderColor = `rgb(${shade}, ${shade}, ${shade})`;
+        const { x, y, z } = (event as CustomEvent<{ x: number; y: number; z: number }>).detail;
+        if (!observerReadout.isConnected) canvasBox.appendChild(observerReadout);
+        observerReadout.textContent = `observer  x ${x}  y ${y}  z ${z}`;
     });
 
     let { currentP5 } = await sketchEngine.createSketchInstance(

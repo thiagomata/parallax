@@ -142,6 +142,46 @@ describe('FollowEffect', () => {
 
             expect(result.position?.z).toBeCloseTo(-100);
         });
+
+        describe('targetBounds', () => {
+            const withCameraAt = (position: { x: number; y: number; z: number }) =>
+                createContext({ [STANDARD_PROJECTION_IDS.EYE]: { position } });
+
+            it('follows normally while the camera is inside the bounds', () => {
+                const settings = { follow: 'CAMERA', enabled: true, targetBounds: { max: { z: 150 } } };
+
+                const result = FollowEffect.apply(createElement({ x: 0, y: 0, z: -2250 }), withCameraAt({ x: 5, y: 6, z: 100 }), settings, {});
+
+                expect(result.position).toEqual({ x: 5, y: 6, z: -2150 });
+            });
+
+            it('stops following past a max bound, holding the element at the bound', () => {
+                const settings = { follow: 'CAMERA', enabled: true, targetBounds: { max: { z: 150 } } };
+
+                const result = FollowEffect.apply(createElement({ x: 0, y: 0, z: -2250 }), withCameraAt({ x: 5, y: 6, z: 250 }), settings, {});
+
+                // Without the bound this would be z -2000 - colliding with a fixed layer there.
+                expect(result.position).toEqual({ x: 5, y: 6, z: -2100 });
+            });
+
+            it('clamps against min bounds per axis, leaving unbounded axes alone', () => {
+                const settings = { follow: 'CAMERA', enabled: true, targetBounds: { min: { x: -10, z: -50 } } };
+
+                const result = FollowEffect.apply(createElement({ x: 0, y: 0, z: 0 }), withCameraAt({ x: -40, y: -999, z: -80 }), settings, {});
+
+                expect(result.position).toEqual({ x: -10, y: -999, z: -50 });
+            });
+
+            it('keeps a group sharing the same bounds rigid (same clamped target for every member)', () => {
+                const settings = { follow: 'CAMERA', enabled: true, targetBounds: { max: { z: 150 } } };
+                const context = withCameraAt({ x: 0, y: 0, z: 400 });
+
+                const backdrop = FollowEffect.apply(createElement({ x: 0, y: 0, z: -2250 }), context, settings, {});
+                const wall = FollowEffect.apply(createElement({ x: -2700, y: 0, z: -1300 }), context, settings, {});
+
+                expect(wall.position.z - backdrop.position.z).toBe(950);
+            });
+        });
     });
 
     describe('follow: element by ID', () => {

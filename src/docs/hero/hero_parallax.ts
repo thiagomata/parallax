@@ -5,7 +5,7 @@ import { SceneClock } from "../../scene/scene_clock.ts";
 import { HeadTrackingDataProvider } from "../../scene/providers/head_tracking_data_provider.ts";
 import { WebCamDataProvider } from "../../scene/providers/web_cam_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, type CarModifier, type Vector3, type DampingValue, type SceneUnits, type VideoPixels} from "../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, STANDARD_PROJECTION_IDS, type CarModifier, type Vector3, type DampingValue, type SceneUnits, type VideoPixels} from "../../scene/types.ts";
 import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "../tutorial/sketch_config.ts";
 import type { FaceConfig, P5SketchExtraArgs } from "../tutorial/sketch_engine.types.ts";
 import { WorldSettings } from "../../scene/world_settings.ts";
@@ -331,6 +331,14 @@ export async function heroParallax(
     const mountainBackdropWidth = 4000;
     const mountainBackdropHeight = mountainBackdropWidth * mountainHeight / mountainWidth;
     const mountainBackdropDistance = -2500;
+    // Layers 01/02 follow the camera's z, but layer 03 sits at a fixed world z. Left
+    // unbounded, moving back (+z) slides layer 02 onto layer 03's plane (observer z ~250)
+    // and they z-fight. Bounding the followed camera z stops both following boxes - rigidly,
+    // walls included - at least mountainMinGap behind layer 03.
+    const mountainMinGap = 100;
+    const mountainFollowBounds = {
+        max: { z: mountainBackdropDistance * 0.8 - mountainBackdropDistance * 0.9 - mountainMinGap },
+    };
     world.addPanel({
         id: 'mountain-backdrop-01',
         type: ELEMENT_TYPES.PANEL,
@@ -341,7 +349,7 @@ export async function heroParallax(
         position: { x: 0, y: 0, z: mountainBackdropDistance },
         texture: { path: appAssetPath('img/hero/layer-01.png'), width: mountainWidth, height: mountainHeight },
         effects: [
-            { type: 'follow', settings: { follow: 'CAMERA' } },
+            { type: 'follow', settings: { follow: 'CAMERA', targetBounds: mountainFollowBounds } },
         ],
     });
     world.addPanel({
@@ -351,10 +359,10 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: mountainBackdropWidth * 0.9,
         height: mountainBackdropHeight * 0.9,
-        position: { x: 0, y: 0, z: mountainBackdropDistance * 0.9 },
+        position: { x: 400, y: -400, z: mountainBackdropDistance * 0.9 },
         texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth , height: mountainHeight },
         effects: [
-            { type: 'follow', settings: { follow: 'CAMERA' } },
+            { type: 'follow', settings: { follow: 'CAMERA', targetBounds: mountainFollowBounds } },
         ],
     });
 
@@ -388,7 +396,7 @@ export async function heroParallax(
         mirrorTextureHorizontal: false,
         texture: { path: appAssetPath('img/hero/layer-01.png'), width: mountainWidth, height: mountainHeight },
         effects: [
-            { type: 'follow', settings: { follow: 'CAMERA' } },
+            { type: 'follow', settings: { follow: 'CAMERA', targetBounds: mountainFollowBounds } },
         ],
     });
 
@@ -404,7 +412,7 @@ export async function heroParallax(
         mirrorTextureHorizontal: false,
         texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
         effects: [
-            { type: 'follow', settings: { follow: 'CAMERA' } },
+            { type: 'follow', settings: { follow: 'CAMERA', targetBounds: mountainFollowBounds } },
         ],
     });
 
@@ -420,7 +428,7 @@ export async function heroParallax(
         mirrorTextureHorizontal: false,
         texture: { path: appAssetPath('img/hero/layer-01.png'), width: mountainWidth, height: mountainHeight },
         effects: [
-            { type: 'follow', settings: { follow: 'CAMERA' } },
+            { type: 'follow', settings: { follow: 'CAMERA', targetBounds: mountainFollowBounds } },
         ],
     });
 
@@ -436,7 +444,7 @@ export async function heroParallax(
         mirrorTextureHorizontal: false,
         texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
         effects: [
-            { type: 'follow', settings: { follow: 'CAMERA' } },
+            { type: 'follow', settings: { follow: 'CAMERA', targetBounds: mountainFollowBounds } },
         ],
     });
 
@@ -454,7 +462,7 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: mountainBackdropWidth * 0.8,
         height: mountainBackdropHeight * 0.8,
-        position: { x: -100, y: -200, z: mountainBackdropDistance * 0.8 },
+        position: { x: -100, y: -400, z: mountainBackdropDistance * 0.8 },
         texture: { path: appAssetPath('img/hero/layer-03.png'), width: layer03Width, height: layer03Height },
         effects: [
             { type: 'follow', settings: { follow: 'CAMERA', axis: { x: true, y: true, z: false } } },
@@ -513,7 +521,7 @@ export async function heroParallax(
         width: 696,
         height: 507,
         mirrorTextureHorizontal: true,
-        position: { x:  -350 - 696, y: 50, z: -800 },
+        position: { x:  -350 - 696, y: 50, z: -810 },
         texture: { path: appAssetPath('img/hero/layer-04.png'), width: 696, height: 507 },
     });
 
@@ -535,8 +543,49 @@ export async function heroParallax(
         width: 908,
         height: 565,
         mirrorTextureHorizontal: true,
-        position: { x: 550 + 908, y: 50, z: -1200 },
+        position: { x: 550 + 908, y: 50, z: -1210 },
         texture: { path: appAssetPath('img/hero/layer-05.png'), width: 908, height: 565 },
+    });
+
+    // Layer 06 - the tall tree: plain fixed panel at the image's own size, right of center
+    // and in front of the layer 04/05 land, as it stood in the original artwork.
+    world.addPanel({
+        id: 'layer-06',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: 221,
+        height: 813,
+        position: { x: 250, y: 180, z: -650 },
+        texture: { path: appAssetPath('img/hero/layer-06.png'), width: 221, height: 813 },
+    });
+
+    // Layers 07/08 - the nearest foreground pieces (in front of the tree), plain fixed panels
+    // at the images' own sizes, both resting on roughly the same ground line (bottom ~y 350):
+    // 07 is the dark cliff house on the left, 08 the waterfall land strip on the right.
+    // They overlap on screen, so they must NOT share a z: equal depths z-fight (flicker as
+    // the observer moves). 07 sits slightly behind, as the land was drawn over the house
+    // in the original artwork.
+    world.addPanel({
+        id: 'layer-07',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: 674,
+        height: 594,
+        position: { x: -250, y: 50, z: -420 },
+        texture: { path: appAssetPath('img/hero/layer-07.png'), width: 674, height: 594 },
+    });
+
+    world.addPanel({
+        id: 'layer-08',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: 872,
+        height: 302,
+        position: { x: 300, y: 200, z: -400 },
+        texture: { path: appAssetPath('img/hero/layer-08.png'), width: 872, height: 302 },
     });
 
     world.addBox({
@@ -635,7 +684,22 @@ export async function heroParallax(
         if (gp) {
             const result = await world.step(gp);
             if (!result.running) return;
+            announceObserver();
         }
+    };
+
+    // Debug readout: report the observer's (eye's) global position to the page, which
+    // shows it in the title. Only fires when the rounded position actually changes.
+    let lastObserverKey = '';
+    const announceObserver = () => {
+        const eye = world.getCurrenState()?.projections.get(STANDARD_PROJECTION_IDS.EYE);
+        if (!eye) return;
+        const position = eye.globalPosition ?? eye.position;
+        const observer = { x: Math.round(position.x), y: Math.round(position.y), z: Math.round(position.z) };
+        const key = `${observer.x},${observer.y},${observer.z}`;
+        if (key === lastObserverKey) return;
+        lastObserverKey = key;
+        canvasElement?.dispatchEvent(new CustomEvent('observerchange', { detail: observer, bubbles: true }));
     };
 
     try {

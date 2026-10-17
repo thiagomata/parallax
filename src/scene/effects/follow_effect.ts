@@ -27,6 +27,16 @@ export interface FollowEffectConfig extends BaseModifierSettings {
      * - e.g. a floor that reads as "ahead and below" wherever the camera looks.
      */
     readonly followRotation?: boolean;
+    /**
+     * World-space bounds clamped onto the followed target's position before the offset is
+     * added, per axis. Every element sharing the same bounds moves as one rigid group, and
+     * stops following once the target leaves the bounds - e.g. keeping camera-following
+     * backdrops from ever reaching (and z-fighting with) fixed layers in front of them.
+     */
+    readonly targetBounds?: {
+        readonly min?: Partial<Vector3>;
+        readonly max?: Partial<Vector3>;
+    };
     follow: string;
 }
 
@@ -42,6 +52,17 @@ export const FollowDefaultConfig: FollowEffectConfig = {
     follow: 'CAMERA',
 }
 
+function clampToBounds(position: Vector3, bounds: FollowEffectConfig['targetBounds']): Vector3 {
+    if (!bounds) return position;
+    const clamp = (value: number, min?: number, max?: number) =>
+        Math.min(max ?? Infinity, Math.max(min ?? -Infinity, value));
+    return {
+        x: clamp(position.x, bounds.min?.x, bounds.max?.x),
+        y: clamp(position.y, bounds.min?.y, bounds.max?.y),
+        z: clamp(position.z, bounds.min?.z, bounds.max?.z),
+    };
+}
+
 function computeFollowPosition(
     current: ResolvedBaseVisual,
     targetPosition: Vector3,
@@ -49,6 +70,7 @@ function computeFollowPosition(
     targetRotation?: Rotation3,
 ): Partial<ResolvedBaseVisual> {
     const axis = settings.axis ?? FollowDefaultConfig.axis;
+    targetPosition = clampToBounds(targetPosition, settings.targetBounds);
     const offset = settings.offset ?? FollowDefaultConfig.offset ?? { x: 0, y: 0, z: 0 };
 
     // current.position is treated as a fixed local offset from the followed target.
