@@ -299,16 +299,31 @@ export class Stage<
         // Tick providers in hierarchy order and snapshot their data for this frame
         const dataProvidersMap = this.tickDataProviders(state.sceneId);
 
-        // Resolve projections (local space) - with access to dataProviders for modifiers
+        // Get external store from previous frame or create new. Built before projection
+        // resolution (not just before element resolution) so that car/nudge/stick modifiers -
+        // e.g. a camera rig reading keyboard state - see the same live store elements do,
+        // instead of a disconnected empty stand-in.
+        const previousExternal = frameParams.previousResolved?.external ?? this.externalStore;
+
+        // Deep copy previous store and freeze it (read-only)
+        const previousStore: ExternalStore = structuredClone(previousExternal);
+        Object.freeze(previousStore);
+        Object.freeze(previousStore.global);
+
+        // Create mutable next store (copy from previous as starting point)
+        const nextStore: ExternalStore = structuredClone(previousExternal);
+
+        // Resolve projections (local space) - with access to dataProviders and the external
+        // store for modifiers
         const localProjectionPool: Record<string, ResolvedProjection> = {};
 
         for (const dynamicProjection of this.projectionRegistry.all()) {
-            const resolved = this.projectionResolver.resolve(dynamicProjection, state, localProjectionPool, dataProvidersMap);
+            const resolved = this.projectionResolver.resolve(dynamicProjection, state, localProjectionPool, dataProvidersMap, previousStore, nextStore);
             localProjectionPool[resolved.id] = resolved;
         }
 
         // Build projection tree with global positions computed
-        const { tree: projectionTree, flatMap: projectionLookup } = 
+        const { tree: projectionTree, flatMap: projectionLookup } =
             this.buildProjectionTree(localProjectionPool);
 
         // Convert Map to Record for context (effects need Record with global positions)
@@ -322,17 +337,6 @@ export class Stage<
         if (!screenProjection) {
             throw new Error(`Screen projection '${STANDARD_PROJECTION_IDS.SCREEN}' not found`);
         }
-
-        // Get external store from previous frame or create new
-        const previousExternal = frameParams.previousResolved?.external ?? this.externalStore;
-        
-        // Deep copy previous store and freeze it (read-only)
-        const previousStore: ExternalStore = structuredClone(previousExternal);
-        Object.freeze(previousStore);
-        Object.freeze(previousStore.global);
-        
-        // Create mutable next store (copy from previous as starting point)
-        const nextStore: ExternalStore = structuredClone(previousExternal);
 
         // Initialize element states from blueprint internal (if first time)
         for (const entry of this.elementRegistry.getOrderedElements()) {

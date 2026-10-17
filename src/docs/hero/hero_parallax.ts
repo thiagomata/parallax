@@ -13,13 +13,15 @@ import { HEAD_TRACKED_PRESET } from "../../scene/presets.ts";
 import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts";
 import { COLORS } from "../../scene/colors.ts";
 import { appAssetPath } from "../../utils/app_paths.ts";
+import { FollowEffect } from "../../scene/effects/follow_effect.ts";
+import { LookAtEffect } from "../../scene/effects/look_at_effect.ts";
 
 /**
  * MAIN DEMO: 3D Parallax Depth
  *
  * Exact copy of tutorial-9's scene (boxes/targets/tunnel, same camera and head-tracking
- * modifier), plus keyboard-driven camera rotation using tutorial-10's ExternalStore pattern -
- * tutorial-9 itself has no keyboard controls.
+ * modifier), plus keyboard-driven camera rotation (always on, additive on top of head
+ * tracking) - tutorial-9 itself has no keyboard controls.
  */
 export const heroParallaxExplanation = `
 <p>3D parallax depth, head-tracked. If no camera is available, move the pointer over the canvas and scroll to change depth, or use the arrow keys to look around.</p>
@@ -62,7 +64,12 @@ export async function heroParallax(
         headTracker: faceDataProvider,
     };
     const world = new World<P5Bundler, any, any, { webCam: WebCamDataProvider; headTracker: HeadTrackingDataProvider }>(
-        WorldSettings.fromLibs({ clock, loader, dataProviderLib })
+        WorldSettings.fromLibs({
+            clock,
+            loader,
+            dataProviderLib,
+            elementEffectLib: { follow: FollowEffect, look_at: LookAtEffect },
+        })
     );
 
     world.startLoading();
@@ -104,26 +111,24 @@ export async function heroParallax(
         disableRotation: false,
         damping: 0.1 as DampingValue,
     });
-    // Keyboard rotation, tutorial-10's ExternalStore pattern: arrow keys land in
-    // store.global.keys via the keydown/keyup listeners below; read the previous frame's keys
-    // here and accumulate yaw/pitch into the next frame's store (not a closure variable), so
-    // it's the engine's own persisted-state mechanism.
+    // Keyboard rotation - plain closure state, NOT routed through the engine's
+    // ExternalStore (previousStore/nextStore). Car/nudge/stick modifiers are resolved
+    // in projection_resolver.ts with a hardcoded `{ global: {} }` store on every call
+    // (see `resolve()` there), so anything written to the real ExternalStore via
+    // getExternalStore() is invisible to a CarModifier's context - it never carries
+    // keyboard (or any other externally-synced) state. Tracking it here directly
+    // sidesteps that engine bug for this one modifier.
+    const pressedKeys: Record<string, boolean> = {};
     const keyRotationSpeed = 0.03;
     const maxKeyPitch = Math.PI / 3;
-    const resolveKeyRotation = (context: { previousStore: unknown; nextStore: unknown }) => {
-        const previous = context.previousStore as any;
-        const keys = previous.global?.keys ?? {};
-        let yaw = previous.global?.cameraYaw ?? 0;
-        let pitch = previous.global?.cameraPitch ?? 0;
-        if (keys.ArrowLeft) yaw -= keyRotationSpeed;
-        if (keys.ArrowRight) yaw += keyRotationSpeed;
-        if (keys.ArrowUp) pitch = Math.max(-maxKeyPitch, pitch - keyRotationSpeed);
-        if (keys.ArrowDown) pitch = Math.min(maxKeyPitch, pitch + keyRotationSpeed);
-        const next = context.nextStore as any;
-        next.global = next.global ?? {};
-        next.global.cameraYaw = yaw;
-        next.global.cameraPitch = pitch;
-        return { yaw, pitch, roll: 0 };
+    let keyYaw = 0;
+    let keyPitch = 0;
+    const resolveKeyRotation = () => {
+        if (pressedKeys.ArrowLeft) keyYaw -= keyRotationSpeed;
+        if (pressedKeys.ArrowRight) keyYaw += keyRotationSpeed;
+        if (pressedKeys.ArrowUp) keyPitch = Math.max(-maxKeyPitch, keyPitch - keyRotationSpeed);
+        if (pressedKeys.ArrowDown) keyPitch = Math.min(maxKeyPitch, keyPitch + keyRotationSpeed);
+        return { yaw: keyYaw, pitch: keyPitch, roll: 0 };
     };
     const observerModifier: CarModifier<typeof dataProviderLib> = {
         name: 'Head tracking with pointer fallback',
@@ -132,9 +137,25 @@ export async function heroParallax(
         requiredDataProviders: [],
         tick: sceneId => headModifier.tick(sceneId),
         getCarPosition: (position, context) => {
+            // Read every frame regardless of branch, so arrow-key rotation always works
+            // (including on top of head tracking) - makes debugging the scene much easier
+            // than having to disable the camera first.
+            const keyRotation = resolveKeyRotation();
             if (context.dataProviders.headTracker) {
                 announceStatus('Head tracking active.');
-                return headModifier.getCarPosition(position, context);
+                const result = headModifier.getCarPosition(position, context);
+                if (!result.success) return result;
+                return {
+                    success: true,
+                    value: {
+                        ...result.value,
+                        rotation: {
+                            yaw: (result.value.rotation?.yaw ?? 0) + keyRotation.yaw,
+                            pitch: (result.value.rotation?.pitch ?? 0) + keyRotation.pitch,
+                            roll: result.value.rotation?.roll ?? 0,
+                        },
+                    },
+                };
             }
             const cameraReady = webCamProvider?.getStatus?.() === 'READY';
             announceStatus(cameraReady
@@ -142,7 +163,7 @@ export async function heroParallax(
                 : initialized
                     ? 'Camera unavailable. Move the mouse to look around and scroll to change depth.'
                     : 'Starting camera. Mouse and scroll controls are active.');
-            return { success: true, value: { name: 'Pointer fallback', position: { ...pointer }, rotation: resolveKeyRotation(context) } };
+            return { success: true, value: { name: 'Pointer fallback', position: { ...pointer }, rotation: keyRotation } };
         },
     };
     world.addModifierToProjection('head', observerModifier, 'car');
@@ -301,6 +322,89 @@ export async function heroParallax(
         texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
     });
 
+    // Mountain backdrop - a big distant panel of the same mountain artwork.
+    // Plain `follow` (position only, no rotation tracking) keeps it a fixed
+    // distance away as the observer moves, like real distant scenery, but it
+    // does NOT re-center on wherever the camera is looking: panning/tilting
+    // the view slides it toward the edge and out of frame like an actual
+    // fixed landmark, instead of staying glued to the center of your gaze.
+    const mountainBackdropWidth = 4000;
+    const mountainBackdropHeight = mountainBackdropWidth * mountainHeight / mountainWidth;
+    const mountainBackdropDistance = -2500;
+    world.addPanel({
+        id: 'mountain-backdrop-01',
+        type: ELEMENT_TYPES.PANEL,
+        width: mountainBackdropWidth,
+        height: mountainBackdropHeight,
+        position: { x: 0, y: 0, z: mountainBackdropDistance },
+        texture: { path: appAssetPath('img/hero/layer-01.png'), width: mountainWidth, height: mountainHeight },
+        effects: [
+            { type: 'follow', settings: { follow: 'CAMERA' } },
+        ],
+    });
+    // world.addPanel({
+    //     id: 'mountain-backdrop-02',
+    //     type: ELEMENT_TYPES.PANEL,
+    //     width: mountainBackdropWidth * 0.9,
+    //     height: mountainBackdropHeight * 0.9,
+    //     position: { x: 0, y: 0, z: mountainBackdropDistance * 0.9 },
+    //     texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
+    //     effects: [
+    //         { type: 'follow', settings: { follow: 'CAMERA' } },
+    //     ],
+    // });
+
+    // Side walls - same mountain artwork, folded 90 degrees off the backdrop's left/right
+    // edges so they read as the side faces of a box around the observer. Each is mirrored
+    // horizontally, so the edge touching the backdrop reflects it like a fold in a mirror,
+    // instead of abruptly restarting the image. Same plain `follow` as the backdrop, so the
+    // whole box stays rigidly together as the observer moves.
+    const mountainSideDepth = 3000;
+    const mountainBackdropHalfWidth = mountainBackdropWidth / 2;
+    const mountainSideZ = mountainBackdropDistance + mountainSideDepth / 2;
+
+    world.addPanel({
+        id: 'mountain-backdrop-01-left',
+        type: ELEMENT_TYPES.PANEL,
+        width: mountainSideDepth,
+        height: mountainBackdropHeight,
+        position: { x: -mountainBackdropHalfWidth, y: 0, z: mountainSideZ },
+        rotate: { pitch: 0, yaw: -Math.PI / 2, roll: 0 },
+        mirrorTextureHorizontal: false,
+        texture: { path: appAssetPath('img/hero/layer-01.png'), width: mountainWidth, height: mountainHeight },
+        effects: [
+            { type: 'follow', settings: { follow: 'CAMERA' } },
+        ],
+    });
+
+    // world.addPanel({
+    //     id: 'mountain-backdrop-02-left',
+    //     type: ELEMENT_TYPES.PANEL,
+    //     width: mountainSideDepth * 0.9,
+    //     height: mountainBackdropHeight * 0.9,
+    //     position: { x: -mountainBackdropHalfWidth  * 0.9, y: 0, z: mountainSideZ  * 0.9 },
+    //     rotate: { pitch: 0, yaw: -Math.PI / 2, roll: 0 },
+    //     mirrorTextureHorizontal: false,
+    //     texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth  * 0.9, height: mountainHeight  * 0.9 },
+    //     effects: [
+    //         { type: 'follow', settings: { follow: 'CAMERA' } },
+    //     ],
+    // });
+
+    world.addPanel({
+        id: 'mountain-backdrop-right',
+        type: ELEMENT_TYPES.PANEL,
+        width: mountainSideDepth,
+        height: mountainBackdropHeight,
+        position: { x: mountainBackdropHalfWidth, y: 0, z: mountainSideZ },
+        rotate: { pitch: 0, yaw: Math.PI / 2, roll: 0 },
+        mirrorTextureHorizontal: false,
+        texture: { path: appAssetPath('img/hero/layer-01.png'), width: mountainWidth, height: mountainHeight },
+        effects: [
+            { type: 'follow', settings: { follow: 'CAMERA' } },
+        ],
+    });
+
     world.addBox({
         id: 'far-cube',
         type: ELEMENT_TYPES.BOX,
@@ -319,6 +423,27 @@ export async function heroParallax(
         strokeColor: COLORS.white,
         position: { x: 0, y: floorY, z: -30 },
         fillColor: COLORS.purple,
+    });
+
+    // Ground floor - `position` is its local offset from the camera's own
+    // view (forward + down), rotated by the camera's current orientation via
+    // `followRotation`, so it always reads as "the ground ahead of you":
+    // mostly underfoot when looking down, ahead and below when looking
+    // forward. Far enough to feel distant, never receding out of view since
+    // it's rigidly tied to wherever the observer is looking.
+    const floorForward = -600;
+    const floorDrop = 400;
+    world.addFloor({
+        id: 'ground-floor',
+        type: ELEMENT_TYPES.FLOOR,
+        width: 6000,
+        depth: 6000,
+        position: { x: 0, y: floorDrop, z: floorForward },
+        // fillColor: { red: 55, green: 58, blue: 68 },
+        fillColor: COLORS.cyan,
+        effects: [
+            { type: 'follow', settings: { follow: 'CAMERA', followRotation: true } }
+        ],
     });
 
     let gp: P5GraphicProcessor;
@@ -340,20 +465,14 @@ export async function heroParallax(
 
     world.complete();
 
-    // Keyboard controls, tutorial-10's pattern: keys land in the shared ExternalStore under
-    // global.keys, read back each frame in resolveKeyRotation above.
-    const syncGlobalKeys = (key: string, pressed: boolean) => {
-        const store = world.getExternalStore() as any;
-        store.global = store.global ?? {};
-        store.global.keys = store.global.keys ?? {};
-        store.global.keys[key] = pressed;
-    };
+    // Keyboard controls - see the note above resolveKeyRotation for why these land in
+    // a plain closure object (pressedKeys) rather than the engine's ExternalStore.
     window.addEventListener('keydown', (event: KeyboardEvent) => {
         if (event.key.startsWith('Arrow')) event.preventDefault();
-        syncGlobalKeys(event.key, true);
+        pressedKeys[event.key] = true;
     });
     window.addEventListener('keyup', (event: KeyboardEvent) => {
-        syncGlobalKeys(event.key, false);
+        pressedKeys[event.key] = false;
     });
 
     p.draw = async () => {

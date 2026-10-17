@@ -924,6 +924,57 @@ describe("Stage", () => {
             expect(result.external.global.keys).toEqual({ ArrowUp: true });
         });
 
+        it("gives car modifiers access to the live ExternalStore (regression: projection resolution used to hardcode an empty store)", () => {
+            stage.addProjection({
+                id: 'eye',
+                type: PROJECTION_TYPES.EYE,
+                position: { x: 0, y: 0, z: 500 },
+                lookAt: { x: 0, y: 0, z: 0 },
+                lookMode: LOOK_MODES.LOOK_AT
+            } as BlueprintProjection);
+
+            stage.addProjection({
+                id: 'screen',
+                type: PROJECTION_TYPES.SCREEN,
+                position: { x: 0, y: 0, z: 0 },
+                rotation: { pitch: 0, yaw: 0, roll: 0 },
+                lookMode: LOOK_MODES.ROTATION
+            } as BlueprintProjection);
+
+            let observedKeys: unknown;
+            const carModifier = {
+                name: 'test-car-modifier',
+                active: true,
+                priority: 10,
+                tick: () => {},
+                getCarPosition: (position: unknown, context: any) => {
+                    observedKeys = context.previousStore?.global?.keys;
+                    return { success: true, value: { name: 'test', position } };
+                },
+            };
+            (stage as any).addModifierToProjection('eye', carModifier, 'car');
+
+            const store = stage.getExternalStore();
+            store.global.keys = { ArrowRight: true };
+
+            const mockGp = {
+                millis: () => 1000,
+                deltaTime: () => 16,
+                frameCount: () => 1,
+                dist: () => 100,
+                setProjectionMatrix: () => {},
+                setCameraTree: () => {},
+                drawTree: () => {}
+            };
+
+            stage.render(mockGp as any, {
+                playback: { now: 1000, delta: 16, progress: 0, frameCount: 1 },
+                previousResolved: null,
+            });
+
+            expect(observedKeys).toEqual({ ArrowRight: true });
+        });
+
         it("should return external store with global from last frame", () => {
             stage.addProjection({
                 id: 'eye',

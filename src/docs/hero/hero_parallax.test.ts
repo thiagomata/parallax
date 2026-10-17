@@ -31,14 +31,17 @@ describe('Main scene declarations', () => {
         expect(world.getElement('front-cube')).toBeDefined();
     });
 
-    it('rotates the head via arrow keys through the ExternalStore', async () => {
+    it('rotates the head via arrow keys', async () => {
         const modifiers = vi.spyOn(World.prototype, 'addModifierToProjection');
-        const { world } = await createScene();
+        await createScene();
         const modifier = modifiers.mock.calls.find(([id]) => id === 'head')![1] as any;
-        const store = world.getExternalStore() as any;
-        store.global = { keys: { ArrowRight: true } };
-        const result = modifier.getCarPosition({}, { dataProviders: { headTracker: null }, previousStore: store, nextStore: {} });
+        // Arrow-key state is tracked in a plain closure object, not the engine's
+        // ExternalStore - see the note above resolveKeyRotation in hero_parallax.ts
+        // for why (car modifiers are resolved with a hardcoded empty store).
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+        const result = modifier.getCarPosition({}, { dataProviders: { headTracker: null } });
         expect(result.value.rotation.yaw).toBeGreaterThan(0);
+        window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight' }));
         modifiers.mockRestore();
     });
 

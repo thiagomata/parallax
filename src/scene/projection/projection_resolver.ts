@@ -1,6 +1,7 @@
 import {
     type BlueprintProjection, DEFAULT_PROJECTION_ELEMENT,
     type DynamicProjection,
+    type ExternalStore,
     type ProjectionEffectBlueprint,
     type ProjectionEffectLib,
     type ProjectionEffectResolutionGroup,
@@ -118,7 +119,9 @@ export class ProjectionResolver<
         dynamic: DynamicProjection,
         state: DynamicSceneState,
         projectionPool: Record<string, ResolvedProjection> = {},
-        dataProviders: Record<string, unknown> = {}
+        dataProviders: Record<string, unknown> = {},
+        previousStore: ExternalStore = { global: {} },
+        nextStore: ExternalStore = { global: {} }
     ): ResolvedProjection {
 
         const resolutionContext: ResolutionContext = {
@@ -128,8 +131,8 @@ export class ProjectionResolver<
             projectionPool,
             elementPool: {},
             dataProviders,
-            previousStore: { global: {} },
-            nextStore: { global: {} },
+            previousStore,
+            nextStore,
             element: {},
         };
 
@@ -143,8 +146,8 @@ export class ProjectionResolver<
             projectionPool,
             elementPool: {},
             dataProviders,
-            previousStore: { global: {} },
-            nextStore: { global: {} },
+            previousStore,
+            nextStore,
             element: {},
         };
 
