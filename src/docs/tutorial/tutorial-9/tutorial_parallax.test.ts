@@ -231,11 +231,13 @@ describe('Keyboard alternative', () => {
         expect(observe().rotation).toEqual({ yaw: expect.closeTo(-0.1), pitch: expect.closeTo(0.1), roll: 0 });
     });
 
-    it('zooms with W / S, up to 150 each way', async () => {
+    it('flies through the tunnel with W at the hero\'s speed, and backs out with S', async () => {
         const observe = await observerOf();
-        hold('KeyW', 'w', 100, observe);
-        expect(observe().position.z).toBe(-150);
-        hold('KeyS', 's', 100, observe);
+        hold('KeyW', 'w', 2, observe);
+        expect(observe().position.z).toBe(-16); // 8 per frame
+        hold('KeyW', 'w', 400, observe);
+        expect(observe().position.z).toBe(-300); // into the tunnel, while its rings are still visible
+        hold('KeyS', 's', 400, observe);
         expect(observe().position.z).toBe(150);
     });
 

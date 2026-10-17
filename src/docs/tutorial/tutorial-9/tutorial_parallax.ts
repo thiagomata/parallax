@@ -129,7 +129,9 @@ export async function tutorial_parallax(
     // Keyboard alternative: arrow keys turn the view, W / S zoom. It adds on top of head
     // tracking or the mouse. Keys held right now (see the listeners below) are read once per
     // frame. The turn is limited to 0.1 rad - about what head tracking reaches (face angle x
-    // damping 0.1) - and the zoom to +-150.
+    // damping 0.1). W flies into the tunnel at the hero's speed, down to -300: the rings are as
+    // wide as the screen and fade with depth, so any further in, the near rings fall outside
+    // the view and the far ones are too dark to see. S backs out to +150.
     const pressedKeys: Record<string, boolean> = {};
     const keys = { yaw: 0, pitch: 0, zoom: 0 };
     const updateKeys = () => {
@@ -138,8 +140,8 @@ export async function tutorial_parallax(
         if (pressedKeys.ArrowRight) keys.yaw = turn(keys.yaw, 0.005);
         if (pressedKeys.ArrowUp) keys.pitch = turn(keys.pitch, -0.005);
         if (pressedKeys.ArrowDown) keys.pitch = turn(keys.pitch, 0.005);
-        if (pressedKeys.KeyW) keys.zoom = Math.max(-150, keys.zoom - 4);
-        if (pressedKeys.KeyS) keys.zoom = Math.min(150, keys.zoom + 4);
+        if (pressedKeys.KeyW) keys.zoom = Math.max(-300, keys.zoom - 8);
+        if (pressedKeys.KeyS) keys.zoom = Math.min(150, keys.zoom + 8);
     };
     const withKeys = (position: Vector3, rotation?: { yaw: number; pitch: number; roll: number }) => ({
         position: { ...position, z: position.z + keys.zoom },
