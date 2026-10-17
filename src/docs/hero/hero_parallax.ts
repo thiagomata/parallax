@@ -99,6 +99,21 @@ export async function heroParallax(
     });
 
     const pointer = { x: 0, y: 0, z: 0 };
+    // Dev-only debug hook: place the head exactly (no clamping), e.g. from the console
+    // `heroDebug.setHead({ x: 0, y: 10, z: 515 })`, to reproduce views that head tracking
+    // reaches but the mouse/wheel ranges can't. While set it overrides head tracking (the
+    // on-canvas readout shows the resulting eye position); `heroDebug.release()` hands
+    // control back to the camera.
+    let debugHeadOverride = false;
+    if (import.meta.env.DEV) {
+        (window as Window & { heroDebug?: unknown }).heroDebug = {
+            setHead: (position: Partial<Vector3>) => {
+                debugHeadOverride = true;
+                Object.assign(pointer, position);
+            },
+            release: () => { debugHeadOverride = false; },
+        };
+    }
     let canvasElement: HTMLElement | undefined;
     let initialized = false;
     let lastStatus = '';
@@ -141,7 +156,7 @@ export async function heroParallax(
             // (including on top of head tracking) - makes debugging the scene much easier
             // than having to disable the camera first.
             const keyRotation = resolveKeyRotation();
-            if (context.dataProviders.headTracker) {
+            if (context.dataProviders.headTracker && !debugHeadOverride) {
                 announceStatus('Head tracking active.');
                 const result = headModifier.getCarPosition(position, context);
                 if (!result.success) return result;
@@ -334,7 +349,9 @@ export async function heroParallax(
     // Layers 01/02 follow the camera's z, but layer 03 sits at a fixed world z. Left
     // unbounded, moving back (+z) slides layer 02 onto layer 03's plane (observer z ~250)
     // and they z-fight. Bounding the followed camera z stops both following boxes - rigidly,
-    // walls included - at least mountainMinGap behind layer 03.
+    // walls included - at least mountainMinGap behind layer 03. The floor and roof share the
+    // same bounds: if they kept following while the boxes stopped, the roof's far edge would
+    // drift below the backdrop's top and open a black band of sky between them.
     const mountainMinGap = 100;
     const mountainFollowBounds = {
         max: { z: mountainBackdropDistance * 0.8 - mountainBackdropDistance * 0.9 - mountainMinGap },
@@ -378,9 +395,15 @@ export async function heroParallax(
     // set. Each wall hinges on the backdrop's edge, so its center sits half a wall along the
     // folded direction from that edge (yaw is p5's rotateY: local +x -> (cos, -sin) in x/z).
     const mountainSideFold = Math.PI / 4;
-    const mountainSideHalfDepth = mountainSideDepth / 2;
-    const mountainSideX = mountainBackdropHalfWidth + mountainSideHalfDepth * Math.cos(mountainSideFold);
-    const mountainSideZ = mountainBackdropDistance + mountainSideHalfDepth * Math.sin(mountainSideFold);
+    // Walls extend mountainSeamOverlap past the hinge, tucked behind the backdrop: two quads
+    // that merely share an edge leave a sub-pixel crack (separate transforms round
+    // differently), and with nothing behind layer 01 that crack shows as a black line in
+    // the sky. The outer end stays where it was; only the hidden end grows.
+    const mountainSeamOverlap = 20;
+    const mountainSideLength = mountainSideDepth + mountainSeamOverlap;
+    const mountainSideCenterOffset = (mountainSideDepth - mountainSeamOverlap) / 2;
+    const mountainSideX = mountainBackdropHalfWidth + mountainSideCenterOffset * Math.cos(mountainSideFold);
+    const mountainSideZ = mountainBackdropDistance + mountainSideCenterOffset * Math.sin(mountainSideFold);
     const mountainSideLeftYaw = mountainSideFold - Math.PI;
     const mountainSideRightYaw = Math.PI - mountainSideFold;
 
@@ -389,7 +412,7 @@ export async function heroParallax(
         type: ELEMENT_TYPES.PANEL,
         fitMode: 'fill',
         alphaCutoff: 0.5,
-        width: mountainSideDepth,
+        width: mountainSideLength,
         height: mountainBackdropHeight,
         position: { x: -mountainSideX, y: 0, z: mountainSideZ },
         rotate: { pitch: 0, yaw: mountainSideLeftYaw, roll: 0 },
@@ -405,7 +428,7 @@ export async function heroParallax(
         type: ELEMENT_TYPES.PANEL,
         fitMode: 'fill',
         alphaCutoff: 0.5,
-        width: mountainSideDepth * 0.9,
+        width: mountainSideLength * 0.9,
         height: mountainBackdropHeight * 0.9,
         position: { x: -mountainSideX * 0.9, y: 0, z: mountainSideZ * 0.9 },
         rotate: { pitch: 0, yaw: mountainSideLeftYaw, roll: 0 },
@@ -421,7 +444,7 @@ export async function heroParallax(
         type: ELEMENT_TYPES.PANEL,
         fitMode: 'fill',
         alphaCutoff: 0.5,
-        width: mountainSideDepth,
+        width: mountainSideLength,
         height: mountainBackdropHeight,
         position: { x: mountainSideX, y: 0, z: mountainSideZ },
         rotate: { pitch: 0, yaw: mountainSideRightYaw, roll: 0 },
@@ -437,7 +460,7 @@ export async function heroParallax(
         type: ELEMENT_TYPES.PANEL,
         fitMode: 'fill',
         alphaCutoff: 0.5,
-        width: mountainSideDepth * 0.9,
+        width: mountainSideLength * 0.9,
         height: mountainBackdropHeight * 0.9,
         position: { x: mountainSideX * 0.9, y: 0, z: mountainSideZ * 0.9 },
         rotate: { pitch: 0, yaw: mountainSideRightYaw, roll: 0 },
@@ -474,7 +497,7 @@ export async function heroParallax(
         type: ELEMENT_TYPES.PANEL,
         fitMode: 'fill',
         alphaCutoff: 0.5,
-        width: mountainSideDepth * 0.8,
+        width: mountainSideLength * 0.8,
         height: mountainBackdropHeight * 0.8,
         position: { x: -100 + -mountainSideX * 0.8, y: -200, z: mountainSideZ * 0.8 },
         rotate: { pitch: 0, yaw: mountainSideLeftYaw, roll: 0 },
@@ -490,7 +513,7 @@ export async function heroParallax(
         type: ELEMENT_TYPES.PANEL,
         fitMode: 'fill',
         alphaCutoff: 0.5,
-        width: mountainSideDepth * 0.8,
+        width: mountainSideLength * 0.8,
         height: mountainBackdropHeight * 0.8,
         position: { x: mountainSideX * 0.8, y: 0, z: mountainSideZ * 0.8 },
         rotate: { pitch: 0, yaw: mountainSideRightYaw, roll: 0 },
@@ -625,22 +648,24 @@ export async function heroParallax(
         // fillColor: { red: 55, green: 58, blue: 68 },
         fillColor: COLORS.cyan,
         effects: [
-            { type: 'follow', settings: { follow: 'CAMERA', followRotation: true } }
+            { type: 'follow', settings: { follow: 'CAMERA', followRotation: true, targetBounds: mountainFollowBounds } }
         ],
     });
 
-    // Roof - the floor mirrored above the observer (negative y is up in p5), textured with
-    // the backdrop's mountain artwork instead of a flat color. Same camera-relative
-    // `followRotation` follow, so it always reads as "overhead and ahead".
+    // Roof - a level sky ceiling above the observer (negative y is up in p5). It must stay
+    // matched to the mountain backdrops, which never tilt: with `followRotation` the roof
+    // pitched up with the head-tracked camera, its far edge swung above the backdrop's top
+    // and opened a black band of sky between them. So it follows position only (bounded
+    // like the boxes) and is wide enough to also cover above the splayed walls.
     world.addFloor({
         id: 'roof',
         type: ELEMENT_TYPES.FLOOR,
-        width: 6000,
-        depth: 6000,
+        width: 12000,
+        depth: 12000,
         position: { x: 0, y: -floorDrop - 850, z: floorForward },
         fillColor: {red: 100 * 1.5, green: 68 * 1.5  , blue: 97 * 1.5 },
         effects: [
-            { type: 'follow', settings: { follow: 'CAMERA', followRotation: true } }
+            { type: 'follow', settings: { follow: 'CAMERA', targetBounds: mountainFollowBounds } }
         ],
     });
 
