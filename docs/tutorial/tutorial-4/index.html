@@ -5,15 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tutorial 4 | Parallax</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <script type="module" crossorigin src="/parallax/assets/docs/tutorial/tutorial-4-DYI_o-20.js"></script>
-  <link rel="modulepreload" crossorigin href="/parallax/assets/tutorial-BEflRuS4.js">
-  <link rel="modulepreload" crossorigin href="/parallax/assets/tutorial.template-BFMPLQ9s.js">
-  <link rel="modulepreload" crossorigin href="/parallax/assets/tutorial_nav-C01yhm5y.js">
-  <link rel="stylesheet" crossorigin href="/parallax/assets/tutorial-C3ydUZN5.css">
+    <!-- Loading screen: static CSS + image so it shows before any JavaScript (see
+         public/css/loading-screen.css). -->
+    <link rel="stylesheet" href="/parallax/css/loading-screen.css">
+    <link rel="preload" as="image" href="/parallax/img/loading/tutorial-4.jpg" fetchpriority="high">
+  <script type="module" crossorigin src="/parallax/assets/docs/tutorial/tutorial-4-BkYNWYMm.js"></script>
+  <link rel="modulepreload" crossorigin href="/parallax/assets/tutorial-BpTRhyr7.js">
+  <link rel="modulepreload" crossorigin href="/parallax/assets/tutorial.template-CePrRZkS.js">
+  <link rel="modulepreload" crossorigin href="/parallax/assets/tutorial_index_meta-CRUyYQuj.js">
+  <link rel="modulepreload" crossorigin href="/parallax/assets/tutorial_nav-CdHp3Mo9.js">
+  <link rel="stylesheet" crossorigin href="/parallax/assets/tutorial-BpWL5hCB.css">
   <link rel="stylesheet" crossorigin href="/parallax/assets/tutorial-Cg1sXqY3.css">
 </head>
 <body>
     <nav class="tutorial-nav"></nav>
-    <main id="tutorial-root"></main>
+    <main id="tutorial-root">
+        <div id="scene-loading" class="scene-loading" role="status" aria-live="polite">
+            <img src="/parallax/img/loading/tutorial-4.jpg" alt="" fetchpriority="high">
+            <p class="scene-loading-label">Loading the 3D scene…</p>
+        </div>
+    </main>
 </body>
 </html>

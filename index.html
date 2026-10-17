@@ -5,12 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parallax | Living Documentation</title>
     <style>body{background:#0a0a0a;margin:0}</style>
-  <script type="module" crossorigin src="/parallax/assets/main-Bm1AqTrs.js"></script>
-  <link rel="modulepreload" crossorigin href="/parallax/assets/tutorial-BEflRuS4.js">
-  <link rel="modulepreload" crossorigin href="/parallax/assets/tutorial.template-BFMPLQ9s.js">
-  <link rel="stylesheet" crossorigin href="/parallax/assets/tutorial-C3ydUZN5.css">
+    <!-- Loading screen for the 3D demo: static CSS + image so it shows before any JavaScript
+         (see public/css/loading-screen.css). -->
+    <link rel="stylesheet" href="/parallax/css/loading-screen.css">
+    <link rel="preload" as="image" href="/parallax/img/loading/hero.jpg" fetchpriority="high">
+  <script type="module" crossorigin src="/parallax/assets/main-B2Mvy4Yy.js"></script>
+  <link rel="modulepreload" crossorigin href="/parallax/assets/tutorial-BpTRhyr7.js">
+  <link rel="modulepreload" crossorigin href="/parallax/assets/tutorial.template-CePrRZkS.js">
+  <link rel="stylesheet" crossorigin href="/parallax/assets/tutorial-BpWL5hCB.css">
   <link rel="stylesheet" crossorigin href="/parallax/assets/tutorial-Cg1sXqY3.css">
-  <link rel="stylesheet" crossorigin href="/parallax/assets/main-B0BcWhm6.css">
+  <link rel="stylesheet" crossorigin href="/parallax/assets/main-BUL0n8wg.css">
 </head>
 <body class="hero-parallax-page">
 
@@ -64,7 +68,12 @@
     </div>
 </nav>
 
-<main id="tutorial-root"></main>
+<main id="tutorial-root">
+    <div id="scene-loading" class="scene-loading" role="status" aria-live="polite">
+        <img src="/parallax/img/loading/hero.jpg" alt="" fetchpriority="high">
+        <p class="scene-loading-label">Loading the 3D scene…</p>
+    </div>
+</main>
 
 <footer style="max-width: 900px; margin: 50px auto; padding: 20px; border-top: 1px solid #333; text-align: center; color: #666;">
     <p>
