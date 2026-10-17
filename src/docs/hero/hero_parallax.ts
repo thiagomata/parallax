@@ -335,6 +335,7 @@ export async function heroParallax(
         id: 'mountain-backdrop-01',
         type: ELEMENT_TYPES.PANEL,
         fitMode: 'fill',
+        alphaCutoff: 0.5,
         width: mountainBackdropWidth,
         height: mountainBackdropHeight,
         position: { x: 0, y: 0, z: mountainBackdropDistance },
@@ -347,6 +348,7 @@ export async function heroParallax(
         id: 'mountain-backdrop-02',
         type: ELEMENT_TYPES.PANEL,
         fitMode: 'fill',
+        alphaCutoff: 0.5,
         width: mountainBackdropWidth * 0.9,
         height: mountainBackdropHeight * 0.9,
         position: { x: 0, y: 0, z: mountainBackdropDistance * 0.9 },
@@ -363,16 +365,26 @@ export async function heroParallax(
     // whole box stays rigidly together as the observer moves.
     const mountainSideDepth = 3000;
     const mountainBackdropHalfWidth = mountainBackdropWidth / 2;
-    const mountainSideZ = mountainBackdropDistance + mountainSideDepth / 2;
+    // Fold angle of each wall off the backdrop's edge: 0 = flat continuation of the
+    // backdrop, PI/2 = square box. 45 degrees splays the walls outward like an open stage
+    // set. Each wall hinges on the backdrop's edge, so its center sits half a wall along the
+    // folded direction from that edge (yaw is p5's rotateY: local +x -> (cos, -sin) in x/z).
+    const mountainSideFold = Math.PI / 4;
+    const mountainSideHalfDepth = mountainSideDepth / 2;
+    const mountainSideX = mountainBackdropHalfWidth + mountainSideHalfDepth * Math.cos(mountainSideFold);
+    const mountainSideZ = mountainBackdropDistance + mountainSideHalfDepth * Math.sin(mountainSideFold);
+    const mountainSideLeftYaw = mountainSideFold - Math.PI;
+    const mountainSideRightYaw = Math.PI - mountainSideFold;
 
     world.addPanel({
         id: 'mountain-backdrop-01-left',
         type: ELEMENT_TYPES.PANEL,
         fitMode: 'fill',
+        alphaCutoff: 0.5,
         width: mountainSideDepth,
         height: mountainBackdropHeight,
-        position: { x: -mountainBackdropHalfWidth, y: 0, z: mountainSideZ },
-        rotate: { pitch: 0, yaw: -Math.PI / 2, roll: 0 },
+        position: { x: -mountainSideX, y: 0, z: mountainSideZ },
+        rotate: { pitch: 0, yaw: mountainSideLeftYaw, roll: 0 },
         mirrorTextureHorizontal: false,
         texture: { path: appAssetPath('img/hero/layer-01.png'), width: mountainWidth, height: mountainHeight },
         effects: [
@@ -384,10 +396,11 @@ export async function heroParallax(
         id: 'mountain-backdrop-02-left',
         type: ELEMENT_TYPES.PANEL,
         fitMode: 'fill',
+        alphaCutoff: 0.5,
         width: mountainSideDepth * 0.9,
         height: mountainBackdropHeight * 0.9,
-        position: { x: -mountainBackdropHalfWidth * 0.9, y: 0, z: mountainSideZ  * 0.9 },
-        rotate: { pitch: 0, yaw: -Math.PI / 2, roll: 0 },
+        position: { x: -mountainSideX * 0.9, y: 0, z: mountainSideZ * 0.9 },
+        rotate: { pitch: 0, yaw: mountainSideLeftYaw, roll: 0 },
         mirrorTextureHorizontal: false,
         texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
         effects: [
@@ -399,10 +412,11 @@ export async function heroParallax(
         id: 'mountain-backdrop-01-right',
         type: ELEMENT_TYPES.PANEL,
         fitMode: 'fill',
+        alphaCutoff: 0.5,
         width: mountainSideDepth,
         height: mountainBackdropHeight,
-        position: { x: mountainBackdropHalfWidth, y: 0, z: mountainSideZ },
-        rotate: { pitch: 0, yaw: Math.PI / 2, roll: 0 },
+        position: { x: mountainSideX, y: 0, z: mountainSideZ },
+        rotate: { pitch: 0, yaw: mountainSideRightYaw, roll: 0 },
         mirrorTextureHorizontal: false,
         texture: { path: appAssetPath('img/hero/layer-01.png'), width: mountainWidth, height: mountainHeight },
         effects: [
@@ -414,14 +428,68 @@ export async function heroParallax(
         id: 'mountain-backdrop-02-right',
         type: ELEMENT_TYPES.PANEL,
         fitMode: 'fill',
+        alphaCutoff: 0.5,
         width: mountainSideDepth * 0.9,
         height: mountainBackdropHeight * 0.9,
-        position: { x: mountainBackdropHalfWidth * 0.9, y: 0, z: mountainSideZ * 0.9 },
-        rotate: { pitch: 0, yaw: Math.PI / 2, roll: 0 },
+        position: { x: mountainSideX * 0.9, y: 0, z: mountainSideZ * 0.9 },
+        rotate: { pitch: 0, yaw: mountainSideRightYaw, roll: 0 },
         mirrorTextureHorizontal: false,
         texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
         effects: [
             { type: 'follow', settings: { follow: 'CAMERA' } },
+        ],
+    });
+
+    // Layer 03 - third box, in front of layer 02 at 0.8 scale, with the same splayed
+    // side walls (origin-anchored scaling keeps them hinged on its backdrop's edges).
+    // Unlike layers 01/02 it follows the camera on x/y only, not z: it keeps a fixed world
+    // depth, so leaning in/out brings it closer/further - nearer scenery that has parallax.
+    const layer03Width = 1234;
+    const layer03Height = 669;
+
+    world.addPanel({
+        id: 'mountain-backdrop-03',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: mountainBackdropWidth * 0.8,
+        height: mountainBackdropHeight * 0.8,
+        position: { x: 0, y: 0, z: mountainBackdropDistance * 0.8 },
+        texture: { path: appAssetPath('img/hero/layer-03.png'), width: layer03Width, height: layer03Height },
+        effects: [
+            { type: 'follow', settings: { follow: 'CAMERA', axis: { x: true, y: true, z: false } } },
+        ],
+    });
+
+    world.addPanel({
+        id: 'mountain-backdrop-03-left',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: mountainSideDepth * 0.8,
+        height: mountainBackdropHeight * 0.8,
+        position: { x: -mountainSideX * 0.8, y: 0, z: mountainSideZ * 0.8 },
+        rotate: { pitch: 0, yaw: mountainSideLeftYaw, roll: 0 },
+        mirrorTextureHorizontal: false,
+        texture: { path: appAssetPath('img/hero/layer-03.png'), width: layer03Width, height: layer03Height },
+        effects: [
+            { type: 'follow', settings: { follow: 'CAMERA', axis: { x: true, y: true, z: false } } },
+        ],
+    });
+
+    world.addPanel({
+        id: 'mountain-backdrop-03-right',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        alphaCutoff: 0.5,
+        width: mountainSideDepth * 0.8,
+        height: mountainBackdropHeight * 0.8,
+        position: { x: mountainSideX * 0.8, y: 0, z: mountainSideZ * 0.8 },
+        rotate: { pitch: 0, yaw: mountainSideRightYaw, roll: 0 },
+        mirrorTextureHorizontal: false,
+        texture: { path: appAssetPath('img/hero/layer-03.png'), width: layer03Width, height: layer03Height },
+        effects: [
+            { type: 'follow', settings: { follow: 'CAMERA', axis: { x: true, y: true, z: false } } },
         ],
     });
 

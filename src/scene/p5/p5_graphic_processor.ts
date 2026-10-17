@@ -39,6 +39,8 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
     private videoResolver: P5VideoResolver;
 
     private centerOffsetCache = new Map<string, Vector3>();
+    // One compiled cutout shader per distinct alphaCutoff value (baked in as a constant).
+    private cutoutShaders = new Map<number, p5.Shader>();
     private lastWidth = 0;
     private lastHeight = 0;
 
@@ -153,6 +155,25 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
             if (depthEnabled) gl!.enable(gl!.DEPTH_TEST);
             this.p.pop();
         }
+    }
+
+    // Alpha-test cutout: p5's textured fill (material) shader never discards fragments, so a
+    // texture's transparent pixels still write depth and hide anything drawn after them
+    // behind it. Swapping in a material shader that discards below the cutoff fixes that
+    // without relying on draw order. The caller's push/pop restores the default shader.
+    private applyAlphaCutoff(cutoff: number | undefined): void {
+        if (cutoff === undefined || cutoff <= 0) return;
+        let shader = this.cutoutShaders.get(cutoff);
+        if (!shader) {
+            shader = this.p.baseMaterialShader().modify({
+                'vec4 getFinalColor': `(vec4 color) {
+                    if (color.a < ${cutoff.toFixed(4)}) discard;
+                    return color;
+                }`,
+            });
+            this.cutoutShaders.set(cutoff, shader);
+        }
+        this.p.shader(shader);
     }
 
     private computeFitDimensions(props: ResolvedPanel, assets: ElementAssets<P5Bundler>): { width: number; height: number } {
@@ -333,6 +354,7 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
             if (videoNode) {
                 this.p.texture(videoNode);
             }
+            this.applyAlphaCutoff(props.alphaCutoff);
         } else if (assets.texture?.status === ASSET_STATUS.READY && assets.texture.value) {
             this.p.blendMode(this.p.BLEND);
             this.p.texture(assets.texture.value.internalRef);
@@ -341,6 +363,7 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
             } else {
                 this.p.tint(255, this.to8Bit(combinedAlpha));
             }
+            this.applyAlphaCutoff(props.alphaCutoff);
         } else {
             this.p.noTint();
             if (props.fillColor) {

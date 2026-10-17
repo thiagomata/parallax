@@ -174,6 +174,60 @@ describe("P5GraphicProcessor", () => {
         expect(p.tint).toHaveBeenCalledWith(10, 20, 30, 64);
     });
 
+    describe("alphaCutoff", () => {
+        const readyTexture = () => ({
+            texture: { status: ASSET_STATUS.READY, value: { internalRef: { id: "img-1" } } },
+        }) as any;
+        const state = { settings: { alpha: 1 as Alpha } } as any;
+        const withShaderMocks = () => {
+            const p = createMockP5() as any;
+            const cutout = { id: "cutout" };
+            const modify = vi.fn(() => cutout);
+            p.baseMaterialShader = vi.fn(() => ({ modify }));
+            p.shader = vi.fn();
+            return { p, cutout, modify };
+        };
+        const panel = (alphaCutoff?: number) => ({
+            id: "panel", type: ELEMENT_TYPES.PANEL, width: 10, height: 10,
+            position: { x: 0, y: 0, z: 0 }, fitMode: "fill", alphaCutoff,
+        }) as ResolvedPanel;
+
+        it("binds a discarding material shader when set on a textured element", () => {
+            const { p, cutout, modify } = withShaderMocks();
+            const gp = new P5GraphicProcessor(p, {} as any);
+
+            gp.drawPanel(panel(0.5), readyTexture(), state);
+
+            expect(p.shader).toHaveBeenCalledWith(cutout);
+            const hooks = (modify.mock.calls[0] as unknown[])[0] as Record<string, string>;
+            expect(hooks["vec4 getFinalColor"]).toContain("if (color.a < 0.5000) discard;");
+        });
+
+        it("reuses the compiled shader for the same cutout value", () => {
+            const { p } = withShaderMocks();
+            const gp = new P5GraphicProcessor(p, {} as any);
+
+            gp.drawPanel(panel(0.5), readyTexture(), state);
+            gp.drawPanel(panel(0.5), readyTexture(), state);
+            gp.drawPanel(panel(0.25), readyTexture(), state);
+
+            expect(p.baseMaterialShader).toHaveBeenCalledTimes(2);
+            expect(p.shader).toHaveBeenCalledTimes(3);
+        });
+
+        it("leaves the default shader when unset, zero, or the element is untextured", () => {
+            const { p } = withShaderMocks();
+            const gp = new P5GraphicProcessor(p, {} as any);
+
+            gp.drawPanel(panel(), readyTexture(), state);
+            gp.drawPanel(panel(0), readyTexture(), state);
+            gp.drawPanel(panel(0.5), {} as any, state);
+
+            expect(p.shader).not.toHaveBeenCalled();
+            expect(p.baseMaterialShader).not.toHaveBeenCalled();
+        });
+    });
+
     it("falls back to fill/noFill and stroke/noStroke when no texture is available", () => {
         const p = createMockP5();
         const gp = new P5GraphicProcessor(p as any, {} as any);
