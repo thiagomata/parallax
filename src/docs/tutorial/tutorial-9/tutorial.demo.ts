@@ -7,4 +7,19 @@ import {initTutorial} from "../tutorial_shared.ts";
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || navigator.maxTouchPoints > 0;
 const faceConfig = isMobile ? undefined : { throttleThreshold: 0, videoWidth: 640, videoHeight: 480 };
 
+document.addEventListener('observerstatus', event => {
+    const canvas = event.target as HTMLElement;
+    const side = canvas.closest('.canvas-side');
+    if (!side) return;
+    let status = side.querySelector<HTMLElement>('.observer-status');
+    if (!status) {
+        status = document.createElement('p');
+        status.className = 'observer-status';
+        status.setAttribute('role', 'status');
+        status.style.cssText = 'margin:8px 0;color:var(--text-secondary);font-size:13px';
+        side.querySelector('.controls')?.before(status);
+    }
+    status.textContent = (event as CustomEvent<string>).detail;
+});
+
 initTutorial('tutorial-9', '9. 3D Parallax Depth', tutorial_parallax, step9Source, parallax_explanation, {}, faceConfig);

@@ -1,5 +1,6 @@
 import {defineConfig} from 'vitest/config';
 import {codecovVitePlugin} from "@codecov/vite-plugin";
+import {playwright} from "@vitest/browser-playwright";
 // import basicSsl from '@vitejs/plugin-basic-ssl'
 
 export default defineConfig({
@@ -38,6 +39,31 @@ export default defineConfig({
     ],
     test: {
         environment: 'happy-dom',
+        projects: [
+            {
+                extends: true,
+                test: {
+                    name: 'unit',
+                    include: ['src/**/*.test.ts'],
+                    exclude: ['src/**/*.browser.test.ts'],
+                },
+            },
+            {
+                // Real-GPU rendering checks (WebGL pixel readback) - things a mocked p5
+                // can't catch, e.g. shader behavior. Needs `npx playwright install chromium`.
+                extends: true,
+                test: {
+                    name: 'browser',
+                    include: ['src/**/*.browser.test.ts'],
+                    browser: {
+                        enabled: true,
+                        headless: true,
+                        provider: playwright(),
+                        instances: [{ browser: 'chromium' }],
+                    },
+                },
+            },
+        ],
         coverage: {
             provider: 'v8',
             reporter: ['text', 'html', 'json', 'json-summary'],

@@ -5,7 +5,7 @@ import { SceneClock } from "../../../scene/scene_clock.ts";
 import { HeadTrackingDataProvider } from "../../../scene/providers/head_tracking_data_provider.ts";
 import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type Vector3, type DampingValue, type SceneUnits, type VideoPixels} from "../../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type CarModifier, type Vector3, type DampingValue, type SceneUnits, type VideoPixels} from "../../../scene/types.ts";
 import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "../sketch_config.ts";
 import type { FaceConfig, P5SketchExtraArgs } from "../sketch_engine.types.ts";
 import { WorldSettings } from "../../../scene/world_settings.ts";
@@ -30,6 +30,8 @@ export const parallax_explanation = `
 <li><strong>Object Depth</strong> - Objects at different Z positions shift differently as the camera moves. Close objects shift more; distant objects shift less.</li>
 <li><strong>The Pop-Out Effect</strong> - With sufficient head movement and wide FOV, objects near the camera can appear to "pop out" of the screen toward you.</li>
 </ol>
+
+<p>If face tracking is unavailable, move the mouse over the preview to look around and scroll to change depth.</p>
 
 <h3>Key Terms</h3>
 <div class="key-terms">
@@ -94,10 +96,40 @@ export async function tutorial_parallax(
 
     world.loadPreset(HEAD_TRACKED_PRESET);
 
-    world.addModifierToProjection('head', new HeadTrackingModifier({
+    const pointer = { x: 0, y: 0, z: 0 };
+    let canvasElement: HTMLElement | undefined;
+    let initialized = false;
+    let lastStatus = '';
+    const announceStatus = (message: string) => {
+        if (message === lastStatus) return;
+        lastStatus = message;
+        canvasElement?.dispatchEvent(new CustomEvent('observerstatus', { bubbles: true, detail: message }));
+    };
+    const headModifier = new HeadTrackingModifier({
         disableRotation: false,
         damping: 0.1 as DampingValue,
-    }), 'car');
+    });
+    const observerModifier: CarModifier<typeof dataProviderLib> = {
+        name: 'Head tracking with pointer fallback',
+        active: true,
+        priority: 10,
+        requiredDataProviders: [],
+        tick: sceneId => headModifier.tick(sceneId),
+        getCarPosition: (position, context) => {
+            if (context.dataProviders.headTracker) {
+                announceStatus('Head tracking active.');
+                return headModifier.getCarPosition(position, context);
+            }
+            const cameraReady = webCamProvider?.getStatus?.() === 'READY';
+            announceStatus(cameraReady
+                ? 'No face detected. Move the mouse to look around and scroll to change depth.'
+                : initialized
+                    ? 'Camera unavailable. Move the mouse to look around and scroll to change depth.'
+                    : 'Starting camera. Mouse and scroll controls are active.');
+            return { success: true, value: { name: 'Pointer fallback', position: { ...pointer }, rotation: { yaw: 0, pitch: 0, roll: 0 } } };
+        },
+    };
+    world.addModifierToProjection('head', observerModifier, 'car');
 
     const floorY = 200;
 
@@ -273,7 +305,18 @@ export async function tutorial_parallax(
     let gp: P5GraphicProcessor;
 
     p.setup = () => {
-        p.createCanvas(config.width, config.height, p.WEBGL);
+        const canvas = p.createCanvas(config.width, config.height, p.WEBGL);
+        canvasElement = canvas?.elt;
+        canvasElement?.addEventListener('pointermove', event => {
+            const bounds = canvasElement!.getBoundingClientRect();
+            const pointerEvent = event as PointerEvent;
+            pointer.x = Math.max(-150, Math.min(150, ((pointerEvent.clientX - bounds.left) / bounds.width - 0.5) * 300));
+            pointer.y = Math.max(-100, Math.min(100, ((pointerEvent.clientY - bounds.top) / bounds.height - 0.5) * 200));
+        });
+        canvasElement?.addEventListener('wheel', event => {
+            event.preventDefault();
+            pointer.z = Math.max(-50, Math.min(100, pointer.z + (event as WheelEvent).deltaY * 0.25));
+        }, { passive: false });
     };
 
     world.complete();
@@ -292,7 +335,12 @@ export async function tutorial_parallax(
         }
     };
 
-    await faceDataProvider.init();
+    try {
+        await faceDataProvider.init();
+    } catch (error) {
+        console.warn('Camera unavailable; pointer controls remain active.', error);
+    }
+    initialized = true;
     gp = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
 
     return world;

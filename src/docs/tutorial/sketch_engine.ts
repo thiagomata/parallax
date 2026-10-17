@@ -46,6 +46,11 @@ export class SketchEngine {
                 } else if (isFullscreen) {
                     w = window.innerWidth;
                     h = window.innerHeight;
+                    const aspect = Number(canvasBox?.dataset.aspectRatio);
+                    if (aspect > 0) {
+                        w = Math.min(w, h * aspect);
+                        h = w / aspect;
+                    }
                 } else {
                     w = canvasBox?.clientWidth || window.innerWidth;
                     h = canvasBox?.clientHeight || window.innerHeight;
@@ -54,7 +59,7 @@ export class SketchEngine {
                 if (w > 0 && h > 0) {
                     instance.resizeCanvas(w, h, true);
                     if (world) {
-                        world.enableDefaultPerspective(w, h);
+                        world.resizeViewport(w, h);
                     }
                     instance.redraw();
                 }
@@ -141,6 +146,7 @@ export class SketchEngine {
                 const h = canvasBox.clientHeight;
                 if (w > 0 && h > 0) {
                     currentP5.resizeCanvas(w, h, true);
+                    world?.resizeViewport(w, h);
                     sketchConfig.width = w;
                     sketchConfig.height = h;
                 }

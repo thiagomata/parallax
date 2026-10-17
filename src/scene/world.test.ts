@@ -247,6 +247,11 @@ describe("World", () => {
     });
 
     describe("getWindowConfig", () => {
+        it("resizeViewport updates the stage window config to the new size", () => {
+            world.resizeViewport(800, 600);
+            expect(mockStage.updateWindowConfig).toHaveBeenCalledWith(expect.objectContaining({ width: 800, height: 600 }));
+        });
+
         it("should return window config from stage settings", () => {
             const mockWindowConfig = WindowConfig.create(DEFAULT_WINDOW_CONFIG);
             (mockStage.getSettings as ReturnType<typeof vi.fn>).mockReturnValue({

@@ -39,6 +39,8 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
     private videoResolver: P5VideoResolver;
 
     private centerOffsetCache = new Map<string, Vector3>();
+    // One compiled cutout shader per distinct alphaCutoff value (baked in as a constant).
+    private cutoutShaders = new Map<number, p5.Shader>();
     private lastWidth = 0;
     private lastHeight = 0;
 
@@ -130,13 +132,48 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
     }
 
     public drawPanel(props: ResolvedPanel, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
+        this.withDepthTestOverride(props.depthTest, () => {
+            this.applyContext(props, assets, state);
+            const { width, height } = this.computeFitDimensions(props, assets);
+            this.p.plane(width, height);
+        });
+    }
+
+    // Transparent textures need painter's-algorithm ordering (depthTest: false, relying on
+    // the stage's distance sort / renderOrder) instead of the GPU depth test, which writes
+    // depth for a quad's full geometry regardless of per-fragment alpha and so lets a
+    // transparent region incorrectly occlude whatever should show through behind it.
+    private withDepthTestOverride(depthTest: boolean | undefined, draw: () => void): void {
+        const gl = this.p.drawingContext as WebGLRenderingContext | undefined;
+        const manageDepth = depthTest === false && !!gl?.isEnabled;
+        const depthEnabled = manageDepth && gl!.isEnabled(gl!.DEPTH_TEST);
         this.p.push();
-        this.applyContext(props, assets, state);
+        try {
+            if (manageDepth) gl!.disable(gl!.DEPTH_TEST);
+            draw();
+        } finally {
+            if (depthEnabled) gl!.enable(gl!.DEPTH_TEST);
+            this.p.pop();
+        }
+    }
 
-        const { width: drawWidth, height: drawHeight } = this.computeFitDimensions(props, assets);
-
-        this.p.plane(drawWidth, drawHeight);
-        this.p.pop();
+    // Alpha-test cutout: p5's textured fill (material) shader never discards fragments, so a
+    // texture's transparent pixels still write depth and hide anything drawn after them
+    // behind it. Swapping in a material shader that discards below the cutoff fixes that
+    // without relying on draw order. The caller's push/pop restores the default shader.
+    private applyAlphaCutoff(cutoff: number | undefined): void {
+        if (cutoff === undefined || cutoff <= 0) return;
+        let shader = this.cutoutShaders.get(cutoff);
+        if (!shader) {
+            shader = this.p.baseMaterialShader().modify({
+                'vec4 getFinalColor': `(vec4 color) {
+                    if (color.a < ${cutoff.toFixed(4)}) discard;
+                    return color;
+                }`,
+            });
+            this.cutoutShaders.set(cutoff, shader);
+        }
+        this.p.shader(shader);
     }
 
     private computeFitDimensions(props: ResolvedPanel, assets: ElementAssets<P5Bundler>): { width: number; height: number } {
@@ -191,11 +228,11 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
     }
 
     public drawFloor(props: ResolvedFloor, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
-        this.p.push();
-        this.applyContext(props, assets, state);
-        this.p.rotateX(this.p.HALF_PI);
-        this.p.plane(props.width, props.depth);
-        this.p.pop();
+        this.withDepthTestOverride(props.depthTest, () => {
+            this.applyContext(props, assets, state);
+            this.p.rotateX(this.p.HALF_PI);
+            this.p.plane(props.width, props.depth);
+        });
     }
 
     public drawTorus(props: ResolvedTorus, assets: ElementAssets<P5Bundler>, state: ResolvedSceneState): void {
@@ -317,6 +354,7 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
             if (videoNode) {
                 this.p.texture(videoNode);
             }
+            this.applyAlphaCutoff(props.alphaCutoff);
         } else if (assets.texture?.status === ASSET_STATUS.READY && assets.texture.value) {
             this.p.blendMode(this.p.BLEND);
             this.p.texture(assets.texture.value.internalRef);
@@ -325,6 +363,7 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
             } else {
                 this.p.tint(255, this.to8Bit(combinedAlpha));
             }
+            this.applyAlphaCutoff(props.alphaCutoff);
         } else {
             this.p.noTint();
             if (props.fillColor) {

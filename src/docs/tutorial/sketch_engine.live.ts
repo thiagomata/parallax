@@ -1,3 +1,5 @@
+import { WebCamDataProvider } from "../../scene/providers/web_cam_data_provider.ts";
+import { appAssetPath } from "../../utils/app_paths.ts";
 import { transform } from 'sucrase';
 import p5 from 'p5';
 import { World } from "../../scene/world.ts";
@@ -18,6 +20,7 @@ import { OrbitModifier } from "../../scene/modifiers/orbit_modifier.ts";
 import { CenterFocusModifier } from "../../scene/modifiers/center_focus_modifier.ts";
 import { CenterOrbit } from "../../scene/presets.ts";
 import { LookAtEffect } from "../../scene/effects/look_at_effect.ts";
+import { FollowEffect } from "../../scene/effects/follow_effect.ts";
 import { TransformEffect } from "../../scene/effects/transform_effect.ts";
 import { HeadTrackingDataProvider } from "../../scene/providers/head_tracking_data_provider.ts";
 import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts";
@@ -39,6 +42,7 @@ Object.assign(window, {
     P5GraphicProcessor,
     OrbitModifier,
     LookAtEffect,
+    FollowEffect,
     TransformEffect,
     ELEMENT_TYPES,
     PROJECTION_TYPES,
@@ -102,6 +106,9 @@ const moduleExports: Record<string, Record<string, unknown>> = {
     'look_at_effect': {
         LookAtEffect: (window as Window & typeof globalThis & { LookAtEffect: typeof LookAtEffect }).LookAtEffect,
     },
+    'follow_effect': {
+        FollowEffect: (window as Window & typeof globalThis & { FollowEffect: typeof FollowEffect }).FollowEffect,
+    },
     'transform_effect': {
         TransformEffect: (window as Window & typeof globalThis & { TransformEffect: typeof TransformEffect }).TransformEffect,
     },
@@ -111,6 +118,8 @@ const moduleExports: Record<string, Record<string, unknown>> = {
     'head_tracking_modifier': {
         HeadTrackingModifier: (window as Window & typeof globalThis & { HeadTrackingModifier: typeof HeadTrackingModifier }).HeadTrackingModifier,
     },
+    'web_cam_data_provider': { WebCamDataProvider },
+    'app_paths': { appAssetPath },
     'colors': {
         COLORS: (window as Window & typeof globalThis & { COLORS: typeof COLORS }).COLORS,
     },

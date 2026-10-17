@@ -147,12 +147,6 @@ export async function tutorial_observer(
     const loader = new P5AssetLoader(p);
     let gp: P5GraphicProcessor = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
     
-    p.setup = () => {
-        p.createCanvas(config.width, config.height, p5.WEBGL);
-        if (!extraArgs?.graphicProcessor) {
-            gp = new P5GraphicProcessor(p, loader);
-        }
-    };
     const dataProviderLib: ObserverDataProviderLib = {
         webCam: webCamProvider, // needed as parent dependency for headTracker
         video: fallbackVideoProvider,
@@ -401,11 +395,15 @@ export async function tutorial_observer(
 
     p.setup = () => {
         p.createCanvas(config.width, config.height, p.WEBGL);
-        gp = new P5GraphicProcessor(p, loader);
+        gp = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
     };
 
     let initialized = false;
+    let rendering = false;
     p.draw = async () => {
+        if (rendering) return;
+        rendering = true;
+        try {
         if (!gp) {
             return;
         }
@@ -437,7 +435,7 @@ export async function tutorial_observer(
                     z: panelPosition.z + panelScreenZDistance,
                 },
                 video: videoSelector,
-                fillColor:  COLORS.blue,
+                fillColor: COLORS.white,
             });
 
             initialized = true;
@@ -459,6 +457,9 @@ export async function tutorial_observer(
         p.background(20);
         const result = await world.step(gp);
         if (!result.running) return;
+        } finally {
+            rendering = false;
+        }
     };
 
     return world;

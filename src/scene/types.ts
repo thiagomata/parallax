@@ -985,6 +985,17 @@ export interface ResolvedBaseVisual<TID extends string = string> {
     /** Alpha/opacity in range [0, 1] */
     readonly alpha?: Alpha;
 
+    /** Explicit painter order; omitted elements retain distance sorting. */
+    readonly renderOrder?: number;
+    /** Disable depth testing for intentionally layered transparent artwork. */
+    readonly depthTest?: boolean;
+    /**
+     * Alpha-test cutout for textured elements, in range [0, 1]: texture pixels whose final
+     * alpha is below this are discarded instead of drawn, so fully transparent regions write
+     * no depth and can't hide whatever is behind them, regardless of draw order. Note the
+     * element's own alpha multiplies in, so fading below the cutoff hides it entirely.
+     */
+    readonly alphaCutoff?: number;
     readonly fillColor?: ColorRGBA;
     readonly strokeColor?: ColorRGBA;
     readonly strokeWidth?: number;

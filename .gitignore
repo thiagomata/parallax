@@ -30,3 +30,6 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Vitest browser-mode failure screenshots
+__screenshots__/
