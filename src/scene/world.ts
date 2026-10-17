@@ -390,12 +390,13 @@ export class World<
             return { running: false, error: null, status: this._status, errorCount: this._errorCount };
         }
 
-        if (this._paused) {
-            return { running: false, error: null, status: this._status, errorCount: this._errorCount };
-        }
+        // Paused still renders - the clock doesn't advance (SceneClock.tick holds time while
+        // paused), but the frozen scene is drawn. Otherwise the frame on screen when a page
+        // pauses is whatever its draw loop cleared it to, and the scene vanishes.
+        const running = !this._paused;
 
         try {
-            // Tick the clock forward
+            // Tick the clock forward (a no-op while paused)
             this.sceneClock.tick(gp.millis(), gp.deltaTime(), gp.frameCount());
 
             // Render with just frame params (clock playback + previous resolved state)
@@ -420,7 +421,7 @@ export class World<
                 throw new Error("no screen or eye to render");
             }
 
-            return { running: true, error: null, status: this._status, errorCount: this._errorCount };
+            return { running, error: null, status: this._status, errorCount: this._errorCount };
         } catch (e) {
             this._errorCount++;
             const error = e instanceof Error ? e : new Error(String(e));

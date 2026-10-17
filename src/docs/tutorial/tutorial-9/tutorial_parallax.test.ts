@@ -201,3 +201,61 @@ it('allows pointer resolution while the camera is still starting', async () => {
     await pending;
     spy.mockRestore();
 });
+
+describe('Keyboard alternative', () => {
+    async function observerOf() {
+        const { World } = await import('../../../scene/world.ts');
+        const spy = vi.spyOn(World.prototype, 'addModifierToProjection');
+        await tutorial_parallax(createMockP5() as unknown as p5, { width: 640, height: 480, paused: false }, {
+            faceDataProvider: { init: async () => {} },
+            webCamProvider: { getStatus: () => 'READY' },
+        } as any);
+        const observer = spy.mock.calls.find(([id]) => id === 'head')![1] as any;
+        spy.mockRestore();
+        return (headTracker: unknown = null) => observer.getCarPosition({}, { dataProviders: { headTracker } }).value;
+    }
+    const hold = (code: string, key: string, frames: number, observe: () => unknown, target: EventTarget = window) => {
+        target.dispatchEvent(new KeyboardEvent('keydown', { code, key, bubbles: true }));
+        for (let frame = 0; frame < frames; frame++) observe();
+        window.dispatchEvent(new KeyboardEvent('keyup', { code, key }));
+    };
+
+    it('turns with the arrow keys, up to 0.1 rad each way', async () => {
+        const observe = await observerOf();
+        hold('ArrowRight', 'ArrowRight', 100, observe);
+        hold('ArrowUp', 'ArrowUp', 100, observe);
+        expect(observe().rotation).toEqual({ yaw: expect.closeTo(0.1), pitch: expect.closeTo(-0.1), roll: 0 });
+
+        hold('ArrowLeft', 'ArrowLeft', 100, observe);
+        hold('ArrowDown', 'ArrowDown', 100, observe);
+        expect(observe().rotation).toEqual({ yaw: expect.closeTo(-0.1), pitch: expect.closeTo(0.1), roll: 0 });
+    });
+
+    it('flies through the tunnel with W at the hero\'s speed, and backs out with S', async () => {
+        const observe = await observerOf();
+        hold('KeyW', 'w', 2, observe);
+        expect(observe().position.z).toBe(-16); // 8 per frame
+        hold('KeyW', 'w', 400, observe);
+        expect(observe().position.z).toBe(-300); // into the tunnel, while its rings are still visible
+        hold('KeyS', 's', 400, observe);
+        expect(observe().position.z).toBe(150);
+    });
+
+    it('adds the keys on top of head tracking', async () => {
+        const observe = await observerOf();
+        const face = { localPosition: { x: 0, y: 0, z: 0 }, stick: { yaw: 0, pitch: 0, roll: 0 } };
+        hold('KeyW', 'w', 10, () => observe(face));
+        const value = observe(face);
+        expect(value.position.z).toBeLessThan(0);
+        expect(value.name).not.toBe('Pointer fallback');
+    });
+
+    it('ignores keys typed into text fields', async () => {
+        const observe = await observerOf();
+        const editor = document.createElement('textarea');
+        document.body.appendChild(editor);
+        hold('KeyW', 'w', 10, observe, editor);
+        expect(observe().position.z).toBe(0);
+        editor.remove();
+    });
+});

@@ -5,7 +5,7 @@ import { SceneClock } from "../../../scene/scene_clock.ts";
 import { HeadTrackingDataProvider } from "../../../scene/providers/head_tracking_data_provider.ts";
 import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, type CarModifier, type Vector3, type DampingValue, type SceneUnits, type VideoPixels} from "../../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, type CarModifier, type Vector3, type DampingValue, type SceneUnits, type VideoPixels} from "../../../scene/types.ts";
 import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "../sketch_config.ts";
 import type { FaceConfig, P5SketchExtraArgs } from "../sketch_engine.types.ts";
 import { WorldSettings } from "../../../scene/world_settings.ts";
@@ -31,7 +31,7 @@ export const parallax_explanation = `
 <li><strong>The Pop-Out Effect</strong> - With sufficient head movement and wide FOV, objects near the camera can appear to "pop out" of the screen toward you.</li>
 </ol>
 
-<p>If face tracking is unavailable, move the mouse over the preview to look around and scroll to change depth.</p>
+<p>If face tracking is unavailable, move the mouse over the preview to look around and scroll to change depth. The keyboard works too, with or without a camera: the arrow keys turn the view and W / S zoom in and out.</p>
 
 <h3>Key Terms</h3>
 <div class="key-terms">
@@ -94,7 +94,23 @@ export async function tutorial_parallax(
         world.pause();
     }
 
-    world.loadPreset(HEAD_TRACKED_PRESET);
+    // The head-tracked camera rig, with 'head' in ROTATION mode (instead of the preset's
+    // LOOK_AT) so turning - head rotation and the arrow keys - pivots the view.
+    world.loadPreset({
+        ...HEAD_TRACKED_PRESET,
+        projectors: HEAD_TRACKED_PRESET.projectors.map(projector =>
+            projector.id === 'head'
+                ? {
+                    id: projector.id,
+                    type: projector.type,
+                    position: projector.position,
+                    direction: projector.direction,
+                    lookMode: LOOK_MODES.ROTATION,
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                }
+                : projector
+        ),
+    });
 
     const pointer = { x: 0, y: 0, z: 0 };
     let canvasElement: HTMLElement | undefined;
@@ -109,6 +125,33 @@ export async function tutorial_parallax(
         disableRotation: false,
         damping: 0.1 as DampingValue,
     });
+
+    // Keyboard alternative: arrow keys turn the view, W / S zoom. It adds on top of head
+    // tracking or the mouse. Keys held right now (see the listeners below) are read once per
+    // frame. The turn is limited to 0.1 rad - about what head tracking reaches (face angle x
+    // damping 0.1). W flies into the tunnel at the hero's speed, down to -300: the rings are as
+    // wide as the screen and fade with depth, so any further in, the near rings fall outside
+    // the view and the far ones are too dark to see. S backs out to +150.
+    const pressedKeys: Record<string, boolean> = {};
+    const keys = { yaw: 0, pitch: 0, zoom: 0 };
+    const updateKeys = () => {
+        const turn = (value: number, delta: number) => Math.max(-0.1, Math.min(0.1, value + delta));
+        if (pressedKeys.ArrowLeft) keys.yaw = turn(keys.yaw, -0.005);
+        if (pressedKeys.ArrowRight) keys.yaw = turn(keys.yaw, 0.005);
+        if (pressedKeys.ArrowUp) keys.pitch = turn(keys.pitch, -0.005);
+        if (pressedKeys.ArrowDown) keys.pitch = turn(keys.pitch, 0.005);
+        if (pressedKeys.KeyW) keys.zoom = Math.max(-300, keys.zoom - 8);
+        if (pressedKeys.KeyS) keys.zoom = Math.min(150, keys.zoom + 8);
+    };
+    const withKeys = (position: Vector3, rotation?: { yaw: number; pitch: number; roll: number }) => ({
+        position: { ...position, z: position.z + keys.zoom },
+        rotation: {
+            yaw: (rotation?.yaw ?? 0) + keys.yaw,
+            pitch: (rotation?.pitch ?? 0) + keys.pitch,
+            roll: rotation?.roll ?? 0,
+        },
+    });
+
     const observerModifier: CarModifier<typeof dataProviderLib> = {
         name: 'Head tracking with pointer fallback',
         active: true,
@@ -116,17 +159,20 @@ export async function tutorial_parallax(
         requiredDataProviders: [],
         tick: sceneId => headModifier.tick(sceneId),
         getCarPosition: (position, context) => {
+            updateKeys();
             if (context.dataProviders.headTracker) {
                 announceStatus('Head tracking active.');
-                return headModifier.getCarPosition(position, context);
+                const result = headModifier.getCarPosition(position, context);
+                if (!result.success) return result;
+                return { success: true, value: { ...result.value, ...withKeys(result.value.position, result.value.rotation) } };
             }
             const cameraReady = webCamProvider?.getStatus?.() === 'READY';
             announceStatus(cameraReady
-                ? 'No face detected. Move the mouse to look around and scroll to change depth.'
+                ? 'No face detected. Move the mouse to look around and scroll to change depth, or use the arrow keys and W / S.'
                 : initialized
-                    ? 'Camera unavailable. Move the mouse to look around and scroll to change depth.'
-                    : 'Starting camera. Mouse and scroll controls are active.');
-            return { success: true, value: { name: 'Pointer fallback', position: { ...pointer }, rotation: { yaw: 0, pitch: 0, roll: 0 } } };
+                    ? 'Camera unavailable. Move the mouse to look around and scroll to change depth, or use the arrow keys and W / S.'
+                    : 'Starting camera. Mouse, scroll, arrow keys and W / S are active.');
+            return { success: true, value: { name: 'Pointer fallback', ...withKeys(pointer) } };
         },
     };
     world.addModifierToProjection('head', observerModifier, 'car');
@@ -320,7 +366,25 @@ export async function tutorial_parallax(
     };
 
     world.complete();
-    
+
+    // Keyboard: record which keys are held. Keys typed into text fields (like the Code tab
+    // editor) are ignored; physical codes (KeyW / KeyS) ignore Shift and keyboard layout, so a
+    // key can't stay stuck when its key-up arrives as a different event.key.
+    const isTyping = (event: KeyboardEvent) => {
+        const target = event.target as HTMLElement | null;
+        return !!target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+    };
+    window.addEventListener('keydown', (event: KeyboardEvent) => {
+        if (isTyping(event)) return;
+        if (event.key.startsWith('Arrow')) event.preventDefault();
+        pressedKeys[event.key] = true;
+        pressedKeys[event.code] = true;
+    });
+    window.addEventListener('keyup', (event: KeyboardEvent) => {
+        pressedKeys[event.key] = false;
+        pressedKeys[event.code] = false;
+    });
+
     p.draw = async () => {
         if (config.paused && !world.isPaused()) {
             world.pause();
