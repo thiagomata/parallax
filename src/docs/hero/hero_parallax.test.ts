@@ -20,15 +20,12 @@ async function createScene(fn = heroParallax) {
 }
 
 describe('Main scene declarations', () => {
-    it('declares the tunnel, targets, and marker cubes, with a keyboard-driven head rotation', async () => {
+    it('declares the mountain backdrop, the artwork layers and the title', async () => {
         const { world } = await createScene();
-        expect(world.getElement('tunnel-0')).toBeDefined();
-        expect(world.getElement('target-1')).toBeDefined();
-        expect(world.getElement('center-cube')).toBeDefined();
-        expect(world.getElement('left-cube')).toBeDefined();
-        expect(world.getElement('right-cube')).toBeDefined();
-        expect(world.getElement('far-cube')).toBeDefined();
-        expect(world.getElement('front-cube')).toBeDefined();
+        expect(world.getElement('mountain-backdrop-01')).toBeDefined();
+        expect(world.getElement('layer-04')).toBeDefined();
+        expect(world.getElement('layer-11')).toBeDefined();
+        expect(world.getElement('parallax-title')).toBeDefined();
     });
 
     it('rotates the head via arrow keys', async () => {
@@ -48,6 +45,6 @@ describe('Main scene declarations', () => {
     it('runs the editable source with the same engine modules', async () => {
         const { fn } = extractSketchFunction(source);
         const { world } = await createScene(fn as typeof heroParallax);
-        expect(world.getElement('center-cube')).toBeDefined();
+        expect(world.getElement('layer-11')).toBeDefined();
     });
 });

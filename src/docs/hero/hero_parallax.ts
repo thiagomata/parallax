@@ -19,9 +19,9 @@ import { LookAtEffect } from "../../scene/effects/look_at_effect.ts";
 /**
  * MAIN DEMO: 3D Parallax Depth
  *
- * Exact copy of tutorial-9's scene (boxes/targets/tunnel, same camera and head-tracking
- * modifier), plus keyboard-driven camera rotation (always on, additive on top of head
- * tracking) - tutorial-9 itself has no keyboard controls.
+ * Layered parallax scene (camera-following mountain boxes, fixed artwork layers, title,
+ * floor and roof) seen through tutorial-9's head-tracked camera, with keyboard-driven
+ * camera rotation always on, additive on top of head tracking.
  */
 export const heroParallaxExplanation = `
 <p>3D parallax depth, head-tracked. If no camera is available, move the pointer over the canvas and scroll to change depth, or use the arrow keys to look around.</p>
@@ -99,13 +99,15 @@ export async function heroParallax(
     });
 
     const pointer = { x: 0, y: 0, z: 0 };
-    // Dev-only debug hook: place the head exactly (no clamping), e.g. from the console
+    // Local-dev-only debug hook: place the head exactly (no clamping), e.g. from the console
     // `heroDebug.setHead({ x: 0, y: 10, z: 515 })`, to reproduce views that head tracking
     // reaches but the mouse/wheel ranges can't. While set it overrides head tracking (the
     // on-canvas readout shows the resulting eye position); `heroDebug.release()` hands
     // control back to the camera.
     let debugHeadOverride = false;
-    if (import.meta.env.DEV) {
+    // A hostname check, not import.meta.env.DEV: this source also runs as the Code tab's
+    // editable sketch (compiled via new Function), where import.meta is a syntax error.
+    if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
         (window as Window & { heroDebug?: unknown }).heroDebug = {
             setHead: (position: Partial<Vector3>) => {
                 debugHeadOverride = true;
@@ -227,159 +229,8 @@ export async function heroParallax(
     };
     world.addModifierToProjection('head', observerModifier, 'car');
 
-    const floorY = 200;
-
-    // for (let i = 0; i < 25; i++) {
-    //     world.addBox({
-    //         id: `tunnel-${i}`,
-    //         type: ELEMENT_TYPES.BOX,
-    //         width: config.width,
-    //         height: config.height,
-    //         depth: 10,
-    //         strokeWidth: 4,
-    //         strokeColor: {red: (255 - i * 10), green: (255 - i * 10), blue: (255 - i * 10)},
-    //         position: { x: 0, y: 50, z: -60 * i },
-    //     });
-    // }
-
-    var counter = 0;
-    function createTarget(pos: Vector3) {
-
-        const targetSize = 10;
-
-        counter++;
-        world.addBox({
-            id: `target-${counter}`,
-            type: ELEMENT_TYPES.BOX,
-            position: pos,
-            width: 100
-        });
-        world.addCylinder({
-            id: `target-circle-${counter}`,
-            parentId: `target-${counter}`,
-            type: ELEMENT_TYPES.CYLINDER,
-            radius: targetSize / 10,
-            height: 1,
-            position: {x: 0, y: 50, z: -50},
-            fillColor: COLORS.red,
-            rotate: {pitch: Math.PI / 2, yaw: 0, roll: 0}
-        });
-        world.addCylinder({
-            id: `target-circle-1-${counter}`,
-            parentId: `target-${counter}`,
-            type: ELEMENT_TYPES.CYLINDER,
-            radius: 8 * targetSize / 10,
-            height: 1,
-            position: {x: 0, y: 50, z: -49.9},
-            fillColor: COLORS.white,
-            rotate: {pitch: Math.PI / 2, yaw: 0, roll: 0}
-        });
-        world.addCylinder({
-            id: `target-circle-2-${counter}`,
-            parentId: `target-${counter}`,
-            type: ELEMENT_TYPES.CYLINDER,
-            radius: 6 * targetSize / 10,
-            height: 1,
-            position: {x: 0, y: 50, z: -49.8},
-            fillColor: COLORS.red,
-            rotate: {pitch: Math.PI / 2, yaw: 0, roll: 0}
-        });
-        world.addCylinder({
-            id: `target-circle-3-${counter}`,
-            parentId: `target-${counter}`,
-            type: ELEMENT_TYPES.CYLINDER,
-            radius: 4 * targetSize / 10,
-            height: 1,
-            position: {x: 0, y: 50, z: -49.7},
-            fillColor: COLORS.white,
-            rotate: {pitch: Math.PI / 2, yaw: 0, roll: 0}
-        });
-        world.addCylinder({
-            id: `target-circle-4-${counter}`,
-            parentId: `target-${counter}`,
-            type: ELEMENT_TYPES.CYLINDER,
-            radius: 2 * targetSize / 10,
-            height: 1,
-            position: {x: 0, y: 50, z: -49.6},
-            fillColor: COLORS.red,
-            rotate: {pitch: Math.PI / 2, yaw: 0, roll: 0}
-        });
-        world.addCylinder({
-            id: `target-stick-${counter}`,
-            parentId: `target-${counter}`,
-            type: ELEMENT_TYPES.CYLINDER,
-            height: 100,
-            radius: 2 * targetSize / 10,
-            position: {x: 0, y: 50, z: -100.1},
-            fillColor: {red: 100, green: 0, blue: 0},
-            rotate: {pitch: Math.PI / 2, yaw: 0, roll: 0}
-        });
-    }
-    // createTarget({x: 0, y: 0, z: 0});
-    // createTarget({x: -70, y: -10, z: 50});
-    // createTarget({x: 50, y: 10, z: 80});
-    // createTarget({x: 10, y: -80, z: 30});
-    // createTarget({x: 10, y: -200, z: 10});
-    // createTarget({x: -30, y: 30, z: 90});
-    // createTarget({x: 50, y: -50, z: 70});
-    // createTarget({x: -30, y: -20, z: 20});
-    // createTarget({x: -130, y: -120, z: 200});
-    // createTarget({x: 130, y: 120, z: 250});
-    // createTarget({x: 200, y: 200, z: 400});
-    // createTarget({x: -200, y: -200, z: 500});
-
-    // createTarget({x: -150, y: 0, z: 100});
-    // createTarget({x: 150, y: 0, z: 120});
-    // createTarget({x: 0, y: 150, z: 150});
-    // createTarget({x: 0, y: -150, z: 180});
-    // createTarget({x: -100, y: 100, z: 200});
-    // createTarget({x: 100, y: -100, z: 220});
-    // createTarget({x: -180, y: -50, z: 300});
-    // createTarget({x: 180, y: 50, z: 320});
-    // createTarget({x: 50, y: 180, z: 350});
-    // createTarget({x: -50, y: -180, z: 380});
-    // createTarget({x: -220, y: 100, z: 450});
-    // createTarget({x: 220, y: -100, z: 480});
-    // createTarget({x: 100, y: 200, z: 520});
-    // createTarget({x: -100, y: -200, z: 550});
-    // createTarget({x: 60, y: 0, z: -50});
-    // createTarget({x: -80, y: 50, z: -30});
-    // createTarget({x: 80, y: -50, z: -40});
-    // createTarget({x: 0, y: -100, z: -20});
-    // createTarget({x: 0, y: 100, z: -10});
-
-    // world.addBox({
-    //     id: 'center-cube',
-    //     type: ELEMENT_TYPES.BOX,
-    //     width: 50,
-    //     strokeWidth: 1,
-    //     strokeColor: COLORS.white,
-    //     position: { x: 0, y: floorY, z: 0 },
-    //     fillColor: COLORS.red,
-    // });
-
     const mountainWidth = 1603;
     const mountainHeight = 847;
-    const mountainPanelWidth = 150;
-    const mountainPanelHeight = mountainPanelWidth * mountainHeight / mountainWidth;
-
-    // world.addPanel({
-    //     id: 'left-cube',
-    //     type: ELEMENT_TYPES.PANEL,
-    //     width: mountainPanelWidth,
-    //     height: mountainPanelHeight,
-    //     position: { x: -150, y: floorY, z: -100 },
-    //     texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
-    // });
-
-    // world.addPanel({
-    //     id: 'right-cube',
-    //     type: ELEMENT_TYPES.PANEL,
-    //     width: mountainPanelWidth,
-    //     height: mountainPanelHeight,
-    //     position: { x: 150, y: floorY, z: -100 },
-    //     texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
-    // });
 
     // Mountain backdrop - a big distant panel of the same mountain artwork.
     // Plain `follow` (position only, no rotation tracking) keeps it a fixed
@@ -698,8 +549,8 @@ export async function heroParallax(
 
     // Parallax title - restored from the earlier layered version: between the village
     // (layer-05, z -1200) and the far mountains (layer-03, z -2000), near the view center.
-    // The outline is white strokes tinted black, 10 in front of the fill so the two
-    // overlapping panels never share a depth.
+    // The outline is white strokes tinted black, 3 in front of the fill: enough that the two
+    // overlapping panels never share a depth (no z-fighting), too little to notice.
     world.addPanel({
         id: 'parallax-title',
         type: ELEMENT_TYPES.PANEL,
@@ -718,30 +569,10 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: 820,
         height: 152,
-        position: { x: 0, y: -270, z: -1000 },
+        position: { x: 0, y: -270, z: -997 },
         fillColor: { red: 0, green: 0, blue: 0 },
         texture: { path: appAssetPath('img/hero/parallax-outline.png'), width: 700, height: 130 },
     });
-
-    // world.addBox({
-    //     id: 'far-cube',
-    //     type: ELEMENT_TYPES.BOX,
-    //     width: 30,
-    //     strokeWidth: 1,
-    //     strokeColor: COLORS.white,
-    //     position: { x: 0, y: floorY, z: -300 },
-    //     fillColor: COLORS.cyan,
-    // });
-
-    // world.addBox({
-    //     id: 'front-cube',
-    //     type: ELEMENT_TYPES.BOX,
-    //     width: 30,
-    //     strokeWidth: 1,
-    //     strokeColor: COLORS.white,
-    //     position: { x: 0, y: floorY, z: -30 },
-    //     fillColor: COLORS.purple,
-    // });
 
     // Ground floor - `position` is its local offset from the camera's own
     // view (forward + down), rotated by the camera's current orientation via
@@ -757,7 +588,6 @@ export async function heroParallax(
         width: 6000,
         depth: 6000,
         position: { x: 0, y: floorDrop, z: floorForward },
-        // fillColor: { red: 55, green: 58, blue: 68 },
         fillColor: COLORS.cyan,
         effects: [
             { type: 'follow', settings: { follow: 'CAMERA', followRotation: true, targetBounds: mountainFollowBounds } }
@@ -769,12 +599,14 @@ export async function heroParallax(
     // pitched up with the head-tracked camera, its far edge swung above the backdrop's top
     // and opened a black band of sky between them. So it follows position only (bounded
     // like the boxes) and is wide enough to also cover above the splayed walls.
+    // 2500 above the eye so it doesn't crop the mountain tops; still low enough that its far
+    // edge (~20.7deg up) stays hidden behind the backdrop's top (~23.8deg up).
     world.addFloor({
         id: 'roof',
         type: ELEMENT_TYPES.FLOOR,
         width: 12000,
         depth: 12000,
-        position: { x: 0, y: -floorDrop - 850, z: floorForward },
+        position: { x: 0, y: -2500, z: floorForward },
         fillColor: {red: 100 * 1.5, green: 68 * 1.5  , blue: 97 * 1.5 },
         effects: [
             { type: 'follow', settings: { follow: 'CAMERA', targetBounds: mountainFollowBounds } }
@@ -818,7 +650,9 @@ export async function heroParallax(
             world.resume();
         }
 
-        p.background(20);
+        // Clear to layer-01's sky color, not black: any view that slips past the scene's
+        // edges (e.g. between the roof's far edge and the mountain tops) reads as sky.
+        p.background(145, 101, 148);
         if (gp) {
             const result = await world.step(gp);
             if (!result.running) return;
