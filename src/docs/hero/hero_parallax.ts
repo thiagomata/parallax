@@ -271,7 +271,8 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: mountainBackdropWidth,
         height: mountainBackdropHeight,
-        position: { x: 0, y: 0, z: mountainBackdropDistance },
+        // 450 up so its top edge reaches the top of the view (layer-01 is the sky).
+        position: { x: 0, y: -450, z: mountainBackdropDistance },
         texture: { path: appAssetPath('img/hero/layer-01.png'), width: mountainWidth, height: mountainHeight },
         effects: [
             { type: 'follow', settings: { follow: 'CAMERA', targetBounds: mountainFollowBounds } },
@@ -322,7 +323,7 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: mountainSideLength,
         height: mountainBackdropHeight,
-        position: { x: -mountainSideX, y: 0, z: mountainSideZ },
+        position: { x: -mountainSideX, y: -450, z: mountainSideZ },
         rotate: { pitch: 0, yaw: mountainSideLeftYaw, roll: 0 },
         mirrorTextureHorizontal: false,
         texture: { path: appAssetPath('img/hero/layer-01.png'), width: mountainWidth, height: mountainHeight },
@@ -354,7 +355,7 @@ export async function heroParallax(
         alphaCutoff: 0.5,
         width: mountainSideLength,
         height: mountainBackdropHeight,
-        position: { x: mountainSideX, y: 0, z: mountainSideZ },
+        position: { x: mountainSideX, y: -450, z: mountainSideZ },
         rotate: { pitch: 0, yaw: mountainSideRightYaw, roll: 0 },
         mirrorTextureHorizontal: false,
         texture: { path: appAssetPath('img/hero/layer-01.png'), width: mountainWidth, height: mountainHeight },

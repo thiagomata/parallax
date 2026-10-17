@@ -228,6 +228,21 @@ describe('Scene rules', () => {
         expect(clashes).toEqual([]);
     });
 
+    it('keeps the sky (layer-01) top edge above the view, even at max zoom out', async () => {
+        const { byId, observe, wheel } = await createInspectedScene();
+        wheel(4000);
+        const head = observe().position;
+        const eye = { y: head.y, z: head.z + 100 };
+        const sky = byId('mountain-backdrop-01');
+        const bound = sky.effects.find((effect: any) => effect.type === 'follow').settings.targetBounds;
+        // The sky box follows the camera (bounded in z): world z = followed z + its local z.
+        const skyZ = Math.min(eye.z, bound.max.z) + sky.position.z;
+        const skyTop = eye.y + sky.position.y - sky.height / 2;
+        const viewTop = eye.y - (eye.z - skyZ) * Math.tan(Math.PI / 6); // 60deg vertical fov
+
+        expect(skyTop).toBeLessThanOrEqual(viewTop);
+    });
+
     it('stops the camera-following room as one rigid group, before layer-02 reaches layer-03', async () => {
         const { blueprints, byId } = await createInspectedScene();
         const boundsOf = (blueprint: any) =>
