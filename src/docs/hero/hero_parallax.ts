@@ -334,6 +334,7 @@ export async function heroParallax(
     world.addPanel({
         id: 'mountain-backdrop-01',
         type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
         width: mountainBackdropWidth,
         height: mountainBackdropHeight,
         position: { x: 0, y: 0, z: mountainBackdropDistance },
@@ -342,17 +343,18 @@ export async function heroParallax(
             { type: 'follow', settings: { follow: 'CAMERA' } },
         ],
     });
-    // world.addPanel({
-    //     id: 'mountain-backdrop-02',
-    //     type: ELEMENT_TYPES.PANEL,
-    //     width: mountainBackdropWidth * 0.9,
-    //     height: mountainBackdropHeight * 0.9,
-    //     position: { x: 0, y: 0, z: mountainBackdropDistance * 0.9 },
-    //     texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
-    //     effects: [
-    //         { type: 'follow', settings: { follow: 'CAMERA' } },
-    //     ],
-    // });
+    world.addPanel({
+        id: 'mountain-backdrop-02',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        width: mountainBackdropWidth * 0.9,
+        height: mountainBackdropHeight * 0.9,
+        position: { x: 0, y: 0, z: mountainBackdropDistance * 0.9 },
+        texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth , height: mountainHeight },
+        effects: [
+            { type: 'follow', settings: { follow: 'CAMERA' } },
+        ],
+    });
 
     // Side walls - same mountain artwork, folded 90 degrees off the backdrop's left/right
     // edges so they read as the side faces of a box around the observer. Each is mirrored
@@ -366,6 +368,7 @@ export async function heroParallax(
     world.addPanel({
         id: 'mountain-backdrop-01-left',
         type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
         width: mountainSideDepth,
         height: mountainBackdropHeight,
         position: { x: -mountainBackdropHalfWidth, y: 0, z: mountainSideZ },
@@ -377,29 +380,46 @@ export async function heroParallax(
         ],
     });
 
-    // world.addPanel({
-    //     id: 'mountain-backdrop-02-left',
-    //     type: ELEMENT_TYPES.PANEL,
-    //     width: mountainSideDepth * 0.9,
-    //     height: mountainBackdropHeight * 0.9,
-    //     position: { x: -mountainBackdropHalfWidth  * 0.9, y: 0, z: mountainSideZ  * 0.9 },
-    //     rotate: { pitch: 0, yaw: -Math.PI / 2, roll: 0 },
-    //     mirrorTextureHorizontal: false,
-    //     texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth  * 0.9, height: mountainHeight  * 0.9 },
-    //     effects: [
-    //         { type: 'follow', settings: { follow: 'CAMERA' } },
-    //     ],
-    // });
+    world.addPanel({
+        id: 'mountain-backdrop-02-left',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        width: mountainSideDepth * 0.9,
+        height: mountainBackdropHeight * 0.9,
+        position: { x: -mountainBackdropHalfWidth * 0.9, y: 0, z: mountainSideZ  * 0.9 },
+        rotate: { pitch: 0, yaw: -Math.PI / 2, roll: 0 },
+        mirrorTextureHorizontal: false,
+        texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
+        effects: [
+            { type: 'follow', settings: { follow: 'CAMERA' } },
+        ],
+    });
 
     world.addPanel({
-        id: 'mountain-backdrop-right',
+        id: 'mountain-backdrop-01-right',
         type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
         width: mountainSideDepth,
         height: mountainBackdropHeight,
         position: { x: mountainBackdropHalfWidth, y: 0, z: mountainSideZ },
         rotate: { pitch: 0, yaw: Math.PI / 2, roll: 0 },
         mirrorTextureHorizontal: false,
         texture: { path: appAssetPath('img/hero/layer-01.png'), width: mountainWidth, height: mountainHeight },
+        effects: [
+            { type: 'follow', settings: { follow: 'CAMERA' } },
+        ],
+    });
+
+    world.addPanel({
+        id: 'mountain-backdrop-02-right',
+        type: ELEMENT_TYPES.PANEL,
+        fitMode: 'fill',
+        width: mountainSideDepth * 0.9,
+        height: mountainBackdropHeight * 0.9,
+        position: { x: mountainBackdropHalfWidth * 0.9, y: 0, z: mountainSideZ * 0.9 },
+        rotate: { pitch: 0, yaw: Math.PI / 2, roll: 0 },
+        mirrorTextureHorizontal: false,
+        texture: { path: appAssetPath('img/hero/layer-02.png'), width: mountainWidth, height: mountainHeight },
         effects: [
             { type: 'follow', settings: { follow: 'CAMERA' } },
         ],
@@ -441,6 +461,21 @@ export async function heroParallax(
         position: { x: 0, y: floorDrop, z: floorForward },
         // fillColor: { red: 55, green: 58, blue: 68 },
         fillColor: COLORS.cyan,
+        effects: [
+            { type: 'follow', settings: { follow: 'CAMERA', followRotation: true } }
+        ],
+    });
+
+    // Roof - the floor mirrored above the observer (negative y is up in p5), textured with
+    // the backdrop's mountain artwork instead of a flat color. Same camera-relative
+    // `followRotation` follow, so it always reads as "overhead and ahead".
+    world.addFloor({
+        id: 'roof',
+        type: ELEMENT_TYPES.FLOOR,
+        width: 6000,
+        depth: 6000,
+        position: { x: 0, y: -floorDrop - 850, z: floorForward },
+        fillColor: {red: 100 * 1.5, green: 68 * 1.5  , blue: 97 * 1.5 },
         effects: [
             { type: 'follow', settings: { follow: 'CAMERA', followRotation: true } }
         ],
