@@ -9,6 +9,7 @@ import {
 } from "../../../scene/providers/head_tracking_data_provider.ts";
 import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
 import type { VideoPixels } from "../../../scene/types.ts";
+import type { FaceExpressions } from "../../../scene/drivers/mediapipe/face_expressions.ts";
 import { VideoDataProvider } from "../../../scene/providers/video_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
 import type { VideoSource } from "../../../scene/video/types.ts";
@@ -215,6 +216,9 @@ export async function tutorial_observer(
         position: { x:0, y:0, z: 0 },  // screen position
     });
 
+    // The expressions of the face the faceBox turned by this frame, for the readout (see below).
+    let readoutExpressions: { raw: FaceExpressions; normalized: FaceExpressions } | null = null;
+
     world.addBox({
         type: ELEMENT_TYPES.BOX,
         id: 'faceBox',
@@ -233,6 +237,9 @@ export async function tutorial_observer(
         },
         rotate: (ctx) => {
             const face = ctx.dataProviders['headTracker'];
+            readoutExpressions = face?.faceExpressions && face.expressions
+                ? { raw: face.faceExpressions, normalized: face.expressions }
+                : null;
             if (!face) return { pitch: 0, yaw: 0, roll: 0 };
             return {
                 yaw:   face.stick.yaw,
@@ -393,9 +400,40 @@ export async function tutorial_observer(
         fillColor: { red: 255, green: 255, blue: 255 },
     });
 
+    // Readout of the face's expressions over the canvas's top-right corner: each value raw (as
+    // MediaPipe gives it) and normalized (neutral face 0 / full expression 1, what scenes read
+    // from headTracker.expressions). It shows the face the faceBox turned by this frame (kept by
+    // its rotate function above) - not faceDataProvider.getData(), which runs detection again.
+    let readoutElement: HTMLElement | undefined;
+    const updateReadout = () => {
+        if (!readoutElement) return;
+        const expressions = readoutExpressions;
+        const row = (label: string, value: (e: FaceExpressions) => number) => expressions
+            ? `${label.padEnd(10)} ${value(expressions.raw).toFixed(2)} -> ${value(expressions.normalized).toFixed(2)}`
+            : '';
+        const text = expressions
+            ? [
+                '           raw  -> norm',
+                row('left eye', e => e.leftEyeOpen),
+                row('right eye', e => e.rightEyeOpen),
+                row('mouth', e => e.mouthOpen),
+                row('smile', e => e.smile),
+            ].join('\n')
+            : 'expressions: no face';
+        if (readoutElement.textContent !== text) readoutElement.textContent = text;
+    };
+
     p.setup = () => {
-        p.createCanvas(config.width, config.height, p.WEBGL);
+        const canvas = p.createCanvas(config.width, config.height, p.WEBGL);
         gp = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
+        const box = (canvas as { elt?: HTMLElement } | undefined)?.elt?.parentElement;
+        if (box) {
+            box.querySelector('.expressions-readout')?.remove(); // from a previous run of this sketch
+            readoutElement = document.createElement('pre');
+            readoutElement.className = 'expressions-readout';
+            readoutElement.style.cssText = 'position:absolute;top:8px;right:8px;z-index:2;margin:0;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,0.65);color:#fff;font:600 13px/1.35 ui-monospace,Menlo,monospace;pointer-events:none';
+            box.appendChild(readoutElement);
+        }
     };
 
     let initialized = false;
@@ -456,6 +494,7 @@ export async function tutorial_observer(
 // Let video play naturally - just render
         p.background(20);
         const result = await world.step(gp);
+        updateReadout();
         if (!result.running) return;
         } finally {
             rendering = false;

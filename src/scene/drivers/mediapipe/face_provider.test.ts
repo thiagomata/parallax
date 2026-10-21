@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createMockP5 } from '../../mock/mock_p5.mock';
 import {MediaPipeFaceProvider} from "./face_provider.ts";
+import {FaceExpressions} from "./face_expressions.ts";
 
 // Mock External Dependencies
 vi.mock('@mediapipe/tasks-vision', () => ({
@@ -207,6 +208,51 @@ describe('MediaPipeFaceProvider', () => {
             if (!result.success) {
                 expect(result.error).toBe('No face detected in frame');
             }
+        });
+
+        it('should ask MediaPipe for the blendshapes', async () => {
+            const { FaceLandmarker } = await import('@mediapipe/tasks-vision');
+            await provider.init();
+
+            expect((FaceLandmarker.createFromOptions as any).mock.calls[0][1].outputFaceBlendshapes).toBe(true);
+        });
+
+        it('should have no expressions before the first face', async () => {
+            await provider.init();
+
+            expect(provider.getExpressions()).toBeNull();
+        });
+
+        it('should keep the raw expressions of the detected face', async () => {
+            await provider.init();
+            mockLandmarker.detectForVideo.mockReturnValue({
+                faceLandmarks: [[{ x: 0, y: 0, z: 0 }]],
+                faceBlendshapes: [{ categories: [
+                    { categoryName: 'jawOpen', score: 0.3 },
+                    { categoryName: 'eyeBlinkLeft', score: 0.2 },
+                ] }],
+            });
+
+            provider.getFace();
+            const expressions = provider.getExpressions();
+
+            expect(expressions).toBeInstanceOf(FaceExpressions);
+            expect(expressions?.mouthOpen).toBe(0.3);
+            expect(expressions?.leftEyeOpen).toBeCloseTo(0.8);
+        });
+
+        it('should have no expressions when the result has no blendshapes', async () => {
+            await provider.init();
+            mockLandmarker.detectForVideo.mockReturnValue({
+                faceLandmarks: [[{ x: 0, y: 0, z: 0 }]],
+                faceBlendshapes: [{ categories: [{ categoryName: 'jawOpen', score: 0.3 }] }],
+            });
+            provider.getFace();
+            mockLandmarker.detectForVideo.mockReturnValue({ faceLandmarks: [[{ x: 0, y: 0, z: 0 }]] });
+
+            provider.getFace();
+
+            expect(provider.getExpressions()).toBeNull();
         });
 
         it('should handle camera "glitches" by returning failure when video drops below readyState 2', async () => {
