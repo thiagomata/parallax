@@ -46,6 +46,7 @@ export const emotionGameExplanation = `
 
 <h3>How It Works</h3>
 <ol>
+<li><strong>The face cam</strong> - the webcam panel shows the whole camera frame, kept in the camera's own aspect so nothing is cut off.</li>
 <li><strong>The face</strong> - <code>addEmojiFace</code> (<code>emoji_face.ts</code>) draws the emoji, here at a fixed place beside the webcam, still turning with your head.</li>
 <li><strong>Reading the expressions</strong> - <code>ExpressionReader</code> (<code>emoji_face.ts</code>) calibrates on <kbd>N</kbd> and smooths sleepy over time, so a blink is not a nap.</li>
 <li><strong>Matching</strong> - <code>matchesTarget</code> checks the face against the round's emoji: the strongest emotion for 😢 😠 😮 😴, a smile that is not the open grin for 🙂, the open grin for 😃, one eye closed for 😉.</li>
@@ -344,15 +345,22 @@ export async function emotionGame(
         rotation: { yaw: 0, pitch: 0, roll: 0 },
     })
 
+    // A fixed field of view, so the scene keeps its proportions at any canvas size (otherwise
+    // a small window draws it bigger and the emoji runs off the side).
+    world.enableDefaultPerspective(config.width, config.height, 50 * Math.PI / 180);
+
     world.startLoading();
 
     if (config.paused) {
         world.pause();
     }
 
-    // Side by side: the webcam on the left, the emoji on the right.
-    const VIDEO_WIDTH = 960;
-    const SIDE = 520;
+    // Side by side: the webcam on the left, the emoji on the right (in the 50 degree view, the
+    // canvas spans about -880..880 across and -700..700 down at the webcam's depth).
+    // The panel's box is 600 wide and up to 750 tall; the video keeps its own aspect inside it
+    // (the default "contain" fit), so the whole frame shows, whatever the camera's shape.
+    const VIDEO = { width: 600, height: 750 };
+    const SIDE = 440;
 
     world.addBox({
         type: ELEMENT_TYPES.BOX,
@@ -367,7 +375,7 @@ export async function emotionGame(
     addEmojiFace(world, {
         parentId: 'bigBox',
         // Forward of the video, so the emoji shows about as tall as the webcam beside it.
-        position: () => ({ x: SIDE * 0.75, y: 0, z: 400 }),
+        position: () => ({ x: SIDE * 0.95, y: 0, z: 300 }),
         rotate: (ctx: ResolutionContext<ObserverDataProviderLib>) => {
             const face = ctx.dataProviders['headTracker'];
             reader.update(face);
@@ -425,7 +433,7 @@ export async function emotionGame(
     // stay in the page: nothing is uploaded.
     const SNAPSHOT_WIDTH = 480;
     // The webcam and the emoji sit in this band of the canvas's height.
-    const SNAPSHOT_BAND = { top: 0.2, bottom: 0.82 };
+    const SNAPSHOT_BAND = { top: 0.21, bottom: 0.8 };
     let snapshots: Snapshot[] = [];
     let canvasElement: HTMLCanvasElement | undefined;
     let gallery: HTMLElement | undefined;
@@ -464,12 +472,16 @@ export async function emotionGame(
     /** All the snapshots in one picture, to save and share. */
     const buildCollage = async (): Promise<HTMLCanvasElement | null> => {
         if (!snapshots.length || !game) return null;
-        const images = await Promise.all(snapshots.map(snapshot => new Promise<HTMLImageElement>(resolve => {
+        // A picture that never loads must not hold the collage back: the wait ends either way.
+        const images = await Promise.all(snapshots.map(snapshot => new Promise<HTMLImageElement | null>(resolve => {
             const image = new Image();
             image.onload = () => resolve(image);
+            image.onerror = () => resolve(null);
             image.src = snapshot.image;
         })));
-        const layout = collageLayout(images.length, { width: images[0].width, height: images[0].height });
+        const loaded = images.filter((image): image is HTMLImageElement => image !== null);
+        if (!loaded.length) return null;
+        const layout = collageLayout(loaded.length, { width: loaded[0].width, height: loaded[0].height });
         const collage = document.createElement('canvas');
         collage.width = layout.width;
         collage.height = layout.height;
@@ -481,7 +493,7 @@ export async function emotionGame(
         g.font = '700 30px system-ui, sans-serif';
         g.textBaseline = 'middle';
         g.fillText(`😃 Emotion Game - score ${game.score}`, 16, 36);
-        images.forEach((image, i) => g.drawImage(image, layout.cells[i].x, layout.cells[i].y));
+        loaded.forEach((image, i) => g.drawImage(image, layout.cells[i].x, layout.cells[i].y));
         return collage;
     };
 
@@ -497,40 +509,88 @@ export async function emotionGame(
     const toBlob = (canvas: HTMLCanvasElement, type: string) =>
         new Promise<Blob | null>(resolve => canvas.toBlob(resolve, type, 0.9));
 
-    /**
-     * Shares the collage, only on the player's click: the system share sheet with the picture
-     * attached where the browser has one (phones, Safari...); otherwise the picture goes to the
-     * clipboard and X's post page opens with the text, ready to paste it in.
-     */
-    const shareCollage = async (say: (message: string) => void) => {
+    // The collage, ready before the player clicks Share: browsers only allow the share sheet, a
+    // new tab and the clipboard during the click itself, so the click must not wait for it.
+    let prepared: { text: string; file: File; png: Blob; jpegUrl: string } | null = null;
+    const prepareShare = async () => {
+        prepared = null;
         const collage = await buildCollage();
         if (!collage || !game) return;
-        const text = shareText(game.score, location.href);
-        const jpeg = await toBlob(collage, 'image/jpeg');
-        const file = jpeg ? new File([jpeg], `emotion-game-${game.score}.jpg`, { type: 'image/jpeg' }) : null;
-        if (file && navigator.canShare?.({ files: [file] })) {
-            try {
-                await navigator.share({ files: [file], text });
-                return;
-            } catch (error) {
-                if ((error as Error).name === 'AbortError') return; // the player closed the share sheet
-            }
-        }
-        // Opened right away, while the click still counts, so the browser does not block it.
-        const post = window.open(postIntentUrl(text), '_blank');
-        try {
-            const png = await toBlob(collage, 'image/png');
-            if (!png) throw new Error('no picture');
-            await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
-            say('Picture copied - paste it into the post (Ctrl / Cmd + V).');
-        } catch {
-            await saveCollage();
-            say('Picture saved - attach it to the post.');
-        }
-        if (!post) say('Allow pop-ups to open the post, or share the saved picture.');
+        const [jpeg, png] = await Promise.all([toBlob(collage, 'image/jpeg'), toBlob(collage, 'image/png')]);
+        if (!jpeg || !png) return;
+        prepared = {
+            text: shareText(game.score, location.href),
+            file: new File([jpeg], `emotion-game-${game.score}.jpg`, { type: 'image/jpeg' }),
+            png,
+            jpegUrl: collage.toDataURL('image/jpeg', 0.9),
+        };
     };
 
-    const showGallery = () => {
+    const downloadPrepared = () => {
+        if (!prepared || !game) return;
+        const link = document.createElement('a');
+        link.download = prepared.file.name;
+        link.href = prepared.jpegUrl;
+        link.click();
+    };
+
+    /**
+     * Shares the collage, on the player's click and without waiting for anything before: the
+     * system share sheet with the picture attached where the browser has one (phones, Safari...);
+     * otherwise X's post page opens with the text and the picture goes to the clipboard, to paste.
+     * Nothing in here may throw: the button has to end with a message, whatever the browser does.
+     */
+    const shareCollage = (say: (message: string) => void) => {
+        if (!prepared) {
+            say('The picture is still being made - try again in a moment.');
+            return;
+        }
+        const { text, file, png } = prepared;
+        // canShare and share can throw (a browser may refuse a combination): the player must
+        // always get an answer, so every step is guarded.
+        let canShareFiles = false;
+        try {
+            canShareFiles = !!navigator.canShare?.({ files: [file] });
+        } catch {
+            canShareFiles = false;
+        }
+        if (canShareFiles) {
+            const failed = () => {
+                downloadPrepared();
+                say('Sharing did not open - the picture is saved, attach it to your post.');
+            };
+            try {
+                navigator.share({ files: [file], text }).catch((error: Error) => {
+                    if (error.name === 'AbortError') { say('Share cancelled.'); return; }
+                    failed();
+                });
+            } catch {
+                failed();
+            }
+            return;
+        }
+        const post = window.open(postIntentUrl(text), '_blank');
+        const notCopied = () => {
+            downloadPrepared();
+            say(post ? 'Picture saved - attach it to the post.' : 'Picture saved - allow pop-ups to open the post.');
+        };
+        try {
+            navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
+                .then(() => say(post
+                    ? 'Picture copied - paste it into the post (Ctrl / Cmd + V).'
+                    : 'Picture copied - allow pop-ups to open the post, or paste it into a new post on X.'))
+                .catch(notCopied);
+        } catch {
+            notCopied();
+        }
+    };
+
+    const showGallery = async () => {
+        if (!gallery || !game) return;
+        // The collage is made before the gallery appears, so the Share button works on the
+        // first click: the browser only allows the share sheet, a new tab and the clipboard
+        // during the click itself.
+        await prepareShare();
         if (!gallery || !game) return;
         gallery.innerHTML = '';
         const title = document.createElement('div');
@@ -558,8 +618,8 @@ export async function emotionGame(
         message.style.cssText = 'font-size:14px;margin-top:8px;min-height:1.3em';
         const say = (text: string) => { message.textContent = text; };
         if (snapshots.length) {
-            button('📤 Share', () => { void shareCollage(say); });
-            button('📸 Save picture', () => { void saveCollage(); });
+            button('📤 Share', () => shareCollage(say));
+            button('📸 Save picture', () => { if (prepared) downloadPrepared(); else void saveCollage(); });
         }
         button('▶ Play again (R)', () => restart());
         const note = document.createElement('div');
@@ -653,10 +713,12 @@ export async function emotionGame(
                 type: ELEMENT_TYPES.PANEL,
                 parentId: 'bigBox',
                 id: 'videoPanel',
-                width: VIDEO_WIDTH,
-                height: VIDEO_WIDTH * 9 / 16,
+                width: VIDEO.width,
+                height: VIDEO.height,
                 mirrorTextureHorizontal: true,
                 position: { x: -SIDE, y: 0, z: 0 },
+                // The whole camera frame, straight from the camera: the panel keeps the video's
+                // own aspect (the default "contain" fit), so nothing is cut off.
                 video: createVideoSelector(fallbackVideo),
                 fillColor: COLORS.white,
             });
@@ -684,7 +746,7 @@ export async function emotionGame(
         const event = game?.update(now, currentShape !== null && matchesTarget(game.target.id, currentShape));
         if ((event === 'scored' || event === 'timeout') && target) takeSnapshot(target, event === 'scored');
         if (event === 'scored' && target) startParade(target.emoji);
-        if (event && game?.over) showGallery();
+        if (event && game?.over) void showGallery();
         updateHud(now);
         if (!result.running) return;
         } finally {
