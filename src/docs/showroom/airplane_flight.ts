@@ -3,7 +3,7 @@ import { World } from "../../scene/world.ts";
 import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
 import { SceneClock } from "../../scene/scene_clock.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, type CarModifier, type ColorRGBA, type Vector3} from "../../scene/types.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, type Alpha, type CarModifier, type ColorRGBA, type Vector3} from "../../scene/types.ts";
 import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "../tutorial/sketch_config.ts";
 import type { P5SketchExtraArgs } from "../tutorial/sketch_engine.types.ts";
 import { WorldSettings } from "../../scene/world_settings.ts";
@@ -12,23 +12,23 @@ import { HEAD_TRACKED_PRESET } from "../../scene/presets.ts";
 /**
  * SHOWROOM: Airplane Flight
  *
- * A small airplane flying between cubes over the ocean. Steer with the mouse (or the arrow
+ * A small airplane flying through the clouds over the ocean. Steer with the mouse (or the arrow
  * keys): left / right turns, up / down dives and climbs. No head tracking for now.
  *
  * Everything lives in plain world coordinates (p5 WEBGL: +x right, +y DOWN, -z ahead at the
- * start). The cubes and the ocean never move. The airplane flies through the world along
+ * start). The clouds and the ocean never move. The airplane flies through the world along
  * its nose, and the camera sits behind and above its tail.
  *
  * HOW TO READ THIS FILE
  *   1. World and camera rig
  *   2. Flight ........ steering, the airplane's motion, the chase camera (once per frame)
  *   3. Airplane ...... an invisible parent box with its parts as children
- *   4. Cubes ......... fixed in the world, repeating every 6000 so the sky never runs out
+ *   4. Clouds ........ fixed in the world, repeating every 6000 so the sky never runs out
  *   5. Ocean
  *   6. Canvas, input and draw loop
  */
 export const airplaneFlightExplanation = `
-<p>A small airplane flying between cubes over the ocean. Move the pointer over the canvas to steer: left / right to turn, down to dive and up to climb. The arrow keys steer too.</p>
+<p>A small airplane flying through the clouds over the ocean. Move the pointer over the canvas to steer: left / right to turn, down to dive and up to climb. The arrow keys steer too.</p>
 `;
 
 export async function airplaneFlight(
@@ -338,18 +338,48 @@ export async function airplaneFlight(
         fillColor: { red: 40, green: 255, blue: 80 } as ColorRGBA,
     });
 
-    // ── 4. Cubes ────────────────────────────────────────────────────────────────────
-    // Fixed in the world. The world repeats every 6000 in x and z, and each cube is drawn at
-    // its copy nearest the airplane - so wherever you fly there are cubes around you. A cube
-    // switches copies only once it's 3000 away, where the haze has already turned it the sky
-    // colour, so you never see one jump.
+    // ── 4. Clouds ───────────────────────────────────────────────────────────────────
+    // Fixed in the world. The world repeats every 6000 in x and z, and each cloud is drawn at
+    // its copy nearest the camera - so wherever you fly there are clouds around you. A cloud
+    // switches copies only once it's 3000 away, where it has already faded out, so you never
+    // see one jump.
+    //
+    // Fading, by distance from the camera (what you see from, not the airplane): invisible
+    // at 3000 (where they appear), solid from 2000 in to 600, then transparent again by 150
+    // - so they emerge out of the distance, and the near ones thin out as you fly into
+    // them while the screen whites out (cloudCover below). They also tint toward the sky
+    // colour with distance (haze).
+    //
+    // Each cloud is an invisible parent box (position, plus a fixed turn so they don't all
+    // look alike) with puffs as children: a flattened base and spheres all around it and on
+    // top, so it has volume from any side; the lights shade their tops bright and their
+    // undersides grey. Debug switch: cloudsAsCubes draws one plain cube per cloud instead.
+    const cloudsAsCubes = false;
     const skyColor = { red: 150, green: 200, blue: 240 } as ColorRGBA;
-    const cubeColor = { red: 250, green: 250, blue: 250 } as ColorRGBA;
+    const cloudColor = { red: 250, green: 250, blue: 250 } as ColorRGBA; // the cubes
+    // Pastel tints, one per cloud in turn, for a magical sunset sky; within a cloud the top
+    // dome leans warm (catching the sun) and the base leans cool (its shadow).
+    const cloudTints = [
+        { red: 255, green: 196, blue: 160 }, // peach
+        { red: 255, green: 180, blue: 215 }, // pink
+        { red: 165, green: 232, blue: 255 }, // cyan
+        { red: 218, green: 195, blue: 255 }, // lilac
+        { red: 255, green: 238, blue: 205 }, // cream
+    ] as ColorRGBA[];
+    const warmTop = { red: 255, green: 205, blue: 150 } as ColorRGBA;
+    const coolBase = { red: 175, green: 215, blue: 255 } as ColorRGBA;
+    const mix = (from: ColorRGBA, to: ColorRGBA, amount: number) => ({
+        red: Math.round(from.red + (to.red - from.red) * amount),
+        green: Math.round(from.green + (to.green - from.green) * amount),
+        blue: Math.round(from.blue + (to.blue - from.blue) * amount),
+    }) as ColorRGBA;
+    const cloudTint = (index: number) => cloudsAsCubes ? cloudColor : cloudTints[index % cloudTints.length];
     const tile = 6000;
     const nearestCopy = (value: number, center: number) =>
         center + ((((value - center + tile / 2) % tile) + tile) % tile) - tile / 2;
-    // x / z within one 6000 tile, height above the sea, size.
-    const cubes = [
+    // x / z within one 6000 tile, height above the sea, size (the cube's width; a cloud's
+    // core is about that wide, its puffs reaching ~0.8 size out from its center).
+    const clouds = [
         { x: -400, z: -900, height: 1050, size: 160 },
         { x: 500, z: -1500, height: 900, size: 220 },
         { x: -1200, z: -2100, height: 1250, size: 180 },
@@ -375,27 +405,106 @@ export async function airplaneFlight(
         { x: -2300, z: 1600, height: 1150, size: 240 },
         { x: 2400, z: 1900, height: 1700, size: 190 },
     ];
-    cubes.forEach((cube, index) => {
+    // One puff layout for every cloud, in units of its size (up is -y): the base, flattened
+    // like a cloud's bottom, then spheres around it and a dome on top.
+    const basePuff = { x: 0, y: 0.1, z: 0, rx: 0.9, ry: 0.35, rz: 0.6 };
+    const puffs = [
+        { x: 0, y: -0.35, z: 0, radius: 0.5 },
+        { x: -0.5, y: -0.1, z: 0.1, radius: 0.4 },
+        { x: 0.45, y: -0.05, z: -0.15, radius: 0.42 },
+        { x: -0.15, y: -0.2, z: -0.4, radius: 0.35 },
+        { x: 0.2, y: -0.15, z: 0.4, radius: 0.35 },
+        { x: 0.75, y: 0.05, z: 0.25, radius: 0.28 },
+        { x: -0.8, y: 0.05, z: -0.2, radius: 0.28 },
+    ];
+    // The camera's world position (the airplane's before the first frame places it).
+    const cameraPosition = () => flight.camera.position ?? flight.position;
+    clouds.forEach((cloud, index) => {
         const position = (): Vector3 => ({
-            x: nearestCopy(cube.x, flight.position.x),
-            y: -cube.height,
-            z: nearestCopy(cube.z, flight.position.z),
+            x: nearestCopy(cloud.x, cameraPosition().x),
+            y: -cloud.height,
+            z: nearestCopy(cloud.z, cameraPosition().z),
         });
+        const distanceToCamera = () => {
+            const { x, y, z } = position();
+            const camera = cameraPosition();
+            return Math.hypot(x - camera.x, y - camera.y, z - camera.z);
+        };
+        const alpha = () => {
+            const distance = distanceToCamera();
+            const fadeIn = Math.max(0, Math.min(1, (3000 - distance) / 1000));
+            const fadeOut = Math.max(0, Math.min(1, (distance - 150) / 450));
+            return (fadeIn * fadeOut) as Alpha;
+        };
+        // A colour, hazed toward the sky with distance - squared, so the haze stays light
+        // through the middle distance (the tints show) and builds up toward 3000.
+        const hazed = (color: ColorRGBA) => () => mix(color, skyColor, Math.min(1, distanceToCamera() / 3000) ** 2);
+        const tint = cloudTint(index);
+
+        if (cloudsAsCubes) {
+            world.addBox({ id: `cloud-${index}`, type: ELEMENT_TYPES.BOX, width: cloud.size, position, alpha, fillColor: hazed(tint) });
+            return;
+        }
+        const size = cloud.size;
         world.addBox({
-            id: `cube-${index}`,
+            id: `cloud-${index}`,
             type: ELEMENT_TYPES.BOX,
-            width: cube.size,
+            width: 1,
             position,
-            // Haze: white up close, the sky colour from 3000 away.
-            fillColor: () => {
-                const { x, y, z } = position();
-                const distance = Math.hypot(x - flight.position.x, y - flight.position.y, z - flight.position.z);
-                const haze = Math.min(1, distance / 3000);
-                const blend = (from: number, to: number) => Math.round(from + (to - from) * haze);
-                return { red: blend(cubeColor.red, skyColor.red), green: blend(cubeColor.green, skyColor.green), blue: blend(cubeColor.blue, skyColor.blue) } as ColorRGBA;
-            },
+            // 1.7 rad apart: an irregular spread of turns from one number.
+            rotate: { yaw: index * 1.7, pitch: 0, roll: 0 },
+        });
+        world.addElliptical({
+            id: `cloud-${index}-base`,
+            type: ELEMENT_TYPES.ELLIPTICAL,
+            parentId: `cloud-${index}`,
+            rx: basePuff.rx * size,
+            ry: basePuff.ry * size,
+            rz: basePuff.rz * size,
+            position: { x: basePuff.x * size, y: basePuff.y * size, z: basePuff.z * size },
+            alpha,
+            fillColor: hazed(mix(tint, coolBase, 0.4)),
+        });
+        puffs.forEach((puff, puffIndex) => {
+            world.addSphere({
+                id: `cloud-${index}-puff-${puffIndex}`,
+                type: ELEMENT_TYPES.SPHERE,
+                parentId: `cloud-${index}`,
+                radius: puff.radius * size,
+                position: { x: puff.x * size, y: puff.y * size, z: puff.z * size },
+                alpha,
+                // The top dome (the first puff) catches the sun.
+                fillColor: hazed(puffIndex === 0 ? mix(tint, warmTop, 0.5) : tint),
+            });
         });
     });
+
+    // Inside a cloud: how deep the camera is in the nearest cloud's whiteout, 0..1 - from 150
+    // outside its surface (0) to touching or inside it (1), and that cloud's tint. The draw
+    // loop covers the screen with the tint at up to 70% opacity - a thick cloud you can
+    // still see through.
+    // Its surface: the cube's faces, or for puffs a sphere 0.8 size around its center.
+    const cloudCover = () => {
+        const camera = cameraPosition();
+        let cover = 0;
+        let color = cloudTint(0);
+        clouds.forEach((cloud, index) => {
+            const offset = {
+                x: nearestCopy(cloud.x, camera.x) - camera.x,
+                y: -cloud.height - camera.y,
+                z: nearestCopy(cloud.z, camera.z) - camera.z,
+            };
+            const gap = cloudsAsCubes
+                ? Math.max(Math.abs(offset.x), Math.abs(offset.y), Math.abs(offset.z)) - cloud.size / 2
+                : Math.hypot(offset.x, offset.y, offset.z) - cloud.size * 0.8;
+            const depth = Math.min(1, 1 - gap / 150);
+            if (depth > cover) {
+                cover = depth;
+                color = cloudTint(index);
+            }
+        });
+        return { cover, color };
+    };
 
     // ── 5. Ocean ────────────────────────────────────────────────────────────────────
     // At sea level (y 0), kept centered under the airplane so it never ends - flat and one
@@ -414,10 +523,21 @@ export async function airplaneFlight(
 
     let gp: P5GraphicProcessor;
 
-    // The pointer's offset from the canvas center, -1..1 each way.
+    // The pointer's offset from the canvas center, -1..1 each way. The cloud cover is a plain
+    // element laid over the canvas (inside its box, so it goes fullscreen with it): drawn in
+    // 3D it would be shaded by the lights and read grey instead of the cloud's white.
+    let cloudOverlay: HTMLElement | undefined;
     p.setup = () => {
         const canvas = p.createCanvas(config.width, config.height, p.WEBGL);
         canvasElement = canvas?.elt;
+        const box = canvasElement?.parentElement;
+        if (box) {
+            box.querySelector('.cloud-cover')?.remove(); // from a previous run of this sketch
+            cloudOverlay = document.createElement('div');
+            cloudOverlay.className = 'cloud-cover';
+            cloudOverlay.style.cssText = 'position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0';
+            box.appendChild(cloudOverlay);
+        }
         canvasElement?.addEventListener('pointermove', event => {
             const bounds = canvasElement!.getBoundingClientRect();
             const pointerEvent = event as PointerEvent;
@@ -451,16 +571,22 @@ export async function airplaneFlight(
         }
 
         p.background(skyColor.red, skyColor.green, skyColor.blue);
-        // Daylight: mostly ambient, plus a sun from above, so every face is shaded by how
-        // it's turned - what shows the cubes' and the airplane's shapes.
-        p.ambientLight(190);
-        p.directionalLight(90, 90, 85, 0.3, 1, -0.6);
+        // Daylight: a cool, slightly blue ambient plus a warm low sun from above, so every
+        // face is shaded by how it's turned - what shows the clouds' and the airplane's
+        // shapes - with sunlit tops leaning orange and shadows leaning blue.
+        p.ambientLight(185, 185, 198);
+        p.directionalLight(130, 95, 60, 0.3, 1, -0.6);
         if (gp) {
             // p5's camera takes "up" as the screen-down direction - the opposite of ours.
             const up = cameraUp();
             gp.cameraUp = { x: -up.x, y: -up.y, z: -up.z };
             const result = await world.step(gp);
             if (!result.running) return;
+            if (cloudOverlay) {
+                const { cover, color } = cloudCover();
+                cloudOverlay.style.opacity = (cover * 0.7).toFixed(3);
+                cloudOverlay.style.background = `rgb(${color.red},${color.green},${color.blue})`;
+            }
         }
     };
 
