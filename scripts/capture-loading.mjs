@@ -17,8 +17,9 @@ import { mkdir } from 'node:fs/promises';
 
 const PAGES = [
     { name: 'hero', path: '' },
-    ...Array.from({ length: 12 }, (_, i) => ({ name: `tutorial-${i + 1}`, path: `docs/tutorial/tutorial-${i + 1}/` })),
+    ...Array.from({ length: 11 }, (_, i) => ({ name: `tutorial-${i + 1}`, path: `docs/tutorial/tutorial-${i + 1}/` })),
     { name: 'airplane', path: 'docs/showroom/airplane/' },
+    { name: 'emotion-game', path: 'docs/showroom/emotion-game/' },
 ];
 const OUT_DIR = 'public/img/loading';
 const READY_TIMEOUT_MS = 60_000;

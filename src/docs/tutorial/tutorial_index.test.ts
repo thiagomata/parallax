@@ -6,11 +6,10 @@ describe('Tutorial index', () => {
         document.body.innerHTML = '<main id="tutorial-root"></main>';
         await import('./tutorial_main_page.demo.ts');
         const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('.tutorial-card'));
-        expect(links).toHaveLength(12);
+        expect(links).toHaveLength(11);
         expect(links.map(link => link.getAttribute('href'))).toEqual(TUTORIALS.map(tutorial => tutorial.path));
         expect(links[7].textContent).toContain('The Observer');
         expect(links[8].textContent).toContain('3D Parallax Depth');
         expect(links[10].textContent).toContain('Facial Expressions');
-        expect(links[11].textContent).toContain('Emotion Game');
     });
 });

@@ -32,8 +32,9 @@ export default defineConfig({
                 'docs/tutorial/tutorial-9': './docs/tutorial/tutorial-9/index.html',
                 'docs/tutorial/tutorial-10': './docs/tutorial/tutorial-10/index.html',
                 'docs/tutorial/tutorial-11': './docs/tutorial/tutorial-11/index.html',
-                'docs/tutorial/tutorial-12': './docs/tutorial/tutorial-12/index.html',
+                'docs/showroom': './docs/showroom/index.html',
                 'docs/showroom/airplane': './docs/showroom/airplane/index.html',
+                'docs/showroom/emotion-game': './docs/showroom/emotion-game/index.html',
             }
         }
     },

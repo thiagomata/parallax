@@ -1,17 +1,17 @@
 import {describe, expect, it, vi} from 'vitest';
 import {
-    tutorial_emotion_game, emotion_game_explanation, EmotionGame, GAME_TARGETS, matchesTarget,
-} from './tutorial_emotion_game.ts';
-import {faceShape} from '../tutorial-11/tutorial_expressions.ts';
-import {createMockP5} from "../../../scene/mock/mock_p5.mock.ts";
+    emotionGame, emotionGameExplanation, EmotionGame, GAME_TARGETS, matchesTarget, collageLayout,
+} from './emotion_game.ts';
+import {faceShape} from './emoji_face.ts';
+import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
-import {SceneClock} from "../../../scene/scene_clock.ts";
-import {DEFAULT_SCENE_SETTINGS} from "../../../scene/types.ts";
-import {createMockFaceWorldData, createMockHeadTrackingProvider} from "../../../scene/mock/face.mock.ts";
+import {SceneClock} from "../../scene/scene_clock.ts";
+import {DEFAULT_SCENE_SETTINGS} from "../../scene/types.ts";
+import {createMockFaceWorldData, createMockHeadTrackingProvider} from "../../scene/mock/face.mock.ts";
 
 const neutral = faceShape(null);
 
-describe('Tutorial 12: matching the target', () => {
+describe('Emotion game: matching the target', () => {
     it('tells the smile from the open grin', () => {
         const smile = { ...neutral, happy: 0.6 };
         const grin = { ...neutral, happy: 1, mouthOpen: 1 };
@@ -37,7 +37,7 @@ describe('Tutorial 12: matching the target', () => {
     });
 });
 
-describe('Tutorial 12: the game', () => {
+describe('Emotion game: the game', () => {
     it('starts at zero with a target', () => {
         const game = new EmotionGame(0, () => 0);
 
@@ -72,25 +72,73 @@ describe('Tutorial 12: the game', () => {
         expect(game.score).toBe(0);
     });
 
-    it('moves on without a point when the round runs out', () => {
+    it('costs a life and moves on when the round runs out', () => {
         const game = new EmotionGame(0, () => 0.99);
         const first = game.target;
 
         expect(game.update(EmotionGame.ROUND_SECONDS - 0.1, false)).toBeNull();
         expect(game.update(EmotionGame.ROUND_SECONDS, false)).toBe('timeout');
         expect(game.score).toBe(0);
+        expect(game.lives).toBe(EmotionGame.LIVES - 1);
+        expect(game.over).toBe(false);
         expect(game.target).not.toBe(first);
         expect(game.secondsLeft(EmotionGame.ROUND_SECONDS)).toBe(EmotionGame.ROUND_SECONDS);
     });
+
+    it('is over when the lives run out, and stops until restarted', () => {
+        const game = new EmotionGame(0);
+        game.update(1, true);
+        game.update(1 + EmotionGame.HOLD_SECONDS, true); // one point
+        let now = 1 + EmotionGame.HOLD_SECONDS + EmotionGame.CELEBRATE_SECONDS;
+        game.update(now, false);
+        for (let life = 0; life < EmotionGame.LIVES; life++) {
+            now += EmotionGame.ROUND_SECONDS;
+            expect(game.update(now, false)).toBe('timeout');
+        }
+
+        expect(game.over).toBe(true);
+        expect(game.lives).toBe(0);
+        expect(game.score).toBe(1);
+        expect(game.update(now + 1, true)).toBeNull();
+        expect(game.update(now + 5, true)).toBeNull();
+        expect(game.score).toBe(1);
+
+        game.restart(now + 10);
+        expect(game.over).toBe(false);
+        expect(game.score).toBe(0);
+        expect(game.lives).toBe(EmotionGame.LIVES);
+        expect(game.secondsLeft(now + 10)).toBe(EmotionGame.ROUND_SECONDS);
+    });
 });
 
-describe('Tutorial 12: the scene', () => {
+describe('Emotion game: the collage', () => {
+    const cell = { width: 360, height: 288 };
+
+    it('lays the pictures out in rows of three under a title', () => {
+        const layout = collageLayout(7, cell);
+
+        expect(layout.cells).toHaveLength(7);
+        expect(layout.cells[0].y).toBeGreaterThanOrEqual(70);
+        expect(layout.cells[1].x).toBeGreaterThan(layout.cells[0].x);
+        expect(layout.cells[3].x).toBe(layout.cells[0].x); // the second row starts under the first
+        expect(layout.cells[3].y).toBeGreaterThan(layout.cells[0].y);
+        expect(layout.width).toBeGreaterThanOrEqual(3 * cell.width);
+        expect(layout.height).toBeGreaterThanOrEqual(70 + 3 * cell.height);
+    });
+
+    it('fits a few pictures without empty columns', () => {
+        expect(collageLayout(2, cell).width).toBeLessThan(collageLayout(3, cell).width);
+        expect(collageLayout(0, cell).cells).toHaveLength(0);
+    });
+});
+
+describe('Emotion game: the scene', () => {
     const createScene = async () => {
         const mockP5 = createMockP5();
         mockP5.millis.mockReturnValue(0);
         const mockTracker = createMockHeadTrackingProvider(vi.fn().mockReturnValue(createMockFaceWorldData()));
         (mockTracker as any).setFallbackCapture = vi.fn();
-        const world = await tutorial_emotion_game(mockP5 as unknown as p5, {
+        const world = await emotionGame(mockP5 as unknown as p5, {
             width: 500, height: 400, paused: false,
             clock: new SceneClock({ ...DEFAULT_SCENE_SETTINGS, playback: { ...DEFAULT_SCENE_SETTINGS.playback, duration: 10000, isLoop: true } }),
         }, { faceDataProvider: mockTracker } as any);
@@ -99,8 +147,8 @@ describe('Tutorial 12: the scene', () => {
     };
 
     it('explains the game', () => {
-        expect(emotion_game_explanation).toContain('EmotionGame');
-        expect(emotion_game_explanation).toContain('addEmojiFace');
+        expect(emotionGameExplanation).toContain('EmotionGame');
+        expect(emotionGameExplanation).toContain('addEmojiFace');
     });
 
     it('puts the emoji face beside the webcam panel', async () => {
@@ -112,9 +160,11 @@ describe('Tutorial 12: the scene', () => {
         expect(world.getElement('videoPanel')).toBeDefined();
     });
 
-    it('draws frames and calibrates on N', async () => {
+    it('draws frames, calibrates on N and ignores R while playing', async () => {
         const { mockP5 } = await createScene();
         (mockP5 as any).key = 'n';
+        (mockP5 as any).keyPressed();
+        (mockP5 as any).key = 'r';
         (mockP5 as any).keyPressed();
         await mockP5.draw();
         await mockP5.draw();

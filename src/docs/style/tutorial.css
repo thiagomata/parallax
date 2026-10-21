@@ -526,3 +526,30 @@ body {
     font-size: 0.875rem;
     color: var(--text-secondary);
 }
+/* Showroom index: the tutorial index's cards, with the scene's still on top. */
+.showroom-home {
+    margin: 0 0 20px;
+}
+
+.showroom-home a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.showroom-card {
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+}
+
+.showroom-image {
+    width: 100%;
+    aspect-ratio: 1654 / 1323;
+    object-fit: cover;
+    display: block;
+    background: #0a0a0a;
+}
+
+.showroom-card .tutorial-info {
+    padding: 0 20px 20px;
+}
