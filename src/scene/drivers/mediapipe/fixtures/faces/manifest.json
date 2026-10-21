@@ -1,0 +1,1393 @@
+{
+  "about": "AI-generated faces with known conditions, for face_fixtures.browser.test.ts. 'prompt' is what the generator was asked for; 'shows' is what the image really shows, checked by eye; 'generatorMismatch' lists where they differ. 'expect' holds the emotion label and bands [min, max]: faceWidth and centerX in image-width ratio, angles in degrees, emotions 0..1 (normalized). 'knownIssues' names expectations that fail today, with why.",
+  "fixtures": [
+    {
+      "file": "woman-short-hair-slight-smile.jpg",
+      "prompt": "Portrait photo, woman's face filling 80% of frame, extremely close to camera, soft natural daylight from window on left, minimalist cream-colored wall background, shallow depth of field, high detail face, looking directly at camera, neutral expression, fair skin tone, short dark hair, professional photography style, 4k quality",
+      "shows": "frontal, small closed-mouth smile, face ~40% of the frame",
+      "generatorMismatch": [
+        "face fills ~40% of the frame, not 80%",
+        "a small smile, not a neutral expression"
+      ],
+      "expect": {
+        "emotion": "happy",
+        "happy": [
+          0.3,
+          0.65
+        ],
+        "faceWidth": [
+          0.32,
+          0.5
+        ],
+        "centerX": [
+          0.4,
+          0.6
+        ],
+        "yaw": [
+          -10,
+          10
+        ],
+        "pitch": [
+          -20,
+          20
+        ],
+        "roll": [
+          -10,
+          10
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "man-dim-lamp-cropped-right.jpg",
+      "prompt": "Close-up portrait, man's face very close to camera taking 75% of frame, dramatic side lighting from right, dimly lit room with warm lamp light, dark wooden bookshelf visible in blurred background, medium close-up shot, direct eye contact, slight smile, dark skin tone, short cropped hair, beard stubble, cinematic lighting, portrait photography, 4k",
+      "shows": "close-up in dim light, slight smile, the right side of the face out of the frame (happy reads right at the emotion threshold, so the label is not asserted)",
+      "generatorMismatch": [
+        "the face is cut off at the right edge"
+      ],
+      "expect": {
+        "happy": [
+          0.1,
+          0.6
+        ],
+        "faceWidth": [
+          0.6,
+          0.8
+        ],
+        "centerX": [
+          0.7,
+          0.95
+        ],
+        "yaw": [
+          -15,
+          15
+        ],
+        "pitch": [
+          -20,
+          20
+        ],
+        "roll": [
+          -10,
+          10
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "woman-smile-head-turned.jpg",
+      "prompt": "Standard portrait, woman's face at normal distance (head and shoulders visible), soft overcast daylight from window, modern living room with beige sofa and plants in background, natural shoulder-level shot, looking at camera, relaxed smile, medium skin tone, shoulder-length brown hair, casual clothing visible, professional portrait style, good lighting throughout",
+      "shows": "broad smile with teeth, eyes on the camera, head turned to one side",
+      "generatorMismatch": [
+        "a broad smile with teeth rather than a relaxed one",
+        "the head is turned (the gaze is on the camera)"
+      ],
+      "expect": {
+        "emotion": "happy",
+        "happy": [
+          0.85,
+          1
+        ],
+        "faceWidth": [
+          0.25,
+          0.4
+        ],
+        "absYaw": [
+          10,
+          30
+        ],
+        "pitch": [
+          -20,
+          20
+        ],
+        "roll": [
+          -10,
+          10
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "man-big-smile.jpg",
+      "prompt": "Headshot portrait, man's face at typical webcam distance, bright natural morning light from behind camera, clean home office background with laptop and desk lamp visible, eye-level framing, friendly expression, light skin tone, short dark hair, collared shirt, well-lit professional headshot, studio quality lighting, high resolution",
+      "shows": "frontal, broad smile with teeth",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "happy",
+        "happy": [
+          0.85,
+          1
+        ],
+        "faceWidth": [
+          0.35,
+          0.5
+        ],
+        "centerX": [
+          0.4,
+          0.6
+        ],
+        "yaw": [
+          -10,
+          10
+        ],
+        "pitch": [
+          -20,
+          20
+        ],
+        "roll": [
+          -10,
+          10
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "man-close-up-cropped-right.jpg",
+      "prompt": "(from the file name) Close-up portrait, man's face filling 75 percent of frame, 8cm from camera, x plus ...",
+      "shows": "very close, neutral, half of the face out of the frame on the right",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "happy": [
+          0,
+          0.1
+        ],
+        "faceWidth": [
+          0.7,
+          0.95
+        ],
+        "centerX": [
+          0.75,
+          1
+        ],
+        "yaw": [
+          -12,
+          12
+        ],
+        "pitch": [
+          -20,
+          20
+        ],
+        "roll": [
+          -10,
+          10
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      },
+      "knownIssues": {
+        "emotion": "half the face is out of the frame and MediaPipe guesses the brows: browInnerUp reads high, so sad reaches 0.36"
+      }
+    },
+    {
+      "file": "man-headshot-smile.jpg",
+      "prompt": "Headshot portrait, man's face filling 40% of frame, 15cm from camera (x:0 y:0 z:0), at typical webcam distance, bright natural morning light from behind camera, clean home office background with laptop and desk lamp visible, eye-level framing, looking at camera (pitch:0 yaw:0 roll:0), friendly expression, light skin tone, short dark hair, collared shirt, well-lit professional headshot, studio quality lighting, high resolution - small smile",
+      "shows": "frontal, broad smile with teeth, camera slightly above the face",
+      "generatorMismatch": [
+        "a broad smile with teeth, not a small smile",
+        "shot from slightly above, not quite eye level (pitch reads ~17 degrees; part of that is the usual positive pitch bias)"
+      ],
+      "expect": {
+        "emotion": "happy",
+        "happy": [
+          0.85,
+          1
+        ],
+        "faceWidth": [
+          0.35,
+          0.47
+        ],
+        "centerX": [
+          0.45,
+          0.58
+        ],
+        "yaw": [
+          -5,
+          5
+        ],
+        "pitch": [
+          -20,
+          20
+        ],
+        "roll": [
+          -7,
+          7
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "woman-neutral-frontal.jpg",
+      "prompt": "Portrait photo, woman's face filling 80% of frame, 7.5cm from camera (x:0 y:0 z:+7.5), extremely close to camera, soft natural daylight from window on left, minimalist cream-colored wall background, shallow depth of field, high detail face, looking directly at camera (pitch:0 yaw:0 roll:0), neutral expression, fair skin tone, short dark hair, professional photography style, 4k quality - serious face",
+      "shows": "frontal, looking straight at the camera, neutral serious face, face ~45% of the frame",
+      "generatorMismatch": [
+        "face fills ~45% of the frame, not 80% (not 'extremely close')"
+      ],
+      "expect": {
+        "emotion": "neutral",
+        "happy": [
+          0,
+          0.1
+        ],
+        "faceWidth": [
+          0.35,
+          0.55
+        ],
+        "centerX": [
+          0.45,
+          0.55
+        ],
+        "yaw": [
+          -5,
+          5
+        ],
+        "pitch": [
+          -10,
+          10
+        ],
+        "roll": [
+          -5,
+          5
+        ],
+        "sad": [
+          0,
+          0.25
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "woman-smile-head-tilted.jpg",
+      "prompt": "Standard portrait, woman's face filling 45% of frame, 15cm from camera (x:0 y:0 z:0), at normal distance, soft overcast daylight from window, modern living room with beige sofa and plants in background, natural shoulder-level shot, looking at camera (pitch:0 yaw:0 roll:0), relaxed smile, medium skin tone, shoulder-length brown hair, casual clothing visible, professional portrait style, good lighting throughout",
+      "shows": "big smile with teeth, eyes on the camera, head slightly turned and tilted, not pitched much",
+      "generatorMismatch": [
+        "face fills ~35% of the frame, not 45%",
+        "the head is turned ~15 degrees (the gaze is on the camera), not yaw 0",
+        "a big smile with teeth rather than a relaxed one"
+      ],
+      "expect": {
+        "emotion": "happy",
+        "happy": [
+          0.85,
+          1
+        ],
+        "faceWidth": [
+          0.28,
+          0.45
+        ],
+        "centerX": [
+          0.4,
+          0.6
+        ],
+        "absYaw": [
+          5,
+          25
+        ],
+        "pitch": [
+          -20,
+          20
+        ],
+        "roll": [
+          -10,
+          10
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      },
+      "knownIssues": {
+        "pitch": "reads 33.7 degrees, the cap of computePitch, for a head that is barely pitched"
+      }
+    },
+    {
+      "file": "woman-sad.jpg",
+      "prompt": "Headshot portrait, woman's face filling 40% of frame, 15cm from camera (x:0 y:0 z:0), soft even daylight, plain light-grey wall background, eye-level framing, looking directly at camera (pitch:0 yaw:0 roll:0), clearly sad expression, mouth corners pulled down, inner eyebrows raised and drawn together, lips closed, not smiling, medium skin tone, curly dark hair, professional photography style, high detail face, 4k",
+      "shows": "frontal, between sad and neutral: inner brows clearly raised, mouth corners only slightly down, lips closed (the label is not asserted)",
+      "generatorMismatch": [
+        "a floating head with no body or neck"
+      ],
+      "expect": {
+        "sad": [
+          0.3,
+          0.7
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ],
+        "faceWidth": [
+          0.35,
+          0.5
+        ],
+        "centerX": [
+          0.45,
+          0.55
+        ],
+        "yaw": [
+          -5,
+          5
+        ],
+        "pitch": [
+          -10,
+          10
+        ],
+        "roll": [
+          -5,
+          5
+        ]
+      }
+    },
+    {
+      "file": "man-angry.jpg",
+      "prompt": "Headshot portrait, man's face filling 40% of frame, 15cm from camera (x:0 y:0 z:0), soft even daylight, plain light-grey wall background, eye-level framing, looking directly at camera (pitch:0 yaw:0 roll:0), visibly angry expression, eyebrows pulled down and together, eyes narrowed and glaring, lips pressed firmly together, not smiling, light skin tone, short blond hair, beard, professional photography style, high detail face, 4k",
+      "shows": "angry: brows drawn down and together, forehead furrowed, lips pressed (closed mouth)",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "angry",
+        "angry": [
+          0.3,
+          0.7
+        ],
+        "happy": [
+          0,
+          0.25
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "man-very-angry.jpg",
+      "prompt": "the man-angry prompt with 'very angry' instead of 'visibly angry'",
+      "shows": "very angry: brows drawn down hard, snarling with bared teeth",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "angry",
+        "angry": [
+          0.8,
+          1
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "man-very-angry-2.jpg",
+      "prompt": "the man-angry prompt with 'very angry' (second try)",
+      "shows": "angry: brows knit hard, lips pressed in a grimace (closed mouth, so it reads as moderate)",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "angry",
+        "angry": [
+          0.3,
+          0.7
+        ],
+        "happy": [
+          0,
+          0.25
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "man-mad.jpg",
+      "prompt": "an angry variant of the man-angry prompt (exact text not recorded)",
+      "shows": "very angry: brows drawn down hard, teeth bared",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "angry",
+        "angry": [
+          0.8,
+          1
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "man-surprised.jpg",
+      "prompt": "Headshot portrait, latin man's face filling 40% of frame, 15cm from camera (x:0 y:0 z:0), soft even daylight, plain light-grey wall background, eye-level framing, looking directly at camera (pitch:0 yaw:0 roll:0), very surprised expression, eyebrows pulled down and together, eyes narrowed and glaring, lips pressed firmly together, not smiling, dark tone, short black hair, no bear, old, professional photography style, high detail face, 4k",
+      "shows": "surprised: eyes wide with white above the iris, brows only slightly raised, mouth closed",
+      "generatorMismatch": [
+        "the prompt mixes in the angry description; the image follows 'very surprised' with wide eyes and a closed mouth",
+        "not old"
+      ],
+      "expect": {
+        "emotion": "surprised",
+        "surprised": [
+          0.4,
+          0.75
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "woman-surprised.jpg",
+      "prompt": "Headshot portrait, asian woman's face filling 40% of frame, 15cm from camera (x:0 y:0 z:0), soft even daylight, plain light-grey wall background, eye-level framing, looking directly at camera (pitch:0 yaw:0 roll:0), very surprised expression, eyebrows pulled down and together, eyes narrowed and glaring, lips pressed firmly together, not smiling, dark tone, short black hair, no bear, old, professional photography style, high detail face, 4k",
+      "shows": "very surprised: brows raised, eyes wide with white above the iris, mouth open",
+      "generatorMismatch": [
+        "the prompt mixes in the angry description; the image is a classic surprise with an open mouth"
+      ],
+      "expect": {
+        "emotion": "surprised",
+        "surprised": [
+          0.8,
+          1
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "older-woman-sad.jpg",
+      "prompt": "Headshot portrait, older woman's face filling 40% of frame, 15cm from camera (x:0 y:0 z:0), soft even daylight, plain light-grey wall background, eye-level framing, looking directly at camera (pitch:0 yaw:0 roll:0), crying, very sad expression, inner eyebrows raised and drawn together, mouth open with corners pulled down, tears on cheeks, eyes wet and slightly squinting, not smiling, dark skin tone, short grey curly hair, no glasses, professional photography style, high detail face, 4k",
+      "shows": "sad: inner brows raised and drawn together, mouth closed, no tears",
+      "generatorMismatch": [
+        "not crying: mouth closed, no tears"
+      ],
+      "expect": {
+        "emotion": "sad",
+        "sad": [
+          0.3,
+          0.7
+        ],
+        "happy": [
+          0,
+          0.25
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-man-neutral.jpg",
+      "prompt": "cell 1 of a 3x3 grid of nine extreme expressions of the same person (adult man, medium skin tone, short dark hair), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: completely neutral relaxed face (cut from 3x3-man-2.png)",
+      "shows": "completely neutral relaxed face",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "happy": [
+          0,
+          0.2
+        ],
+        "sad": [
+          0,
+          0.2
+        ],
+        "angry": [
+          0,
+          0.2
+        ],
+        "surprised": [
+          0,
+          0.2
+        ]
+      }
+    },
+    {
+      "file": "grid-man-big-smile.jpg",
+      "prompt": "cell 2 of a 3x3 grid of nine extreme expressions of the same person (adult man, medium skin tone, short dark hair), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: huge open smile showing teeth (cut from 3x3-man-2.png)",
+      "shows": "huge open smile showing teeth",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "happy",
+        "happy": [
+          0.85,
+          1
+        ],
+        "sad": [
+          0,
+          0.2
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-man-sad.jpg",
+      "prompt": "cell 3 of a 3x3 grid of nine extreme expressions of the same person (adult man, medium skin tone, short dark hair), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: deeply sad: inner brows raised, mouth corners pulled down (cut from 3x3-man-2.png)",
+      "shows": "deeply sad: inner brows raised, mouth corners pulled down",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "sad",
+        "sad": [
+          0.35,
+          1
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-man-angry.jpg",
+      "prompt": "cell 4 of a 3x3 grid of nine extreme expressions of the same person (adult man, medium skin tone, short dark hair), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: furious: brows pulled down hard and together, lips pressed (cut from 3x3-man-2.png)",
+      "shows": "furious: brows pulled down hard and together, lips pressed",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "angry",
+        "angry": [
+          0.4,
+          0.8
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-man-surprised.jpg",
+      "prompt": "cell 5 of a 3x3 grid of nine extreme expressions of the same person (adult man, medium skin tone, short dark hair), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: shocked: brows raised high, eyes wide, mouth open in an O (cut from 3x3-man-2.png)",
+      "shows": "shocked: brows raised high, eyes wide, mouth open in an O",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "surprised",
+        "surprised": [
+          0.8,
+          1
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-man-disgust.jpg",
+      "prompt": "cell 6 of a 3x3 grid of nine extreme expressions of the same person (adult man, medium skin tone, short dark hair), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: disgusted: nose wrinkled, upper lip raised, brows down (cut from 3x3-man-2.png)",
+      "shows": "disgusted: nose wrinkled, upper lip raised, brows down - disgust is not modeled; it reads as angry, the nearest emotion (brows down)",
+      "generatorMismatch": [],
+      "expect": {
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-man-fear.jpg",
+      "prompt": "cell 7 of a 3x3 grid of nine extreme expressions of the same person (adult man, medium skin tone, short dark hair), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: terrified: eyes wide, brows raised and drawn together, mouth stretched open (cut from 3x3-man-2.png)",
+      "shows": "terrified: eyes wide, brows raised and drawn together, mouth stretched open - fear is not modeled; it reads as surprised, the nearest emotion (eyes wide)",
+      "generatorMismatch": [],
+      "expect": {
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-man-eyes-closed.jpg",
+      "prompt": "cell 8 of a 3x3 grid of nine extreme expressions of the same person (adult man, medium skin tone, short dark hair), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: both eyes closed, relaxed face (cut from 3x3-man-2.png)",
+      "shows": "both eyes closed, relaxed face",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "happy": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-man-mouth-open.jpg",
+      "prompt": "cell 9 of a 3x3 grid of nine extreme expressions of the same person (adult man, medium skin tone, short dark hair), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: mouth wide open as if saying \"ah\", neutral eyes (cut from 3x3-man-2.png)",
+      "shows": "mouth wide open as if saying \"ah\", neutral eyes",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "happy": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-woman-neutral.jpg",
+      "prompt": "cell 1 of a 3x3 grid of nine extreme expressions of the same person (older woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: completely neutral relaxed face (cut from 3x3-old-woman-2.png)",
+      "shows": "completely neutral relaxed face",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "happy": [
+          0,
+          0.2
+        ],
+        "sad": [
+          0,
+          0.2
+        ],
+        "angry": [
+          0,
+          0.2
+        ],
+        "surprised": [
+          0,
+          0.2
+        ]
+      }
+    },
+    {
+      "file": "grid-woman-big-smile.jpg",
+      "prompt": "cell 2 of a 3x3 grid of nine extreme expressions of the same person (older woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: huge open smile showing teeth (cut from 3x3-old-woman-2.png)",
+      "shows": "huge open smile showing teeth",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "happy",
+        "happy": [
+          0.85,
+          1
+        ],
+        "sad": [
+          0,
+          0.2
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-woman-sad.jpg",
+      "prompt": "cell 3 of a 3x3 grid of nine extreme expressions of the same person (older woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: deeply sad: inner brows raised, mouth corners pulled down (cut from 3x3-old-woman-2.png)",
+      "shows": "deeply sad: inner brows raised, mouth corners pulled down",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "sad",
+        "sad": [
+          0.35,
+          1
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-woman-angry.jpg",
+      "prompt": "cell 4 of a 3x3 grid of nine extreme expressions of the same person (older woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: furious: brows pulled down hard and together, lips pressed (cut from 3x3-old-woman-2.png)",
+      "shows": "furious: brows pulled down hard and together, lips pressed",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "angry",
+        "angry": [
+          0.4,
+          0.8
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-woman-surprised.jpg",
+      "prompt": "cell 5 of a 3x3 grid of nine extreme expressions of the same person (older woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: shocked: brows raised high, eyes wide, mouth open in an O (cut from 3x3-old-woman-2.png)",
+      "shows": "shocked: brows raised high, eyes wide, mouth open in an O",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "surprised",
+        "surprised": [
+          0.8,
+          1
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-woman-disgust.jpg",
+      "prompt": "cell 6 of a 3x3 grid of nine extreme expressions of the same person (older woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: disgusted: nose wrinkled, upper lip raised, brows down (cut from 3x3-old-woman-2.png)",
+      "shows": "disgusted: nose wrinkled, upper lip raised, brows down - disgust is not modeled; it reads as angry, the nearest emotion (brows down)",
+      "generatorMismatch": [],
+      "expect": {
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-woman-fear.jpg",
+      "prompt": "cell 7 of a 3x3 grid of nine extreme expressions of the same person (older woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: terrified: eyes wide, brows raised and drawn together, mouth stretched open (cut from 3x3-old-woman-2.png)",
+      "shows": "terrified: eyes wide, brows raised and drawn together, mouth stretched open - fear is not modeled; it reads as surprised, the nearest emotion (eyes wide)",
+      "generatorMismatch": [],
+      "expect": {
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-woman-eyes-closed.jpg",
+      "prompt": "cell 8 of a 3x3 grid of nine extreme expressions of the same person (older woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: both eyes closed, relaxed face (cut from 3x3-old-woman-2.png)",
+      "shows": "both eyes closed, relaxed face",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "happy": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-woman-mouth-open.jpg",
+      "prompt": "cell 9 of a 3x3 grid of nine extreme expressions of the same person (older woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: mouth wide open as if saying \"ah\", neutral eyes (cut from 3x3-old-woman-2.png)",
+      "shows": "mouth wide open as if saying \"ah\", neutral eyes",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "happy": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-young-woman-neutral.jpg",
+      "prompt": "cell 1 of a 3x3 grid of nine extreme expressions of the same person (young woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: completely neutral relaxed face (cut from Nine-Expression Studio Portrait Grid.png)",
+      "shows": "completely neutral relaxed face",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "happy": [
+          0,
+          0.2
+        ],
+        "sad": [
+          0,
+          0.2
+        ],
+        "angry": [
+          0,
+          0.2
+        ],
+        "surprised": [
+          0,
+          0.2
+        ]
+      }
+    },
+    {
+      "file": "grid-young-woman-big-smile.jpg",
+      "prompt": "cell 2 of a 3x3 grid of nine extreme expressions of the same person (young woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: huge open smile showing teeth (cut from Nine-Expression Studio Portrait Grid.png)",
+      "shows": "huge open smile showing teeth",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "happy",
+        "happy": [
+          0.85,
+          1
+        ],
+        "sad": [
+          0,
+          0.2
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-young-woman-sad.jpg",
+      "prompt": "cell 3 of a 3x3 grid of nine extreme expressions of the same person (young woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: deeply sad: inner brows raised, mouth corners pulled down (cut from Nine-Expression Studio Portrait Grid.png)",
+      "shows": "deeply sad: inner brows raised, mouth corners pulled down",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "sad",
+        "sad": [
+          0.35,
+          1
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-young-woman-angry.jpg",
+      "prompt": "cell 4 of a 3x3 grid of nine extreme expressions of the same person (young woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: furious: brows pulled down hard and together, lips pressed (cut from Nine-Expression Studio Portrait Grid.png)",
+      "shows": "furious: brows pulled down hard and together, lips pressed",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "angry",
+        "angry": [
+          0.4,
+          0.8
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-young-woman-surprised.jpg",
+      "prompt": "cell 5 of a 3x3 grid of nine extreme expressions of the same person (young woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: shocked: brows raised high, eyes wide, mouth open in an O (cut from Nine-Expression Studio Portrait Grid.png)",
+      "shows": "shocked: brows raised high, eyes wide, mouth open in an O",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "surprised",
+        "surprised": [
+          0.8,
+          1
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-young-woman-disgust.jpg",
+      "prompt": "cell 6 of a 3x3 grid of nine extreme expressions of the same person (young woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: disgusted: nose wrinkled, upper lip raised, brows down (cut from Nine-Expression Studio Portrait Grid.png)",
+      "shows": "disgusted: nose wrinkled, upper lip raised, brows down - disgust is not modeled; it reads as angry, the nearest emotion (brows down)",
+      "generatorMismatch": [],
+      "expect": {
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-young-woman-fear.jpg",
+      "prompt": "cell 7 of a 3x3 grid of nine extreme expressions of the same person (young woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: terrified: eyes wide, brows raised and drawn together, mouth stretched open (cut from Nine-Expression Studio Portrait Grid.png)",
+      "shows": "terrified: eyes wide, brows raised and drawn together, mouth stretched open - fear is not modeled; it reads as surprised, the nearest emotion (eyes wide)",
+      "generatorMismatch": [],
+      "expect": {
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-young-woman-eyes-closed.jpg",
+      "prompt": "cell 8 of a 3x3 grid of nine extreme expressions of the same person (young woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: both eyes closed, relaxed face (cut from Nine-Expression Studio Portrait Grid.png)",
+      "shows": "both eyes closed, relaxed face",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "happy": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-young-woman-mouth-open.jpg",
+      "prompt": "cell 9 of a 3x3 grid of nine extreme expressions of the same person (young woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: mouth wide open as if saying \"ah\", neutral eyes (cut from Nine-Expression Studio Portrait Grid.png)",
+      "shows": "mouth wide open as if saying \"ah\", neutral eyes",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "happy": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-grey-hair-man-neutral.jpg",
+      "prompt": "cell 1 (cut from Nine-Panel Emotion Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an young man with dark skin,  and grey long hair back, no glasses. Every cell has the identical framing: head and shoulders, face centered and filling 40% of the cell, looking directly at the camera (pitch:0 yaw:0 roll:0), eye level, the same soft even daylight and the same plain light-grey background. Only the facial expression changes, each one extreme and exaggerated. Top row, left to right: completely neutral relaxed face; huge open smile showing teeth; deeply sad face with inner eyebrows raised and mouth corners pulled down. Middle row: furious angry face with eyebrows pulled down hard and together, eyes narrowed, lips pressed; shocked surprised face with eyebrows raised high, eyes wide open, mouth open in an O; disgusted face with nose wrinkled and upper lip raised. Bottom row: terrified face with eyes wide, eyebrows raised and drawn together, mouth stretched open; both eyes fully closed with a relaxed face; mouth wide open as if shouting \"ah\" with neutral eyes. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "completely neutral relaxed face",
+      "generatorMismatch": [
+        "the prompt asks for a young man; the image shows a middle-aged one"
+      ],
+      "expect": {
+        "emotion": "neutral",
+        "happy": [
+          0,
+          0.2
+        ],
+        "sad": [
+          0,
+          0.2
+        ],
+        "angry": [
+          0,
+          0.2
+        ],
+        "surprised": [
+          0,
+          0.2
+        ]
+      }
+    },
+    {
+      "file": "grid-grey-hair-man-big-smile.jpg",
+      "prompt": "cell 2 (cut from Nine-Panel Emotion Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an young man with dark skin,  and grey long hair back, no glasses. Every cell has the identical framing: head and shoulders, face centered and filling 40% of the cell, looking directly at the camera (pitch:0 yaw:0 roll:0), eye level, the same soft even daylight and the same plain light-grey background. Only the facial expression changes, each one extreme and exaggerated. Top row, left to right: completely neutral relaxed face; huge open smile showing teeth; deeply sad face with inner eyebrows raised and mouth corners pulled down. Middle row: furious angry face with eyebrows pulled down hard and together, eyes narrowed, lips pressed; shocked surprised face with eyebrows raised high, eyes wide open, mouth open in an O; disgusted face with nose wrinkled and upper lip raised. Bottom row: terrified face with eyes wide, eyebrows raised and drawn together, mouth stretched open; both eyes fully closed with a relaxed face; mouth wide open as if shouting \"ah\" with neutral eyes. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "huge open smile showing teeth",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "happy",
+        "happy": [
+          0.85,
+          1
+        ],
+        "sad": [
+          0,
+          0.2
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-grey-hair-man-sad.jpg",
+      "prompt": "cell 3 (cut from Nine-Panel Emotion Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an young man with dark skin,  and grey long hair back, no glasses. Every cell has the identical framing: head and shoulders, face centered and filling 40% of the cell, looking directly at the camera (pitch:0 yaw:0 roll:0), eye level, the same soft even daylight and the same plain light-grey background. Only the facial expression changes, each one extreme and exaggerated. Top row, left to right: completely neutral relaxed face; huge open smile showing teeth; deeply sad face with inner eyebrows raised and mouth corners pulled down. Middle row: furious angry face with eyebrows pulled down hard and together, eyes narrowed, lips pressed; shocked surprised face with eyebrows raised high, eyes wide open, mouth open in an O; disgusted face with nose wrinkled and upper lip raised. Bottom row: terrified face with eyes wide, eyebrows raised and drawn together, mouth stretched open; both eyes fully closed with a relaxed face; mouth wide open as if shouting \"ah\" with neutral eyes. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "deeply sad: inner brows raised, mouth corners pulled down",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "sad",
+        "sad": [
+          0.35,
+          1
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-grey-hair-man-angry.jpg",
+      "prompt": "cell 4 (cut from Nine-Panel Emotion Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an young man with dark skin,  and grey long hair back, no glasses. Every cell has the identical framing: head and shoulders, face centered and filling 40% of the cell, looking directly at the camera (pitch:0 yaw:0 roll:0), eye level, the same soft even daylight and the same plain light-grey background. Only the facial expression changes, each one extreme and exaggerated. Top row, left to right: completely neutral relaxed face; huge open smile showing teeth; deeply sad face with inner eyebrows raised and mouth corners pulled down. Middle row: furious angry face with eyebrows pulled down hard and together, eyes narrowed, lips pressed; shocked surprised face with eyebrows raised high, eyes wide open, mouth open in an O; disgusted face with nose wrinkled and upper lip raised. Bottom row: terrified face with eyes wide, eyebrows raised and drawn together, mouth stretched open; both eyes fully closed with a relaxed face; mouth wide open as if shouting \"ah\" with neutral eyes. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "furious: brows pulled down hard and together, lips pressed",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "angry",
+        "angry": [
+          0.4,
+          0.8
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-grey-hair-man-surprised.jpg",
+      "prompt": "cell 5 (cut from Nine-Panel Emotion Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an young man with dark skin,  and grey long hair back, no glasses. Every cell has the identical framing: head and shoulders, face centered and filling 40% of the cell, looking directly at the camera (pitch:0 yaw:0 roll:0), eye level, the same soft even daylight and the same plain light-grey background. Only the facial expression changes, each one extreme and exaggerated. Top row, left to right: completely neutral relaxed face; huge open smile showing teeth; deeply sad face with inner eyebrows raised and mouth corners pulled down. Middle row: furious angry face with eyebrows pulled down hard and together, eyes narrowed, lips pressed; shocked surprised face with eyebrows raised high, eyes wide open, mouth open in an O; disgusted face with nose wrinkled and upper lip raised. Bottom row: terrified face with eyes wide, eyebrows raised and drawn together, mouth stretched open; both eyes fully closed with a relaxed face; mouth wide open as if shouting \"ah\" with neutral eyes. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "shocked: brows raised high, eyes wide, mouth open in an O",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "surprised",
+        "surprised": [
+          0.8,
+          1
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-grey-hair-man-disgust.jpg",
+      "prompt": "cell 6 (cut from Nine-Panel Emotion Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an young man with dark skin,  and grey long hair back, no glasses. Every cell has the identical framing: head and shoulders, face centered and filling 40% of the cell, looking directly at the camera (pitch:0 yaw:0 roll:0), eye level, the same soft even daylight and the same plain light-grey background. Only the facial expression changes, each one extreme and exaggerated. Top row, left to right: completely neutral relaxed face; huge open smile showing teeth; deeply sad face with inner eyebrows raised and mouth corners pulled down. Middle row: furious angry face with eyebrows pulled down hard and together, eyes narrowed, lips pressed; shocked surprised face with eyebrows raised high, eyes wide open, mouth open in an O; disgusted face with nose wrinkled and upper lip raised. Bottom row: terrified face with eyes wide, eyebrows raised and drawn together, mouth stretched open; both eyes fully closed with a relaxed face; mouth wide open as if shouting \"ah\" with neutral eyes. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "disgusted: nose wrinkled, upper lip raised, brows down - disgust is not modeled; it reads as angry, the nearest emotion (brows down)",
+      "generatorMismatch": [],
+      "expect": {
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-grey-hair-man-fear.jpg",
+      "prompt": "cell 7 (cut from Nine-Panel Emotion Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an young man with dark skin,  and grey long hair back, no glasses. Every cell has the identical framing: head and shoulders, face centered and filling 40% of the cell, looking directly at the camera (pitch:0 yaw:0 roll:0), eye level, the same soft even daylight and the same plain light-grey background. Only the facial expression changes, each one extreme and exaggerated. Top row, left to right: completely neutral relaxed face; huge open smile showing teeth; deeply sad face with inner eyebrows raised and mouth corners pulled down. Middle row: furious angry face with eyebrows pulled down hard and together, eyes narrowed, lips pressed; shocked surprised face with eyebrows raised high, eyes wide open, mouth open in an O; disgusted face with nose wrinkled and upper lip raised. Bottom row: terrified face with eyes wide, eyebrows raised and drawn together, mouth stretched open; both eyes fully closed with a relaxed face; mouth wide open as if shouting \"ah\" with neutral eyes. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "terrified: eyes wide, brows raised and drawn together, mouth stretched open - fear is not modeled; it reads as surprised, the nearest emotion (eyes wide)",
+      "generatorMismatch": [],
+      "expect": {
+        "happy": [
+          0,
+          0.1
+        ],
+        "sad": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-grey-hair-man-eyes-closed.jpg",
+      "prompt": "cell 8 (cut from Nine-Panel Emotion Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an young man with dark skin,  and grey long hair back, no glasses. Every cell has the identical framing: head and shoulders, face centered and filling 40% of the cell, looking directly at the camera (pitch:0 yaw:0 roll:0), eye level, the same soft even daylight and the same plain light-grey background. Only the facial expression changes, each one extreme and exaggerated. Top row, left to right: completely neutral relaxed face; huge open smile showing teeth; deeply sad face with inner eyebrows raised and mouth corners pulled down. Middle row: furious angry face with eyebrows pulled down hard and together, eyes narrowed, lips pressed; shocked surprised face with eyebrows raised high, eyes wide open, mouth open in an O; disgusted face with nose wrinkled and upper lip raised. Bottom row: terrified face with eyes wide, eyebrows raised and drawn together, mouth stretched open; both eyes fully closed with a relaxed face; mouth wide open as if shouting \"ah\" with neutral eyes. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "both eyes closed, relaxed face",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "happy": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-grey-hair-man-mouth-open.jpg",
+      "prompt": "cell 9 (cut from Nine-Panel Emotion Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an young man with dark skin,  and grey long hair back, no glasses. Every cell has the identical framing: head and shoulders, face centered and filling 40% of the cell, looking directly at the camera (pitch:0 yaw:0 roll:0), eye level, the same soft even daylight and the same plain light-grey background. Only the facial expression changes, each one extreme and exaggerated. Top row, left to right: completely neutral relaxed face; huge open smile showing teeth; deeply sad face with inner eyebrows raised and mouth corners pulled down. Middle row: furious angry face with eyebrows pulled down hard and together, eyes narrowed, lips pressed; shocked surprised face with eyebrows raised high, eyes wide open, mouth open in an O; disgusted face with nose wrinkled and upper lip raised. Bottom row: terrified face with eyes wide, eyebrows raised and drawn together, mouth stretched open; both eyes fully closed with a relaxed face; mouth wide open as if shouting \"ah\" with neutral eyes. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "mouth wide open as if saying \"ah\", neutral eyes",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "happy": [
+          0,
+          0.25
+        ],
+        "angry": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    }
+  ]
+}

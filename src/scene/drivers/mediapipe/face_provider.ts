@@ -4,7 +4,7 @@ import {FaceTrackingConfigBuilder} from "../../types";
 import {FaceParser} from "./face_parser";
 import p5 from "p5";
 import type {Face} from "./face.ts";
-import {FaceExpressions} from "./face_expressions.ts";
+import {FaceExpressions, measureFace} from "./face_expressions.ts";
 import type {FaceProvider} from "../../providers/face_provider.ts";
 import {merge} from "../../utils/merge.ts";
 import {appAssetPath} from "../../../utils/app_paths.ts";
@@ -165,7 +165,12 @@ export class MediaPipeFaceProvider implements FaceProvider {
             const landmarks = result.faceLandmarks[0] as Array<Partial<Vector3<VideoWidthRatio>> & { visibility?: number | null }>;
             this.lastFaceResult = this.parser.parse(landmarks);
             const categories = result.faceBlendshapes?.[0]?.categories;
-            this.lastExpressions = categories ? FaceExpressions.fromBlendshapes(categories) : null;
+            const aspect = videoElt.videoWidth > 0
+                ? videoElt.videoHeight / videoElt.videoWidth
+                : this.config.videoHeightPixels / this.config.videoWidthPixels;
+            this.lastExpressions = categories
+                ? FaceExpressions.fromBlendshapes(categories, measureFace(result.faceLandmarks[0], aspect, result.facialTransformationMatrixes?.[0]?.data))
+                : null;
             this.debug("face detected", {
                 faces: result.faceLandmarks.length,
                 landmarks: result.faceLandmarks[0].length,
@@ -244,6 +249,8 @@ export class MediaPipeFaceProvider implements FaceProvider {
                     // Expression scores (eyes / mouth open, smile...); no measurable cost
                     // per frame (scripts/bench-blendshapes.mjs).
                     outputFaceBlendshapes: true,
+                    // The head's pose, so the brow expressions can fade as the head tilts.
+                    outputFacialTransformationMatrixes: true,
                 });
 
                 if (this.initAttempt === attempt) {

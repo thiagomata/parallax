@@ -1,6 +1,6 @@
 import {describe, expect, it, vi, beforeEach} from 'vitest';
 import {
-    tutorial_expressions, expressions_explanation, faceShape, eyeHeight, mouthSize, mouthColor,
+    tutorial_expressions, expressions_explanation, faceShape, eyeHeight, browPose, mouthPose, mouthColor, EMOTION_COLORS,
 } from './tutorial_expressions.ts';
 import {createMockP5} from "../../../scene/mock/mock_p5.mock.ts";
 import p5 from "p5";
@@ -49,7 +49,7 @@ describe('Tutorial 11: Facial Expressions', () => {
         const { world, mockP5 } = await createScene(createMockFaceWorldData());
 
         expect(mockP5.createCanvas).toHaveBeenCalledWith(500, 400, "webgl");
-        for (const id of ['head', 'left-eye', 'right-eye', 'left-pupil', 'right-pupil', 'left-brow', 'right-brow', 'nose', 'mouth']) {
+        for (const id of ['head', 'left-eye', 'right-eye', 'left-pupil', 'right-pupil', 'left-brow', 'right-brow', 'nose', 'mouth', 'mouth-left-corner', 'mouth-right-corner']) {
             expect(world.getElement(id), id).toBeDefined();
         }
     });
@@ -65,6 +65,17 @@ describe('Tutorial 11: Facial Expressions', () => {
         expect(world.getElement('videoPanel')).toBeDefined();
     });
 
+    it('calibrates on N with a relaxed face, and ignores other keys', async () => {
+        const { mockP5 } = await createScene(createMockFaceWorldData());
+
+        (mockP5 as any).key = 'x';
+        expect(() => (mockP5 as any).keyPressed()).not.toThrow();
+        (mockP5 as any).key = 'n';
+        expect(() => (mockP5 as any).keyPressed()).not.toThrow();
+        await mockP5.draw();
+        await mockP5.draw();
+    });
+
     it('draws frames with and without a face', async () => {
         for (const face of [createMockFaceWorldData(), null]) {
             const { world, mockP5 } = await createScene(face);
@@ -76,19 +87,30 @@ describe('Tutorial 11: Facial Expressions', () => {
 });
 
 describe('Tutorial 11: face shape', () => {
+    const neutral = faceShape(null);
+
     it('is a neutral face without expressions', () => {
-        expect(faceShape(null)).toEqual({ leftEyeOpen: 1, rightEyeOpen: 1, mouthOpen: 0, smile: 0, browsUp: 0 });
+        expect(neutral).toEqual({ leftEyeOpen: 1, rightEyeOpen: 1, mouthOpen: 0, happy: 0, sad: 0, angry: 0, surprised: 0 });
         expect(faceShape(undefined).mouthOpen).toBe(0);
     });
 
     it('reads the expressions it is given', () => {
-        const expressions = new FaceExpressions({
-            eyeBlinkLeft: 0.25, eyeBlinkRight: 1, jawOpen: 0.5, mouthSmileLeft: 0.2, mouthSmileRight: 0.4, browInnerUp: 0.7,
-        });
+        const expressions = new FaceExpressions(
+            { eyeBlinkLeft: 0.25, eyeBlinkRight: 1, jawOpen: 0.5, mouthSmileLeft: 0.2, mouthSmileRight: 0.4 },
+            undefined,
+            { browInnerToOuter: 1, whiteAboveIris: -0.15, lipGap: 0.0275, cornerLift: 0 },
+        );
 
         expect(faceShape(expressions)).toEqual({
-            leftEyeOpen: 0.75, rightEyeOpen: 0, mouthOpen: 0.5, smile: expect.closeTo(0.3), browsUp: 0.7,
+            leftEyeOpen: 0.75, rightEyeOpen: 0, mouthOpen: 0.5,
+            happy: expect.closeTo(0.3), sad: 0, angry: 0, surprised: 0,
         });
+    });
+
+    it('opens the mouth with bared teeth too (lips apart, jaw closed)', () => {
+        const teeth = new FaceExpressions({}, undefined, { browInnerToOuter: 1, whiteAboveIris: -0.15, lipGap: 0.05, cornerLift: 0 });
+
+        expect(faceShape(teeth).mouthOpen).toBe(1);
     });
 
     it('closes the eyes to a thin line', () => {
@@ -96,15 +118,68 @@ describe('Tutorial 11: face shape', () => {
         expect(eyeHeight(0)).toBe(4);
     });
 
-    it('widens the mouth with the smile and opens it with the jaw', () => {
-        const neutral = faceShape(null);
+    it('keeps the brows level when neutral', () => {
+        expect(browPose(neutral, 'left')).toEqual({ y: -105, roll: 0 });
+        expect(browPose(neutral, 'right')).toEqual({ y: -105, roll: -0 });
+    });
 
-        expect(mouthSize(neutral)).toEqual({ width: 90, height: 8 });
-        expect(mouthSize({ ...neutral, smile: 1, mouthOpen: 1 })).toEqual({ width: 180, height: 108 });
+    it('lowers the brows and turns their inner ends down when angry', () => {
+        const angry = { ...neutral, angry: 1 };
+
+        expect(browPose(angry, 'left').y).toBeGreaterThan(-105);
+        // Inner ends: +x on the left brow, -x on the right; down is +y.
+        expect(browPose(angry, 'left').roll).toBeGreaterThan(0);
+        expect(browPose(angry, 'right').roll).toBeLessThan(0);
+    });
+
+    it('turns the inner ends of the brows up when sad', () => {
+        const sad = { ...neutral, sad: 1 };
+
+        expect(browPose(sad, 'left').roll).toBeLessThan(0);
+        expect(browPose(sad, 'right').roll).toBeGreaterThan(0);
+    });
+
+    it('raises the brows high when surprised', () => {
+        expect(browPose({ ...neutral, surprised: 1 }, 'left').y).toBe(-145);
+    });
+
+    it('turns the mouth corners up when happy and down when sad', () => {
+        expect(mouthPose(neutral)).toEqual({ width: 70, height: 8, cornerWidth: 30, cornerY: -0, cornerRoll: 0 });
+
+        const happy = mouthPose({ ...neutral, happy: 1 });
+        const sad = mouthPose({ ...neutral, sad: 1 });
+        expect(happy.width).toBe(110);
+        expect(happy.cornerY).toBeLessThan(0);
+        expect(happy.cornerRoll).toBeGreaterThan(0);
+        expect(sad.cornerY).toBeGreaterThan(0);
+        expect(sad.cornerRoll).toBeLessThan(0);
+    });
+
+    it('makes a narrow, tall O when surprised and a wide, flat line when angry', () => {
+        const surprised = mouthPose({ ...neutral, surprised: 1, mouthOpen: 1 });
+        const angry = mouthPose({ ...neutral, angry: 1 });
+
+        expect(surprised.width).toBe(30);
+        expect(surprised.height).toBe(108);
+        expect(surprised.cornerWidth).toBe(1);
+        expect(angry.width).toBe(100);
+        expect(angry.height).toBe(4);
     });
 
     it('turns the mouth from red to pink as the smile grows', () => {
         expect(mouthColor(0)).toEqual({ red: 200, green: 30, blue: 40 });
         expect(mouthColor(1)).toEqual({ red: 255, green: 120, blue: 180 });
+        expect(mouthColor(2)).toEqual(mouthColor(1));
+    });
+});
+
+describe('Tutorial 11: emotion colors', () => {
+    it('has a color for every emotion and neutral', () => {
+        expect(Object.keys(EMOTION_COLORS).sort()).toEqual(['angry', 'happy', 'neutral', 'sad', 'surprised']);
+    });
+
+    it('explains the emotions', () => {
+        expect(expressions_explanation).toContain('emotion');
+        expect(expressions_explanation).toContain('angry');
     });
 });
