@@ -119,14 +119,19 @@ export const DEFAULT_EXPRESSION_RANGES: ExpressionRanges = {
     // angry 0.50-0.69, sad 1.10-1.25 (and surprise / fear up to 1.54, told apart by the eyes).
     browsLow: { rest: 0.85, full: 0.65 },
     browsRaised: { rest: 1.1, full: 1.25 },
-    // whiteAboveIris: surprised and frightened faces read -0.02 or above, all others -0.11 or lower.
+    // whiteAboveIris: surprised and frightened faces read -0.02 or above, all others -0.11 or lower;
+    // the upper lid covers the iris more as a face gets sleepy: awake -0.09, sleepy -0.34, eyes closed -0.57.
     eyesWide: { rest: -0.09, full: -0.02 },
+    lidsDrooping: { rest: -0.2, full: -0.4 },
     // lipGap: closed lips read up to ~0.003, smiles up to 0.134, a mouth open wide ("ah") ~0.3.
     lipsApart: { rest: 0.005, full: 0.05 },
     mouthWideOpen: { rest: 0.15, full: 0.25 },
     // cornerLift: broad smiles read 0.057-0.089, an open "ah" 0.032-0.036, sad faces down to -0.042.
     cornersUp: { rest: 0.035, full: 0.055 },
     cornersDown: { rest: -0.01, full: -0.035 },
+    // MediaPipe's (normalized) blink minus squint scores: the upper lid leads in sleepiness
+    // (sleepy faces +0.12 and above), the lower lid and cheeks in a squint or smile (-0.13 and below).
+    upperLidLeading: { rest: -0.05, full: 0.15 },
     // Head pitch: tilting the head up or down moves the brows like an expression (looking down
     // reads as a frown), so the brow emotions fade from 12 degrees to 24 degrees away from the
     // pitch of a neutral face. neutralHeadPitch.rest is that pitch (0, facing the camera; the
@@ -140,6 +145,7 @@ const SIGNAL_MEASURES = {
     browsLow: 'browInnerToOuter',
     browsRaised: 'browInnerToOuter',
     eyesWide: 'whiteAboveIris',
+    lidsDrooping: 'whiteAboveIris',
     lipsApart: 'lipGap',
     mouthWideOpen: 'lipGap',
     cornersUp: 'cornerLift',
@@ -159,6 +165,7 @@ const CALIBRATED_OFFSETS: Readonly<Partial<Record<Signal, ExpressionRange>>> = {
     // Opening the mouth alone lifts the brows and lids by up to ~0.09 / ~0.05.
     browsRaised: { rest: 0.06, full: 0.18 },
     eyesWide: { rest: 0.06, full: 0.15 },
+    lidsDrooping: { rest: -0.1, full: -0.3 },
     cornersUp: { rest: 0.02, full: 0.05 },
     cornersDown: { rest: -0.01, full: -0.035 },
 };
@@ -196,8 +203,8 @@ export function calibratedRanges(neutral: FaceExpressions, base: ExpressionRange
     return ranges;
 }
 
-export type Emotion = 'happy' | 'sad' | 'angry' | 'surprised';
-export const EMOTIONS: readonly Emotion[] = ['happy', 'sad', 'angry', 'surprised'];
+export type Emotion = 'happy' | 'sad' | 'angry' | 'surprised' | 'sleepy';
+export const EMOTIONS: readonly Emotion[] = ['happy', 'sad', 'angry', 'surprised', 'sleepy'];
 
 /** Below this, no emotion is strong enough and emotion reads 'neutral'. */
 export const EMOTION_THRESHOLD = 0.35;
@@ -348,6 +355,20 @@ export class FaceExpressions {
         return this.signal('eyesWide');
     }
 
+    /** 0 awake, 1 the upper lids well down over the irises, as when sleepy or closed (from the landmarks). */
+    public get lidsDrooping(): number {
+        return this.signal('lidsDrooping');
+    }
+
+    /**
+     * 0 when the lower lids and cheeks narrow the eyes (a squint, a smile), 1 when the upper lids
+     * do (sleepiness, closed eyes) - from MediaPipe's blink minus squint scores.
+     */
+    public get upperLidLeading(): number {
+        const range = this.ranges.upperLidLeading;
+        return range ? remap(this.both('eyeBlink') - this.both('eyeSquint'), range) : 0;
+    }
+
     /** 0 lips closed, 1 open (from the landmarks; also counts bared teeth, unlike mouthOpen). */
     public get lipsApart(): number {
         return this.signal('lipsApart');
@@ -402,7 +423,12 @@ export class FaceExpressions {
      */
     public get sad(): number {
         const browsUp = Math.max(this.score('browInnerUp'), this.browsRaised);
-        return browsUp * (1 - this.eyesWide) * this.notSmiling * this.facingAsNeutral * this.strength(this.cornersDown);
+        // Not smiling by either measure: a natural smile can lift the corners less than
+        // cornersUp needs while MediaPipe's smile score is already high. (Angry cannot use the
+        // smile score: MediaPipe reads a snarl as a smile.)
+        const notSmiling = Math.min(this.notSmiling, 1 - this.smile);
+        // Brows raised against heavy lids are sleepiness, not sadness.
+        return browsUp * (1 - this.eyesWide) * (1 - this.heavyLids) * notSmiling * this.facingAsNeutral * this.strength(this.cornersDown);
     }
 
     /**
@@ -419,6 +445,15 @@ export class FaceExpressions {
         return this.eyesWide * this.mouthBoost;
     }
 
+    /**
+     * Heavy upper lids - drooping over the irises, the upper lid leading rather than a squint's
+     * lower lid - without a smile; a yawn (the mouth open wide) makes it stronger. Closed eyes read
+     * as sleepy too, so a single frame of a blink does: smooth it over time before trusting it.
+     */
+    public get sleepy(): number {
+        return this.heavyLids * Math.min(this.notSmiling, 1 - this.smile) * (0.8 + 0.2 * this.mouthWideOpen);
+    }
+
     /** The strongest emotion, or 'neutral' when none reaches EMOTION_THRESHOLD. */
     public get emotion(): Emotion | 'neutral' {
         let strongest: Emotion | 'neutral' = 'neutral';
@@ -430,6 +465,10 @@ export class FaceExpressions {
             }
         }
         return strongest;
+    }
+
+    private get heavyLids(): number {
+        return this.lidsDrooping * this.upperLidLeading;
     }
 
     /** 1 down to half-open eyes (a squint still counts), 0 with the eyes closed. */

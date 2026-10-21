@@ -215,7 +215,7 @@ describe('FaceExpressions - emotions', () => {
 
         expect(talking.lipsApart).toBe(1);
         expect(talking.emotion).toBe('neutral');
-        for (const emotion of ['happy', 'sad', 'angry', 'surprised'] as const) {
+        for (const emotion of ['happy', 'sad', 'angry', 'surprised', 'sleepy'] as const) {
             expect(talking[emotion]).toBe(0);
         }
     });
@@ -236,6 +236,41 @@ describe('FaceExpressions - emotions', () => {
     });
 });
 
+describe('FaceExpressions - sleepy', () => {
+    // The upper lid leads in sleepiness (blink above squint), the lower lid in a squint or smile.
+    const heavyLids = { eyeBlinkLeft: 0.6, eyeBlinkRight: 0.6, eyeSquintLeft: 0.4, eyeSquintRight: 0.4 };
+    const squint = { eyeBlinkLeft: 0.4, eyeBlinkRight: 0.4, eyeSquintLeft: 0.66, eyeSquintRight: 0.66 };
+
+    it('should read heavy upper lids over the irises as sleepy', () => {
+        const sleepy = expressions(heavyLids, { whiteAboveIris: -0.5 });
+
+        expect(sleepy.lidsDrooping).toBe(1);
+        expect(sleepy.upperLidLeading).toBe(1);
+        expect(sleepy.sleepy).toBeCloseTo(0.8);
+        expect(sleepy.emotion).toBe('sleepy');
+    });
+
+    it('should not read a squint (lower lids up) as sleepy, however narrow the eyes', () => {
+        const face = expressions(squint, { whiteAboveIris: -0.35 });
+
+        expect(face.lidsDrooping).toBeGreaterThan(0.5);
+        expect(face.upperLidLeading).toBe(0);
+        expect(face.sleepy).toBe(0);
+    });
+
+    it('should read a yawn as fully sleepy, and not a smile', () => {
+        expect(expressions(heavyLids, { whiteAboveIris: -0.5, lipGap: 0.3 }).sleepy).toBeCloseTo(1);
+        expect(expressions({ ...heavyLids, mouthSmileLeft: 0.95, mouthSmileRight: 0.95 }, { whiteAboveIris: -0.5 }).sleepy).toBe(0);
+    });
+
+    it('should not read brows raised against heavy lids as sad', () => {
+        const fightingSleep = expressions({ ...heavyLids, browInnerUp: 0.6 }, { whiteAboveIris: -0.5 });
+
+        expect(fightingSleep.sad).toBe(0);
+        expect(fightingSleep.emotion).toBe('sleepy');
+    });
+});
+
 describe('FaceExpressions - gates', () => {
     it('should not read brows pulled down by closed eyes as angry', () => {
         const eyesClosed = expressions({ eyeBlinkLeft: 0.7, eyeBlinkRight: 0.7 }, { browInnerToOuter: 0.6 });
@@ -243,6 +278,13 @@ describe('FaceExpressions - gates', () => {
 
         expect(eyesClosed.angry).toBe(0);
         expect(squint.angry).toBeCloseTo(0.6);
+    });
+
+    it('should not read sad while MediaPipe scores a smile, even with the corners barely up', () => {
+        const naturalSmile = expressions({ mouthSmileLeft: 0.8, mouthSmileRight: 0.8, browInnerUp: 0.6 }, { cornerLift: 0.02 });
+
+        expect(naturalSmile.sad).toBeLessThan(0.15);
+        expect(naturalSmile.emotion).toBe('happy');
     });
 
     it('should read neither angry nor sad with the mouth corners up, and keep the smile', () => {

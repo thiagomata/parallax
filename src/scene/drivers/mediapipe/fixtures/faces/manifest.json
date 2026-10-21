@@ -743,15 +743,23 @@
     {
       "file": "grid-man-eyes-closed.jpg",
       "prompt": "cell 8 of a 3x3 grid of nine extreme expressions of the same person (adult man, medium skin tone, short dark hair), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: both eyes closed, relaxed face (cut from 3x3-man-2.png)",
-      "shows": "both eyes closed, relaxed face",
+      "shows": "both eyes closed, relaxed face - sleepy (closed eyes read as sleepy; the tutorial smooths it so blinks do not)",
       "generatorMismatch": [],
       "expect": {
-        "emotion": "neutral",
+        "emotion": "sleepy",
+        "sleepy": [
+          0.5,
+          1
+        ],
         "happy": [
           0,
           0.1
         ],
         "surprised": [
+          0,
+          0.1
+        ],
+        "angry": [
           0,
           0.1
         ]
@@ -946,15 +954,23 @@
     {
       "file": "grid-woman-eyes-closed.jpg",
       "prompt": "cell 8 of a 3x3 grid of nine extreme expressions of the same person (older woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: both eyes closed, relaxed face (cut from 3x3-old-woman-2.png)",
-      "shows": "both eyes closed, relaxed face",
+      "shows": "both eyes closed, relaxed face - sleepy (closed eyes read as sleepy; the tutorial smooths it so blinks do not)",
       "generatorMismatch": [],
       "expect": {
-        "emotion": "neutral",
+        "emotion": "sleepy",
+        "sleepy": [
+          0.5,
+          1
+        ],
         "happy": [
           0,
           0.1
         ],
         "surprised": [
+          0,
+          0.1
+        ],
+        "angry": [
           0,
           0.1
         ]
@@ -1149,15 +1165,23 @@
     {
       "file": "grid-young-woman-eyes-closed.jpg",
       "prompt": "cell 8 of a 3x3 grid of nine extreme expressions of the same person (young woman, fair skin, freckles, grey hair tied back), identical framing and light, looking at the camera (pitch:0 yaw:0 roll:0); this cell: both eyes closed, relaxed face (cut from Nine-Expression Studio Portrait Grid.png)",
-      "shows": "both eyes closed, relaxed face",
+      "shows": "both eyes closed, relaxed face - sleepy (closed eyes read as sleepy; the tutorial smooths it so blinks do not)",
       "generatorMismatch": [],
       "expect": {
-        "emotion": "neutral",
+        "emotion": "sleepy",
+        "sleepy": [
+          0.5,
+          1
+        ],
         "happy": [
           0,
           0.1
         ],
         "surprised": [
+          0,
+          0.1
+        ],
+        "angry": [
           0,
           0.1
         ]
@@ -1354,15 +1378,23 @@
     {
       "file": "grid-grey-hair-man-eyes-closed.jpg",
       "prompt": "cell 8 (cut from Nine-Panel Emotion Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an young man with dark skin,  and grey long hair back, no glasses. Every cell has the identical framing: head and shoulders, face centered and filling 40% of the cell, looking directly at the camera (pitch:0 yaw:0 roll:0), eye level, the same soft even daylight and the same plain light-grey background. Only the facial expression changes, each one extreme and exaggerated. Top row, left to right: completely neutral relaxed face; huge open smile showing teeth; deeply sad face with inner eyebrows raised and mouth corners pulled down. Middle row: furious angry face with eyebrows pulled down hard and together, eyes narrowed, lips pressed; shocked surprised face with eyebrows raised high, eyes wide open, mouth open in an O; disgusted face with nose wrinkled and upper lip raised. Bottom row: terrified face with eyes wide, eyebrows raised and drawn together, mouth stretched open; both eyes fully closed with a relaxed face; mouth wide open as if shouting \"ah\" with neutral eyes. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
-      "shows": "both eyes closed, relaxed face",
+      "shows": "both eyes closed, relaxed face - sleepy (closed eyes read as sleepy; the tutorial smooths it so blinks do not)",
       "generatorMismatch": [],
       "expect": {
-        "emotion": "neutral",
+        "emotion": "sleepy",
+        "sleepy": [
+          0.5,
+          1
+        ],
         "happy": [
           0,
           0.1
         ],
         "surprised": [
+          0,
+          0.1
+        ],
+        "angry": [
           0,
           0.1
         ]
@@ -1386,6 +1418,139 @@
         "surprised": [
           0,
           0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-sleepy-woman-awake.jpg",
+      "prompt": "cell 1 (cut from Nine Expressions Studio Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an adult woman with medium skin tone, short curly dark hair, no glasses, looking at the camera (pitch:0 yaw:0 roll:0), identical framing, face filling 40% of the cell, the same soft even daylight and plain light-grey background. Only the expression changes. Top row, left to right: fully awake neutral face with eyes wide open; slightly tired face with heavy eyelids a quarter closed; sleepy face with eyelids half closed and brows slightly raised. Middle row: very sleepy face with eyelids almost closed, relaxed mouth; yawning with mouth wide open and eyes squeezed shut; eyes fully closed, relaxed. Bottom row: small closed smile; big smile with squinting eyes; mild squint as if in bright light. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "fully awake, eyes wide open, neutral",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "sleepy": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-sleepy-woman-tired.jpg",
+      "prompt": "cell 2 (cut from Nine Expressions Studio Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an adult woman with medium skin tone, short curly dark hair, no glasses, looking at the camera (pitch:0 yaw:0 roll:0), identical framing, face filling 40% of the cell, the same soft even daylight and plain light-grey background. Only the expression changes. Top row, left to right: fully awake neutral face with eyes wide open; slightly tired face with heavy eyelids a quarter closed; sleepy face with eyelids half closed and brows slightly raised. Middle row: very sleepy face with eyelids almost closed, relaxed mouth; yawning with mouth wide open and eyes squeezed shut; eyes fully closed, relaxed. Bottom row: small closed smile; big smile with squinting eyes; mild squint as if in bright light. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "slightly tired, lids a quarter closed - reads neutral, not yet sleepy",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "sleepy": [
+          0,
+          0.2
+        ]
+      }
+    },
+    {
+      "file": "grid-sleepy-woman-sleepy.jpg",
+      "prompt": "cell 3 (cut from Nine Expressions Studio Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an adult woman with medium skin tone, short curly dark hair, no glasses, looking at the camera (pitch:0 yaw:0 roll:0), identical framing, face filling 40% of the cell, the same soft even daylight and plain light-grey background. Only the expression changes. Top row, left to right: fully awake neutral face with eyes wide open; slightly tired face with heavy eyelids a quarter closed; sleepy face with eyelids half closed and brows slightly raised. Middle row: very sleepy face with eyelids almost closed, relaxed mouth; yawning with mouth wide open and eyes squeezed shut; eyes fully closed, relaxed. Bottom row: small closed smile; big smile with squinting eyes; mild squint as if in bright light. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "sleepy, lids half closed, brows slightly raised against them",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "sleepy",
+        "sleepy": [
+          0.35,
+          0.7
+        ],
+        "sad": [
+          0,
+          0.3
+        ]
+      }
+    },
+    {
+      "file": "grid-sleepy-woman-very-sleepy.jpg",
+      "prompt": "cell 4 (cut from Nine Expressions Studio Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an adult woman with medium skin tone, short curly dark hair, no glasses, looking at the camera (pitch:0 yaw:0 roll:0), identical framing, face filling 40% of the cell, the same soft even daylight and plain light-grey background. Only the expression changes. Top row, left to right: fully awake neutral face with eyes wide open; slightly tired face with heavy eyelids a quarter closed; sleepy face with eyelids half closed and brows slightly raised. Middle row: very sleepy face with eyelids almost closed, relaxed mouth; yawning with mouth wide open and eyes squeezed shut; eyes fully closed, relaxed. Bottom row: small closed smile; big smile with squinting eyes; mild squint as if in bright light. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "very sleepy, lids almost closed",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "sleepy",
+        "sleepy": [
+          0.6,
+          1
+        ]
+      }
+    },
+    {
+      "file": "grid-sleepy-woman-yawn.jpg",
+      "prompt": "cell 5 (cut from Nine Expressions Studio Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an adult woman with medium skin tone, short curly dark hair, no glasses, looking at the camera (pitch:0 yaw:0 roll:0), identical framing, face filling 40% of the cell, the same soft even daylight and plain light-grey background. Only the expression changes. Top row, left to right: fully awake neutral face with eyes wide open; slightly tired face with heavy eyelids a quarter closed; sleepy face with eyelids half closed and brows slightly raised. Middle row: very sleepy face with eyelids almost closed, relaxed mouth; yawning with mouth wide open and eyes squeezed shut; eyes fully closed, relaxed. Bottom row: small closed smile; big smile with squinting eyes; mild squint as if in bright light. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "yawning, mouth wide open, eyes squeezed shut",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "sleepy",
+        "sleepy": [
+          0.8,
+          1
+        ],
+        "happy": [
+          0,
+          0.1
+        ],
+        "surprised": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-sleepy-woman-eyes-closed.jpg",
+      "prompt": "cell 6 (cut from Nine Expressions Studio Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an adult woman with medium skin tone, short curly dark hair, no glasses, looking at the camera (pitch:0 yaw:0 roll:0), identical framing, face filling 40% of the cell, the same soft even daylight and plain light-grey background. Only the expression changes. Top row, left to right: fully awake neutral face with eyes wide open; slightly tired face with heavy eyelids a quarter closed; sleepy face with eyelids half closed and brows slightly raised. Middle row: very sleepy face with eyelids almost closed, relaxed mouth; yawning with mouth wide open and eyes squeezed shut; eyes fully closed, relaxed. Bottom row: small closed smile; big smile with squinting eyes; mild squint as if in bright light. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "eyes fully closed, relaxed",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "sleepy",
+        "sleepy": [
+          0.5,
+          1
+        ]
+      }
+    },
+    {
+      "file": "grid-sleepy-woman-small-smile.jpg",
+      "prompt": "cell 7 (cut from Nine Expressions Studio Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an adult woman with medium skin tone, short curly dark hair, no glasses, looking at the camera (pitch:0 yaw:0 roll:0), identical framing, face filling 40% of the cell, the same soft even daylight and plain light-grey background. Only the expression changes. Top row, left to right: fully awake neutral face with eyes wide open; slightly tired face with heavy eyelids a quarter closed; sleepy face with eyelids half closed and brows slightly raised. Middle row: very sleepy face with eyelids almost closed, relaxed mouth; yawning with mouth wide open and eyes squeezed shut; eyes fully closed, relaxed. Bottom row: small closed smile; big smile with squinting eyes; mild squint as if in bright light. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "small closed smile",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "happy",
+        "sleepy": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-sleepy-woman-big-smile-squint.jpg",
+      "prompt": "cell 8 (cut from Nine Expressions Studio Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an adult woman with medium skin tone, short curly dark hair, no glasses, looking at the camera (pitch:0 yaw:0 roll:0), identical framing, face filling 40% of the cell, the same soft even daylight and plain light-grey background. Only the expression changes. Top row, left to right: fully awake neutral face with eyes wide open; slightly tired face with heavy eyelids a quarter closed; sleepy face with eyelids half closed and brows slightly raised. Middle row: very sleepy face with eyelids almost closed, relaxed mouth; yawning with mouth wide open and eyes squeezed shut; eyes fully closed, relaxed. Bottom row: small closed smile; big smile with squinting eyes; mild squint as if in bright light. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "big smile with squinting eyes - the lower lids narrow the eyes, not sleepy",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "happy",
+        "sleepy": [
+          0,
+          0.1
+        ]
+      }
+    },
+    {
+      "file": "grid-sleepy-woman-squint.jpg",
+      "prompt": "cell 9 (cut from Nine Expressions Studio Portrait Grid.png) of: A 3×3 grid of nine square portrait photos of the same person, an adult woman with medium skin tone, short curly dark hair, no glasses, looking at the camera (pitch:0 yaw:0 roll:0), identical framing, face filling 40% of the cell, the same soft even daylight and plain light-grey background. Only the expression changes. Top row, left to right: fully awake neutral face with eyes wide open; slightly tired face with heavy eyelids a quarter closed; sleepy face with eyelids half closed and brows slightly raised. Middle row: very sleepy face with eyelids almost closed, relaxed mouth; yawning with mouth wide open and eyes squeezed shut; eyes fully closed, relaxed. Bottom row: small closed smile; big smile with squinting eyes; mild squint as if in bright light. Thin white gaps between cells, no text, no labels, photorealistic, high detail faces, 4k.",
+      "shows": "mild squint as in bright light - the lower lids narrow the eyes, not sleepy",
+      "generatorMismatch": [],
+      "expect": {
+        "emotion": "neutral",
+        "sleepy": [
+          0,
+          0.1
+        ],
+        "angry": [
+          0,
+          0.2
         ]
       }
     }

@@ -27,6 +27,7 @@ export default defineConfig({
                 'docs/tutorial/tutorial-9': './docs/tutorial/tutorial-9/index.html',
                 'docs/tutorial/tutorial-10': './docs/tutorial/tutorial-10/index.html',
                 'docs/tutorial/tutorial-11': './docs/tutorial/tutorial-11/index.html',
+                'docs/tutorial/tutorial-12': './docs/tutorial/tutorial-12/index.html',
             }
         }
     },

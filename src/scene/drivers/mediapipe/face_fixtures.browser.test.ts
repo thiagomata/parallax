@@ -25,6 +25,7 @@ interface FaceFixture {
         sad?: Band;
         angry?: Band;
         surprised?: Band;
+        sleepy?: Band;
         faceWidth?: Band;
         centerX?: Band;
         yaw?: Band;
@@ -95,6 +96,7 @@ const BAND_READERS: Record<string, (reading: Reading) => number> = {
     sad: reading => reading.expressions.sad,
     angry: reading => reading.expressions.angry,
     surprised: reading => reading.expressions.surprised,
+    sleepy: reading => reading.expressions.sleepy,
     faceWidth: reading => reading.faceWidth,
     centerX: reading => reading.centerX,
     yaw: reading => reading.yaw,

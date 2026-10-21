@@ -27,7 +27,7 @@ describe("tutorial_nav", () => {
         expect(links).toHaveLength(2);
         expect(links[0].getAttribute("href")).toBe("../index.html");
         expect(links[1].getAttribute("href")).toBe("../tutorial-2/index.html");
-        expect(nav!.textContent).toContain("1 / 11");
+        expect(nav!.textContent).toContain("1 / 12");
     });
 
     it("creates nav for middle tutorial (shows prev and next)", async () => {
@@ -49,7 +49,7 @@ describe("tutorial_nav", () => {
 
     it("creates nav for last tutorial (shows prev only)", async () => {
         vi.stubGlobal("window", {
-            location: new URL("http://localhost/tutorial-11/index.html"),
+            location: new URL("http://localhost/tutorial-12/index.html"),
         });
         document.body.innerHTML = "";
 
@@ -60,11 +60,11 @@ describe("tutorial_nav", () => {
         expect(nav).toBeTruthy();
         const links = nav!.querySelectorAll(":scope > a"); // the ‹ › arrows
         expect(links).toHaveLength(2);
-        expect(links[0].getAttribute("href")).toBe("../tutorial-10/index.html");
+        expect(links[0].getAttribute("href")).toBe("../tutorial-11/index.html");
         expect(links[1].getAttribute("href")).toBe("../index.html");
     });
 
-    it("lists every tutorial in the N / 11 menu, marking the current one", async () => {
+    it("lists every tutorial in the N / 12 menu, marking the current one", async () => {
         vi.stubGlobal("window", {
             location: new URL("http://localhost/tutorial-5/index.html"),
         });
@@ -74,9 +74,9 @@ describe("tutorial_nav", () => {
         initTutorialNav();
 
         const menu = document.querySelector("nav.tutorial-nav details.tutorial-menu")!;
-        expect(menu.querySelector("summary")!.textContent).toContain("5 / 11");
+        expect(menu.querySelector("summary")!.textContent).toContain("5 / 12");
         const items = [...menu.querySelectorAll("li:not(.tutorial-menu-all) a")];
-        expect(items).toHaveLength(11);
+        expect(items).toHaveLength(12);
         expect(items[0].getAttribute("href")).toBe("../tutorial-1/index.html");
         expect(items[0].textContent).toBe("1. Adding Elements");
         expect(items[4].getAttribute("aria-current")).toBe("page");
@@ -117,6 +117,6 @@ describe("tutorial_nav", () => {
 
         const navs = document.querySelectorAll("nav.tutorial-nav");
         expect(navs).toHaveLength(1);
-        expect(navs[0].textContent).toContain("2 / 11");
+        expect(navs[0].textContent).toContain("2 / 12");
     });
 });
