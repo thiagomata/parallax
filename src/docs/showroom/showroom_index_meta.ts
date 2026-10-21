@@ -13,13 +13,13 @@ export const SHOWROOM: ShowroomScene[] = [
         title: '✈️ Airplane Flight',
         description: 'Steer a small airplane through the clouds with your head.',
         path: './airplane/index.html',
-        image: '../../img/loading/airplane.jpg',
+        image: '../../img/showroom/airplane.jpg',
     },
     {
         id: 'emotion-game',
         title: '😃 Emotion Game',
         description: 'Make the face the game asks for - your emoji copies you.',
         path: './emotion-game/index.html',
-        image: '../../img/loading/emotion-game.jpg',
+        image: '../../img/showroom/emotion-game.jpg',
     },
 ];
