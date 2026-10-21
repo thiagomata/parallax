@@ -1,0 +1,470 @@
+import p5 from 'p5';
+import { World } from "../../scene/world.ts";
+import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
+import { SceneClock } from "../../scene/scene_clock.ts";
+import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, type CarModifier, type ColorRGBA, type Vector3} from "../../scene/types.ts";
+import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "../tutorial/sketch_config.ts";
+import type { P5SketchExtraArgs } from "../tutorial/sketch_engine.types.ts";
+import { WorldSettings } from "../../scene/world_settings.ts";
+import { HEAD_TRACKED_PRESET } from "../../scene/presets.ts";
+
+/**
+ * SHOWROOM: Airplane Flight
+ *
+ * A small airplane flying between cubes over the ocean. Steer with the mouse (or the arrow
+ * keys): left / right turns, up / down dives and climbs. No head tracking for now.
+ *
+ * Everything lives in plain world coordinates (p5 WEBGL: +x right, +y DOWN, -z ahead at the
+ * start). The cubes and the ocean never move. The airplane flies through the world along
+ * its nose, and the camera sits behind and above its tail.
+ *
+ * HOW TO READ THIS FILE
+ *   1. World and camera rig
+ *   2. Flight ........ steering, the airplane's motion, the chase camera (once per frame)
+ *   3. Airplane ...... an invisible parent box with its parts as children
+ *   4. Cubes ......... fixed in the world, repeating every 6000 so the sky never runs out
+ *   5. Ocean
+ *   6. Canvas, input and draw loop
+ */
+export const airplaneFlightExplanation = `
+<p>A small airplane flying between cubes over the ocean. Move the pointer over the canvas to steer: left / right to turn, down to dive and up to climb. The arrow keys steer too.</p>
+`;
+
+export async function airplaneFlight(
+    p: p5,
+    config: SketchConfig = DEFAULT_SKETCH_CONFIG,
+    extraArgs?: P5SketchExtraArgs,
+): Promise<World<P5Bundler, any, any, {}>> {
+    const clock = config.clock ?? new SceneClock({
+        ...DEFAULT_SCENE_SETTINGS,
+        startPaused: config.paused,
+        debug: false,
+        playback: {
+            ...DEFAULT_SCENE_SETTINGS.playback,
+            duration: 10000,
+            isLoop: true
+        },
+    });
+
+    const loader = new P5AssetLoader(p);
+    const world = new World<P5Bundler, any, any, {}>(
+        WorldSettings.fromLibs({ clock, loader })
+    );
+
+    // ── 1. World and camera rig ────────────────────────────────────────────────────
+
+    world.startLoading();
+    // Plain perspective, not off-axis: the off-axis frustum is built from the eye-to-screen
+    // offset in world axes, so once the camera turns with the airplane it reads that as a
+    // sideways lean and skews the whole view.
+    world.enableDefaultPerspective(config.width, config.height, Math.PI / 4, false);
+
+    if (config.paused) {
+        world.pause();
+    }
+
+    // The hero's camera rig: a 'head', an 'eye' 100 behind it and a 'screen' 100 in front,
+    // both turned with the head. ROTATION mode, so the head's yaw turns the view.
+    world.loadPreset({
+        ...HEAD_TRACKED_PRESET,
+        projectors: HEAD_TRACKED_PRESET.projectors.map(projector =>
+            projector.id === 'head'
+                ? {
+                    id: projector.id,
+                    type: projector.type,
+                    position: projector.position,
+                    direction: projector.direction,
+                    lookMode: LOOK_MODES.ROTATION,
+                    rotation: { yaw: 0, pitch: 0, roll: 0 },
+                }
+                : projector
+        ),
+    });
+
+    // ── 2. Flight ───────────────────────────────────────────────────────────────────
+    // Steering: the pointer's offset from the canvas center (-1..1 each way), plus the
+    // arrow keys (full steering while held).
+    //   - left / right: turn rate, up to 0.7 rad/s at the edge (a full turn in ~9 s),
+    //     banking up to 1 rad (~57deg);
+    //   - up / down: pitch rate, up to 0.8 rad/s at the edge - pointer high pulls the nose
+    //     up and keeps pulling, so holding it flies a full loop (~8 s); pointer low pushes
+    //     it down. Nothing levels it for you: bring the pointer back to the middle (a small
+    //     dead zone there) to hold the nose where it is.
+    // Steering eases in over ~0.3 s, so the airplane answers like something with weight.
+    // The airplane flies 500 units per second along its nose.
+    //
+    // Angles: `heading` uses the camera rig's convention (positive turns RIGHT). p5's rotateY
+    // turns the other way, so the airplane is drawn with yaw = -heading. Pitch is p5's: a
+    // positive pitch points the nose down (+y), so it dives; it isn't wrapped, so past
+    // +-PI/2 the airplane is upside down, and a loop adds 2 PI. Upside down (cos pitch < 0)
+    // the heading turns the other way for the same steer, so "right" stays the pilot's right.
+    //
+    // The camera has weight. It eases (~0.5 s) toward a spot 400 behind the airplane along
+    // its nose and 70 above it (the camera's own up), and looks along its own view - heading
+    // trailing the airplane's by ~0.4 s, pitch by ~0.6 s. So when the nose comes up, that
+    // spot swings down behind the airplane and the camera takes a moment to sink into it:
+    // the airplane rises on screen, then the view tilts up after it - close to what the
+    // pilot sees. The camera pitches all the way round with the airplane (its up vector is
+    // set each frame, so a loop turns the view over), but never banks with it in a turn, so
+    // the horizon stays level there.
+    //
+    // Sea level is y 0 (+y is down, so the sky is negative y). The airplane starts 1000
+    // above it; below 10 it's in the water, and starts again 1000 up.
+    const pressedKeys: Record<string, boolean> = {};
+    const pointer = { x: 0, y: 0 };
+    const startHeight = -1000;
+    const flight = {
+        lastNow: -1,
+        position: { x: 0, y: startHeight, z: 0 } as Vector3,
+        heading: 0,
+        pitch: 0,
+        bank: 0,
+        steer: { x: 0, y: 0 },
+        camera: { heading: 0, pitch: 0, position: null as Vector3 | null },
+        splashUntil: -1,
+    };
+    const clamp = (value: number, max: number) => Math.max(-max, Math.min(max, value));
+    // The unit direction for a heading (camera convention, positive = right) and a p5 pitch
+    // (positive = down) - the airplane's nose, or the camera's view.
+    const viewDirection = (heading: number, pitch: number): Vector3 => ({
+        x: Math.sin(heading) * Math.cos(pitch),
+        y: Math.sin(pitch),
+        z: -Math.cos(heading) * Math.cos(pitch),
+    });
+    // The camera's up, in world space: the airplane's local up (0, -1, 0) through p5's
+    // rotateY(-heading), rotateX(pitch) at the camera's heading and pitch - (0, -1, 0) when
+    // level, pointing back when it looks straight up, world down when upside down.
+    const cameraUp = (): Vector3 => {
+        const { heading, pitch } = flight.camera;
+        return {
+            x: Math.sin(pitch) * Math.sin(heading),
+            y: -Math.cos(pitch),
+            z: -Math.sin(pitch) * Math.cos(heading),
+        };
+    };
+    // The rig's rotation that looks along a direction. The rig turns its view by yaw, then
+    // pitches it about the WORLD x axis (src/scene/utils/projection_utils.ts rotateVector) -
+    // so plain (heading, pitch) would twist once the view has turned. Solving rotateVector's
+    // forward vector (sin yaw, cos yaw sin pitch, -cos yaw cos pitch) = direction gives:
+    const rigRotation = (direction: Vector3) => ({
+        yaw: Math.asin(clamp(direction.x, 1)),
+        pitch: Math.atan2(direction.y, -direction.z),
+        roll: 0,
+    });
+
+    const updateFlight = (now: number) => {
+        if (now === flight.lastNow) return;
+        const dt = flight.lastNow < 0 ? 0 : Math.min(100, Math.max(0, now - flight.lastNow));
+        flight.lastNow = now;
+
+        // Steering in -1..1, eased over ~0.3 s.
+        const keyX = (pressedKeys.ArrowRight ? 1 : 0) - (pressedKeys.ArrowLeft ? 1 : 0);
+        const keyY = (pressedKeys.ArrowDown ? 1 : 0) - (pressedKeys.ArrowUp ? 1 : 0);
+        const ease = 1 - Math.exp(-dt / 300);
+        const deadZone = (value: number) => Math.abs(value) < 0.1 ? 0 : value;
+        flight.steer.x += (clamp(pointer.x + keyX, 1) - flight.steer.x) * ease;
+        flight.steer.y += (clamp(deadZone(pointer.y) + keyY, 1) - flight.steer.y) * ease;
+
+        const upright = Math.cos(flight.pitch) >= 0 ? 1 : -1;
+        flight.heading += flight.steer.x * 0.0007 * dt * upright;
+        flight.pitch += flight.steer.y * 0.0008 * dt;
+        flight.bank = flight.steer.x * 1.0;
+
+        // Forward along the nose, 500 units per second.
+        const nose = viewDirection(flight.heading, flight.pitch);
+        const speed = 0.5 * dt;
+        flight.position = {
+            x: flight.position.x + nose.x * speed,
+            y: flight.position.y + nose.y * speed,
+            z: flight.position.z + nose.z * speed,
+        };
+        if (flight.position.y > -10) {
+            flight.position = { ...flight.position, y: startHeight };
+            flight.pitch = 0;
+            flight.camera.pitch = 0;
+            flight.splashUntil = now + 2500;
+        }
+
+        const camera = flight.camera;
+        camera.heading += (flight.heading - camera.heading) * (1 - Math.exp(-dt / 400));
+        camera.pitch += (flight.pitch - camera.pitch) * (1 - Math.exp(-dt / 600));
+        const up = cameraUp();
+        const target = {
+            x: flight.position.x - nose.x * 400 + up.x * 70,
+            y: flight.position.y - nose.y * 400 + up.y * 70,
+            z: flight.position.z - nose.z * 400 + up.z * 70,
+        };
+        const follow = 1 - Math.exp(-dt / 500);
+        camera.position = camera.position === null ? target : {
+            x: camera.position.x + (target.x - camera.position.x) * follow,
+            y: camera.position.y + (target.y - camera.position.y) * follow,
+            z: camera.position.z + (target.z - camera.position.z) * follow,
+        };
+    };
+
+    let canvasElement: HTMLElement | undefined;
+    let lastStatus = '';
+    const announceStatus = (message: string) => {
+        if (message === lastStatus) return;
+        lastStatus = message;
+        canvasElement?.dispatchEvent(new CustomEvent('observerstatus', { bubbles: true, detail: message }));
+    };
+    // Runs once per frame, before anything is drawn: moves the airplane and the camera, then
+    // places the rig's head at the camera (the eye is another 100 behind it).
+    const chaseCamera: CarModifier = {
+        name: 'Airplane chase camera',
+        active: true,
+        priority: 10,
+        requiredDataProviders: [],
+        tick: () => {},
+        getCarPosition: (_position, context) => {
+            const now = context.playback.now;
+            updateFlight(now);
+            announceStatus(now < flight.splashUntil
+                ? 'Splash! You hit the water - flying again from the top.'
+                : 'Move the mouse to steer the airplane.');
+            return {
+                success: true,
+                value: {
+                    name: 'Airplane chase camera',
+                    position: flight.camera.position ?? flight.position,
+                    rotation: rigRotation(viewDirection(flight.camera.heading, flight.camera.pitch)),
+                },
+            };
+        },
+    };
+    world.addModifierToProjection('head', chaseCamera, 'car');
+
+    // ── 3. Airplane ─────────────────────────────────────────────────────────────────
+    // The parent is an invisible box (no fill, no stroke) carrying the airplane's position
+    // and attitude; every part is its child, in the airplane's own coordinates: nose toward
+    // -z, wings along x, up is -y.
+    world.addBox({
+        id: 'airplane',
+        type: ELEMENT_TYPES.BOX,
+        width: 1,
+        position: () => flight.position,
+        rotate: () => ({ yaw: -flight.heading, pitch: flight.pitch, roll: flight.bank }),
+    });
+
+    const red = { red: 214, green: 48, blue: 49 } as ColorRGBA;
+    const cream = { red: 245, green: 238, blue: 220 } as ColorRGBA;
+    const dark = { red: 45, green: 52, blue: 54 } as ColorRGBA;
+
+    world.addElliptical({
+        id: 'airplane-fuselage',
+        type: ELEMENT_TYPES.ELLIPTICAL,
+        parentId: 'airplane',
+        rx: 11,
+        ry: 11,
+        rz: 46,
+        position: { x: 0, y: 0, z: 0 },
+        fillColor: red,
+    });
+    world.addSphere({
+        id: 'airplane-cockpit',
+        type: ELEMENT_TYPES.SPHERE,
+        parentId: 'airplane',
+        radius: 8,
+        position: { x: 0, y: -8, z: -10 },
+        fillColor: { red: 129, green: 236, blue: 236 } as ColorRGBA,
+    });
+    world.addBox({
+        id: 'airplane-wings',
+        type: ELEMENT_TYPES.BOX,
+        parentId: 'airplane',
+        width: 130,
+        height: 3,
+        depth: 24,
+        position: { x: 0, y: 3, z: -6 },
+        fillColor: cream,
+    });
+    world.addBox({
+        id: 'airplane-tailplane',
+        type: ELEMENT_TYPES.BOX,
+        parentId: 'airplane',
+        width: 48,
+        height: 3,
+        depth: 12,
+        position: { x: 0, y: -2, z: 38 },
+        fillColor: cream,
+    });
+    world.addBox({
+        id: 'airplane-fin',
+        type: ELEMENT_TYPES.BOX,
+        parentId: 'airplane',
+        width: 3,
+        height: 22,
+        depth: 16,
+        position: { x: 0, y: -13, z: 38 },
+        fillColor: red,
+    });
+    world.addSphere({
+        id: 'airplane-spinner',
+        type: ELEMENT_TYPES.SPHERE,
+        parentId: 'airplane',
+        radius: 5,
+        position: { x: 0, y: 0, z: -46 },
+        fillColor: dark,
+    });
+    // The propeller spins on the scene clock (~4 turns per second).
+    world.addBox({
+        id: 'airplane-propeller',
+        type: ELEMENT_TYPES.BOX,
+        parentId: 'airplane',
+        width: 44,
+        height: 4,
+        depth: 2,
+        position: { x: 0, y: 0, z: -50 },
+        rotate: context => ({ yaw: 0, pitch: 0, roll: context.playback.now * 0.025 }),
+        fillColor: dark,
+    });
+    // Wing-tip lights: red on the left, green on the right.
+    world.addSphere({
+        id: 'airplane-light-left',
+        type: ELEMENT_TYPES.SPHERE,
+        parentId: 'airplane',
+        radius: 3,
+        position: { x: -66, y: 3, z: -6 },
+        fillColor: { red: 255, green: 40, blue: 40 } as ColorRGBA,
+    });
+    world.addSphere({
+        id: 'airplane-light-right',
+        type: ELEMENT_TYPES.SPHERE,
+        parentId: 'airplane',
+        radius: 3,
+        position: { x: 66, y: 3, z: -6 },
+        fillColor: { red: 40, green: 255, blue: 80 } as ColorRGBA,
+    });
+
+    // ── 4. Cubes ────────────────────────────────────────────────────────────────────
+    // Fixed in the world. The world repeats every 6000 in x and z, and each cube is drawn at
+    // its copy nearest the airplane - so wherever you fly there are cubes around you. A cube
+    // switches copies only once it's 3000 away, where the haze has already turned it the sky
+    // colour, so you never see one jump.
+    const skyColor = { red: 150, green: 200, blue: 240 } as ColorRGBA;
+    const cubeColor = { red: 250, green: 250, blue: 250 } as ColorRGBA;
+    const tile = 6000;
+    const nearestCopy = (value: number, center: number) =>
+        center + ((((value - center + tile / 2) % tile) + tile) % tile) - tile / 2;
+    // x / z within one 6000 tile, height above the sea, size.
+    const cubes = [
+        { x: -400, z: -900, height: 1050, size: 160 },
+        { x: 500, z: -1500, height: 900, size: 220 },
+        { x: -1200, z: -2100, height: 1250, size: 180 },
+        { x: 1300, z: -600, height: 1150, size: 140 },
+        { x: 200, z: -2700, height: 700, size: 260 },
+        { x: -2200, z: -1300, height: 950, size: 200 },
+        { x: 2300, z: -2000, height: 1400, size: 240 },
+        { x: -700, z: 1200, height: 800, size: 150 },
+        { x: 900, z: 2100, height: 1300, size: 210 },
+        { x: -1900, z: 2500, height: 600, size: 190 },
+        { x: 2600, z: 900, height: 1000, size: 170 },
+        { x: -2800, z: 300, height: 1500, size: 230 },
+        { x: 100, z: 600, height: 1600, size: 180 },
+        { x: 1700, z: 2800, height: 750, size: 250 },
+        { x: -1500, z: -2900, height: 1100, size: 160 },
+        { x: 2900, z: -2800, height: 850, size: 200 },
+        { x: -2500, z: -2400, height: 1300, size: 140 },
+        { x: 1100, z: -2400, height: 500, size: 220 },
+        { x: -300, z: 2800, height: 1200, size: 180 },
+        { x: 2000, z: 200, height: 650, size: 160 },
+        { x: -900, z: -300, height: 1450, size: 200 },
+        { x: 700, z: 1300, height: 950, size: 140 },
+        { x: -2300, z: 1600, height: 1150, size: 240 },
+        { x: 2400, z: 1900, height: 1700, size: 190 },
+    ];
+    cubes.forEach((cube, index) => {
+        const position = (): Vector3 => ({
+            x: nearestCopy(cube.x, flight.position.x),
+            y: -cube.height,
+            z: nearestCopy(cube.z, flight.position.z),
+        });
+        world.addBox({
+            id: `cube-${index}`,
+            type: ELEMENT_TYPES.BOX,
+            width: cube.size,
+            position,
+            // Haze: white up close, the sky colour from 3000 away.
+            fillColor: () => {
+                const { x, y, z } = position();
+                const distance = Math.hypot(x - flight.position.x, y - flight.position.y, z - flight.position.z);
+                const haze = Math.min(1, distance / 3000);
+                const blend = (from: number, to: number) => Math.round(from + (to - from) * haze);
+                return { red: blend(cubeColor.red, skyColor.red), green: blend(cubeColor.green, skyColor.green), blue: blend(cubeColor.blue, skyColor.blue) } as ColorRGBA;
+            },
+        });
+    });
+
+    // ── 5. Ocean ────────────────────────────────────────────────────────────────────
+    // At sea level (y 0), kept centered under the airplane so it never ends - flat and one
+    // colour, so sliding it along is invisible. 40000 across, so its far edge sits just
+    // under the horizon.
+    world.addFloor({
+        id: 'ocean',
+        type: ELEMENT_TYPES.FLOOR,
+        width: 40000,
+        depth: 40000,
+        position: () => ({ x: flight.position.x, y: 0, z: flight.position.z }),
+        fillColor: { red: 70, green: 130, blue: 190 } as ColorRGBA,
+    });
+
+    // ── 6. Canvas, input and draw loop ──────────────────────────────────────────────
+
+    let gp: P5GraphicProcessor;
+
+    // The pointer's offset from the canvas center, -1..1 each way.
+    p.setup = () => {
+        const canvas = p.createCanvas(config.width, config.height, p.WEBGL);
+        canvasElement = canvas?.elt;
+        canvasElement?.addEventListener('pointermove', event => {
+            const bounds = canvasElement!.getBoundingClientRect();
+            const pointerEvent = event as PointerEvent;
+            pointer.x = clamp(((pointerEvent.clientX - bounds.left) / bounds.width - 0.5) * 2, 1);
+            pointer.y = clamp(((pointerEvent.clientY - bounds.top) / bounds.height - 0.5) * 2, 1);
+        });
+    };
+
+    world.complete();
+
+    // Keyboard: arrow keys held right now (read each frame in section 2). Keys typed into text
+    // fields - like the Code tab editor - are ignored.
+    const isTyping = (event: KeyboardEvent) => {
+        const target = event.target as HTMLElement | null;
+        return !!target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+    };
+    window.addEventListener('keydown', (event: KeyboardEvent) => {
+        if (isTyping(event)) return;
+        if (event.key.startsWith('Arrow')) event.preventDefault();
+        pressedKeys[event.key] = true;
+    });
+    window.addEventListener('keyup', (event: KeyboardEvent) => {
+        pressedKeys[event.key] = false;
+    });
+
+    p.draw = async () => {
+        if (config.paused && !world.isPaused()) {
+            world.pause();
+        } else if (!config.paused && world.isPaused()) {
+            world.resume();
+        }
+
+        p.background(skyColor.red, skyColor.green, skyColor.blue);
+        // Daylight: mostly ambient, plus a sun from above, so every face is shaded by how
+        // it's turned - what shows the cubes' and the airplane's shapes.
+        p.ambientLight(190);
+        p.directionalLight(90, 90, 85, 0.3, 1, -0.6);
+        if (gp) {
+            // p5's camera takes "up" as the screen-down direction - the opposite of ours.
+            const up = cameraUp();
+            gp.cameraUp = { x: -up.x, y: -up.y, z: -up.z };
+            const result = await world.step(gp);
+            if (!result.running) return;
+        }
+    };
+
+    gp = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
+
+    return world;
+}
