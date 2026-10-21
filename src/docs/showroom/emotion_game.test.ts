@@ -1,6 +1,6 @@
 import {describe, expect, it, vi} from 'vitest';
 import {
-    emotionGame, emotionGameExplanation, EmotionGame, GAME_TARGETS, matchesTarget, collageLayout, shareText, postIntentUrl,
+    emotionGame, emotionGameExplanation, EmotionGame, GAME_TARGETS, matchesTarget, collageLayout, shareText, postIntentUrl, emojiFollowPosition,
 } from './emotion_game.ts';
 import {faceShape} from './emoji_face.ts';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
@@ -34,6 +34,29 @@ describe('Emotion game: matching the target', () => {
             expect(matchesTarget(emotion, { ...neutral, [emotion]: 0.7 })).toBe(true);
             expect(matchesTarget(emotion, neutral)).toBe(false);
         }
+    });
+});
+
+describe('Emotion game: the emoji follows the head', () => {
+    const home = { x: 400, y: 0, z: 300 };
+    const faceAt = (x: number, y: number) => ({ worldPosition: { x, y, z: 0 } });
+
+    it('stays put when there is no face', () => {
+        expect(emojiFollowPosition(null, home)).toEqual(home);
+    });
+
+    it('leans with the face, a fraction at a time', () => {
+        // The face is off the middle of the frame: the emoji follows it a quarter of the way.
+        expect(emojiFollowPosition(faceAt(300, 0), home).x).toBeCloseTo(400 + 75);
+        // Up and down the same, but the frame is wider than it is tall.
+        expect(emojiFollowPosition(faceAt(0, 300), home).y).toBeCloseTo(300 * (9 / 16) * (1 / 4));
+    });
+
+    it('never goes off the screen', () => {
+        // The face in the corner of the frame: the emoji moves as far as it may.
+        const corner = emojiFollowPosition(faceAt(3000, 3000), home);
+        expect(corner.x).toBeLessThanOrEqual(400 + 120);
+        expect(corner.y).toBeLessThanOrEqual(120);
     });
 });
 

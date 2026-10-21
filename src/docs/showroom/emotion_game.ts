@@ -47,7 +47,7 @@ export const emotionGameExplanation = `
 <h3>How It Works</h3>
 <ol>
 <li><strong>The face cam</strong> - the webcam panel shows the whole camera frame, kept in the camera's own aspect so nothing is cut off.</li>
-<li><strong>The face</strong> - <code>addEmojiFace</code> (<code>emoji_face.ts</code>) draws the emoji, here at a fixed place beside the webcam, still turning with your head.</li>
+<li><strong>The face</strong> - <code>addEmojiFace</code> (<code>emoji_face.ts</code>) draws the emoji, here beside the webcam, turning with your head and leaning with it too.</li>
 <li><strong>Reading the expressions</strong> - <code>ExpressionReader</code> (<code>emoji_face.ts</code>) calibrates on <kbd>N</kbd> and smooths sleepy over time, so a blink is not a nap.</li>
 <li><strong>Matching</strong> - <code>matchesTarget</code> checks the face against the round's emoji: the strongest emotion for 😢 😠 😮 😴, a smile that is not the open grin for 🙂, the open grin for 😃, one eye closed for 😉.</li>
 <li><strong>The rounds</strong> - <code>EmotionGame</code> keeps the score, the lives, the target and the clock: hold the face for <code>HOLD_SECONDS</code> to score; a round that runs out after <code>ROUND_SECONDS</code> costs one of the <code>LIVES</code>. The game is over with none left, or after <code>GAME_SECONDS</code> however well it goes (<kbd>R</kbd> or space plays again).</li>
@@ -93,6 +93,30 @@ export function matchesTarget(target: GameTargetId, shape: FaceShape): boolean {
         }
         default: return shape[target] > 0;
     }
+}
+
+/** How much of the face's movement the emoji follows: a quarter of the frame's width. */
+const FOLLOW = 1 / 4;
+/** How far the emoji may go from its place, so it stays on the screen. */
+const FOLLOW_LIMIT = 120;
+
+/**
+ * Where the emoji sits: beside the webcam, but leaning with the head, the way the head box
+ * follows the face in tutorial 11. The face's place in the frame (its offset from the middle)
+ * moves it - a fraction at a time, and never off the screen.
+ */
+export function emojiFollowPosition(
+    face: { worldPosition: { x: number; y: number; z: number } } | null | undefined,
+    home: { x: number; y: number; z: number },
+): { x: number; y: number; z: number } {
+    if (!face) return home;
+    const cap = (value: number) => Math.max(-FOLLOW_LIMIT, Math.min(FOLLOW_LIMIT, value));
+    return {
+        x: home.x + cap(face.worldPosition.x * FOLLOW),
+        // The face's height is measured in frame widths, and the frame is 16:9.
+        y: home.y + cap(face.worldPosition.y * FOLLOW * (9 / 16)),
+        z: home.z,
+    };
 }
 
 /**
@@ -372,10 +396,15 @@ export async function emotionGame(
     const reader = new ExpressionReader();
     let currentShape: FaceShape | null = null;
 
+    // The emoji stays beside the webcam, but it follows the head: as you lean, it leans with
+    // you, the way the head box follows the face in tutorial 11.
+    const emojiHome = { x: SIDE * 0.95, y: 0, z: 300 };
+
     addEmojiFace(world, {
         parentId: 'bigBox',
         // Forward of the video, so the emoji shows about as tall as the webcam beside it.
-        position: () => ({ x: SIDE * 0.95, y: 0, z: 300 }),
+        position: (ctx: ResolutionContext<ObserverDataProviderLib>) =>
+            emojiFollowPosition(ctx.dataProviders['headTracker'], emojiHome),
         rotate: (ctx: ResolutionContext<ObserverDataProviderLib>) => {
             const face = ctx.dataProviders['headTracker'];
             reader.update(face);
