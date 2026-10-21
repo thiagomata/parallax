@@ -344,12 +344,16 @@ export class World<
      * @param height - Canvas height (optional, uses WindowConfig from settings if not provided)
      * @param fov - Field of view in radians (default: PI/3 = 60 degrees)
      * @param useOffAxis - If true, uses off-axis projection based on eye position (for VR head tracking)
+     * @param near - Near clipping plane (default: 0.1, p5's). Depth precision falls off with
+     *   distance / near, so a scene with surfaces meeting at shallow angles far away (e.g.
+     *   land meeting the sea) needs a larger near plane, or they flicker against each other.
      */
     public enableDefaultPerspective(
         width?: number, 
         height?: number, 
         fov: number = Math.PI / 3,
-        useOffAxis: boolean = false
+        useOffAxis: boolean = false,
+        near: number = 0.1
     ): void {
         if (width !== undefined && height !== undefined) {
             this.stage.updateWindowConfig(WindowConfig.create({ width, height }));
@@ -357,7 +361,7 @@ export class World<
         
         // Use createPerspectiveMatrix which matches p5's default perspective()
         // FOV defaults to 60 degrees (PI/3), matching p5's default
-        // Near = 0.1, Far = 5000, matching p5's WEBGL defaults
+        // Near = 0.1 (unless given), Far = 5000, matching p5's WEBGL defaults
         this.projectionMatrixCalculator = (eye, screen, window) => {
             const aspect = window.width / window.height;
             
@@ -367,7 +371,7 @@ export class World<
                     screen.globalPosition,
                     fov,
                     aspect,
-                    0.1,
+                    near,
                     5000
                 );
             }
@@ -375,7 +379,7 @@ export class World<
             return createPerspectiveMatrix(
                 fov,
                 aspect,
-                0.1,     // near
+                near,
                 5000      // far
             );
         };

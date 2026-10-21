@@ -24,8 +24,9 @@ import { HEAD_TRACKED_PRESET } from "../../scene/presets.ts";
  *   2. Flight ........ steering, the airplane's motion, the chase camera (once per frame)
  *   3. Airplane ...... an invisible parent box with its parts as children
  *   4. Clouds ........ fixed in the world, repeating every 6000 so the sky never runs out
- *   5. Ocean
- *   6. Canvas, input and draw loop
+ *   5. Islands ....... procedural: each ocean cell's island comes from its own position
+ *   6. Ocean
+ *   7. Canvas, input and draw loop
  */
 export const airplaneFlightExplanation = `
 <p>A small airplane flying through the clouds over the ocean. Move the pointer over the canvas to steer: left / right to turn, down to dive and up to climb. The arrow keys steer too.</p>
@@ -57,8 +58,11 @@ export async function airplaneFlight(
     world.startLoading();
     // Plain perspective, not off-axis: the off-axis frustum is built from the eye-to-screen
     // offset in world axes, so once the camera turns with the airplane it reads that as a
-    // sideways lean and skews the whole view.
-    world.enableDefaultPerspective(config.width, config.height, Math.PI / 4, false);
+    // sideways lean and skews the whole view. Near plane 5, not p5's 0.1: depth precision
+    // falls off with distance / near, and at 0.1 the islands flicker against the sea at a
+    // distance (nothing comes within 5 of the camera but a cloud you fly through, which
+    // the whiteout covers).
+    world.enableDefaultPerspective(config.width, config.height, Math.PI / 4, false, 5);
 
     if (config.paused) {
         world.pause();
@@ -123,6 +127,7 @@ export async function airplaneFlight(
         steer: { x: 0, y: 0 },
         camera: { heading: 0, pitch: 0, position: null as Vector3 | null },
         splashUntil: -1,
+        crash: 'water' as 'water' | 'island',
     };
     const clamp = (value: number, max: number) => Math.max(-max, Math.min(max, value));
     // The unit direction for a heading (camera convention, positive = right) and a p5 pitch
@@ -179,7 +184,10 @@ export async function airplaneFlight(
             y: flight.position.y + nose.y * speed,
             z: flight.position.z + nose.z * speed,
         };
-        if (flight.position.y > -10) {
+        // Into the water, or into an island's peak (section 5).
+        const crash = flight.position.y > -10 ? 'water' : hitsIsland(flight.position) ? 'island' : null;
+        if (crash) {
+            flight.crash = crash;
             flight.position = { ...flight.position, y: startHeight };
             flight.pitch = 0;
             flight.camera.pitch = 0;
@@ -222,7 +230,9 @@ export async function airplaneFlight(
             const now = context.playback.now;
             updateFlight(now);
             announceStatus(now < flight.splashUntil
-                ? 'Splash! You hit the water - flying again from the top.'
+                ? flight.crash === 'island'
+                    ? 'Crash! You hit an island - flying again from the top.'
+                    : 'Splash! You hit the water - flying again from the top.'
                 : 'Move the mouse to steer the airplane.');
             return {
                 success: true,
@@ -506,7 +516,181 @@ export async function airplaneFlight(
         return { cover, color };
     };
 
-    // ── 5. Ocean ────────────────────────────────────────────────────────────────────
+    // ── 5. Islands ──────────────────────────────────────────────────────────────────
+    // Procedural, seeded by position: the ocean is split into 1500 x 1500 cells, and each
+    // cell's island (or none - about 2 in 3 are open water) comes from a random sequence
+    // seeded by the cell's own coordinates. Nothing is stored: come back to a place and
+    // the same island is there.
+    //
+    // An island: a sandy beach (a flat ellipsoid at sea level) with 1-3 cone peaks in a
+    // pastel green, the tallest snow-capped if it's over 450 high. The engine needs a fixed
+    // set of elements, so 16 island slots cover the 4 x 4 cells around the camera (6000
+    // across, ~3000 each way): each slot shows the one cell in that window that falls to it,
+    // and hands over to a new cell only at the window's edge, where islands have faded out.
+    // They fade in from 3000 like the clouds, and stay solid up close - they're ground.
+    const islandCell = 1500;
+    const islandSlots = 4;
+    // mulberry32, seeded by a cell's coordinates: the same cell always gives the same numbers.
+    const cellRandom = (cellX: number, cellZ: number) => {
+        let seed = (Math.imul(cellX, 73856093) ^ Math.imul(cellZ, 19349663) ^ 0x9e3779b9) >>> 0;
+        return () => {
+            seed = (seed + 0x6d2b79f5) >>> 0;
+            let t = seed;
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+    };
+    const sandColor = { red: 244, green: 218, blue: 176 } as ColorRGBA;
+    const snowColor = { red: 255, green: 240, blue: 245 } as ColorRGBA;
+    const grassTints = [
+        { red: 120, green: 196, blue: 150 }, // mint
+        { red: 150, green: 200, blue: 120 }, // leaf
+        { red: 110, green: 180, blue: 170 }, // teal
+        { red: 170, green: 190, blue: 140 }, // sage
+    ] as ColorRGBA[];
+    type Peak = { x: number; z: number; radius: number; height: number };
+    type Island = { x: number; z: number; beachX: number; beachZ: number; peaks: Peak[]; grass: ColorRGBA; snowPeak: Peak | null };
+    // Islands already worked out this session - only a speed-up: islandAt gives the same
+    // answer either way.
+    const islandCache = new Map<string, Island | null>();
+    const islandAt = (cellX: number, cellZ: number): Island | null => {
+        const key = `${cellX},${cellZ}`;
+        if (islandCache.has(key)) return islandCache.get(key)!;
+        const random = cellRandom(cellX, cellZ);
+        let island: Island | null = null;
+        if (random() < 0.35) {
+            const size = 250 + random() * 350;
+            const x = (cellX + 0.25 + random() * 0.5) * islandCell;
+            const z = (cellZ + 0.25 + random() * 0.5) * islandCell;
+            const peaks = Array.from({ length: 1 + Math.floor(random() * 3) }, () => ({
+                x: x + (random() - 0.5) * size * 0.8,
+                z: z + (random() - 0.5) * size * 0.8,
+                radius: size * (0.3 + random() * 0.3),
+                height: size * (0.5 + random() * 1.1),
+            }));
+            const tallest = peaks.reduce((a, b) => b.height > a.height ? b : a);
+            island = {
+                x,
+                z,
+                beachX: size,
+                beachZ: size * (0.6 + random() * 0.4),
+                peaks,
+                grass: grassTints[Math.floor(random() * grassTints.length)],
+                snowPeak: tallest.height > 450 ? tallest : null,
+            };
+        }
+        if (islandCache.size > 500) islandCache.clear();
+        islandCache.set(key, island);
+        return island;
+    };
+    // The cell a slot shows along one axis: the one cell, among those 4 apart that fall to
+    // this slot, whose center is within 2 cells of the camera.
+    const slotCell = (slot: number, cameraCoordinate: number) =>
+        slot + islandSlots * Math.round((cameraCoordinate / islandCell - 0.5 - slot) / islandSlots);
+    // Inside a peak (section 2's crash check): below its height, and closer to its axis than
+    // the cone's radius at that height. Checks the airplane's cell and its 8 neighbours.
+    const hitsIsland = (position: Vector3) => {
+        const above = -position.y;
+        const cellX = Math.floor(position.x / islandCell);
+        const cellZ = Math.floor(position.z / islandCell);
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dz = -1; dz <= 1; dz++) {
+                for (const peak of islandAt(cellX + dx, cellZ + dz)?.peaks ?? []) {
+                    if (above >= peak.height) continue;
+                    const reach = peak.radius * (1 - above / peak.height);
+                    if (Math.hypot(position.x - peak.x, position.z - peak.z) < reach) return true;
+                }
+            }
+        }
+        return false;
+    };
+    // Far below the far plane: where a slot's unused parts (or a cell with no island) go.
+    const hidden = 100000;
+    const hazedByDistance = (color: ColorRGBA, distance: number) =>
+        mix(color, skyColor, Math.min(1, distance / 3000) ** 2);
+
+    for (let slotX = 0; slotX < islandSlots; slotX++) {
+        for (let slotZ = 0; slotZ < islandSlots; slotZ++) {
+            const id = `island-${slotX}-${slotZ}`;
+            const island = () => {
+                const camera = cameraPosition();
+                return islandAt(slotCell(slotX, camera.x), slotCell(slotZ, camera.z));
+            };
+            const distanceToCamera = () => {
+                const shown = island();
+                if (!shown) return Infinity;
+                const camera = cameraPosition();
+                return Math.hypot(shown.x - camera.x, camera.y, shown.z - camera.z);
+            };
+            const alpha = () => Math.max(0, Math.min(1, (3000 - distanceToCamera()) / 1000)) as Alpha;
+            world.addBox({
+                id,
+                type: ELEMENT_TYPES.BOX,
+                width: 1,
+                position: () => {
+                    const shown = island();
+                    return shown ? { x: shown.x, y: 0, z: shown.z } : { x: 0, y: hidden, z: 0 };
+                },
+            });
+            world.addElliptical({
+                id: `${id}-beach`,
+                type: ELEMENT_TYPES.ELLIPTICAL,
+                parentId: id,
+                rx: () => island()?.beachX ?? 1,
+                ry: 30,
+                rz: () => island()?.beachZ ?? 1,
+                // Its bottom 5 above the sea (y -35 + 30), like the peaks' bases (lift below).
+                position: { x: 0, y: -35, z: 0 },
+                alpha,
+                fillColor: () => hazedByDistance(sandColor, distanceToCamera()),
+            });
+            // Up to 3 peaks; a slot whose island has fewer hides the rest. Positions are
+            // relative to the island's center (the parent). The whole island floats `lift` above
+            // the sea - beach bottom and cone bases included - so nothing touches the ocean's
+            // plane, where they'd flicker against it.
+            const lift = 5;
+            for (let peakIndex = 0; peakIndex < 3; peakIndex++) {
+                const peak = () => island()?.peaks[peakIndex];
+                world.addCone({
+                    id: `${id}-peak-${peakIndex}`,
+                    type: ELEMENT_TYPES.CONE,
+                    parentId: id,
+                    radius: () => peak()?.radius ?? 1,
+                    height: () => peak()?.height ?? 1,
+                    position: () => {
+                        const shown = island();
+                        const at = peak();
+                        return shown && at
+                            ? { x: at.x - shown.x, y: -lift - at.height / 2, z: at.z - shown.z }
+                            : { x: 0, y: hidden, z: 0 };
+                    },
+                    alpha,
+                    fillColor: () => hazedByDistance(island()?.grass ?? grassTints[0], distanceToCamera()),
+                });
+            }
+            // Snow on the tallest peak: the top 37% as a cone a touch wider, so it covers
+            // the peak's tip instead of sharing its surface.
+            world.addCone({
+                id: `${id}-snow`,
+                type: ELEMENT_TYPES.CONE,
+                parentId: id,
+                radius: () => (island()?.snowPeak?.radius ?? 1) * 0.39,
+                height: () => (island()?.snowPeak?.height ?? 1) * 0.37,
+                position: () => {
+                    const shown = island();
+                    const at = shown?.snowPeak;
+                    return shown && at
+                        ? { x: at.x - shown.x, y: -5 - at.height * 1.005 + at.height * 0.185, z: at.z - shown.z }
+                        : { x: 0, y: hidden, z: 0 };
+                },
+                alpha,
+                fillColor: () => hazedByDistance(snowColor, distanceToCamera()),
+            });
+        }
+    }
+
+    // ── 6. Ocean ────────────────────────────────────────────────────────────────────
     // At sea level (y 0), kept centered under the airplane so it never ends - flat and one
     // colour, so sliding it along is invisible. 40000 across, so its far edge sits just
     // under the horizon.
@@ -516,10 +700,13 @@ export async function airplaneFlight(
         width: 40000,
         depth: 40000,
         position: () => ({ x: flight.position.x, y: 0, z: flight.position.z }),
+        // Drawn first, before everything else (renderOrder 0 by default): a half-faded island
+        // or cloud drawn before it would hide it, showing the bare sky colour through itself.
+        renderOrder: -1,
         fillColor: { red: 70, green: 130, blue: 190 } as ColorRGBA,
     });
 
-    // ── 6. Canvas, input and draw loop ──────────────────────────────────────────────
+    // ── 7. Canvas, input and draw loop ──────────────────────────────────────────────
 
     let gp: P5GraphicProcessor;
 
