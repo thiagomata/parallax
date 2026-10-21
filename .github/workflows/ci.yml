@@ -7,17 +7,20 @@ on:
       - 'feature/**'
       - 'bugfix/**'
       - 'release/**'
+      - 'experiment/**'
   pull_request:
     branches:
       - main
       - 'feature/**'
       - 'bugfix/**'
       - 'release/**'
+      - 'experiment/**'
   delete:
     branches:
       - 'feature/**'
       - 'bugfix/**'
       - 'release/**'
+      - 'experiment/**'
   workflow_dispatch:
 
 permissions:
@@ -111,7 +114,7 @@ jobs:
         id: branches
         run: |
           active_branches=$(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin \
-            | grep -E '^(feature/|bugfix/|release/)' \
+            | grep -E '^(feature/|bugfix/|release/|experiment/)' \
             | sort)
           echo "branches<<EOF" >> "$GITHUB_OUTPUT"
           echo "$active_branches" >> "$GITHUB_OUTPUT"
@@ -137,7 +140,7 @@ jobs:
         run: |
           branches="${{ steps.branches.outputs.branches }}"
           if [ -z "$branches" ]; then
-            echo "No feature/bugfix branches found, skipping previews"
+            echo "No feature/bugfix/experiment branches found, skipping previews"
             exit 0
           fi
           
@@ -158,6 +161,35 @@ jobs:
             git checkout main
           done <<< "$branches"
 
+      - name: Generate previews index
+        run: |
+          mkdir -p output/previews
+          {
+            echo '<!DOCTYPE html>'
+            echo '<html lang="en">'
+            echo '<head>'
+            echo '  <meta charset="utf-8">'
+            echo '  <meta name="viewport" content="width=device-width, initial-scale=1">'
+            echo '  <title>Parallax Experiments & Previews</title>'
+            echo '  <style>body{font-family:system-ui,sans-serif;max-width:700px;margin:40px auto;padding:0 20px;background:#0a0a0a;color:#e5e7eb}a{color:#38bdf8}ul{line-height:1.8}</style>'
+            echo '</head>'
+            echo '<body>'
+            echo '  <h1>Parallax Previews</h1>'
+            echo '  <p><a href="../">← Back to main site</a></p>'
+            echo '  <ul>'
+            if [ -d "output/previews" ]; then
+              for d in output/previews/*/; do
+                [ -d "$d" ] || continue
+                slug=$(basename "$d")
+                [ "$slug" = "index.html" ] && continue
+                echo "    <li><a href=\"./${slug}/\">${slug}</a></li>"
+              done
+            fi
+            echo '  </ul>'
+            echo '</body>'
+            echo '</html>'
+          } > output/previews/index.html
+
       - name: Build single preview
         if: needs.test-and-build.outputs.is_main != 'true'
         run: |
@@ -166,6 +198,52 @@ jobs:
           npm run build -- --base="$base_path"
           mkdir -p "output/previews/${slug}"
           cp -r dist/* "output/previews/${slug}/"
+
+      - name: Update previews index
+        if: needs.test-and-build.outputs.is_main != 'true'
+        run: |
+          mkdir -p output/previews
+          if [ -d "pages_dir" ] || git ls-remote --heads origin pages | grep -q 'refs/heads/pages$'; then
+            rm -rf pages_dir
+            git clone --branch pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git pages_dir || git clone --depth 1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git pages_dir
+            mkdir -p pages_dir/previews
+            if [ -d "pages_dir/previews" ]; then
+              for d in pages_dir/previews/*/; do
+                [ -d "$d" ] || continue
+                dslug=$(basename "$d")
+                [ "$dslug" = "$(basename output/previews/*/ 2>/dev/null | grep -v index || true)" ] && continue
+                if [ ! -d "output/previews/$dslug" ]; then
+                  mkdir -p "output/previews/$dslug"
+                  cp -r "$d"* "output/previews/$dslug/" 2>/dev/null || cp -r "$d"/* "output/previews/$dslug/" 2>/dev/null || true
+                fi
+              done
+            fi
+          fi
+          {
+            echo '<!DOCTYPE html>'
+            echo '<html lang="en">'
+            echo '<head>'
+            echo '  <meta charset="utf-8">'
+            echo '  <meta name="viewport" content="width=device-width, initial-scale=1">'
+            echo '  <title>Parallax Experiments & Previews</title>'
+            echo '  <style>body{font-family:system-ui,sans-serif;max-width:700px;margin:40px auto;padding:0 20px;background:#0a0a0a;color:#e5e7eb}a{color:#38bdf8}ul{line-height:1.8}</style>'
+            echo '</head>'
+            echo '<body>'
+            echo '  <h1>Parallax Previews</h1>'
+            echo '  <p><a href="../">← Back to main site</a></p>'
+            echo '  <ul>'
+            if [ -d "output/previews" ]; then
+              for d in output/previews/*/; do
+                [ -d "$d" ] || continue
+                slug=$(basename "$d")
+                [ "$slug" = "index.html" ] && continue
+                echo "    <li><a href=\"./${slug}/\">${slug}</a></li>"
+              done
+            fi
+            echo '  </ul>'
+            echo '</body>'
+            echo '</html>'
+          } > output/previews/index.html
 
       - name: Copy .github folder
         run: cp -r .github output/
@@ -180,6 +258,9 @@ jobs:
         run: |
           rm -rf pages_dir/*
           cp -r output/* pages_dir/
+          if [ -f "output/previews/index.html" ]; then
+            cp output/previews/index.html pages_dir/previews/index.html 2>/dev/null || true
+          fi
 
       - name: Copy preview to pages branch
         if: needs.test-and-build.outputs.is_main != 'true'
@@ -187,6 +268,9 @@ jobs:
           slug=$(printf '%s' "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g')
           mkdir -p "pages_dir/previews/${slug}"
           cp -r output/previews/${slug}/* "pages_dir/previews/${slug}/"
+          if [ -f "output/previews/index.html" ]; then
+            cp output/previews/index.html pages_dir/previews/index.html
+          fi
 
       - name: Commit and push
         working-directory: pages_dir
@@ -198,7 +282,7 @@ jobs:
           git push origin HEAD:pages
 
   prune-deleted-preview:
-    if: github.event_name == 'delete' && github.event.ref_type == 'branch' && (startsWith(github.event.ref, 'feature/') || startsWith(github.event.ref, 'bugfix/') || startsWith(github.event.ref, 'release/'))
+    if: github.event_name == 'delete' && github.event.ref_type == 'branch' && (startsWith(github.event.ref, 'feature/') || startsWith(github.event.ref, 'bugfix/') || startsWith(github.event.ref, 'release/') || startsWith(github.event.ref, 'experiment/'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -221,11 +305,37 @@ jobs:
           if [ -d "previews/${preview_slug}" ]; then
             echo "Pruning deleted branch preview: previews/${preview_slug}"
             rm -rf "previews/${preview_slug}"
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add -A
-            git commit -m "chore: prune deleted preview ${preview_slug}" || echo "Nothing to prune"
-            git push origin pages
           else
             echo "No preview folder found for previews/${preview_slug}"
           fi
+
+          mkdir -p previews
+          {
+            echo '<!DOCTYPE html>'
+            echo '<html lang="en">'
+            echo '<head>'
+            echo '  <meta charset="utf-8">'
+            echo '  <meta name="viewport" content="width=device-width, initial-scale=1">'
+            echo '  <title>Parallax Experiments & Previews</title>'
+            echo '  <style>body{font-family:system-ui,sans-serif;max-width:700px;margin:40px auto;padding:0 20px;background:#0a0a0a;color:#e5e7eb}a{color:#38bdf8}ul{line-height:1.8}</style>'
+            echo '</head>'
+            echo '<body>'
+            echo '  <h1>Parallax Previews</h1>'
+            echo '  <p><a href="../">← Back to main site</a></p>'
+            echo '  <ul>'
+            for d in previews/*/; do
+              [ -d "$d" ] || continue
+              slug=$(basename "$d")
+              [ "$slug" = "index.html" ] && continue
+              echo "    <li><a href=\"./${slug}/\">${slug}</a></li>"
+            done
+            echo '  </ul>'
+            echo '</body>'
+            echo '</html>'
+          } > previews/index.html
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: prune deleted preview ${preview_slug}" || echo "Nothing to prune"
+          git push origin pages
