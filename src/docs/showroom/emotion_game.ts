@@ -585,13 +585,17 @@ export async function emotionGame(
         }
     };
 
+    // The gallery is shown once the game is over, but making the collage takes a moment: a
+    // gallery asked for twice (or asked for and then restarted) must not fight over the screen.
+    let galleryRequest = 0;
     const showGallery = async () => {
         if (!gallery || !game) return;
+        const request = ++galleryRequest;
         // The collage is made before the gallery appears, so the Share button works on the
         // first click: the browser only allows the share sheet, a new tab and the clipboard
         // during the click itself.
         await prepareShare();
-        if (!gallery || !game) return;
+        if (request !== galleryRequest || !gallery || !game) return;
         gallery.innerHTML = '';
         const title = document.createElement('div');
         title.textContent = `${game.timeUp ? "⏱ Time's up" : '🏁 Game over'} - score ${game.score}`;
@@ -632,6 +636,10 @@ export async function emotionGame(
     const restart = () => {
         if (!game) return;
         snapshots = [];
+        // A gallery still being made belongs to the game that is over: it must not show up
+        // over the new one.
+        galleryRequest++;
+        prepared = null;
         if (gallery) gallery.style.display = 'none';
         game.restart(performance.now() / 1000);
     };

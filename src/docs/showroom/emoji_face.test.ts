@@ -1,8 +1,15 @@
 import {describe, expect, it} from 'vitest';
 import {
-    faceShape, strongestEmotion, zPieces, eyeSize, browPose, mouthPose, mouthSegment, MOUTH_SEGMENTS, GRIN_HAPPINESS, headColor, tearSize, surfaceZ, HEAD,
+    faceShape, strongestEmotion, zPieces, eyeSize, browPose, mouthPose, mouthSegment, MOUTH_SEGMENTS, GRIN_HAPPINESS, headColor, tearSize, surfaceZ, HEAD, ExpressionReader,
 } from './emoji_face.ts';
 import {FaceExpressions} from "../../scene/drivers/mediapipe/face_expressions.ts";
+import {FaceWorldData} from "../../scene/providers/head_tracking_data_provider.ts";
+import {createMockFaceWorldData, createMockSceneFace} from "../../scene/mock/face.mock.ts";
+
+/** A face with the given expressions, as the tracker would deliver it (a new one each frame). */
+function faceWith(expressions: () => FaceExpressions): FaceWorldData {
+    return new FaceWorldData(createMockFaceWorldData().face, createMockSceneFace(), expressions());
+}
 
 describe('Emoji face: shape', () => {
     const neutral = faceShape(null);
@@ -168,5 +175,50 @@ describe('Emoji face: head color', () => {
         expect(headColor(neutral)).toEqual({ red: 255, green: 204, blue: 77 });
         expect(headColor({ ...neutral, happy: 1, sad: 1, surprised: 1 })).toEqual(headColor(neutral));
         expect(headColor({ ...neutral, angry: 1 })).toEqual({ red: 235, green: 80, blue: 55 });
+    });
+});
+
+describe('Emoji face: reading the expressions', () => {
+    const neutral = () => new FaceExpressions({}, undefined, {browInnerToOuter: 1, whiteAboveIris: -0.15, lipGap: 0.001, cornerLift: 0});
+    const blink = () => new FaceExpressions(
+        {eyeBlinkLeft: 0.7, eyeBlinkRight: 0.7, eyeSquintLeft: 0.5, eyeSquintRight: 0.5},
+        undefined,
+        {browInnerToOuter: 1, whiteAboveIris: -0.55, lipGap: 0.001, cornerLift: 0},
+    );
+
+    it('says what it is doing, and calibrates on request', () => {
+        const reader = new ExpressionReader();
+        expect(reader.status).toBe('N: calibrate, relaxed');
+        expect(reader.sleepy).toBe(0);
+
+        reader.startCalibration();
+        expect(reader.status).toBe('calibrating: relax...');
+
+        // The next frames, with a relaxed face, become the neutral face.
+        for (let frame = 0; frame < ExpressionReader.CALIBRATION_FRAMES; frame++) {
+            reader.update(faceWith(neutral), frame * 16);
+        }
+        expect(reader.status).toBe('calibrated (N: again)');
+    });
+
+    it('smooths sleepy over time, so a blink is not a nap', () => {
+        const reader = new ExpressionReader();
+        reader.update(faceWith(blink), 0);
+        expect(reader.sleepy).toBe(0);
+
+        // A second later the eyes are still closed: now it counts as sleepy.
+        reader.update(faceWith(blink), 1000);
+        expect(reader.sleepy).toBeGreaterThan(0.5);
+        expect(reader.emotionOf(faceWith(blink))).toBe('sleepy');
+        expect(reader.shapeOf(faceWith(blink)).sleepy).toBeGreaterThan(0.5);
+    });
+
+    it('reads nothing when there is no face', () => {
+        const reader = new ExpressionReader();
+
+        reader.update(null, 0);
+        expect(reader.shapeOf(null)).toEqual(faceShape(null));
+        expect(reader.emotionOf(null)).toBe('neutral');
+        expect(reader.expressionsOf(undefined)).toBeNull();
     });
 });
