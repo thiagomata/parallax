@@ -9,6 +9,7 @@ import {
 } from "../drivers/mediapipe/face_provider.ts";
 import type {FaceProvider} from "./face_provider.ts";
 import type {Face} from "../drivers/mediapipe/face.ts";
+import type {FaceExpressions} from "../drivers/mediapipe/face_expressions.ts";
 import type { WebCamDataProvider } from "./web_cam_data_provider.ts";
 import {
     SceneFace,
@@ -39,13 +40,25 @@ export type ObserverDataProviderLib = {
 export class FaceWorldData {
     readonly face: Face<VideoWidthRatio>;
     readonly sceneFace: SceneFace;
+    /** Raw expressions as MediaPipe gives them; null when the provider has none. */
+    readonly faceExpressions: FaceExpressions | null;
 
     public constructor(
         face: Face<VideoWidthRatio>,
         sceneFace: SceneFace,
+        faceExpressions: FaceExpressions | null = null,
     ) {
         this.face = face;
         this.sceneFace = sceneFace;
+        this.faceExpressions = faceExpressions;
+    }
+
+    /**
+     * Normalized expressions: eyes open 1 / closed 0, mouth closed 0 / open 1, smile 0..1.
+     * Null when the provider has no expressions. The raw scores are on faceExpressions.
+     */
+    public get expressions(): FaceExpressions | null {
+        return this.faceExpressions?.normalize() ?? null;
     }
 
     /**
@@ -263,7 +276,8 @@ export class HeadTrackingDataProvider implements DataProviderBundle<"headTracker
 
         this.lastFace = new FaceWorldData(
             face,
-            sceneFace
+            sceneFace,
+            this.provider.getExpressions?.() ?? null,
         );
 
         return { success: true, value: this.lastFace };

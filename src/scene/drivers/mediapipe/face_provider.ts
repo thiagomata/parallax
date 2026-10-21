@@ -4,6 +4,7 @@ import {FaceTrackingConfigBuilder} from "../../types";
 import {FaceParser} from "./face_parser";
 import p5 from "p5";
 import type {Face} from "./face.ts";
+import {FaceExpressions} from "./face_expressions.ts";
 import type {FaceProvider} from "../../providers/face_provider.ts";
 import {merge} from "../../utils/merge.ts";
 import {appAssetPath} from "../../../utils/app_paths.ts";
@@ -35,6 +36,7 @@ export class MediaPipeFaceProvider implements FaceProvider {
     private readonly config: FaceProviderConfig;
 
     private lastFaceResult: Face<VideoWidthRatio> | null = null;
+    private lastExpressions: FaceExpressions | null = null;
     private consecutiveNoFaceFrames = 0;
     private readonly throttleThreshold: number;
     private initPromise: Promise<void> | null = null;
@@ -162,6 +164,8 @@ export class MediaPipeFaceProvider implements FaceProvider {
             this.consecutiveNoFaceFrames = 0;
             const landmarks = result.faceLandmarks[0] as Array<Partial<Vector3<VideoWidthRatio>> & { visibility?: number | null }>;
             this.lastFaceResult = this.parser.parse(landmarks);
+            const categories = result.faceBlendshapes?.[0]?.categories;
+            this.lastExpressions = categories ? FaceExpressions.fromBlendshapes(categories) : null;
             this.debug("face detected", {
                 faces: result.faceLandmarks.length,
                 landmarks: result.faceLandmarks[0].length,
@@ -176,6 +180,14 @@ export class MediaPipeFaceProvider implements FaceProvider {
             consecutiveNoFaceFrames: this.consecutiveNoFaceFrames,
         });
         return { success: false, error: 'No face detected in frame' };
+    }
+
+    /**
+     * The raw expressions (blendshapes) of the face getFace() last detected,
+     * or null before the first face.
+     */
+    getExpressions(): FaceExpressions | null {
+        return this.lastExpressions;
     }
 
     getStatus(): TrackingStatus {
@@ -228,7 +240,10 @@ export class MediaPipeFaceProvider implements FaceProvider {
                 const landmarker = await FaceLandmarker.createFromOptions(vision, {
                     baseOptions: { modelAssetPath: this.modelPath },
                     runningMode: "VIDEO",
-                    numFaces: 1
+                    numFaces: 1,
+                    // Expression scores (eyes / mouth open, smile...); no measurable cost
+                    // per frame (scripts/bench-blendshapes.mjs).
+                    outputFaceBlendshapes: true,
                 });
 
                 if (this.initAttempt === attempt) {
