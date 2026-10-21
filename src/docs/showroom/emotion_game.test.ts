@@ -1,6 +1,6 @@
 import {describe, expect, it, vi} from 'vitest';
 import {
-    emotionGame, emotionGameExplanation, EmotionGame, GAME_TARGETS, matchesTarget, collageLayout,
+    emotionGame, emotionGameExplanation, EmotionGame, GAME_TARGETS, matchesTarget, collageLayout, shareText, postIntentUrl,
 } from './emotion_game.ts';
 import {faceShape} from './emoji_face.ts';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
@@ -111,6 +111,38 @@ describe('Emotion game: the game', () => {
     });
 });
 
+describe('Emotion game: the time limit', () => {
+    it('ends the game when its time runs out, however well it goes', () => {
+        const game = new EmotionGame(0);
+        let now = 0;
+        // Score every round, as fast as the game allows, until the clock stops it.
+        while (now < EmotionGame.GAME_SECONDS + 5 && !game.over) {
+            now += 0.1;
+            game.update(now, true);
+        }
+
+        expect(game.over).toBe(true);
+        expect(game.timeUp).toBe(true);
+        expect(game.lives).toBe(EmotionGame.LIVES);
+        expect(game.score).toBeGreaterThan(10);
+        expect(game.gameSecondsLeft(now)).toBe(0);
+        expect(game.update(now + 1, true)).toBeNull();
+    });
+
+    it('says time-up once, and restarts with the full time', () => {
+        const game = new EmotionGame(0);
+
+        expect(game.update(EmotionGame.GAME_SECONDS - 1, false)).not.toBe('time-up');
+        expect(game.update(EmotionGame.GAME_SECONDS, false)).toBe('time-up');
+        expect(game.update(EmotionGame.GAME_SECONDS + 1, false)).toBeNull();
+
+        game.restart(200);
+        expect(game.timeUp).toBe(false);
+        expect(game.over).toBe(false);
+        expect(game.gameSecondsLeft(200)).toBe(EmotionGame.GAME_SECONDS);
+    });
+});
+
 describe('Emotion game: the collage', () => {
     const cell = { width: 360, height: 288 };
 
@@ -129,6 +161,23 @@ describe('Emotion game: the collage', () => {
     it('fits a few pictures without empty columns', () => {
         expect(collageLayout(2, cell).width).toBeLessThan(collageLayout(3, cell).width);
         expect(collageLayout(0, cell).cells).toHaveLength(0);
+    });
+});
+
+describe('Emotion game: sharing', () => {
+    it('says the score and links to the game', () => {
+        const text = shareText(7, 'https://example.com/game/');
+
+        expect(text).toContain('7');
+        expect(text).toContain('https://example.com/game/');
+    });
+
+    it('opens X with the text filled in', () => {
+        const url = new URL(postIntentUrl('I scored 7 😃 & more'));
+
+        expect(url.origin).toBe('https://x.com');
+        expect(url.pathname).toBe('/intent/tweet');
+        expect(url.searchParams.get('text')).toBe('I scored 7 😃 & more');
     });
 });
 

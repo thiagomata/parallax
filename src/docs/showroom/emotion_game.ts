@@ -41,7 +41,7 @@ const VIDEO_SOURCE_ORDER = ["webCam", "video"] as const;
  */
 export const emotionGameExplanation = `
 <div class="concept">
-<p>A game built on the face expressions of tutorial 11. Every round shows an emoji - make that face and hold it for half a second to score. A round lasts ten seconds, and a missed one costs one of your three lives. Your webcam is on the left, and on the right the emoji face copies yours, so you can see what the game sees.</p>
+<p>A game built on the face expressions of tutorial 11. Every round shows an emoji - make that face and hold it for half a second to score. A round lasts ten seconds, a missed one costs one of your three lives, and the whole game lasts at most a minute and a half. Your webcam is on the left, and on the right the emoji face copies yours, so you can see what the game sees.</p>
 </div>
 
 <h3>How It Works</h3>
@@ -49,8 +49,8 @@ export const emotionGameExplanation = `
 <li><strong>The face</strong> - <code>addEmojiFace</code> (<code>emoji_face.ts</code>) draws the emoji, here at a fixed place beside the webcam, still turning with your head.</li>
 <li><strong>Reading the expressions</strong> - <code>ExpressionReader</code> (<code>emoji_face.ts</code>) calibrates on <kbd>N</kbd> and smooths sleepy over time, so a blink is not a nap.</li>
 <li><strong>Matching</strong> - <code>matchesTarget</code> checks the face against the round's emoji: the strongest emotion for 😢 😠 😮 😴, a smile that is not the open grin for 🙂, the open grin for 😃, one eye closed for 😉.</li>
-<li><strong>The rounds</strong> - <code>EmotionGame</code> keeps the score, the lives, the target and the clock: hold the face for <code>HOLD_SECONDS</code> to score; a round that runs out after <code>ROUND_SECONDS</code> costs one of the <code>LIVES</code>, and with none left the game is over (<kbd>R</kbd> or space plays again).</li>
-<li><strong>The pictures</strong> - every round ends with a snapshot of the canvas, you and your emoji side by side, stamped with the target and ✅ / ❌. At the end they show together, and <em>Save picture</em> puts them in one collage (<code>collageLayout</code>). They stay on your device.</li>
+<li><strong>The rounds</strong> - <code>EmotionGame</code> keeps the score, the lives, the target and the clock: hold the face for <code>HOLD_SECONDS</code> to score; a round that runs out after <code>ROUND_SECONDS</code> costs one of the <code>LIVES</code>. The game is over with none left, or after <code>GAME_SECONDS</code> however well it goes (<kbd>R</kbd> or space plays again).</li>
+<li><strong>The pictures</strong> - every round ends with a snapshot of the canvas, you and your emoji side by side, stamped with the target and ✅ / ❌. At the end they show together, and <em>Save picture</em> puts them in one collage (<code>collageLayout</code>). <em>Share</em> opens the system share sheet with the collage attached where the browser has one; otherwise it copies the collage and opens a post on X (<code>postIntentUrl</code>) to paste it into. They stay on your device until you share them.</li>
 <li><strong>The parade</strong> - a match sends its emoji flying across behind the scene: plain page emoji under the canvas, which is cleared transparent, so the 3D face and the webcam pass in front of them.</li>
 </ol>
 
@@ -95,12 +95,13 @@ export function matchesTarget(target: GameTargetId, shape: FaceShape): boolean {
 }
 
 /**
- * The game: a target per round, the score, the lives and the clock (seconds, from update's now).
- * Hold the target for HOLD_SECONDS to score; a round that runs out (ROUND_SECONDS) costs a life,
- * and the game is over with none left (restart plays again).
+ * The game: a target per round, the score, the lives and the clocks (seconds, from update's now).
+ * Hold the target for HOLD_SECONDS to score; a round that runs out (ROUND_SECONDS) costs a life.
+ * The game is over with no lives left, or after GAME_SECONDS however well it goes (restart plays again).
  */
 export class EmotionGame {
     static readonly ROUND_SECONDS = 10;
+    static readonly GAME_SECONDS = 90;
     static readonly LIVES = 3;
     static readonly HOLD_SECONDS = 0.5;
     /** How long the ✓ shows before the next round. */
@@ -108,7 +109,10 @@ export class EmotionGame {
 
     score = 0;
     lives = EmotionGame.LIVES;
+    /** Whether the game ended because its time ran out (rather than the lives). */
+    timeUp = false;
     target: GameTarget;
+    private gameStart: number;
     private roundStart: number;
     private holdStart: number | null = null;
     private celebrateUntil: number | null = null;
@@ -118,18 +122,26 @@ export class EmotionGame {
     constructor(now: number, random: () => number = Math.random) {
         this.random = random;
         this.target = this.pickTarget(null);
+        this.gameStart = now;
         this.roundStart = now;
     }
 
-    /** Whether all the lives are gone. */
+    /** Whether the game is over: no lives left, or its time ran out. */
     public get over(): boolean {
-        return this.lives <= 0;
+        return this.lives <= 0 || this.timeUp;
     }
 
-    /** A new game: score 0, all the lives, a new target. */
+    /** Seconds left in this game. */
+    public gameSecondsLeft(now: number): number {
+        return Math.max(0, EmotionGame.GAME_SECONDS - (now - this.gameStart));
+    }
+
+    /** A new game: score 0, all the lives, the full time, a new target. */
     public restart(now: number): void {
         this.score = 0;
         this.lives = EmotionGame.LIVES;
+        this.timeUp = false;
+        this.gameStart = now;
         this.celebrateUntil = null;
         this.nextRound(now);
     }
@@ -151,10 +163,16 @@ export class EmotionGame {
 
     /**
      * Advances the game to now with whether the face matches the target.
-     * @returns 'scored', 'timeout' (a life lost; a new round, or the game over) or null
+     * @returns 'scored', 'timeout' (a life lost; a new round, or the game over), 'time-up' (the
+     *     game's time ran out: it is over) or null
      */
-    public update(now: number, matching: boolean): 'scored' | 'timeout' | null {
+    public update(now: number, matching: boolean): 'scored' | 'timeout' | 'time-up' | null {
         if (this.over) return null;
+        if (this.gameSecondsLeft(now) <= 0) {
+            this.timeUp = true;
+            this.celebrateUntil = null;
+            return 'time-up';
+        }
         if (this.celebrateUntil !== null) {
             if (now < this.celebrateUntil) return null;
             this.celebrateUntil = null;
@@ -193,6 +211,18 @@ export class EmotionGame {
     }
 }
 
+/** The game's background, top to bottom: a sunset the yellow emoji stands out on. */
+export const BACKGROUND_STOPS: readonly { offset: number; color: string }[] = [
+    { offset: 0, color: '#2e1a5c' },
+    { offset: 0.55, color: '#9b3d8f' },
+    { offset: 1, color: '#f28c6b' },
+];
+
+/** The background as CSS, for the page behind the (transparent) canvas. */
+export function backgroundCss(): string {
+    return `linear-gradient(180deg, ${BACKGROUND_STOPS.map(stop => `${stop.color} ${stop.offset * 100}%`).join(', ')})`;
+}
+
 /** One round's picture: the canvas (webcam and emoji) when the round ended. */
 export interface Snapshot {
     readonly image: string;
@@ -215,6 +245,16 @@ export function collageLayout(count: number, cell: { width: number; height: numb
             y: titleHeight + gap + Math.floor(i / used) * (cell.height + gap),
         })),
     };
+}
+
+/** The post that goes with the collage: the score and a link to play. */
+export function shareText(score: number, link: string): string {
+    return `I scored ${score} in the Emotion Game 😃 Make the faces, your emoji copies you: ${link}`;
+}
+
+/** X's page to write a post, with the text filled in (it cannot attach a picture: that is pasted). */
+export function postIntentUrl(text: string): string {
+    return `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
 }
 
 export async function emotionGame(
@@ -348,10 +388,10 @@ export async function emotionGame(
         const celebrating = game.celebrating(now);
         const set = (element: HTMLElement, text: string) => { if (element.textContent !== text) element.textContent = text; };
         const hearts = '❤️'.repeat(Math.max(0, game.lives)) + '🤍'.repeat(EmotionGame.LIVES - Math.max(0, game.lives));
-        set(hud.score, `Score ${game.score}   ${hearts}`);
+        set(hud.score, `Score ${game.score}   ${hearts}   ⏱ ${Math.ceil(game.gameSecondsLeft(now))}s`);
         if (game.over) {
-            set(hud.target, '🏁');
-            set(hud.label, `Game over - score ${game.score}`);
+            set(hud.target, game.timeUp ? '⏱' : '🏁');
+            set(hud.label, `${game.timeUp ? "Time's up" : 'Game over'} - score ${game.score}`);
             set(hud.time, 'R or space: play again');
             set(hud.status, reader.status);
             hud.target.style.transform = '';
@@ -401,7 +441,12 @@ export async function emotionGame(
         picture.height = Math.round(SNAPSHOT_WIDTH * bandHeight / canvasElement.width);
         const g = picture.getContext('2d');
         if (!g) return null;
-        g.fillStyle = '#141414';
+        // The background is the page's, behind the canvas, so the picture paints it again - the
+        // same gradient over the whole canvas height, of which the picture shows the band.
+        const scale = picture.width / canvasElement.width;
+        const background = g.createLinearGradient(0, -bandTop * scale, 0, (canvasElement.height - bandTop) * scale);
+        BACKGROUND_STOPS.forEach(stop => background.addColorStop(stop.offset, stop.color));
+        g.fillStyle = background;
         g.fillRect(0, 0, picture.width, picture.height);
         g.drawImage(canvasElement, 0, bandTop, canvasElement.width, bandHeight, 0, 0, picture.width, picture.height);
         g.font = '44px system-ui, sans-serif';
@@ -417,8 +462,8 @@ export async function emotionGame(
     };
 
     /** All the snapshots in one picture, to save and share. */
-    const saveCollage = async () => {
-        if (!snapshots.length || !game) return;
+    const buildCollage = async (): Promise<HTMLCanvasElement | null> => {
+        if (!snapshots.length || !game) return null;
         const images = await Promise.all(snapshots.map(snapshot => new Promise<HTMLImageElement>(resolve => {
             const image = new Image();
             image.onload = () => resolve(image);
@@ -429,7 +474,7 @@ export async function emotionGame(
         collage.width = layout.width;
         collage.height = layout.height;
         const g = collage.getContext('2d');
-        if (!g) return;
+        if (!g) return null;
         g.fillStyle = '#0a0a0a';
         g.fillRect(0, 0, collage.width, collage.height);
         g.fillStyle = '#fff';
@@ -437,17 +482,59 @@ export async function emotionGame(
         g.textBaseline = 'middle';
         g.fillText(`😃 Emotion Game - score ${game.score}`, 16, 36);
         images.forEach((image, i) => g.drawImage(image, layout.cells[i].x, layout.cells[i].y));
+        return collage;
+    };
+
+    const saveCollage = async () => {
+        const collage = await buildCollage();
+        if (!collage || !game) return;
         const link = document.createElement('a');
         link.download = `emotion-game-${game.score}.jpg`;
         link.href = collage.toDataURL('image/jpeg', 0.9);
         link.click();
     };
 
+    const toBlob = (canvas: HTMLCanvasElement, type: string) =>
+        new Promise<Blob | null>(resolve => canvas.toBlob(resolve, type, 0.9));
+
+    /**
+     * Shares the collage, only on the player's click: the system share sheet with the picture
+     * attached where the browser has one (phones, Safari...); otherwise the picture goes to the
+     * clipboard and X's post page opens with the text, ready to paste it in.
+     */
+    const shareCollage = async (say: (message: string) => void) => {
+        const collage = await buildCollage();
+        if (!collage || !game) return;
+        const text = shareText(game.score, location.href);
+        const jpeg = await toBlob(collage, 'image/jpeg');
+        const file = jpeg ? new File([jpeg], `emotion-game-${game.score}.jpg`, { type: 'image/jpeg' }) : null;
+        if (file && navigator.canShare?.({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file], text });
+                return;
+            } catch (error) {
+                if ((error as Error).name === 'AbortError') return; // the player closed the share sheet
+            }
+        }
+        // Opened right away, while the click still counts, so the browser does not block it.
+        const post = window.open(postIntentUrl(text), '_blank');
+        try {
+            const png = await toBlob(collage, 'image/png');
+            if (!png) throw new Error('no picture');
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+            say('Picture copied - paste it into the post (Ctrl / Cmd + V).');
+        } catch {
+            await saveCollage();
+            say('Picture saved - attach it to the post.');
+        }
+        if (!post) say('Allow pop-ups to open the post, or share the saved picture.');
+    };
+
     const showGallery = () => {
         if (!gallery || !game) return;
         gallery.innerHTML = '';
         const title = document.createElement('div');
-        title.textContent = `🏁 Game over - score ${game.score}`;
+        title.textContent = `${game.timeUp ? "⏱ Time's up" : '🏁 Game over'} - score ${game.score}`;
         title.style.cssText = 'font-size:24px;margin-bottom:10px';
         const grid = document.createElement('div');
         grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;width:100%';
@@ -467,12 +554,18 @@ export async function emotionGame(
             element.addEventListener('click', onClick);
             buttons.appendChild(element);
         };
-        if (snapshots.length) button('📸 Save picture', () => { void saveCollage(); });
+        const message = document.createElement('div');
+        message.style.cssText = 'font-size:14px;margin-top:8px;min-height:1.3em';
+        const say = (text: string) => { message.textContent = text; };
+        if (snapshots.length) {
+            button('📤 Share', () => { void shareCollage(say); });
+            button('📸 Save picture', () => { void saveCollage(); });
+        }
         button('▶ Play again (R)', () => restart());
         const note = document.createElement('div');
-        note.textContent = 'The pictures stay on this device - nothing is uploaded.';
-        note.style.cssText = 'font-size:12px;opacity:0.7;margin-top:8px';
-        gallery.append(title, grid, buttons, note);
+        note.textContent = 'The pictures stay on this device until you share them - nothing is uploaded.';
+        note.style.cssText = 'font-size:12px;opacity:0.7;margin-top:4px';
+        gallery.append(title, grid, buttons, message, note);
         gallery.style.display = 'flex';
     };
 
@@ -506,7 +599,7 @@ export async function emotionGame(
             }
             parade = document.createElement('div');
             parade.className = 'emotion-game-parade';
-            parade.style.cssText = 'position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:#141414';
+            parade.style.cssText = `position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:${backgroundCss()}`;
             parade.style.setProperty('--parade-width', `${box.clientWidth + 120}px`);
             box.insertBefore(parade, canvasElement);
             canvasElement.style.position = 'relative';
@@ -589,9 +682,9 @@ export async function emotionGame(
         const now = performance.now() / 1000;
         const target = game?.target;
         const event = game?.update(now, currentShape !== null && matchesTarget(game.target.id, currentShape));
-        if (event && target) takeSnapshot(target, event === 'scored');
+        if ((event === 'scored' || event === 'timeout') && target) takeSnapshot(target, event === 'scored');
         if (event === 'scored' && target) startParade(target.emoji);
-        if (event === 'timeout' && game?.over) showGallery();
+        if (event && game?.over) showGallery();
         updateHud(now);
         if (!result.running) return;
         } finally {
