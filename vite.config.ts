@@ -5,6 +5,11 @@ import {playwright} from "@vitest/browser-playwright";
 
 export default defineConfig({
     base: '/parallax/',
+    // A multi-page site (see build.rollupOptions.input), not a single-page app: Vite's
+    // default 'spa' answers any unknown address with the root index.html, so e.g.
+    // /parallax/docs/ showed the home page there - and its relative links then pointed at
+    // /parallax/docs/docs/... 'mpa' answers 404 instead, as GitHub Pages does.
+    appType: 'mpa',
     server: {
         open: true,
         host: true,
@@ -26,6 +31,7 @@ export default defineConfig({
                 'docs/tutorial/tutorial-8': './docs/tutorial/tutorial-8/index.html',
                 'docs/tutorial/tutorial-9': './docs/tutorial/tutorial-9/index.html',
                 'docs/tutorial/tutorial-10': './docs/tutorial/tutorial-10/index.html',
+                'docs/showroom/airplane': './docs/showroom/airplane/index.html',
             }
         }
     },
