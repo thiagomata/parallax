@@ -3,17 +3,23 @@ import { World } from "../../scene/world.ts";
 import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
 import { SceneClock } from "../../scene/scene_clock.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
-import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, type Alpha, type CarModifier, type ColorRGBA, type Vector3} from "../../scene/types.ts";
+import { HeadTrackingDataProvider } from "../../scene/providers/head_tracking_data_provider.ts";
+import { WebCamDataProvider } from "../../scene/providers/web_cam_data_provider.ts";
+import {DEFAULT_SCENE_SETTINGS, ELEMENT_TYPES, LOOK_MODES, type Alpha, type CarModifier, type ColorRGBA, type DampingValue, type SceneUnits, type Vector3, type VideoPixels} from "../../scene/types.ts";
 import { DEFAULT_SKETCH_CONFIG, type SketchConfig } from "../tutorial/sketch_config.ts";
-import type { P5SketchExtraArgs } from "../tutorial/sketch_engine.types.ts";
+import type { FaceConfig, P5SketchExtraArgs } from "../tutorial/sketch_engine.types.ts";
 import { WorldSettings } from "../../scene/world_settings.ts";
 import { HEAD_TRACKED_PRESET } from "../../scene/presets.ts";
+import { HeadTrackingModifier } from "../../scene/modifiers/head_tracking_modifier.ts";
 
 /**
  * SHOWROOM: Airplane Flight
  *
- * A small airplane flying through the clouds over the ocean. Steer with the mouse (or the arrow
- * keys): left / right turns, up / down dives and climbs. No head tracking for now.
+ * A small airplane flying through the clouds over the ocean. With head tracking (webcam)
+ * the airplane's heading copies your head's yaw - turn your head and it turns with you -
+ * its bank copies your head's tilt, banking it into a turn, and nodding or lowering your
+ * head points its nose down (raising it, up); the up / down arrow keys pitch it too. While no face is tracked, steer with the mouse
+ * (left / right turns, down / up dives / climbs) or the arrow keys.
  *
  * Everything lives in plain world coordinates (p5 WEBGL: +x right, +y DOWN, -z ahead at the
  * start). The clouds and the ocean never move. The airplane flies through the world along
@@ -29,14 +35,14 @@ import { HEAD_TRACKED_PRESET } from "../../scene/presets.ts";
  *   7. Canvas, input and draw loop
  */
 export const airplaneFlightExplanation = `
-<p>A small airplane flying through the clouds over the ocean. Move the pointer over the canvas to steer: left / right to turn, down to dive and up to climb. The arrow keys steer too.</p>
+<p>A small airplane flying through the clouds over the ocean, head-tracked: turn your head and the airplane turns with you, tilt it to bank into a turn, and lower your head or lean in to dive, raise it to climb (press C to re-center); the up / down arrow keys pitch it too. If no camera is available, move the pointer over the canvas instead (left / right to turn, down / up to dive / climb), or use the arrow keys.</p>
 `;
 
 export async function airplaneFlight(
     p: p5,
     config: SketchConfig = DEFAULT_SKETCH_CONFIG,
-    extraArgs?: P5SketchExtraArgs,
-): Promise<World<P5Bundler, any, any, {}>> {
+    extraArgs?: { faceConfig?: FaceConfig; faceDataProvider?: HeadTrackingDataProvider; webCamProvider?: WebCamDataProvider } & P5SketchExtraArgs,
+): Promise<World<P5Bundler, any, any, { webCam: WebCamDataProvider; headTracker: HeadTrackingDataProvider }>> {
     const clock = config.clock ?? new SceneClock({
         ...DEFAULT_SCENE_SETTINGS,
         startPaused: config.paused,
@@ -48,9 +54,25 @@ export async function airplaneFlight(
         },
     });
 
+    // Head tracking, as in the hero: the webcam, and the face tracker on top of it.
+    const webCamProvider = extraArgs?.webCamProvider ?? new WebCamDataProvider(p, 640, 480);
+    const faceDataProvider = extraArgs?.faceDataProvider ?? new HeadTrackingDataProvider(p,
+        {
+            ...extraArgs?.faceConfig,
+            baselineHeadPixels: 120 as VideoPixels,
+            baselineHeadSceneUnits: 180 as SceneUnits,
+            baseline: {x: 0 as SceneUnits, y: 0 as SceneUnits, z: 0 as SceneUnits},
+            cameraPosition: {x: 0 as SceneUnits, y: 0 as SceneUnits, z: 300 as SceneUnits},
+        }
+    );
+    const dataProviderLib: { webCam: WebCamDataProvider; headTracker: HeadTrackingDataProvider } = {
+        webCam: webCamProvider,
+        headTracker: faceDataProvider,
+    };
+
     const loader = new P5AssetLoader(p);
-    const world = new World<P5Bundler, any, any, {}>(
-        WorldSettings.fromLibs({ clock, loader })
+    const world = new World<P5Bundler, any, any, typeof dataProviderLib>(
+        WorldSettings.fromLibs({ clock, loader, dataProviderLib })
     );
 
     // ── 1. World and camera rig ────────────────────────────────────────────────────
@@ -87,8 +109,9 @@ export async function airplaneFlight(
     });
 
     // ── 2. Flight ───────────────────────────────────────────────────────────────────
-    // Steering: the pointer's offset from the canvas center (-1..1 each way), plus the
-    // arrow keys (full steering while held).
+    // Steering, -1..1 each way: the tracked head's rotation (see chaseCamera below), or the
+    // pointer's offset from the canvas center while no face is tracked - plus the arrow keys
+    // (full steering while held).
     //   - left / right: turn rate, up to 0.7 rad/s at the edge (a full turn in ~9 s),
     //     banking up to 1 rad (~57deg);
     //   - up / down: pitch rate, up to 0.8 rad/s at the edge - pointer high pulls the nose
@@ -127,6 +150,11 @@ export async function airplaneFlight(
         steer: { x: 0, y: 0 },
         camera: { heading: 0, pitch: 0, position: null as Vector3 | null },
         splashUntil: -1,
+        // Head steering: the heading when tracking started, and the turn built up by banking.
+        headingBase: 0,
+        headTurn: 0,
+        // Head steering: the pitch the up / down keys have added on top of the head's.
+        pitchBase: 0,
         crash: 'water' as 'water' | 'island',
     };
     const clamp = (value: number, max: number) => Math.max(-max, Math.min(max, value));
@@ -158,7 +186,10 @@ export async function airplaneFlight(
         roll: 0,
     });
 
-    const updateFlight = (now: number) => {
+    // `lean`: the steering input, -1..1 each way (the pointer). `head`: while a face is
+    // tracked, its yaw, roll and pitch relative to the neutral pose (see chaseCamera) - they
+    // replace `lean`.
+    const updateFlight = (now: number, lean: { x: number; y: number }, head: { yaw: number; roll: number; pitch: number } | null) => {
         if (now === flight.lastNow) return;
         const dt = flight.lastNow < 0 ? 0 : Math.min(100, Math.max(0, now - flight.lastNow));
         flight.lastNow = now;
@@ -168,13 +199,36 @@ export async function airplaneFlight(
         const keyY = (pressedKeys.ArrowDown ? 1 : 0) - (pressedKeys.ArrowUp ? 1 : 0);
         const ease = 1 - Math.exp(-dt / 300);
         const deadZone = (value: number) => Math.abs(value) < 0.1 ? 0 : value;
-        flight.steer.x += (clamp(pointer.x + keyX, 1) - flight.steer.x) * ease;
-        flight.steer.y += (clamp(deadZone(pointer.y) + keyY, 1) - flight.steer.y) * ease;
+        flight.steer.x += (clamp(lean.x + keyX, 1) - flight.steer.x) * ease;
+        flight.steer.y += (clamp(deadZone(lean.y) + keyY, 1) - flight.steer.y) * ease;
 
         const upright = Math.cos(flight.pitch) >= 0 ? 1 : -1;
-        flight.heading += flight.steer.x * 0.0007 * dt * upright;
-        flight.pitch += flight.steer.y * 0.0008 * dt;
-        flight.bank = flight.steer.x * 1.0;
+        if (head === null) {
+            flight.heading += flight.steer.x * 0.0007 * dt * upright;
+            flight.bank = flight.steer.x * 1.0;
+        } else {
+            // The bank copies the head's roll (capped at 1 rad); banked, it turns toward the low
+            // wing - 0.8 rad/s per rad of bank - building up headTurn. The heading copies the
+            // head's yaw on top: base (the heading when tracking started) + yaw + headTurn.
+            // Both eased over ~0.2 s.
+            const ease = 1 - Math.exp(-dt / 200);
+            flight.bank += (clamp(head.roll, 1) - flight.bank) * ease;
+            flight.headTurn += flight.bank * 0.0008 * dt * upright;
+            const target = flight.headingBase + head.yaw + flight.headTurn;
+            flight.heading += (target - flight.heading) * ease;
+        }
+        if (head === null) {
+            flight.pitch += flight.steer.y * 0.0008 * dt;
+        } else {
+            // The nose goes where you look: its pitch follows the head's, eased over ~0.2 s, on
+            // top of what the up / down keys have added (so they can still loop it). Past
+            // 0.45 rad (~26deg) of head pitch, the excess also keeps turning the base - up to
+            // 0.8 rad/s at 0.4 rad beyond it - so holding a strong pitch loops it.
+            flight.pitchBase += flight.steer.y * 0.0008 * dt;
+            const excess = Math.abs(head.pitch) - 0.45;
+            if (excess > 0) flight.pitchBase += Math.sign(head.pitch) * Math.min(1, excess / 0.4) * 0.0008 * dt;
+            flight.pitch += (flight.pitchBase + head.pitch - flight.pitch) * (1 - Math.exp(-dt / 200));
+        }
 
         // Forward along the nose, 500 units per second.
         const nose = viewDirection(flight.heading, flight.pitch);
@@ -190,6 +244,7 @@ export async function airplaneFlight(
             flight.crash = crash;
             flight.position = { ...flight.position, y: startHeight };
             flight.pitch = 0;
+            flight.pitchBase = 0;
             flight.camera.pitch = 0;
             flight.splashUntil = now + 2500;
         }
@@ -218,22 +273,118 @@ export async function airplaneFlight(
         lastStatus = message;
         canvasElement?.dispatchEvent(new CustomEvent('observerstatus', { bubbles: true, detail: message }));
     };
-    // Runs once per frame, before anything is drawn: moves the airplane and the camera, then
-    // places the rig's head at the camera (the eye is another 100 behind it).
-    const chaseCamera: CarModifier = {
+    // Head tracking, relative to how your head was when first seen - so however you sit
+    // counts as straight and level (the heading at that moment is kept as the base). Press
+    // C to re-center on your head as it is now. (Measuring pitch from looking straight at
+    // the camera instead made it dive nonstop: with the webcam above the screen, looking at
+    // the screen already reads as a nod down.)
+    //   - yaw: the airplane's heading COPIES it - turn your head 20deg right and it turns
+    //     20deg right;
+    //   - roll: the airplane's bank copies your head's tilt, and banking turns it (see
+    //     updateFlight) - hold a tilt and it circles;
+    //   - pitch: two signals added together, both from your neutral pose -
+    //       * your nod: the face tracker's pitch, negated (as the camera rig does), 1:1 (2x was
+    //         far too sensitive going up). On real faces it often sticks at -33.7deg (a
+    //         limit of how the engine computes it, which we leave alone), so these help:
+    //       * your head's HEIGHT: lower your head and the nose goes down, raise it and it
+    //         goes up - 0.6 rad (~34deg) at 100 units of movement. Head position is the
+    //         hero camera's signal, from HeadTrackingModifier.
+    //       * LEANING IN toward the screen: nose down, the same 0.6 rad at 100 units closer.
+    //         Down only - the nod can only say "up" (it sits at its limit), so diving needs
+    //         the help. Closer is a lower z (leaning in zooms the hero camera in, -z).
+    //     Sign: negated, as the camera rig does (HeadTrackingModifier), so + is nose down,
+    //     p5's sign - checked with a real face (the unnegated sign was inverted).
+    // The up / down arrow keys pitch it too. Sign: the face tracker's stick.yaw grows as you turn RIGHT (checked by
+    // flying it with a real face), the same as the heading, so it's copied as is.
+    const headModifier = new HeadTrackingModifier({
+        disableRotation: true,
+        damping: 0.1 as DampingValue,
+    });
+    let headReference: { yaw: number; pitch: number; roll: number } | null = null;
+    // The head's height and distance at the neutral pose (with headReference; C resets all).
+    let headHeightReference = 0;
+    let headDistanceReference = 0;
+    // Set by the C key (section 7); the next tracked frame becomes the new reference.
+    let recenterRequested = false;
+    let initialized = false;
+    // Debug: the face tracker's raw readings, shown over the canvas (top right) - its
+    // rotation (stick yaw / pitch / roll, radians) and the lean the airplane steers by.
+    // Set false to hide.
+    const showHeadReadout = true;
+    let headReadout = 'head: no face';
+    // Runs once per frame, before anything is drawn: reads the steering (head, else pointer),
+    // moves the airplane and the camera, then places the rig's head at the camera (the eye
+    // is another 100 behind it).
+    const chaseCamera: CarModifier<typeof dataProviderLib> = {
         name: 'Airplane chase camera',
         active: true,
         priority: 10,
         requiredDataProviders: [],
-        tick: () => {},
-        getCarPosition: (_position, context) => {
+        tick: sceneId => headModifier.tick(sceneId),
+        getCarPosition: (position, context) => {
+            const face = context.dataProviders.headTracker;
+            const tracked = face ? headModifier.getCarPosition(position, context) : null;
+            if (showHeadReadout) {
+                const angle = (radians: number) => `${(radians * 180 / Math.PI).toFixed(1).padStart(6)}deg (${radians.toFixed(3)})`;
+                const offset = tracked?.success ? tracked.value.position : null;
+                headReadout = face
+                    ? [
+                        `yaw   ${angle(face.stick.yaw)}`,
+                        `pitch ${angle(face.stick.pitch)}`,
+                        `roll  ${angle(face.stick.roll)}`,
+                        offset ? `lean  x ${offset.x.toFixed(0)}  y ${offset.y.toFixed(0)}  z ${offset.z.toFixed(0)}` : 'lean  -',
+                    ].join('\n')
+                    : 'head: no face';
+            }
+            let lean: { x: number; y: number } = pointer;
+            let message: string;
+            let head: { yaw: number; roll: number; pitch: number } | null = null;
+            if (face && tracked?.success) {
+                if (recenterRequested) {
+                    recenterRequested = false;
+                    headReference = null;
+                }
+                if (!headReference) {
+                    headReference = { ...face.stick };
+                    headHeightReference = tracked.value.position.y;
+                    headDistanceReference = tracked.value.position.z;
+                    flight.pitchBase = flight.pitch;
+                    flight.headingBase = flight.heading;
+                    flight.headTurn = 0;
+                }
+                const nodPitch = -(face.stick.pitch - headReference.pitch);
+                // +y is down, so a lowered head gives + pitch: nose down.
+                const heightPitch = clamp((tracked.value.position.y - headHeightReference) / 100, 1) * 0.6;
+                const leanInPitch = Math.max(0, Math.min(1, (headDistanceReference - tracked.value.position.z) / 100)) * 0.6;
+                head = {
+                    yaw: face.stick.yaw - headReference.yaw,
+                    roll: face.stick.roll - headReference.roll,
+                    pitch: nodPitch + heightPitch + leanInPitch,
+                };
+                lean = { x: 0, y: 0 };
+                if (showHeadReadout) {
+                    const degrees = (radians: number) => (radians * 180 / Math.PI).toFixed(1);
+                    headReadout += `\ncopied yaw  ${degrees(head.yaw)}deg (+ = right)`
+                        + `\ncopied roll ${degrees(head.roll)}deg (+ = right wing down)`
+                        + `\npitch nod ${degrees(nodPitch)} + height ${degrees(heightPitch)} + lean in ${degrees(leanInPitch)}`
+                        + `\n      = ${degrees(head.pitch)}deg (+ = nose down)`;
+                }
+                message = 'Head tracking on - turn or tilt your head to steer, lower it or lean in to dive (C re-centers).';
+            } else {
+                const cameraReady = webCamProvider.getStatus?.() === 'READY';
+                message = !initialized
+                    ? 'Head tracking is loading - meanwhile, move the mouse to steer the airplane.'
+                    : cameraReady
+                        ? 'No face found - move the mouse to steer the airplane.'
+                        : 'Camera unavailable - move the mouse to steer the airplane.';
+            }
             const now = context.playback.now;
-            updateFlight(now);
+            updateFlight(now, lean, head);
             announceStatus(now < flight.splashUntil
                 ? flight.crash === 'island'
                     ? 'Crash! You hit an island - flying again from the top.'
                     : 'Splash! You hit the water - flying again from the top.'
-                : 'Move the mouse to steer the airplane.');
+                : message);
             return {
                 success: true,
                 value: {
@@ -366,6 +517,12 @@ export async function airplaneFlight(
     // undersides grey. Debug switch: cloudsAsCubes draws one plain cube per cloud instead.
     const cloudsAsCubes = false;
     const skyColor = { red: 150, green: 200, blue: 240 } as ColorRGBA;
+    // Fly too high and the sky darkens: unchanged up to 3000 above the sea, then fading to a
+    // near-black night blue by 8000. Haze uses the current sky too, so distant clouds and
+    // islands fade into the dark instead of glowing day-blue against it.
+    const highSkyColor = { red: 12, green: 18, blue: 45 } as ColorRGBA;
+    const currentSky = () =>
+        mix(skyColor, highSkyColor, Math.max(0, Math.min(1, (-flight.position.y - 3000) / 5000)));
     const cloudColor = { red: 250, green: 250, blue: 250 } as ColorRGBA; // the cubes
     // Pastel tints, one per cloud in turn, for a magical sunset sky; within a cloud the top
     // dome leans warm (catching the sun) and the base leans cool (its shadow).
@@ -448,7 +605,7 @@ export async function airplaneFlight(
         };
         // A colour, hazed toward the sky with distance - squared, so the haze stays light
         // through the middle distance (the tints show) and builds up toward 3000.
-        const hazed = (color: ColorRGBA) => () => mix(color, skyColor, Math.min(1, distanceToCamera() / 3000) ** 2);
+        const hazed = (color: ColorRGBA) => () => mix(color, currentSky(), Math.min(1, distanceToCamera() / 3000) ** 2);
         const tint = cloudTint(index);
 
         if (cloudsAsCubes) {
@@ -608,7 +765,7 @@ export async function airplaneFlight(
     // Far below the far plane: where a slot's unused parts (or a cell with no island) go.
     const hidden = 100000;
     const hazedByDistance = (color: ColorRGBA, distance: number) =>
-        mix(color, skyColor, Math.min(1, distance / 3000) ** 2);
+        mix(color, currentSky(), Math.min(1, distance / 3000) ** 2);
 
     for (let slotX = 0; slotX < islandSlots; slotX++) {
         for (let slotZ = 0; slotZ < islandSlots; slotZ++) {
@@ -714,6 +871,28 @@ export async function airplaneFlight(
     // element laid over the canvas (inside its box, so it goes fullscreen with it): drawn in
     // 3D it would be shaded by the lights and read grey instead of the cloud's white.
     let cloudOverlay: HTMLElement | undefined;
+    let readoutElement: HTMLElement | undefined;
+    // Altimeter (bottom left): height above the sea and the climb rate, so you can tell up
+    // from down when there's nothing but sky in view. The rate is smoothed over ~0.5 s.
+    let altimeterElement: HTMLElement | undefined;
+    let lastAltitude: number | null = null;
+    let lastAltitudeAt = 0;
+    let climbRate = 0; // units per second, + = climbing
+    const updateAltimeter = () => {
+        if (!altimeterElement) return;
+        const altitude = -flight.position.y;
+        const now = performance.now();
+        if (lastAltitude !== null && now > lastAltitudeAt) {
+            const rate = (altitude - lastAltitude) / ((now - lastAltitudeAt) / 1000);
+            // A jump (splash restart) isn't a climb.
+            if (Math.abs(rate) < 5000) climbRate += (rate - climbRate) * Math.min(1, (now - lastAltitudeAt) / 500);
+        }
+        lastAltitude = altitude;
+        lastAltitudeAt = now;
+        const trend = climbRate > 20 ? '▲ climbing' : climbRate < -20 ? '▼ descending' : '■ level';
+        const text = `ALT ${Math.round(altitude)}\n${trend} ${Math.abs(Math.round(climbRate))}/s`;
+        if (altimeterElement.textContent !== text) altimeterElement.textContent = text;
+    };
     p.setup = () => {
         const canvas = p.createCanvas(config.width, config.height, p.WEBGL);
         canvasElement = canvas?.elt;
@@ -724,6 +903,18 @@ export async function airplaneFlight(
             cloudOverlay.className = 'cloud-cover';
             cloudOverlay.style.cssText = 'position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0';
             box.appendChild(cloudOverlay);
+            box.querySelector('.altimeter')?.remove();
+            altimeterElement = document.createElement('pre');
+            altimeterElement.className = 'altimeter';
+            altimeterElement.style.cssText = 'position:absolute;left:8px;bottom:8px;z-index:2;margin:0;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,0.65);color:#fff;font:600 14px/1.35 ui-monospace,Menlo,monospace;pointer-events:none';
+            box.appendChild(altimeterElement);
+            box.querySelector('.head-readout')?.remove();
+            if (showHeadReadout) {
+                readoutElement = document.createElement('pre');
+                readoutElement.className = 'head-readout';
+                readoutElement.style.cssText = 'position:absolute;top:8px;right:8px;z-index:2;margin:0;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,0.65);color:#fff;font:600 13px/1.35 ui-monospace,Menlo,monospace;pointer-events:none';
+                box.appendChild(readoutElement);
+            }
         }
         canvasElement?.addEventListener('pointermove', event => {
             const bounds = canvasElement!.getBoundingClientRect();
@@ -744,6 +935,7 @@ export async function airplaneFlight(
     window.addEventListener('keydown', (event: KeyboardEvent) => {
         if (isTyping(event)) return;
         if (event.key.startsWith('Arrow')) event.preventDefault();
+        if (event.code === 'KeyC') recenterRequested = true;
         pressedKeys[event.key] = true;
     });
     window.addEventListener('keyup', (event: KeyboardEvent) => {
@@ -757,7 +949,8 @@ export async function airplaneFlight(
             world.resume();
         }
 
-        p.background(skyColor.red, skyColor.green, skyColor.blue);
+        const sky = currentSky();
+        p.background(sky.red, sky.green, sky.blue);
         // Daylight: a cool, slightly blue ambient plus a warm low sun from above, so every
         // face is shaded by how it's turned - what shows the clouds' and the airplane's
         // shapes - with sunlit tops leaning orange and shadows leaning blue.
@@ -769,6 +962,8 @@ export async function airplaneFlight(
             gp.cameraUp = { x: -up.x, y: -up.y, z: -up.z };
             const result = await world.step(gp);
             if (!result.running) return;
+            if (readoutElement && readoutElement.textContent !== headReadout) readoutElement.textContent = headReadout;
+            updateAltimeter();
             if (cloudOverlay) {
                 const { cover, color } = cloudCover();
                 cloudOverlay.style.opacity = (cover * 0.7).toFixed(3);
@@ -778,6 +973,18 @@ export async function airplaneFlight(
     };
 
     gp = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
+
+    // Head tracking downloads ~13 MB (face model + WebAssembly), so it starts only once the
+    // scene is showing; the mouse and keys steer until it's ready, and keep doing so if the
+    // camera is unavailable.
+    void world.whenAssetsLoaded().then(async () => {
+        try {
+            await faceDataProvider.init();
+        } catch (error) {
+            console.warn('Camera unavailable; pointer controls remain active.', error);
+        }
+        initialized = true;
+    });
 
     return world;
 }
