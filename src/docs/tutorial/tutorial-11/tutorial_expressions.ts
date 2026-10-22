@@ -136,8 +136,11 @@ export async function tutorial_expressions(
         // Only when the camera is not delivering: the clip waits, and the draw loop starts
         // and stops it as the camera comes and goes.
         autoplay: false,
+        // And it is not even downloaded until it plays: preloading 'none' keeps the camera's
+        // page from fetching a movie it may never show.
         muted: true,
         playsInline: true,
+        preload: "none",
     });
     const fallbackVideo = (fallbackVideoProvider as any).video;
 

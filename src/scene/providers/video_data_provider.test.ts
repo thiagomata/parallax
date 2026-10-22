@@ -39,6 +39,29 @@ describe("VideoDataProvider", () => {
         expect(video.node.loop).toHaveBeenCalled();
     });
 
+    it("waits for play() to start the download when told to preload nothing", () => {
+        const p = createMockP5() as any;
+        const provider = new VideoDataProvider(p, "/parallax/video/rick.mp4", {
+            autoplay: false,
+            preload: "none",
+        });
+        const video = provider.getData();
+        expect(video).not.toBeNull();
+        if (!video) return;
+
+        // Nothing downloaded and no data yet: the video waits (INITIALIZING) and only the
+        // first play() starts it - and, with it, the download.
+        expect(video.node.elt.preload).toBe("none");
+        Object.defineProperty(video.node.elt, "paused", {
+            value: true,
+            configurable: true,
+            writable: true,
+        });
+        expect(provider.getStatus()).toBe("INITIALIZING");
+        provider.play();
+        expect(video.node.loop).toHaveBeenCalled();
+    });
+
     it("starts on its own when autoplay is not turned off", () => {
         const p = createMockP5() as any;
         const provider = new VideoDataProvider(p, "/parallax/video/rick.mp4", {loop: true});

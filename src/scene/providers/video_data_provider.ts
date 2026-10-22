@@ -131,12 +131,14 @@ export class VideoDataProvider implements DataProviderBundle<"video", VideoSourc
 
     private async ensurePlaying(): Promise<void> {
         if (this.playRequested) return;
-        if (this.video.elt.readyState < 2) return;
-        if (!this.video.elt.paused) return;
+        // Already going? Then nothing to do.
+        if (this.video.elt.readyState >= 2 && !this.video.elt.paused) return;
 
         this.playRequested = true;
         try {
             // p5's loop() both loops and plays; a plain play() would not come back around.
+            // play() also starts the download when the browser was told not to preload,
+            // so a waiting video begins loading only here.
             if (this.wantsLoop) this.video.loop(); else this.video.play();
         } catch {
             this.playRequested = false;
