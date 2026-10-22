@@ -312,6 +312,54 @@ describe('Tutorial 8: The Observer', () => {
         videoStatusSpy.mockRestore();
     });
 
+    it('plays the replacement clip only while the camera is not delivering', async () => {
+        const mockP5 = createMockP5();
+        mockP5.millis.mockReturnValue(0);
+
+        const clock = new SceneClock({
+            ...DEFAULT_SCENE_SETTINGS,
+            playback: {
+                ...DEFAULT_SCENE_SETTINGS.playback,
+                duration: 10000,
+                isLoop: true
+            }
+        });
+
+        const mockTracker = createMockHeadTrackingProvider(vi.fn().mockReturnValue(createMockFaceWorldData()));
+        const webcamData = { kind: "webCam", node: { readyState: 1 } };
+        const mockWebCam = {
+            type: "webCam",
+            parentId: undefined,
+            tick: vi.fn(),
+            getStatus: vi.fn().mockReturnValue("INITIALIZING"),
+            getData: vi.fn().mockReturnValue(webcamData),
+            getDataResult: vi.fn().mockReturnValue({ success: true as const, value: webcamData }),
+            getVideo: vi.fn().mockReturnValue({ success: true as const, value: webcamData }),
+        } as unknown as WebCamDataProvider;
+
+        const playSpy = vi.spyOn(VideoDataProvider.prototype, 'play').mockImplementation(() => {});
+        const pauseSpy = vi.spyOn(VideoDataProvider.prototype, 'pause').mockImplementation(() => {});
+
+        const world = await tutorial_observer(mockP5 as unknown as p5, {
+            width: 500,
+            height: 400,
+            clock,
+            paused: false
+        }, { faceDataProvider: mockTracker, webCamProvider: mockWebCam } as any);
+
+        await mockP5.setup();
+        await mockP5.draw(); // the scene is still coming up
+        await mockP5.draw(); // the camera is not delivering: the clip plays
+        expect(playSpy).toHaveBeenCalled();
+        expect(pauseSpy).not.toHaveBeenCalled();
+
+        (mockWebCam.getStatus as any).mockReturnValue('READY');
+        await mockP5.draw(); // the camera is up: the clip stops
+        expect(pauseSpy).toHaveBeenCalled();
+        playSpy.mockRestore();
+        pauseSpy.mockRestore();
+    });
+
     it('runs world with paused config set to false by default', async () => {
         const mockP5 = createMockP5();
         mockP5.millis.mockReturnValue(0);

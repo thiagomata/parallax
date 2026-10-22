@@ -129,7 +129,9 @@ export async function tutorial_observer(
     // Create video via VideoDataProvider - this is the ONE video element we use
     const fallbackVideoProvider = new VideoDataProvider(p, FALLBACK_VIDEO_URL, {
         loop: true,
-        autoplay: true,
+        // Only when the camera is not delivering: the clip waits, and the draw loop starts
+        // and stops it as the camera comes and goes.
+        autoplay: false,
         muted: true,
         playsInline: true,
     });
@@ -472,12 +474,19 @@ export async function tutorial_observer(
         // Simple pause/resume - let video play naturally
         if (config.paused && !world.isPaused()) {
             world.pause();
-            fallbackVideo.pause();
+            fallbackVideoProvider.pause();
             // Don't clear background - keep last frame visible
             return;
         } else if (!config.paused && world.isPaused()) {
             world.resume();
-            fallbackVideo.loop();
+        }
+
+        // The replacement clip runs only while the camera is not delivering: behind a working
+        // webcam it must not keep playing (not even without a sound, and not on a phone).
+        if (webCamProvider.getStatus() === 'READY') {
+            fallbackVideoProvider.pause();
+        } else {
+            fallbackVideoProvider.play();
         }
 
 // Let video play naturally - just render
