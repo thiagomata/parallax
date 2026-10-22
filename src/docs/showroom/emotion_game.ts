@@ -95,10 +95,12 @@ export function matchesTarget(target: GameTargetId, shape: FaceShape): boolean {
     }
 }
 
-/** How much of the face's movement the emoji follows: a quarter of the frame's width. */
-const FOLLOW = 1 / 4;
-/** How far the emoji may go from its place, so it stays on the screen. */
-const FOLLOW_LIMIT = 120;
+/** How much of the face's movement the emoji follows: a fraction of the frame's width. */
+const EMOJI_FOLLOW_SCALE = 1 / 4;
+/** Maximum distance the emoji may move from its place, in scene units. */
+const EMOJI_FOLLOW_LIMIT = 120;
+/** Video frame aspect ratio used for vertical scaling. */
+const VIDEO_FRAME_ASPECT = 16 / 9;
 
 /**
  * Where the emoji sits: beside the webcam, but leaning with the head, the way the head box
@@ -110,11 +112,11 @@ export function emojiFollowPosition(
     home: { x: number; y: number; z: number },
 ): { x: number; y: number; z: number } {
     if (!face) return home;
-    const cap = (value: number) => Math.max(-FOLLOW_LIMIT, Math.min(FOLLOW_LIMIT, value));
+    const cap = (value: number) => Math.max(-EMOJI_FOLLOW_LIMIT, Math.min(EMOJI_FOLLOW_LIMIT, value));
     return {
-        x: home.x + cap(face.worldPosition.x * FOLLOW),
-        // The face's height is measured in frame widths, and the frame is 16:9.
-        y: home.y + cap(face.worldPosition.y * FOLLOW * (9 / 16)),
+        x: home.x + cap(face.worldPosition.x * EMOJI_FOLLOW_SCALE),
+        // The face's height is measured in frame widths; scale vertically by the frame's aspect.
+        y: home.y + cap(face.worldPosition.y * EMOJI_FOLLOW_SCALE * (1 / VIDEO_FRAME_ASPECT)),
         z: home.z,
     };
 }
@@ -256,12 +258,16 @@ export interface Snapshot {
 }
 
 /** Where each snapshot goes in the collage: a grid of columns, under a title row. */
-export function collageLayout(count: number, cell: { width: number; height: number }, columns = 3, titleHeight = 70): {
+const COLLAGE_COLUMNS = 3;
+const COLLAGE_TITLE_HEIGHT = 70;
+const COLLAGE_GAP = 8;
+
+export function collageLayout(count: number, cell: { width: number; height: number }, columns = COLLAGE_COLUMNS, titleHeight = COLLAGE_TITLE_HEIGHT): {
     width: number; height: number; cells: { x: number; y: number }[];
 } {
     const used = Math.max(1, Math.min(columns, count));
     const rows = Math.max(1, Math.ceil(count / used));
-    const gap = 8;
+    const gap = COLLAGE_GAP;
     return {
         width: used * cell.width + (used + 1) * gap,
         height: titleHeight + rows * cell.height + (rows + 1) * gap,
