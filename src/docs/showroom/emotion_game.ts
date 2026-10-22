@@ -9,7 +9,6 @@ import {
 } from "../../scene/providers/head_tracking_data_provider.ts";
 import { WebCamDataProvider } from "../../scene/providers/web_cam_data_provider.ts";
 import type { VideoPixels } from "../../scene/types.ts";
-import { VideoDataProvider } from "../../scene/providers/video_data_provider.ts";
 import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts";
 import {
     DEFAULT_SCENE_SETTINGS,
@@ -24,15 +23,11 @@ import {
 import type { FaceConfig } from "../tutorial/sketch_engine.types.ts";
 import {WorldSettings} from "../../scene/world_settings.ts";
 import {COLORS} from "../../scene/colors.ts";
-import {appAssetPath} from "../../utils/app_paths.ts";
-import {createVideoSelector} from "../tutorial/tutorial-8/tutorial_observer.ts";
 import {
     addEmojiFace, ExpressionReader, mouthPose, type FaceShape,
 } from "./emoji_face.ts";
 import type { Emotion } from "../../scene/drivers/mediapipe/face_expressions.ts";
-
-const FALLBACK_VIDEO_URL = appAssetPath("video/heads.mp4");
-const VIDEO_SOURCE_ORDER = ["webCam", "video"] as const;
+import type { VideoSource } from "../../scene/video/types.ts";
 
 /**
  * SHOWROOM: Emotion Game
@@ -41,7 +36,7 @@ const VIDEO_SOURCE_ORDER = ["webCam", "video"] as const;
  */
 export const emotionGameExplanation = `
 <div class="concept">
-<p>A game built on the face expressions of tutorial 11. Every round shows an emoji - make that face and hold it for half a second to score. A round lasts ten seconds, a missed one costs one of your three lives, and the whole game lasts at most a minute and a half. Your webcam is on the left, and on the right the emoji face copies yours, so you can see what the game sees.</p>
+<p>A game built on the face expressions of tutorial 11. Every round shows an emoji - make that face and hold it for half a second to score. A round lasts ten seconds, a missed one costs one of your three lives, and the whole game lasts at most a minute and a half. Your webcam is on the left, and on the right the emoji face copies yours, so you can see what the game sees. The game needs your camera: there is no prerecorded clip to fall back on, and without the camera there is no game.</p>
 </div>
 
 <h3>How It Works</h3>
@@ -50,8 +45,7 @@ export const emotionGameExplanation = `
 <li><strong>The face</strong> - <code>addEmojiFace</code> (<code>emoji_face.ts</code>) draws the emoji, here beside the webcam, turning with your head and leaning with it too.</li>
 <li><strong>Reading the expressions</strong> - <code>ExpressionReader</code> (<code>emoji_face.ts</code>) calibrates on <kbd>N</kbd> and smooths sleepy over time, so a blink is not a nap.</li>
 <li><strong>Matching</strong> - <code>matchesTarget</code> checks the face against the round's emoji: the strongest emotion for 😢 😠 😮 😴, a smile that is not the open grin for 🙂, the open grin for 😃, one eye closed for 😉.</li>
-<li><strong>The rounds</strong> - <code>EmotionGame</code> keeps the score, the lives, the target and the clock: hold the face for <code>HOLD_SECONDS</code> to score; a round that runs out after <code>ROUND_SECONDS</code> costs one of the <code>LIVES</code>. The game is over with none left, or after <code>GAME_SECONDS</code> however well it goes (<kbd>R</kbd> or space plays again).</li>
-<li><strong>The pictures</strong> - every round ends with a snapshot of the canvas, you and your emoji side by side, stamped with the target and ✅ / ❌. At the end they show together, and <em>Save picture</em> puts them in one collage (<code>collageLayout</code>). <em>Share</em> opens the system share sheet with the collage attached where the browser has one; otherwise it copies the collage and opens a post on X (<code>postIntentUrl</code>) to paste it into. They stay on your device until you share them.</li>
+<li><strong>The rounds</strong> - <code>EmotionGame</code> keeps the score, the lives, the target and the clock: hold the face for <code>HOLD_SECONDS</code> to score; a round that runs out after <code>ROUND_SECONDS</code> costs one of the <code>LIVES</code>. The game is over with none left, or after <code>GAME_SECONDS</code> however well it goes (<kbd>R</kbd> or space plays again).</li><li><strong>The pictures</strong> - every round ends with a snapshot of the canvas, you and your emoji side by side, stamped with the target and ✅ / ❌. At the end they show together, and <em>Save picture</em> puts them in one collage (<code>collageLayout</code>). <em>Share</em> opens the system share sheet with the collage attached where the browser has one; otherwise it copies the collage and opens a post on X (<code>postIntentUrl</code>) to paste it into. They stay on your device until you share them.</li>
 <li><strong>The parade</strong> - a match sends its emoji flying across behind the scene: plain page emoji under the canvas, which is cleared transparent, so the 3D face and the webcam pass in front of them.</li>
 </ol>
 
@@ -332,18 +326,10 @@ export async function emotionGame(
 
     const webCamProvider = extraArgs?.webCamProvider ?? new WebCamDataProvider(p, videoWidthPixels, videoHeightPixels);
 
-    const fallbackVideoProvider = new VideoDataProvider(p, FALLBACK_VIDEO_URL, {
-        loop: true,
-        autoplay: true,
-        muted: true,
-        playsInline: true,
-    });
-    const fallbackVideo = (fallbackVideoProvider as any).video;
-
     const faceDataProvider = extraArgs?.faceDataProvider ?? new HeadTrackingDataProvider(
         p,
         headTrackingConfig,
-        VIDEO_SOURCE_ORDER,
+        ["webCam"],
     );
 
     const loader = new P5AssetLoader(p);
@@ -351,7 +337,6 @@ export async function emotionGame(
 
     const dataProviderLib: ObserverDataProviderLib = {
         webCam: webCamProvider, // needed as parent dependency for headTracker
-        video: fallbackVideoProvider,
         headTracker: faceDataProvider,
     };
     const world = new World<P5Bundler, any, any, ObserverDataProviderLib>(
@@ -426,6 +411,13 @@ export async function emotionGame(
 
     // The game's panel over the canvas: score, the target emoji, the time left and the hold.
     let hud: { root: HTMLElement; score: HTMLElement; target: HTMLElement; label: HTMLElement; time: HTMLElement; status: HTMLElement } | undefined;
+    /** The note over the scene while the camera is missing or still coming up. */
+    let cameraMessageElement: HTMLElement | undefined;
+    const updateCameraMessage = (text: string) => {
+        if (!cameraMessageElement) return;
+        if (cameraMessageElement.textContent !== text) cameraMessageElement.textContent = text;
+        cameraMessageElement.style.display = text ? 'flex' : 'none';
+    };
     const updateHud = (now: number) => {
         if (!hud || !game) return;
         const celebrating = game.celebrating(now);
@@ -723,6 +715,12 @@ export async function emotionGame(
                 status: element('font-size:12px;opacity:0.7'),
             };
             box.appendChild(root);
+            box.querySelector('.emotion-game-camera')?.remove(); // from a previous run
+            const cameraNote = document.createElement('div');
+            cameraNote.className = 'emotion-game-camera';
+            cameraNote.style.cssText = 'position:absolute;inset:0;z-index:2;display:none;align-items:center;justify-content:center;pointer-events:none;color:#fff;font:700 20px/1.4 system-ui,sans-serif;text-shadow:0 1px 3px rgba(0,0,0,0.8);text-align:center;padding:0 24px';
+            box.appendChild(cameraNote);
+            cameraMessageElement = cameraNote;
         }
     };
 
@@ -746,11 +744,6 @@ export async function emotionGame(
         }
 
         if (!initialized) {
-            // Set fallback video capture for face tracking when webcam is not available
-            if (typeof (faceDataProvider as any).setFallbackCapture === 'function') {
-                (faceDataProvider as any).setFallbackCapture(fallbackVideo);
-            }
-
             await faceDataProvider.init();
             world.complete();
 
@@ -764,29 +757,48 @@ export async function emotionGame(
                 position: { x: -SIDE, y: 0, z: 0 },
                 // The whole camera frame, straight from the camera: the panel keeps the video's
                 // own aspect (the default "contain" fit), so nothing is cut off.
-                video: createVideoSelector(fallbackVideo),
+                // The camera only: the game needs your camera, there is no movie to fall back on.
+                video: (ctx: ResolutionContext<ObserverDataProviderLib>): VideoSource => {
+                    const webcamNode = ctx.dataProviders['webCam']?.node;
+                    return { kind: 'webCam', data: { node: webcamNode } };
+                },
                 fillColor: COLORS.white,
             });
 
             initialized = true;
-            game = new EmotionGame(performance.now() / 1000);
+            // The game itself waits for the camera: no camera, no game.
             return;
         }
 
         if (config.paused && !world.isPaused()) {
             world.pause();
-            fallbackVideo.pause();
             // Don't clear background - keep last frame visible
             return;
         } else if (!config.paused && world.isPaused()) {
             world.resume();
-            fallbackVideo.loop();
         }
 
         // Transparent, so the parade behind the canvas shows where nothing is drawn.
         p.clear();
         const result = await world.step(gp);
         const now = performance.now() / 1000;
+
+        // No camera, no game: the game starts when the camera is ready, and says so when
+        // the browser does not give us one.
+        if (!game) {
+            const cameraStatus = webCamProvider.getStatus();
+            if (cameraStatus === 'ERROR') {
+                updateCameraMessage('📷 No camera - the game needs your camera, and it is not available.');
+                return;
+            }
+            if (cameraStatus !== 'READY') {
+                updateCameraMessage('📷 Waiting for the camera…');
+                return;
+            }
+            updateCameraMessage('');
+            game = new EmotionGame(now);
+        }
+
         const target = game?.target;
         const event = game?.update(now, currentShape !== null && matchesTarget(game.target.id, currentShape));
         if ((event === 'scored' || event === 'timeout') && target) takeSnapshot(target, event === 'scored');
