@@ -29,11 +29,58 @@ describe("VideoDataProvider", () => {
         expect(p.createVideo).toHaveBeenCalledWith("/parallax/video/rick.mp4");
         expect(video.node.elt.playsInline).toBe(true);
         expect(provider.getStatus()).toBe("READY");
-        expect(video.node.loop).toHaveBeenCalled();
+        // autoplay: false - the video waits, and plays (and loops) when play() asks.
+        expect(video.node.loop).not.toHaveBeenCalled();
+        expect(video.node.play).not.toHaveBeenCalled();
         expect(video.node.autoplay).toHaveBeenCalledWith(false);
         expect(video.node.volume).toHaveBeenCalledWith(0);
         expect(video.node.hide).toHaveBeenCalled();
-        expect(video.node.play).toHaveBeenCalled();
+        provider.play();
+        expect(video.node.loop).toHaveBeenCalled();
+    });
+
+    it("waits for play() to start the download when told to preload nothing", () => {
+        const p = createMockP5() as any;
+        const provider = new VideoDataProvider(p, "/parallax/video/rick.mp4", {
+            autoplay: false,
+            preload: "none",
+        });
+        const video = provider.getData();
+        expect(video).not.toBeNull();
+        if (!video) return;
+
+        // Nothing downloaded and no data yet: the video waits (INITIALIZING) and only the
+        // first play() starts it - and, with it, the download.
+        expect(video.node.elt.preload).toBe("none");
+        Object.defineProperty(video.node.elt, "paused", {
+            value: true,
+            configurable: true,
+            writable: true,
+        });
+        expect(provider.getStatus()).toBe("INITIALIZING");
+        provider.play();
+        expect(video.node.loop).toHaveBeenCalled();
+    });
+
+    it("starts on its own when autoplay is not turned off", () => {
+        const p = createMockP5() as any;
+        const provider = new VideoDataProvider(p, "/parallax/video/rick.mp4", {loop: true});
+        const video = provider.getData();
+        expect(video).not.toBeNull();
+        if (!video) return;
+
+        Object.defineProperty(video.node.elt, "paused", {
+            value: true,
+            configurable: true,
+            writable: true,
+        });
+        Object.defineProperty(video.node.elt, "readyState", {
+            value: 4,
+            configurable: true,
+        });
+
+        expect(provider.getStatus()).toBe("READY");
+        expect(video.node.loop).toHaveBeenCalled();
     });
 
     it("reports READY once the video can play", () => {
@@ -74,7 +121,8 @@ describe("VideoDataProvider", () => {
         });
 
         expect(provider.getStatus()).toBe("READY");
-        expect(video.node.play).toHaveBeenCalled();
+        // autoplay stays on: the video starts (and loops) by itself once it can play.
+        expect(video.node.loop).toHaveBeenCalled();
         expect(provider.getData()).not.toBeNull();
         expect(provider.getDataResult().success).toBe(true);
     });

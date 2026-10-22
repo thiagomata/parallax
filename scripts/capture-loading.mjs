@@ -17,7 +17,9 @@ import { mkdir } from 'node:fs/promises';
 
 const PAGES = [
     { name: 'hero', path: '' },
-    ...Array.from({ length: 10 }, (_, i) => ({ name: `tutorial-${i + 1}`, path: `docs/tutorial/tutorial-${i + 1}/` })),
+    ...Array.from({ length: 11 }, (_, i) => ({ name: `tutorial-${i + 1}`, path: `docs/tutorial/tutorial-${i + 1}/` })),
+    { name: 'airplane', path: 'docs/showroom/airplane/' },
+    { name: 'emotion-game', path: 'docs/showroom/emotion-game/' },
 ];
 const OUT_DIR = 'public/img/loading';
 const READY_TIMEOUT_MS = 60_000;
@@ -61,11 +63,21 @@ try {
                     && rect.top < box.bottom && rect.bottom > box.top;
                 if (overlaps) other.style.visibility = 'hidden';
             }
-            // Black and white, slightly darkened so the "Loading" label reads on top of it.
-            element.style.filter = 'grayscale(1) brightness(0.7)';
             return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         });
 
+        // Color thumbnail for the showroom index.
+        const showroomDir = 'public/img/showroom';
+        await import('node:fs/promises').then(fs => fs.mkdir(showroomDir, { recursive: true }));
+        const showroomFile = `${showroomDir}/${page.name}.jpg`;
+        await canvas.screenshot({ path: showroomFile, type: 'jpeg', quality: 65 });
+        console.log(`captured ${showroomFile}`);
+
+        // Black and white loading still, slightly darkened so the "Loading" label reads on top of it.
+        await canvas.evaluate(element => {
+            element.style.filter = 'grayscale(1) brightness(0.7)';
+            return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        });
         const file = `${OUT_DIR}/${page.name}.jpg`;
         await canvas.screenshot({ path: file, type: 'jpeg', quality: 60 });
         console.log(`captured ${file}`);

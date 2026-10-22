@@ -129,9 +129,14 @@ export async function tutorial_observer(
     // Create video via VideoDataProvider - this is the ONE video element we use
     const fallbackVideoProvider = new VideoDataProvider(p, FALLBACK_VIDEO_URL, {
         loop: true,
-        autoplay: true,
+        // Only when the camera is not delivering: the clip waits, and the draw loop starts
+        // and stops it as the camera comes and goes.
+        autoplay: false,
+        // And it is not even downloaded until it plays: preloading 'none' keeps the camera's
+        // page from fetching a movie it may never show.
         muted: true,
         playsInline: true,
+        preload: "none",
     });
     
     // Get the p5 video element from provider for panel display and face tracking
@@ -207,6 +212,8 @@ export async function tutorial_observer(
     });
 
     const boxSize = 15;
+    // The face the faceBox turned by this frame, for the readout (see below).
+    let readoutFace: { stick: { yaw: number; pitch: number; roll: number } } | null = null;
 
     world.addBox({
         type: ELEMENT_TYPES.BOX,
@@ -233,6 +240,7 @@ export async function tutorial_observer(
         },
         rotate: (ctx) => {
             const face = ctx.dataProviders['headTracker'];
+            readoutFace = face ?? null;
             if (!face) return { pitch: 0, yaw: 0, roll: 0 };
             return {
                 yaw:   face.stick.yaw,
@@ -393,9 +401,33 @@ export async function tutorial_observer(
         fillColor: { red: 255, green: 255, blue: 255 },
     });
 
+    // Readout of the face tracker's rotation (stick yaw / pitch / roll), over the canvas's
+    // top-right corner, in the same format as the airplane showroom's readout. It shows
+    // exactly the face the faceBox turned by this frame (kept by its rotate function above) -
+    // not faceDataProvider.getData(), which runs detection again and can fall back to an
+    // older face.
+    let readoutElement: HTMLElement | undefined;
+    const angle = (radians: number) => `${(radians * 180 / Math.PI).toFixed(1).padStart(6)}deg (${radians.toFixed(3)})`;
+    const updateReadout = () => {
+        if (!readoutElement) return;
+        const face = readoutFace;
+        const text = face
+            ? [`yaw   ${angle(face.stick.yaw)}`, `pitch ${angle(face.stick.pitch)}`, `roll  ${angle(face.stick.roll)}`].join('\n')
+            : 'head: no face';
+        if (readoutElement.textContent !== text) readoutElement.textContent = text;
+    };
+
     p.setup = () => {
-        p.createCanvas(config.width, config.height, p.WEBGL);
+        const canvas = p.createCanvas(config.width, config.height, p.WEBGL);
         gp = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
+        const box = (canvas as { elt?: HTMLElement } | undefined)?.elt?.parentElement;
+        if (box) {
+            box.querySelector('.head-readout')?.remove(); // from a previous run of this sketch
+            readoutElement = document.createElement('pre');
+            readoutElement.className = 'head-readout';
+            readoutElement.style.cssText = 'position:absolute;top:8px;right:8px;z-index:2;margin:0;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,0.65);color:#fff;font:600 13px/1.35 ui-monospace,Menlo,monospace;pointer-events:none';
+            box.appendChild(readoutElement);
+        }
     };
 
     let initialized = false;
@@ -445,18 +477,26 @@ export async function tutorial_observer(
         // Simple pause/resume - let video play naturally
         if (config.paused && !world.isPaused()) {
             world.pause();
-            fallbackVideo.pause();
+            fallbackVideoProvider.pause();
             // Don't clear background - keep last frame visible
             return;
         } else if (!config.paused && world.isPaused()) {
             world.resume();
-            fallbackVideo.loop();
+        }
+
+        // The replacement clip runs only while the camera is not delivering: behind a working
+        // webcam it must not keep playing (not even without a sound, and not on a phone).
+        if (webCamProvider.getStatus() === 'READY') {
+            fallbackVideoProvider.pause();
+        } else {
+            fallbackVideoProvider.play();
         }
 
 // Let video play naturally - just render
         p.background(20);
         const result = await world.step(gp);
         if (!result.running) return;
+        updateReadout();
         } finally {
             rendering = false;
         }
