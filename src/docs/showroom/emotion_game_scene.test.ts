@@ -166,4 +166,5 @@ describe('Emotion game: the gallery and the share', () => {
         expect(galleryText().some(text => text.includes('Picture saved') || text.includes('Picture copied'))).toBe(true);
         vi.unstubAllGlobals();
     });
+
 });

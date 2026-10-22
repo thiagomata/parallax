@@ -675,8 +675,10 @@ export async function emotionGame(
 
     p.setup = () => {
         const canvas = p.createCanvas(config.width, config.height, p.WEBGL);
-        // Keep the last frame readable, for the snapshots (WebGL clears it once shown otherwise).
-        p.setAttributes?.('preserveDrawingBuffer', true);
+        if (config.preserveDrawingBuffer !== false) {
+            // Keep the last frame readable, for the snapshots (WebGL clears it once shown otherwise).
+            p.setAttributes?.('preserveDrawingBuffer', true);
+        }
         gp = extraArgs?.graphicProcessor ?? new P5GraphicProcessor(p, loader);
         canvasElement = (canvas as { elt?: HTMLCanvasElement } | undefined)?.elt;
         const box = canvasElement?.parentElement;
