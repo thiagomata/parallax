@@ -15,6 +15,9 @@ export class VideoDataProvider implements DataProviderBundle<"video", VideoSourc
     private readonly p: p5;
     private readonly video: p5.MediaElement<HTMLVideoElement>;
     private readonly source: VideoSourceRef;
+    private readonly url: string;
+    /** Whether the source has been put in: until then, the movie is not fetched at all. */
+    private sourceSet = false;
     private status: TrackingStatus = "IDLE";
     private sceneId = -1;
     private playRequested = false;
@@ -33,12 +36,17 @@ export class VideoDataProvider implements DataProviderBundle<"video", VideoSourc
         }
 
         this.p = p;
-        this.video = this.p.createVideo(url);
+        this.url = url;
+        // The video is created without a source on purpose: the browser starts fetching as
+        // soon as a source is there, and a page whose camera works must not download a movie
+        // it will never show. The source goes in when the clip is played (see play()).
+        this.video = this.p.createVideo("");
         this.video.hide();
         this.startsAlone = config.autoplay ?? true;
         this.wantsLoop = config.loop ?? true;
         // A video that waits must not be looped into playing: p5's loop() plays it too.
         if (this.startsAlone) {
+            this.ensureSource();
             if (this.wantsLoop) {
                 this.video.loop();
             } else {
@@ -66,6 +74,22 @@ export class VideoDataProvider implements DataProviderBundle<"video", VideoSourc
         });
     }
 
+    /**
+     * Puts the source in, so the browser fetches the movie: with preload 'none' it waits for
+     * this, and nothing is downloaded before.
+     */
+    private ensureSource(): void {
+        if (this.sourceSet) return;
+        this.sourceSet = true;
+        // The source child is what the browser fetches: one request, not two.
+        const source = this.video.elt.querySelector?.("source");
+        if (source) {
+            source.setAttribute("src", this.url);
+        } else {
+            this.video.src = this.url;
+        }
+    }
+
     tick(sceneId: number): void {
         if (this.sceneId === sceneId) return;
         this.sceneId = sceneId;
@@ -82,12 +106,18 @@ export class VideoDataProvider implements DataProviderBundle<"video", VideoSourc
             return this.status;
         }
 
-        if (this.video.src) {
+        if (this.sourceSet) {
+            // The source is gone: the clip is broken.
+            if (!this.video.src) {
+                this.status = "ERROR";
+                return this.status;
+            }
             this.status = this.status === "READY" ? "READY" : "INITIALIZING";
             return this.status;
         }
 
-        this.status = "ERROR";
+        // The clip has no source yet: it is not needed until somebody asks for it.
+        this.status = "INITIALIZING";
         return this.status;
     }
 
@@ -115,6 +145,8 @@ export class VideoDataProvider implements DataProviderBundle<"video", VideoSourc
     }
 
     play(): void {
+        // The clip is wanted now: it gets its source, and with it the download.
+        this.ensureSource();
         void this.ensurePlaying();
     }
 

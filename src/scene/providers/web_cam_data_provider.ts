@@ -38,7 +38,16 @@ export class WebCamDataProvider implements DataProviderBundle<"webCam", VideoSou
     getStatus(): TrackingStatus {
         this.ensureCapture();
 
-        const videoElt = this.capture?.elt as HTMLVideoElement | undefined;
+        const capture = this.capture;
+        if (!capture) {
+            // The capture is not there yet: the browser is still asking for the camera (the
+            // permission query is async), so the camera may still come up. That is not an
+            // error - only a capture that could not be created is one.
+            if (this.status !== "ERROR") this.status = "INITIALIZING";
+            return this.status;
+        }
+
+        const videoElt = capture.elt as HTMLVideoElement | undefined;
         if (!videoElt) return "ERROR";
         if (videoElt.readyState >= 2) {
             this.status = "READY";

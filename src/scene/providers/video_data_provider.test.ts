@@ -26,7 +26,10 @@ describe("VideoDataProvider", () => {
         });
 
         expect(video.kind).toBe("video");
-        expect(p.createVideo).toHaveBeenCalledWith("/parallax/video/rick.mp4");
+        // The video is created empty: the source goes in when it plays, so a page that does
+        // not need the clip never fetches it.
+        expect(p.createVideo).toHaveBeenCalledWith("");
+        expect(video.node.src).toBe("");
         expect(video.node.elt.playsInline).toBe(true);
         expect(provider.getStatus()).toBe("READY");
         // autoplay: false - the video waits, and plays (and loops) when play() asks.
@@ -36,6 +39,7 @@ describe("VideoDataProvider", () => {
         expect(video.node.volume).toHaveBeenCalledWith(0);
         expect(video.node.hide).toHaveBeenCalled();
         provider.play();
+        expect(video.node.src).toBe("/parallax/video/rick.mp4");
         expect(video.node.loop).toHaveBeenCalled();
     });
 
@@ -137,6 +141,8 @@ describe("VideoDataProvider", () => {
         provider.tick(1);
         expect(provider.getStatus()).toBe("INITIALIZING");
 
+        // The clip is wanted: it gets its source - and then the source is gone.
+        provider.play();
         video.node.src = "";
 
         expect(provider.getStatus()).toBe("ERROR");

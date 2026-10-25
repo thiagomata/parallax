@@ -11,6 +11,7 @@ import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provid
 import type { ColorRGBA, VideoPixels } from "../../../scene/types.ts";
 import { EMOTIONS, type Emotion, type FaceExpressions } from "../../../scene/drivers/mediapipe/face_expressions.ts";
 import { VideoDataProvider } from "../../../scene/providers/video_data_provider.ts";
+import { FallbackVideo } from "../../../scene/providers/fallback_video.ts";
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
 import {
     DEFAULT_SCENE_SETTINGS,
@@ -143,6 +144,9 @@ export async function tutorial_expressions(
         preload: "none",
     });
     const fallbackVideo = (fallbackVideoProvider as any).video;
+
+    // The clip waits for the camera: it plays only while the camera is really down.
+    const fallbackClip = new FallbackVideo(fallbackVideoProvider, webCamProvider, performance.now() / 1000);
 
     const faceDataProvider = extraArgs?.faceDataProvider ?? new HeadTrackingDataProvider(
         p,
@@ -349,11 +353,7 @@ export async function tutorial_expressions(
 
         // The replacement clip runs only while the camera is not delivering: behind a working
         // webcam it must not keep playing (not even without a sound, and not on a phone).
-        if (webCamProvider.getStatus() === 'READY') {
-            fallbackVideoProvider.pause();
-        } else {
-            fallbackVideoProvider.play();
-        }
+        fallbackClip.update(performance.now() / 1000);
 
         p.background(20);
         const result = await world.step(gp);

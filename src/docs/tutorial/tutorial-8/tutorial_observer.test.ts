@@ -8,6 +8,7 @@ import {createMockFaceWorldData, createMockHeadTrackingProvider, createMockScene
 import { createMockWebCam } from "../../../scene/mock/web_cam.mock.ts";
 import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
 import { VideoDataProvider } from "../../../scene/providers/video_data_provider.ts";
+import { FallbackVideo } from "../../../scene/providers/fallback_video.ts";
 
 describe('Tutorial 8: The Observer', () => {
     
@@ -339,6 +340,8 @@ describe('Tutorial 8: The Observer', () => {
 
         const playSpy = vi.spyOn(VideoDataProvider.prototype, 'play').mockImplementation(() => {});
         const pauseSpy = vi.spyOn(VideoDataProvider.prototype, 'pause').mockImplementation(() => {});
+        // The clip waits for the camera, so the clock says how long the scene has been up.
+        const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(0);
 
         await tutorial_observer(mockP5 as unknown as p5, {
             width: 500,
@@ -349,9 +352,14 @@ describe('Tutorial 8: The Observer', () => {
 
         await mockP5.setup();
         await mockP5.draw(); // the scene is still coming up
-        await mockP5.draw(); // the camera is not delivering: the clip plays
-        expect(playSpy).toHaveBeenCalled();
+        await mockP5.draw(); // the camera may still arrive: the clip waits for it
+        expect(playSpy).not.toHaveBeenCalled();
         expect(pauseSpy).not.toHaveBeenCalled();
+
+        // The camera takes too long: the clip takes over.
+        nowSpy.mockReturnValue(FallbackVideo.GRACE_SECONDS * 1000 + 1);
+        await mockP5.draw();
+        expect(playSpy).toHaveBeenCalled();
 
         (mockWebCam.getStatus as any).mockReturnValue('READY');
         await mockP5.draw(); // the camera is up: the clip stops

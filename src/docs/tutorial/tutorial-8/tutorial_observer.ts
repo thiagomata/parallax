@@ -10,6 +10,7 @@ import {
 import { WebCamDataProvider } from "../../../scene/providers/web_cam_data_provider.ts";
 import type { VideoPixels } from "../../../scene/types.ts";
 import { VideoDataProvider } from "../../../scene/providers/video_data_provider.ts";
+import { FallbackVideo } from "../../../scene/providers/fallback_video.ts";
 import { P5AssetLoader, type P5Bundler } from "../../../scene/p5/p5_asset_loader.ts";
 import type { VideoSource } from "../../../scene/video/types.ts";
 import {
@@ -141,6 +142,9 @@ export async function tutorial_observer(
     
     // Get the p5 video element from provider for panel display and face tracking
     const fallbackVideo = (fallbackVideoProvider as any).video;
+
+    // The clip waits for the camera: it plays only while the camera is really down.
+    const fallbackClip = new FallbackVideo(fallbackVideoProvider, webCamProvider, performance.now() / 1000);
 
     let faceDataProvider = extraArgs?.faceDataProvider;
     faceDataProvider = faceDataProvider ?? new HeadTrackingDataProvider(
@@ -486,11 +490,7 @@ export async function tutorial_observer(
 
         // The replacement clip runs only while the camera is not delivering: behind a working
         // webcam it must not keep playing (not even without a sound, and not on a phone).
-        if (webCamProvider.getStatus() === 'READY') {
-            fallbackVideoProvider.pause();
-        } else {
-            fallbackVideoProvider.play();
-        }
+        fallbackClip.update(performance.now() / 1000);
 
 // Let video play naturally - just render
         p.background(20);
