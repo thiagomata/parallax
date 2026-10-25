@@ -11,6 +11,12 @@ import type { SketchConfig, P5Sketch, P5SketchExtraArgs, SketchInstance } from "
 export { DEFAULT_SKETCH_CONFIG } from "./sketch_engine.types.ts";
 export type { SketchConfig, P5Sketch, P5SketchExtraArgs, FaceConfig } from "./sketch_engine.types.ts";
 
+// p5's sketch checker fetches the last <script> on the page and lints it: here that is the
+// page's own bundle, which its old parser cannot read (it stops on a static class field), so
+// every page that had one logged "Error parsing code" - and it cost the whole bundle on
+// every page load. The FES's other hints stay on.
+(p5 as unknown as { disableSketchChecker: boolean }).disableSketchChecker = true;
+
 export class SketchEngine {
     private p5Instances = new Map<string, p5>();
     private containerElements = new Map<string, HTMLElement>();
@@ -120,11 +126,6 @@ export class SketchEngine {
 
         // Create p5 instance - tutorial will set p.setup and p.draw
         currentP5 = new p5((p: p5) => {
-            // p5's sketch checker fetches the last <script> on the page and lints it: here
-            // that is the page's own bundle, which its old parser cannot read (it stops on
-            // modern syntax like a static class field). It only logs an error - and it costs
-            // the whole bundle on every page. The FES's other hints stay on.
-            (p as unknown as { disableSketchChecker: boolean }).disableSketchChecker = true;
             // Basic setup override - tutorials will set their own p.setup
             p.setup = () => {
                 if (this.isMobileDevice()) {
