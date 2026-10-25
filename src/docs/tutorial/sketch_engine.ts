@@ -120,6 +120,11 @@ export class SketchEngine {
 
         // Create p5 instance - tutorial will set p.setup and p.draw
         currentP5 = new p5((p: p5) => {
+            // p5's sketch checker fetches the last <script> on the page and lints it: here
+            // that is the page's own bundle, which its old parser cannot read (it stops on
+            // modern syntax like a static class field). It only logs an error - and it costs
+            // the whole bundle on every page. The FES's other hints stay on.
+            (p as unknown as { disableSketchChecker: boolean }).disableSketchChecker = true;
             // Basic setup override - tutorials will set their own p.setup
             p.setup = () => {
                 if (this.isMobileDevice()) {
