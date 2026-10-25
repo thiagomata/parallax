@@ -660,13 +660,17 @@ export async function emotionGame(
             return;
         }
         const { text, file, png } = prepared;
-        // canShare and share can throw (a browser may refuse a combination): the player must
-        // always get an answer, so every step is guarded.
+        // Share natively where the browser has it (phones, Safari...); the canShare check is
+        // optional, so on browsers without canShare we try share and fall back if it fails.
         let canShareFiles = false;
-        try {
-            canShareFiles = !!navigator.canShare?.({ files: [file] });
-        } catch {
-            canShareFiles = false;
+        if (typeof navigator.share === 'function') {
+            try {
+                // canShare might not exist (older Safari) or might throw
+                canShareFiles = navigator.canShare ? navigator.canShare({ files: [file] }) : true;
+            } catch {
+                // If canShare throws, we don't know - fall back to X + clipboard
+                canShareFiles = false;
+            }
         }
         if (canShareFiles) {
             const failed = () => {
