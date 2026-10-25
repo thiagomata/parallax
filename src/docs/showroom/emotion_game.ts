@@ -3,6 +3,7 @@ import { World } from "../../scene/world.ts";
 import { P5GraphicProcessor } from "../../scene/p5/p5_graphic_processor.ts";
 import { SceneClock } from "../../scene/scene_clock.ts";
 import {
+    FaceWorldData,
     HeadTrackingDataProvider,
     type HeadTrackingDataProviderConfig,
     type ObserverDataProviderLib
@@ -26,6 +27,9 @@ import {COLORS} from "../../scene/colors.ts";
 import {
     addEmojiFace, ExpressionReader, mouthPose, type FaceShape,
 } from "./emoji_face.ts";
+import {
+    CALIBRATION_SECONDS, CalibrationPhase, NEUTRAL_EMOJI,
+} from "./emotion_game_calibration.ts";
 import type { Emotion } from "../../scene/drivers/mediapipe/face_expressions.ts";
 import type { VideoSource } from "../../scene/video/types.ts";
 
@@ -43,13 +47,14 @@ export const emotionGameExplanation = `
 <ol>
 <li><strong>The face cam</strong> - the webcam panel shows the whole camera frame, kept in the camera's own aspect so nothing is cut off.</li>
 <li><strong>The face</strong> - <code>addEmojiFace</code> (<code>emoji_face.ts</code>) draws the emoji, here beside the webcam, turning with your head and leaning with it too.</li>
-<li><strong>Reading the expressions</strong> - <code>ExpressionReader</code> (<code>emoji_face.ts</code>) calibrates on <kbd>N</kbd> and smooths sleepy over time, so a blink is not a nap.</li>
+<li><strong>The calibration</strong> - before the first round the game asks for the neutral face (😐): make it and hold it still, and the game counts the still seconds (<code>CalibrationPhase</code>, <code>emotion_game_calibration.ts</code>). Three still seconds and the frames of that relaxed face are averaged into <em>your</em> neutral face (<code>calibratedRanges</code>), which the reader then uses - that is what makes the hard faces (😠 😮) read right. The head may not move, turn or blink while the seconds run; the game waits for the calibration, and its clock does not run. The <em>🎯 Calibrate</em> button on the screen - there is no keyboard on a phone - or <kbd>N</kbd> does it again whenever you want.</li>
+<li><strong>Reading the expressions</strong> - <code>ExpressionReader</code> (<code>emoji_face.ts</code>) reads the face with those ranges; it smooths sleepy over time, so a blink is not a nap.</li>
 <li><strong>Matching</strong> - <code>matchesTarget</code> checks the face against the round's emoji: the strongest emotion for 😢 😠 😮 😴, a smile that is not the open grin for 🙂, the open grin for 😃, one eye closed for 😉.</li>
 <li><strong>The rounds</strong> - <code>EmotionGame</code> keeps the score, the lives, the target and the clock: hold the face for <code>HOLD_SECONDS</code> to score; a round that runs out after <code>ROUND_SECONDS</code> costs one of the <code>LIVES</code>. The game is over with none left, or after <code>GAME_SECONDS</code> however well it goes (<kbd>R</kbd> or space plays again).</li><li><strong>The pictures</strong> - every round ends with a snapshot of the canvas, you and your emoji side by side, stamped with the target and ✅ / ❌. At the end they show together, and <em>Save picture</em> puts them in one collage (<code>collageLayout</code>). <em>Share</em> opens the system share sheet with the collage attached where the browser has one; otherwise it copies the collage and opens a post on X (<code>postIntentUrl</code>) to paste it into. They stay on your device until you share them.</li>
 <li><strong>The parade</strong> - a match sends its emoji flying across behind the scene: plain page emoji under the canvas, which is cleared transparent, so the 3D face and the webcam pass in front of them.</li>
 </ol>
 
-<p>Angry is the hard one: press <kbd>N</kbd> with a relaxed face first, so the game counts from your own face.</p>
+<p>Angry is the hard one: the calibration is what makes it work, so make the 😐 face at the start of the game - and calibrate again if you change how you sit.</p>
 
 <div class="related">
 <h3>Related Tutorials</h3>
@@ -137,6 +142,8 @@ export class EmotionGame {
     private roundStart: number;
     private holdStart: number | null = null;
     private celebrateUntil: number | null = null;
+    /** When the clock was stopped (the player is calibrating), null while it runs. */
+    private pausedAt: number | null = null;
 
     private readonly random: () => number;
 
@@ -152,9 +159,34 @@ export class EmotionGame {
         return this.lives <= 0 || this.timeUp;
     }
 
+    /** Stops the clock: the player is calibrating, and that time is not the game's. */
+    public pause(now: number): void {
+        if (this.pausedAt !== null) return;
+        this.pausedAt = now;
+        // A hold that was running is dropped: the player was not making the face any more.
+        this.holdStart = null;
+    }
+
+    /** The clock goes on: the time spent calibrating does not count against the game. */
+    public resume(now: number): void {
+        if (this.pausedAt === null) return;
+        const paused = now - this.pausedAt;
+        this.gameStart += paused;
+        this.roundStart += paused;
+        if (this.holdStart !== null) this.holdStart += paused;
+        if (this.celebrateUntil !== null) this.celebrateUntil += paused;
+        this.pausedAt = null;
+    }
+
+    /** The time that passed since a moment, without the time the clock was stopped. */
+    private running(now: number, since: number): number {
+        const paused = this.pausedAt === null ? 0 : now - this.pausedAt;
+        return now - since - paused;
+    }
+
     /** Seconds left in this game. */
     public gameSecondsLeft(now: number): number {
-        return Math.max(0, EmotionGame.GAME_SECONDS - (now - this.gameStart));
+        return Math.max(0, EmotionGame.GAME_SECONDS - this.running(now, this.gameStart));
     }
 
     /** A new game: score 0, all the lives, the full time, a new target. */
@@ -163,13 +195,15 @@ export class EmotionGame {
         this.lives = EmotionGame.LIVES;
         this.timeUp = false;
         this.gameStart = now;
+        this.roundStart = now;
+        this.pausedAt = null;
         this.celebrateUntil = null;
         this.nextRound(now);
     }
 
     /** Seconds left in this round. */
     public secondsLeft(now: number): number {
-        return Math.max(0, EmotionGame.ROUND_SECONDS - (now - this.roundStart));
+        return Math.max(0, EmotionGame.ROUND_SECONDS - this.running(now, this.roundStart));
     }
 
     /** Whether the ✓ for a scored round is showing. */
@@ -386,6 +420,8 @@ export async function emotionGame(
 
     const reader = new ExpressionReader();
     let currentShape: FaceShape | null = null;
+    /** The tracked face of this frame: the calibration reads it. */
+    let currentFace: FaceWorldData | null = null;
 
     // The emoji stays beside the webcam, but it follows the head: as you lean, it leans with
     // you, the way the head box follows the face in tutorial 11.
@@ -399,6 +435,7 @@ export async function emotionGame(
         rotate: (ctx: ResolutionContext<ObserverDataProviderLib>) => {
             const face = ctx.dataProviders['headTracker'];
             reader.update(face);
+            currentFace = face;
             currentShape = face ? reader.shapeOf(face) : null;
             if (!face) return { pitch: 0, yaw: 0, roll: 0 };
             return { yaw: face.stick.yaw, pitch: face.stick.pitch, roll: face.stick.roll };
@@ -408,6 +445,56 @@ export async function emotionGame(
 
     // Starts once the scene is ready, so the first round does not run down while it loads.
     let game: EmotionGame | null = null;
+
+    // The calibration: the player makes the neutral face and holds it still. The frames of that
+    // still face become their own neutral face, so the game counts from their face.
+    const calibration = new CalibrationPhase();
+    /** Whether the calibration overlay is up (the game waits for it). */
+    let calibrationOpen = false;
+    /** Whether the player gave up on the first calibration: the game plays without it. */
+    let calibrationSkipped = false;
+    /** The overlay with the face to make and the progress of the still time. */
+    let calibrationOverlay: HTMLElement | undefined;
+    let calibrationMessage: HTMLElement | undefined;
+    let calibrationFill: HTMLElement | undefined;
+
+    /** Opens the calibration: the neutral face, held still. The game waits for it. */
+    const startCalibration = (now: number) => {
+        calibration.reset();
+        calibrationOpen = true;
+        // The clock of a game in progress stops: calibrating is not playing.
+        game?.pause(now);
+        if (calibrationOverlay) calibrationOverlay.style.display = 'flex';
+    };
+
+    /** The calibration is done: the player's own neutral face is known. */
+    const finishCalibration = (now: number) => {
+        const ranges = calibration.neutralRanges;
+        if (ranges) reader.setCalibration(ranges);
+        calibrationOpen = false;
+        if (calibrationOverlay) calibrationOverlay.style.display = 'none';
+        game?.resume(now);
+    };
+
+    /** Without the calibration: the game counts from everybody else's neutral face. */
+    const skipCalibration = (now: number) => {
+        calibrationSkipped = true;
+        calibrationOpen = false;
+        if (calibrationOverlay) calibrationOverlay.style.display = 'none';
+        game?.resume(now);
+    };
+
+    /** What the overlay says: the face to make, and how long it is held still. */
+    const updateCalibrationOverlay = () => {
+        if (!calibrationOverlay) return;
+        calibrationOverlay.style.display = 'flex';
+        const left = Math.max(0, Math.ceil(CALIBRATION_SECONDS * (1 - calibration.progress)));
+        const text = calibration.phaseState === 'waiting'
+            ? 'We cannot see your face yet - look at the camera.'
+            : `Hold still... ${left}`;
+        if (calibrationMessage && calibrationMessage.textContent !== text) calibrationMessage.textContent = text;
+        if (calibrationFill) calibrationFill.style.width = `${Math.round(calibration.progress * 100)}%`;
+    };
 
     // The game's panel over the canvas: score, the target emoji, the time left and the hold.
     let hud: { root: HTMLElement; score: HTMLElement; target: HTMLElement; label: HTMLElement; time: HTMLElement; status: HTMLElement } | undefined;
@@ -727,6 +814,64 @@ export async function emotionGame(
                 status: element('font-size:12px;opacity:0.7'),
             };
             box.appendChild(root);
+            // The calibration overlay: the face to make, and how long it is held still. It is up
+            // before the first round and whenever the player asks to calibrate again. It sits at
+            // the top of the scene and fades out, so the player keeps seeing their own face.
+            box.querySelector('.emotion-game-calibration')?.remove();
+            const overlay = document.createElement('div');
+            overlay.className = 'emotion-game-calibration';
+            overlay.style.cssText = 'position:absolute;top:0;left:0;right:0;z-index:4;display:none;flex-direction:column;align-items:center;gap:8px;color:#fff;font:700 17px/1.35 system-ui,sans-serif;text-align:center;padding:14px 20px 30px;'
+                + 'background:linear-gradient(180deg, rgba(10,10,10,0.94) 55%, rgba(10,10,10,0))';
+            const overlayEmoji = document.createElement('div');
+            overlayEmoji.className = 'emotion-game-calibration-emoji';
+            overlayEmoji.textContent = NEUTRAL_EMOJI;
+            const overlayTitle = document.createElement('div');
+            overlayTitle.className = 'emotion-game-calibration-title';
+            overlayTitle.textContent = 'Make this face';
+            const overlayMessage = document.createElement('div');
+            overlayMessage.className = 'emotion-game-calibration-message';
+            const overlayBar = document.createElement('div');
+            overlayBar.className = 'emotion-game-calibration-bar';
+            const overlayFill = document.createElement('div');
+            overlayFill.className = 'emotion-game-calibration-fill';
+            overlayBar.appendChild(overlayFill);
+            const overlaySkip = document.createElement('button');
+            overlaySkip.type = 'button';
+            overlaySkip.className = 'emotion-game-calibration-skip';
+            overlaySkip.textContent = 'Play without calibrating';
+            overlaySkip.addEventListener('click', () => skipCalibration(performance.now() / 1000));
+            overlay.append(overlayEmoji, overlayTitle, overlayMessage, overlayBar, overlaySkip);
+            box.appendChild(overlay);
+            calibrationOverlay = overlay;
+            calibrationMessage = overlayMessage;
+            calibrationFill = overlayFill;
+            if (!document.getElementById('emotion-game-calibration-style')) {
+                const style = document.createElement('style');
+                style.id = 'emotion-game-calibration-style';
+                style.textContent = '.emotion-game-calibration-emoji { font-size:72px; line-height:1.1; }'
+                    + '.emotion-game-calibration-title { font-size:20px; }'
+                    + '.emotion-game-calibration-message { font-size:15px; opacity:0.9; max-width:340px; min-height:1.4em; }'
+                    + '.emotion-game-calibration-bar { width:min(320px, 80%); height:10px; border-radius:999px; background:rgba(255,255,255,0.25); overflow:hidden; }'
+                    + '.emotion-game-calibration-fill { height:100%; width:0; background:#38bdf8; transition:width 0.1s linear; }'
+                    + '.emotion-game-calibration-skip { font:600 14px/1 system-ui,sans-serif; padding:10px 16px; min-height:40px; border:0; border-radius:999px; background:rgba(15,23,42,0.6); color:#fff;opacity:0.85;cursor:pointer;text-decoration:underline; }'
+                    + '@media (max-width: 520px) { .emotion-game-calibration-emoji { font-size:56px; } .emotion-game-calibration-title { font-size:18px; } }'
+                    + '.emotion-game-actions { position:absolute;left:0;right:0;bottom:12px;z-index:2;display:flex;justify-content:center;pointer-events:none; }'
+                    + '.emotion-game-actions .emotion-game-calibrate-btn { pointer-events:auto; font:700 15px/1 system-ui,sans-serif; padding:12px 18px; min-height:44px; border:1px solid rgba(255,255,255,0.3); border-radius:999px; background:rgba(15,23,42,0.65); color:#e2e8f0; cursor:pointer; }'
+                    + '.emotion-game-actions .emotion-game-calibrate-btn:active { transform:scale(0.97); }';
+                document.head.appendChild(style);
+            }
+            // The calibration on the screen: on a phone there is no keyboard to press N on.
+            box.querySelector('.emotion-game-actions')?.remove();
+            const actions = document.createElement('div');
+            actions.className = 'emotion-game-actions';
+            const calibrateButton = document.createElement('button');
+            calibrateButton.type = 'button';
+            calibrateButton.className = 'emotion-game-calibrate-btn';
+            calibrateButton.textContent = '🎯 Calibrate';
+            calibrateButton.setAttribute('aria-label', 'Calibrate to your neutral face');
+            calibrateButton.addEventListener('click', () => startCalibration(performance.now() / 1000));
+            actions.appendChild(calibrateButton);
+            box.appendChild(actions);
             box.querySelector('.emotion-game-camera')?.remove(); // from a previous run
             const cameraNote = document.createElement('div');
             cameraNote.className = 'emotion-game-camera';
@@ -738,7 +883,8 @@ export async function emotionGame(
 
     p.keyPressed = () => {
         if (p.key === 'n' || p.key === 'N') {
-            reader.startCalibration();
+            // The same calibration the button on the screen starts.
+            startCalibration(performance.now() / 1000);
         }
         if (game?.over && (p.key === 'r' || p.key === 'R' || p.key === ' ')) {
             restart();
@@ -769,7 +915,7 @@ export async function emotionGame(
                 position: { x: -SIDE, y: 0, z: 0 },
                 // The whole camera frame, straight from the camera: the panel keeps the video's
                 // own aspect (the default "contain" fit), so nothing is cut off.
-                // The camera only: the game needs your camera, there is no movie to fall back on.
+                // The camera only: the game needs your camera, there is no video fallback.
                 video: (ctx: ResolutionContext<ObserverDataProviderLib>): VideoSource => {
                     const webcamNode = ctx.dataProviders['webCam']?.node;
                     return { kind: 'webCam', data: { node: webcamNode } };
@@ -778,7 +924,7 @@ export async function emotionGame(
             });
 
             initialized = true;
-            // The game itself waits for the camera: no camera, no game.
+            // The game itself waits for the camera: no camera, no game (no video fallback).
             return;
         }
 
@@ -795,19 +941,41 @@ export async function emotionGame(
         const result = await world.step(gp);
         const now = performance.now() / 1000;
 
-        // No camera, no game: the game starts when the camera is ready, and says so when
-        // the browser does not give us one.
+        // No camera, no game: the camera is the only source of the face - there is no clip to
+        // fall back on. The game starts when the camera is ready, and says so when the browser
+        // does not give us one.
+        const cameraStatus = webCamProvider.getStatus();
+        if (cameraStatus === 'ERROR') {
+            updateCameraMessage(game
+                ? '📷 The camera is gone - the game stops here.'
+                : '📷 No camera - the game needs your camera, and it is not available.');
+            updateHud(now);
+            return;
+        }
+        if (cameraStatus !== 'READY') {
+            updateCameraMessage('📷 Waiting for the camera…');
+            updateHud(now);
+            return;
+        }
+        updateCameraMessage('');
+
+        // The calibration phase: the neutral face, held still. It comes before the first round,
+        // and the player can ask for it again while the game runs.
+        if (!game && !calibrationSkipped && !reader.isCalibrated && !calibrationOpen) {
+            startCalibration(now);
+        }
+        if (calibrationOpen) {
+            calibration.update(currentFace, now);
+            updateCalibrationOverlay();
+            if (!calibration.isDone) {
+                // The game waits for the calibration: its clock does not run yet.
+                updateHud(now);
+                return;
+            }
+            finishCalibration(now);
+        }
+
         if (!game) {
-            const cameraStatus = webCamProvider.getStatus();
-            if (cameraStatus === 'ERROR') {
-                updateCameraMessage('📷 No camera - the game needs your camera, and it is not available.');
-                return;
-            }
-            if (cameraStatus !== 'READY') {
-                updateCameraMessage('📷 Waiting for the camera…');
-                return;
-            }
-            updateCameraMessage('');
             game = new EmotionGame(now);
         }
 

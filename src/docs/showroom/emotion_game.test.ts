@@ -95,6 +95,22 @@ describe('Emotion game: the game', () => {
         expect(game.score).toBe(0);
     });
 
+    it('does not count the time the player spends calibrating', () => {
+        const game = new EmotionGame(0);
+
+        game.update(1, false);
+        // The player calibrates: the clock of the game stops.
+        game.pause(2);
+        expect(game.secondsLeft(10)).toBe(EmotionGame.ROUND_SECONDS - 2);
+        expect(game.gameSecondsLeft(10)).toBe(EmotionGame.GAME_SECONDS - 2);
+
+        // The clock goes on: the time spent calibrating does not count.
+        game.resume(10);
+        expect(game.secondsLeft(10)).toBe(EmotionGame.ROUND_SECONDS - 2);
+        expect(game.gameSecondsLeft(10)).toBe(EmotionGame.GAME_SECONDS - 2);
+        expect(game.update(10, false)).toBeNull();
+    });
+
     it('costs a life and moves on when the round runs out', () => {
         const game = new EmotionGame(0, () => 0.99);
         const first = game.target;

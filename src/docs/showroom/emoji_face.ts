@@ -373,6 +373,17 @@ export class ExpressionReader {
         this.calibrationFrames = [];
     }
 
+    /**
+     * Uses the given ranges as the player's own neutral face: what the calibration phase measured
+     * on a still, relaxed face. The next frame is read with them.
+     */
+    public setCalibration(ranges: ExpressionRanges): void {
+        this.calibration = ranges;
+        this.calibrationFrames = null;
+        this.lastRaw = null;
+        this.lastCalibrated = null;
+    }
+
     /** Whether a resting face has been read (auto, or with N): the harder faces need it. */
     public get isCalibrated(): boolean {
         return this.calibration !== null;
