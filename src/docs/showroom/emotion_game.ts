@@ -637,26 +637,27 @@ export async function emotionGame(
             grid.appendChild(image);
         }
         const buttons = document.createElement('div');
-        buttons.style.cssText = 'display:flex;gap:10px;margin-top:12px';
+        buttons.className = 'emotion-game-buttons';
         const button = (label: string, onClick: () => void) => {
             const element = document.createElement('button');
+            element.type = 'button';
+            element.className = 'emotion-game-button';
             element.textContent = label;
-            element.style.cssText = 'font:700 15px system-ui,sans-serif;padding:8px 16px;border:0;border-radius:6px;cursor:pointer;background:#38bdf8;color:#0f172a';
             element.addEventListener('click', onClick);
             buttons.appendChild(element);
         };
         const message = document.createElement('div');
-        message.style.cssText = 'font-size:14px;margin-top:8px;min-height:1.3em';
+        message.style.cssText = 'font-size:14px;min-height:1.3em;text-align:center';
         const say = (text: string) => { message.textContent = text; };
         if (snapshots.length) {
             button('📤 Share', () => shareCollage(say));
             button('📸 Save picture', () => { if (prepared) downloadPrepared(); else void saveCollage(); });
         }
-        button('▶ Play again (R)', () => restart());
+        button('▶ Play again', () => restart());
         const note = document.createElement('div');
         note.textContent = 'The pictures stay on this device until you share them - nothing is uploaded.';
         note.style.cssText = 'font-size:12px;opacity:0.7;margin-top:4px';
-        gallery.append(title, grid, buttons, message, note);
+        gallery.append(title, buttons, message, grid, note);
         gallery.style.display = 'flex';
     };
 
@@ -692,6 +693,17 @@ export async function emotionGame(
                 const style = document.createElement('style');
                 style.id = 'emotion-game-parade-style';
                 style.textContent = '@keyframes emotion-game-parade { from { transform: translateX(-120px) } to { transform: translateX(var(--parade-width, 1200px)) } }';
+                document.head.appendChild(style);
+            }
+            if (!document.getElementById('emotion-game-gallery-style')) {
+                const style = document.createElement('style');
+                style.id = 'emotion-game-gallery-style';
+                // The buttons come first and take a finger-sized target: on a phone they were
+                // below every picture, small, and hard to hit.
+                style.textContent = '.emotion-game-buttons { display:flex; gap:10px; margin:14px 0 10px; flex-wrap:wrap; justify-content:center; width:100%; max-width:440px; }'
+                    + '.emotion-game-buttons .emotion-game-button { font:700 16px/1 system-ui,sans-serif; padding:14px 22px; min-height:44px; flex:1 1 auto; border:0; border-radius:8px; cursor:pointer; background:#38bdf8; color:#0f172a; }'
+                    + '.emotion-game-buttons .emotion-game-button:active { transform: scale(0.97); }'
+                    + '@media (max-width: 520px) { .emotion-game-buttons { flex-direction:column; max-width:none; } .emotion-game-buttons .emotion-game-button { width:100%; } }';
                 document.head.appendChild(style);
             }
             parade = document.createElement('div');

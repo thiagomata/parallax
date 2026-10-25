@@ -373,6 +373,11 @@ export class ExpressionReader {
         this.calibrationFrames = [];
     }
 
+    /** Whether a resting face has been read (auto, or with N): the harder faces need it. */
+    public get isCalibrated(): boolean {
+        return this.calibration !== null;
+    }
+
     public get status(): string {
         return this.calibration
             ? 'calibrated (N: again)'

@@ -340,7 +340,7 @@ describe('Tutorial 8: The Observer', () => {
         const playSpy = vi.spyOn(VideoDataProvider.prototype, 'play').mockImplementation(() => {});
         const pauseSpy = vi.spyOn(VideoDataProvider.prototype, 'pause').mockImplementation(() => {});
 
-        const world = await tutorial_observer(mockP5 as unknown as p5, {
+        await tutorial_observer(mockP5 as unknown as p5, {
             width: 500,
             height: 400,
             clock,

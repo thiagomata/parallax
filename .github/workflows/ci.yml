@@ -7,17 +7,20 @@ on:
       - 'feature/**'
       - 'bugfix/**'
       - 'release/**'
+      - 'experiment/**'
   pull_request:
     branches:
       - main
       - 'feature/**'
       - 'bugfix/**'
       - 'release/**'
+      - 'experiment/**'
   delete:
     branches:
       - 'feature/**'
       - 'bugfix/**'
       - 'release/**'
+      - 'experiment/**'
   workflow_dispatch:
 
 permissions:
