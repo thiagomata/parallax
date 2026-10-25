@@ -16,4 +16,5 @@ export const TUTORIALS: TutorialMeta[] = [
     { id: 'tutorial-8',  num: 8,  title: 'The Observer',                 path: './tutorial-8/index.html' },
     { id: 'tutorial-9',  num: 9,  title: '3D Parallax Depth',            path: './tutorial-9/index.html' },
     { id: 'tutorial-10', num: 10, title: 'Interactive Box Control',      path: './tutorial-10/index.html' },
+    { id: 'tutorial-11', num: 11, title: 'Facial Expressions',           path: './tutorial-11/index.html' },
 ];

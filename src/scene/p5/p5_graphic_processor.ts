@@ -43,6 +43,13 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
     private cutoutShaders = new Map<number, p5.Shader>();
     private lastWidth = 0;
     private lastHeight = 0;
+    /**
+     * The camera's up vector as p5 takes it (+y is screen-down, so the default (0, 1, 0)
+     * keeps the world's down at the bottom of the screen). A sketch whose view can point
+     * straight up or go upside down - e.g. a chase camera through a loop - sets it each
+     * frame, so the view turns over instead of flipping at the vertical.
+     */
+    public cameraUp: Vector3 = { x: 0, y: 1, z: 0 };
 
     constructor(p: p5, loader: AssetLoader<P5Bundler>) {
         super();
@@ -68,7 +75,7 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
         this.p.camera(
             eye.position.x, eye.position.y, eye.position.z,
             eye.lookAt.x, eye.lookAt.y, eye.lookAt.z,
-            0, 1, 0
+            this.cameraUp.x, this.cameraUp.y, this.cameraUp.z
         );
     }
 
@@ -88,7 +95,7 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
         this.p.camera(
             eyePos.x, eyePos.y, eyePos.z,
             screenPos.x, screenPos.y, screenPos.z,
-            0, 1, 0
+            this.cameraUp.x, this.cameraUp.y, this.cameraUp.z
         );
     }
 
@@ -365,7 +372,10 @@ export class P5GraphicProcessor extends BaseGraphicProcessor<P5Bundler> {
             }
             this.applyAlphaCutoff(props.alphaCutoff);
         } else {
-            this.p.noTint();
+            // tint(255), not noTint(): in p5 2.1 noTint() leaves the tint null, and the lit
+            // material shader (any sketch using lights) crashes reading it. White is the same
+            // "no tint", and tint only affects textures anyway.
+            this.p.tint(255);
             if (props.fillColor) {
                 const f = props.fillColor;
                 this.fill(f, combinedAlpha);

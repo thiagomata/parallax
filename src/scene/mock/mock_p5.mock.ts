@@ -78,7 +78,11 @@ export function createMockP5(): any {
             }
         ),
         createCanvas: vi.fn(),
+        ambientLight: vi.fn(),
+        directionalLight: vi.fn(),
+        pointLight: vi.fn(),
         background: vi.fn(),
+        clear: vi.fn(),
         blendMode: vi.fn(),
         BLEND: "BLEND",
         camera: vi.fn(),

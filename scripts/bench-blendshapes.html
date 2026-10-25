@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Blendshapes benchmark | Parallax</title>
+</head>
+<body>
+<!--
+    Dev-time benchmark (run by scripts/bench-blendshapes.mjs): how much slower is MediaPipe's
+    face landmarker per frame with outputFaceBlendshapes on? Two landmarkers from the same
+    model as the app (public/models/face_landmarker.task, CPU like face_provider.ts), timed
+    on the same frames of tutorial 8's demo video. Each frame runs both, alternating which
+    goes first, so neither gets a warmer cache. The result lands on window.__benchResult.
+-->
+<pre id="out">running...</pre>
+<script type="module">
+    import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
+
+    const base = import.meta.env.BASE_URL;
+    const frames = Number(new URLSearchParams(location.search).get('frames') ?? 150);
+    const warmup = 10;
+
+    const vision = await FilesetResolver.forVisionTasks(`${base}wasm`);
+    const create = blendshapes => FaceLandmarker.createFromOptions(vision, {
+        baseOptions: { modelAssetPath: `${base}models/face_landmarker.task` },
+        runningMode: 'VIDEO',
+        numFaces: 1,
+        outputFaceBlendshapes: blendshapes,
+    });
+    const landmarkers = { off: await create(false), on: await create(true) };
+
+    const video = document.createElement('video');
+    video.src = `${base}video/heads.mp4`;
+    video.muted = true;
+    video.playsInline = true;
+    await new Promise(resolve => video.addEventListener('loadeddata', resolve, { once: true }));
+    const seek = time => new Promise(resolve => {
+        video.addEventListener('seeked', resolve, { once: true });
+        video.currentTime = time;
+    });
+
+    const times = { off: [], on: [] };
+    const timestamps = { off: 0, on: 0 };
+    let faces = 0;
+    let sample = null;
+    const step = Math.min(0.1, video.duration / (frames + warmup + 1));
+    for (let frame = 0; frame < frames + warmup; frame++) {
+        await seek(frame * step);
+        const order = frame % 2 === 0 ? ['off', 'on'] : ['on', 'off'];
+        for (const name of order) {
+            timestamps[name] += 33;
+            const start = performance.now();
+            const result = landmarkers[name].detectForVideo(video, timestamps[name]);
+            const elapsed = performance.now() - start;
+            if (frame >= warmup) times[name].push(elapsed);
+            if (name === 'on' && result.faceBlendshapes?.length) {
+                faces++;
+                const scores = Object.fromEntries(result.faceBlendshapes[0].categories.map(c => [c.categoryName, c.score]));
+                sample = {
+                    count: result.faceBlendshapes[0].categories.length,
+                    jawOpen: scores.jawOpen,
+                    eyeBlinkLeft: scores.eyeBlinkLeft,
+                    eyeBlinkRight: scores.eyeBlinkRight,
+                    mouthSmileLeft: scores.mouthSmileLeft,
+                };
+            }
+        }
+    }
+
+    const stats = values => {
+        const sorted = [...values].sort((a, b) => a - b);
+        const at = q => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))];
+        return {
+            mean: values.reduce((sum, value) => sum + value, 0) / values.length,
+            median: at(0.5),
+            p95: at(0.95),
+        };
+    };
+    const result = { frames, facesWithBlendshapes: faces, off: stats(times.off), on: stats(times.on), sample };
+    document.getElementById('out').textContent = JSON.stringify(result, null, 2);
+    window.__benchResult = result;
+</script>
+</body>
+</html>

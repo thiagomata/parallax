@@ -1,5 +1,6 @@
 import { describe, it, vi, expect } from 'vitest';
-import { HeadTrackingDataProvider } from "./head_tracking_data_provider";
+import { FaceWorldData, HeadTrackingDataProvider } from "./head_tracking_data_provider";
+import { FaceExpressions } from "../drivers/mediapipe/face_expressions.ts";
 import type { FaceProvider } from "./face_provider.ts";
 import type { Face } from "../drivers/mediapipe/face.ts";
 import { SceneFaceBuilder } from "./scene_face.ts";
@@ -296,6 +297,43 @@ describe("HeadTrackingDataProvider", () => {
 
             const result = tracker.getDataResult();
             expect(result.success).toBe(true);
+        });
+    });
+
+    describe("expressions", () => {
+        it("has no expressions when the provider has none", () => {
+            const mockProvider = MockFaceProvider(mockFace, "READY");
+            const tracker = new HeadTrackingDataProvider(createMockP5WithCapture() as any, createConfig());
+            (tracker as any).provider = mockProvider;
+
+            const result = tracker.getDataResult();
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(result.value.faceExpressions).toBeNull();
+                expect(result.value.expressions).toBeNull();
+            }
+        });
+
+        it("carries the provider's raw expressions and gives them normalized", () => {
+            const raw = new FaceExpressions({ jawOpen: 0.1 }, { jawOpen: { rest: 0, full: 0.2 } });
+            const mockProvider = { ...MockFaceProvider(mockFace, "READY"), getExpressions: vi.fn().mockReturnValue(raw) };
+            const tracker = new HeadTrackingDataProvider(createMockP5WithCapture() as any, createConfig());
+            (tracker as any).provider = mockProvider;
+
+            const result = tracker.getDataResult();
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(result.value.faceExpressions).toBe(raw);
+                expect(result.value.expressions).toBe(raw.normalize());
+                expect(result.value.expressions?.mouthOpen).toBeCloseTo(0.5);
+            }
+        });
+
+        it("defaults to no expressions when built without them", () => {
+            const data = new FaceWorldData(mockFace!, {} as any);
+
+            expect(data.faceExpressions).toBeNull();
+            expect(data.expressions).toBeNull();
         });
     });
 

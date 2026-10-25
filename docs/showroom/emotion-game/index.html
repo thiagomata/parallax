@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Showroom: Emotion Game | Parallax</title>
+    <style>body{background:#0a0a0a;margin:0}</style>
+    <!-- Loading screen for the 3D demo: static CSS + image so it shows before any JavaScript
+         (see public/css/loading-screen.css). -->
+    <link rel="stylesheet" href="/css/loading-screen.css">
+    <link rel="preload" as="image" href="/img/loading/emotion-game.jpg" fetchpriority="high">
+</head>
+<body class="hero-parallax-page">
+
+<header style="max-width: 900px; margin: 40px auto 20px; padding: 0 20px; font-family: sans-serif;">
+    <p style="margin: 0 0 10px;"><a href="../index.html" style="color: #38bdf8; text-decoration: none;">← Showroom</a></p>
+    <h1 style="color: #38bdf8; margin: 0; font-size: 2.2rem; letter-spacing: -1px;">😃 Emotion Game</h1>
+    <p style="color: #888; font-style: italic; font-size: 1.1rem; margin-top: 5px;">
+        Make the face the game asks for - your emoji copies you.
+    </p>
+</header>
+
+<main id="tutorial-root">
+    <div id="scene-loading" class="scene-loading" role="status" aria-live="polite">
+        <img src="/img/loading/emotion-game.jpg" alt="" fetchpriority="high">
+        <p class="scene-loading-label">Loading the 3D scene…</p>
+    </div>
+</main>
+
+<script type="module" src="/src/docs/showroom/emotion-game.demo.ts"></script>
+
+</body>
+</html>
