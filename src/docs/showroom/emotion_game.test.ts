@@ -1,6 +1,7 @@
 import {describe, expect, it, vi} from 'vitest';
 import {
     emotionGame, emotionGameExplanation, EmotionGame, GAME_TARGETS, matchesTarget, collageLayout, shareText, postIntentUrl, emojiFollowPosition,
+    GAME_SPOTS, SPOT_RADIUS, inSpot,
 } from './emotion_game.ts';
 import {faceShape} from './emoji_face.ts';
 import {createMockP5} from "../../scene/mock/mock_p5.mock.ts";
@@ -46,17 +47,48 @@ describe('Emotion game: the emoji follows the head', () => {
     });
 
     it('leans with the face, a fraction at a time', () => {
-        // The face is off the middle of the frame: the emoji follows it a quarter of the way.
-        expect(emojiFollowPosition(faceAt(300, 0), home).x).toBeCloseTo(400 + 75);
-        // Up and down the same, but the frame is wider than it is tall.
-        expect(emojiFollowPosition(faceAt(0, 300), home).y).toBeCloseTo(300 * (9 / 16) * (1 / 4));
+        // The face is off the middle of the frame: the emoji follows it 0.6 of the way.
+        expect(emojiFollowPosition(faceAt(300, 0), home).x).toBeCloseTo(400 + 180);
+        // Up and down the same.
+        expect(emojiFollowPosition(faceAt(0, 100), home).y).toBeCloseTo(60);
     });
 
     it('never goes off the screen', () => {
         // The face in the corner of the frame: the emoji moves as far as it may.
         const corner = emojiFollowPosition(faceAt(3000, 3000), home);
-        expect(corner.x).toBeLessThanOrEqual(400 + 120);
-        expect(corner.y).toBeLessThanOrEqual(120);
+        expect(corner.x).toBeLessThanOrEqual(400 + 260);
+        expect(corner.y).toBeLessThanOrEqual(260);
+    });
+});
+
+describe('Emotion game: the ring', () => {
+    const home = { x: 400, y: 0, z: 300 };
+
+    it('counts the emoji in the ring only near its middle', () => {
+        const spot = { x: -150, y: 120 };
+        expect(inSpot({ x: 400 - 150, y: 120 }, home, spot)).toBe(true);
+        expect(inSpot({ x: 400 - 150 + SPOT_RADIUS - 1, y: 120 }, home, spot)).toBe(true);
+        expect(inSpot({ x: 400 - 150 + SPOT_RADIUS + 1, y: 120 }, home, spot)).toBe(false);
+        expect(inSpot(home, home, spot)).toBe(false);
+    });
+
+    it('puts every ring where the emoji can reach', () => {
+        // A face far enough off the middle takes the emoji into each ring.
+        for (const spot of GAME_SPOTS) {
+            const face = { worldPosition: { x: spot.x / 0.6, y: spot.y / 0.6, z: 0 } };
+            expect(inSpot(emojiFollowPosition(face, home), home, spot)).toBe(true);
+        }
+    });
+
+    it('moves the ring every round', () => {
+        const game = new EmotionGame(0);
+        // Rounds that run out, within the game's time, with the lives topped up.
+        for (let round = 1; round <= 7; round++) {
+            const before = game.spot;
+            game.update(round * (EmotionGame.ROUND_SECONDS + 1), false);
+            game.lives = EmotionGame.LIVES;
+            expect(game.spot).not.toBe(before);
+        }
     });
 });
 
