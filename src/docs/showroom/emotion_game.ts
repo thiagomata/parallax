@@ -655,51 +655,63 @@ export async function emotionGame(
      * Nothing in here may throw: the button has to end with a message, whatever the browser does.
      */
     const shareCollage = (say: (message: string) => void) => {
-        if (!prepared) {
-            say('The picture is still being made - try again in a moment.');
-            return;
-        }
-        const { text, file, png } = prepared;
-        // Share natively where the browser has it (phones, Safari...); the canShare check is
-        // optional, so on browsers without canShare we try share and fall back if it fails.
-        let canShareFiles = false;
-        if (typeof navigator.share === 'function') {
-            try {
-                // canShare might not exist (older Safari) or might throw
-                canShareFiles = navigator.canShare ? navigator.canShare({ files: [file] }) : true;
-            } catch {
-                // If canShare throws, we don't know - fall back to X + clipboard
-                canShareFiles = false;
+        try {
+            if (!prepared) {
+                say('The picture is still being made - try again in a moment.');
+                return;
             }
-        }
-        if (canShareFiles) {
-            const failed = () => {
+            const { text, file, png } = prepared;
+            // Share natively where the browser has it (phones, Safari...); the canShare check is
+            // optional, so on browsers without canShare we try share and fall back if it fails.
+            let canShareFiles = false;
+            if (typeof navigator.share === 'function') {
+                try {
+                    // canShare might not exist (older Safari) or might throw
+                    canShareFiles = navigator.canShare ? navigator.canShare({ files: [file] }) : true;
+                } catch {
+                    // If canShare throws, we don't know - fall back to X + clipboard
+                    canShareFiles = false;
+                }
+            }
+            if (canShareFiles) {
+                const failed = () => {
+                    downloadPrepared();
+                    say('Sharing did not open - the picture is saved, attach it to your post.');
+                };
+                try {
+                    navigator.share({ files: [file], text }).catch((error: Error) => {
+                        if (error.name === 'AbortError') { say('Share cancelled.'); return; }
+                        failed();
+                    });
+                } catch {
+                    failed();
+                }
+                return;
+            }
+            const post = window.open(postIntentUrl(text), '_blank');
+            const notCopied = () => {
                 downloadPrepared();
-                say('Sharing did not open - the picture is saved, attach it to your post.');
+                say(post ? 'Picture saved - attach it to the post.' : 'Picture saved - allow pop-ups to open the post.');
             };
             try {
-                navigator.share({ files: [file], text }).catch((error: Error) => {
-                    if (error.name === 'AbortError') { say('Share cancelled.'); return; }
-                    failed();
-                });
+                navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
+                    .then(() => say(post
+                        ? 'Picture copied - paste it into the post (Ctrl / Cmd + V).'
+                        : 'Picture copied - allow pop-ups to open the post, or paste it into a new post on X.'))
+                    .catch(notCopied);
             } catch {
-                failed();
+                notCopied();
             }
-            return;
-        }
-        const post = window.open(postIntentUrl(text), '_blank');
-        const notCopied = () => {
-            downloadPrepared();
-            say(post ? 'Picture saved - attach it to the post.' : 'Picture saved - allow pop-ups to open the post.');
-        };
-        try {
-            navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
-                .then(() => say(post
-                    ? 'Picture copied - paste it into the post (Ctrl / Cmd + V).'
-                    : 'Picture copied - allow pop-ups to open the post, or paste it into a new post on X.'))
-                .catch(notCopied);
-        } catch {
-            notCopied();
+        } catch (error) {
+            // Last resort: if anything unexpected happens, at least try to download
+            try {
+                downloadPrepared();
+                say('Share failed - the picture is saved to your downloads.');
+            } catch {
+                // If even this fails, show a basic message
+                say('Share is not available. Try taking a screenshot instead.');
+            }
+            console.error('Share button error:', error);
         }
     };
 
