@@ -14,6 +14,7 @@ import { P5AssetLoader, type P5Bundler } from "../../scene/p5/p5_asset_loader.ts
 import {
     DEFAULT_SCENE_SETTINGS,
     ELEMENT_TYPES, LOOK_MODES, PROJECTION_TYPES,
+    type ColorRGBA,
     type ResolutionContext,
     type SceneUnits,
 } from "../../scene/types.ts";
@@ -49,8 +50,8 @@ export const emotionGameExplanation = `
 <li><strong>The face</strong> - <code>addEmojiFace</code> (<code>emoji_face.ts</code>) draws the emoji, here beside the webcam, turning with your head and leaning with it too.</li>
 <li><strong>The calibration</strong> - before the first round the game asks for the neutral face (😐): make it and hold it still, and the game counts the still seconds (<code>CalibrationPhase</code>, <code>emotion_game_calibration.ts</code>). Three still seconds and the frames of that relaxed face are averaged into <em>your</em> neutral face (<code>calibratedRanges</code>), which the reader then uses - that is what makes the hard faces (😠 😮) read right. The head may not move, turn or blink while the seconds run; the game waits for the calibration, and its clock does not run. The <em>🎯 Calibrate</em> button on the screen - there is no keyboard on a phone - or <kbd>N</kbd> does it again whenever you want.</li>
 <li><strong>Reading the expressions</strong> - <code>ExpressionReader</code> (<code>emoji_face.ts</code>) reads the face with those ranges; it smooths sleepy over time, so a blink is not a nap.</li>
-<li><strong>Matching</strong> - <code>matchesTarget</code> checks the face against the round's emoji: the strongest emotion for 😢 😠 😮 😴, a smile that is not the open grin for 🙂, the open grin for 😃, one eye closed for 😉.</li>
-<li><strong>The rounds</strong> - <code>EmotionGame</code> keeps the score, the lives, the target and the clock: hold the face for <code>HOLD_SECONDS</code> to score; a round that runs out after <code>ROUND_SECONDS</code> costs one of the <code>LIVES</code>. The game is over with none left, or after <code>GAME_SECONDS</code> however well it goes (<kbd>R</kbd> or space plays again).</li><li><strong>The pictures</strong> - every round ends with a snapshot of the canvas, you and your emoji side by side, stamped with the target and ✅ / ❌. At the end they show together, and <em>Save picture</em> puts them in one collage (<code>collageLayout</code>). <em>Share</em> opens the system share sheet with the collage attached where the browser has one; otherwise it copies the collage and opens a post on X (<code>postIntentUrl</code>) to paste it into. They stay on your device until you share them.</li>
+<li><strong>Matching</strong> - <code>matchesTarget</code> checks the face against the round's emoji: the strongest emotion for 😢 😠 😮 😴, a smile that is not the open grin for 🙂, the open grin for 😃, one eye closed for 😉.</li><li><strong>The ring</strong> - every round also puts a ring somewhere around the emoji (one of the <code>GAME_SPOTS</code>): lean so the emoji gets into it (<code>inSpot</code>, within <code>SPOT_RADIUS</code>) and the ring turns green. Only the face made inside the ring counts.</li>
+<li><strong>The rounds</strong> - <code>EmotionGame</code> keeps the score, the lives, the target and the clock: hold the face in the ring for <code>HOLD_SECONDS</code> to score; a round that runs out after <code>ROUND_SECONDS</code> costs one of the <code>LIVES</code>. The game is over with none left, or after <code>GAME_SECONDS</code> however well it goes (<kbd>R</kbd> or space plays again).</li><li><strong>The pictures</strong> - every round ends with a snapshot of the canvas, you and your emoji side by side, stamped with the target and ✅ / ❌. At the end they show together, and <em>Save picture</em> puts them in one collage (<code>collageLayout</code>). <em>Share</em> opens the system share sheet with the collage attached where the browser has one; otherwise it copies the collage and opens a post on X (<code>postIntentUrl</code>) to paste it into. They stay on your device until you share them.</li>
 <li><strong>The parade</strong> - a match sends its emoji flying across behind the scene: plain page emoji under the canvas, which is cleared transparent, so the 3D face and the webcam pass in front of them.</li>
 </ol>
 
@@ -94,17 +95,15 @@ export function matchesTarget(target: GameTargetId, shape: FaceShape): boolean {
     }
 }
 
-/** How much of the face's movement the emoji follows: a fraction of the frame's width. */
-const EMOJI_FOLLOW_SCALE = 1 / 4;
+/** How much of the face's movement the emoji follows: enough to reach every ring by leaning. */
+const EMOJI_FOLLOW_SCALE = 0.6;
 /** Maximum distance the emoji may move from its place, in scene units. */
-const EMOJI_FOLLOW_LIMIT = 120;
-/** Video frame aspect ratio used for vertical scaling. */
-const VIDEO_FRAME_ASPECT = 16 / 9;
+const EMOJI_FOLLOW_LIMIT = 260;
 
 /**
  * Where the emoji sits: beside the webcam, but leaning with the head, the way the head box
  * follows the face in tutorial 11. The face's place in the frame (its offset from the middle)
- * moves it - a fraction at a time, and never off the screen.
+ * moves it - a fraction at a time, the same up and down as across, and never off the screen.
  */
 export function emojiFollowPosition(
     face: { worldPosition: { x: number; y: number; z: number } } | null | undefined,
@@ -114,14 +113,49 @@ export function emojiFollowPosition(
     const cap = (value: number) => Math.max(-EMOJI_FOLLOW_LIMIT, Math.min(EMOJI_FOLLOW_LIMIT, value));
     return {
         x: home.x + cap(face.worldPosition.x * EMOJI_FOLLOW_SCALE),
-        // The face's height is measured in frame widths; scale vertically by the frame's aspect.
-        y: home.y + cap(face.worldPosition.y * EMOJI_FOLLOW_SCALE * (1 / VIDEO_FRAME_ASPECT)),
+        y: home.y + cap(face.worldPosition.y * EMOJI_FOLLOW_SCALE),
         z: home.z,
     };
 }
 
 /**
- * The game: a target per round, the score, the lives and the clocks (seconds, from update's now).
+ * Where the emoji has to be: a place around its home, in scene units. The right side reaches
+ * less far, since the emoji sits on the right of the canvas already.
+ */
+export interface GameSpot {
+    readonly x: number;
+    readonly y: number;
+}
+
+export const GAME_SPOTS: readonly GameSpot[] = [
+    { x: 0, y: 0 },
+    { x: -240, y: 0 },
+    { x: 130, y: 0 },
+    { x: -150, y: -120 },
+    { x: 110, y: -120 },
+    { x: -150, y: 120 },
+    { x: 110, y: 120 },
+];
+
+/** The ring: white to get into, green once the emoji is in it, and gone between games. */
+const RING_COLOR = { red: 255, green: 255, blue: 255, alpha: 0.7 } as ColorRGBA;
+const RING_REACHED = { red: 74, green: 222, blue: 128, alpha: 0.9 } as ColorRGBA;
+const RING_HIDDEN = { red: 255, green: 255, blue: 255, alpha: 0 } as ColorRGBA;
+
+/** How near the emoji's middle must be to the ring's middle to be in it, in scene units. */
+export const SPOT_RADIUS = 80;
+
+/** Whether the emoji is in the ring: its place, from its home, near enough to the spot. */
+export function inSpot(
+    position: { x: number; y: number },
+    home: { x: number; y: number },
+    spot: GameSpot,
+): boolean {
+    return Math.hypot(position.x - home.x - spot.x, position.y - home.y - spot.y) <= SPOT_RADIUS;
+}
+
+/**
+ * The game: a target and a spot per round, the score, the lives and the clocks (seconds, from update's now).
  * Hold the target for HOLD_SECONDS to score; a round that runs out (ROUND_SECONDS) costs a life.
  * The game is over with no lives left, or after GAME_SECONDS however well it goes (restart plays again).
  */
@@ -138,6 +172,8 @@ export class EmotionGame {
     /** Whether the game ended because its time ran out (rather than the lives). */
     timeUp = false;
     target: GameTarget;
+    /** Where the emoji has to be to score this round. */
+    spot: GameSpot;
     private gameStart: number;
     private roundStart: number;
     private holdStart: number | null = null;
@@ -150,6 +186,7 @@ export class EmotionGame {
     constructor(now: number, random: () => number = Math.random) {
         this.random = random;
         this.target = this.pickTarget(null);
+        this.spot = this.pickSpot(null);
         this.gameStart = now;
         this.roundStart = now;
     }
@@ -255,6 +292,7 @@ export class EmotionGame {
 
     private nextRound(now: number): void {
         this.target = this.pickTarget(this.target);
+        this.spot = this.pickSpot(this.spot);
         this.roundStart = now;
         this.holdStart = null;
     }
@@ -262,6 +300,12 @@ export class EmotionGame {
     /** A random target, never the same twice in a row. */
     private pickTarget(previous: GameTarget | null): GameTarget {
         const choices = GAME_TARGETS.filter(target => target !== previous);
+        return choices[Math.min(choices.length - 1, Math.floor(this.random() * choices.length))];
+    }
+
+    /** A random spot, never the same twice in a row: every round the player moves. */
+    private pickSpot(previous: GameSpot | null): GameSpot {
+        const choices = GAME_SPOTS.filter(spot => spot !== previous);
         return choices[Math.min(choices.length - 1, Math.floor(this.random() * choices.length))];
     }
 }
@@ -445,6 +489,21 @@ export async function emotionGame(
 
     // Starts once the scene is ready, so the first round does not run down while it loads.
     let game: EmotionGame | null = null;
+    /** Whether the emoji is in the round's ring (last frame's): the ring shows it in green. */
+    let spotReached = false;
+
+    // The ring the emoji has to get into: around the emoji's head, at the round's spot.
+    world.addTorus({
+        type: ELEMENT_TYPES.TORUS,
+        id: 'spot',
+        parentId: 'bigBox',
+        radius: 190,
+        tubeRadius: 10,
+        position: () => game
+            ? { x: emojiHome.x + game.spot.x, y: emojiHome.y + game.spot.y, z: emojiHome.z }
+            : emojiHome,
+        fillColor: () => !game || game.over ? RING_HIDDEN : spotReached ? RING_REACHED : RING_COLOR,
+    });
 
     // The calibration: the player makes the neutral face and holds it still. The frames of that
     // still face become their own neutral face, so the game counts from their face.
@@ -520,7 +579,7 @@ export async function emotionGame(
             return;
         }
         set(hud.target, celebrating ? '✓' : game.target.emoji);
-        set(hud.label, celebrating ? 'Nice!' : game.target.label);
+        set(hud.label, celebrating ? 'Nice!' : `${game.target.label} - in the ring`);
         set(hud.time, celebrating ? '' : `${Math.ceil(game.secondsLeft(now))}s${game.holdProgress(now) > 0 ? '  hold...' : ''}`);
         set(hud.status, reader.status);
         hud.target.style.transform = `scale(${1 + 0.3 * game.holdProgress(now)})`;
@@ -1067,7 +1126,8 @@ export async function emotionGame(
         }
 
         const target = game?.target;
-        const event = game?.update(now, currentShape !== null && matchesTarget(game.target.id, currentShape));
+        spotReached = !!game && inSpot(emojiFollowPosition(currentFace, emojiHome), emojiHome, game.spot);
+        const event = game?.update(now, spotReached && currentShape !== null && matchesTarget(game.target.id, currentShape));
         if ((event === 'scored' || event === 'timeout') && target) takeSnapshot(target, event === 'scored');
         if (event === 'scored' && target) startParade(target.emoji);
         if (event && game?.over) void showGallery();
