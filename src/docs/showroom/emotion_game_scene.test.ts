@@ -186,9 +186,35 @@ describe('Emotion game: the gallery and the share', () => {
         }
         await vi.runAllTimersAsync();
 
-        // A browser that refuses to share, and one where the player gives up.
-        const share = vi.fn().mockRejectedValue(Object.assign(new Error('x'), {name: 'AbortError'}));
-        vi.stubGlobal('navigator', {...navigator, canShare: () => true, share});
+        // A computer: its browser has a share that may report success without showing anything,
+        // so the picture goes to the clipboard, and X opens on the next click, after the hint.
+        const share = vi.fn().mockResolvedValue(undefined);
+        const write = vi.fn().mockResolvedValue(undefined);
+        const open = vi.fn().mockReturnValue({});
+        vi.stubGlobal('navigator', {...navigator, canShare: () => true, share, clipboard: {write}});
+        vi.stubGlobal('ClipboardItem', class { items: unknown; constructor(items: unknown) { this.items = items; } });
+        vi.stubGlobal('matchMedia', (query: string) => ({matches: false, media: query}));
+        vi.stubGlobal('open', open);
+        clickShare();
+        await vi.runAllTimersAsync();
+        expect(share).not.toHaveBeenCalled();
+        expect(write).toHaveBeenCalled();
+        expect(open).not.toHaveBeenCalled();
+        expect(galleryText().some(text => text.includes('Picture copied'))).toBe(true);
+        const openPost = [...gallery()!.querySelectorAll('button')].find(button => button.textContent?.includes('Open the post'));
+        expect(openPost).toBeDefined();
+        openPost!.click();
+        expect(open).toHaveBeenCalledWith(expect.stringContaining('x.com/intent/tweet'), '_blank');
+
+        // A phone: the share sheet, and a message once it is done.
+        vi.stubGlobal('matchMedia', (query: string) => ({matches: query === '(pointer: coarse)', media: query}));
+        clickShare();
+        await vi.runAllTimersAsync();
+        expect(share).toHaveBeenCalled();
+        expect(galleryText().some(text => text.includes('Shared'))).toBe(true);
+
+        // A phone that refuses to share, and one where the player gives up.
+        share.mockRejectedValue(Object.assign(new Error('x'), {name: 'AbortError'}));
         clickShare();
         await vi.runAllTimersAsync();
         expect(galleryText().some(text => text.includes('cancelled'))).toBe(true);

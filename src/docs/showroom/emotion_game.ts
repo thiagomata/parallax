@@ -626,21 +626,28 @@ export async function emotionGame(
     // The collage, ready before the player clicks Share: browsers only allow the share sheet, a
     // new tab and the clipboard during the click itself, so the click must not wait for it.
     let prepared: { text: string; file: File; png: Blob; jpegUrl: string } | null = null;
+    // Everything the Share button does goes to the console under this tag, to see where it stops.
+    const shareLog = (...args: unknown[]) => console.log('[share]', ...args);
     const prepareShare = async () => {
+        shareLog('prepareShare: start', { snapshots: snapshots.length, hasGame: !!game });
         prepared = null;
         const collage = await buildCollage();
-        if (!collage || !game) return;
+        shareLog('prepareShare: collage', collage ? `${collage.width}x${collage.height}` : null);
+        if (!collage || !game) { shareLog('prepareShare: no collage or no game, nothing to share'); return; }
         const [jpeg, png] = await Promise.all([toBlob(collage, 'image/jpeg'), toBlob(collage, 'image/png')]);
-        if (!jpeg || !png) return;
+        shareLog('prepareShare: blobs', { jpeg: jpeg?.size ?? null, png: png?.size ?? null });
+        if (!jpeg || !png) { shareLog('prepareShare: a blob is missing, nothing to share'); return; }
         prepared = {
             text: shareText(game.score, location.href),
             file: new File([jpeg], `emotion-game-${game.score}.jpg`, { type: 'image/jpeg' }),
             png,
             jpegUrl: collage.toDataURL('image/jpeg', 0.9),
         };
+        shareLog('prepareShare: ready', { file: prepared.file.name, size: prepared.file.size, text: prepared.text });
     };
 
     const downloadPrepared = () => {
+        shareLog('downloadPrepared', { prepared: !!prepared, hasGame: !!game });
         if (!prepared || !game) return;
         const link = document.createElement('a');
         link.download = prepared.file.name;
@@ -651,58 +658,98 @@ export async function emotionGame(
     /**
      * Shares the collage, on the player's click and without waiting for anything before: the
      * system share sheet with the picture attached where the browser has one (phones, Safari...);
-     * otherwise X's post page opens with the text and the picture goes to the clipboard, to paste.
+     * otherwise the picture goes to the clipboard first and X's post page opens from a second
+     * button, after the player has read that the picture is to be pasted there.
      * Nothing in here may throw: the button has to end with a message, whatever the browser does.
      */
-    const shareCollage = (say: (message: string) => void) => {
+    type ShareAction = { label: string; run: () => void };
+    const shareCollage = (say: (message: string, action?: ShareAction) => void) => {
+        shareLog('shareCollage: clicked', {
+            prepared: !!prepared,
+            secureContext: window.isSecureContext,
+            share: typeof navigator.share,
+            canShare: typeof navigator.canShare,
+            clipboardWrite: typeof navigator.clipboard?.write,
+            clipboardItem: typeof ClipboardItem,
+            userActivation: navigator.userActivation?.isActive,
+            userAgent: navigator.userAgent,
+        });
         try {
             if (!prepared) {
                 say('The picture is still being made - try again in a moment.');
                 return;
             }
             const { text, file, png } = prepared;
-            // Share natively where the browser has it (phones, Safari...); the canShare check is
-            // optional, so on browsers without canShare we try share and fall back if it fails.
+            // Share natively on phones and tablets; the canShare check is optional, so on browsers
+            // without canShare we try share and fall back if it fails. Computers are left out: their
+            // browsers can take the share and report it done without ever showing a sheet.
+            const touchDevice = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+            shareLog('shareCollage: touchDevice', touchDevice);
             let canShareFiles = false;
-            if (typeof navigator.share === 'function') {
+            if (touchDevice && typeof navigator.share === 'function') {
                 try {
                     // canShare might not exist (older Safari) or might throw
                     canShareFiles = navigator.canShare ? navigator.canShare({ files: [file] }) : true;
-                } catch {
+                } catch (error) {
                     // If canShare throws, we don't know - fall back to X + clipboard
+                    shareLog('shareCollage: canShare threw', error);
                     canShareFiles = false;
                 }
             }
+            shareLog('shareCollage: canShareFiles', canShareFiles);
             if (canShareFiles) {
                 const failed = () => {
                     downloadPrepared();
                     say('Sharing did not open - the picture is saved, attach it to your post.');
                 };
                 try {
-                    navigator.share({ files: [file], text }).catch((error: Error) => {
-                        if (error.name === 'AbortError') { say('Share cancelled.'); return; }
-                        failed();
-                    });
-                } catch {
+                    shareLog('shareCollage: calling navigator.share');
+                    navigator.share({ files: [file], text })
+                        .then(() => { shareLog('shareCollage: navigator.share resolved'); say('Shared.'); })
+                        .catch((error: Error) => {
+                            shareLog('shareCollage: navigator.share rejected', error?.name, error?.message, error);
+                            if (error.name === 'AbortError') { say('Share cancelled.'); return; }
+                            failed();
+                        });
+                    shareLog('shareCollage: navigator.share called, waiting for the share sheet');
+                } catch (error) {
+                    shareLog('shareCollage: navigator.share threw', error);
                     failed();
                 }
                 return;
             }
-            const post = window.open(postIntentUrl(text), '_blank');
-            const notCopied = () => {
-                downloadPrepared();
-                say(post ? 'Picture saved - attach it to the post.' : 'Picture saved - allow pop-ups to open the post.');
-            };
+            // The picture is copied on this click, and X opens on the next one: the player reads how to
+            // add the picture before leaving for X, where this page cannot tell them anymore.
+            let copied: Promise<void>;
             try {
-                navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
-                    .then(() => say(post
-                        ? 'Picture copied - paste it into the post (Ctrl / Cmd + V).'
-                        : 'Picture copied - allow pop-ups to open the post, or paste it into a new post on X.'))
-                    .catch(notCopied);
-            } catch {
-                notCopied();
+                shareLog('shareCollage: writing the picture to the clipboard', { png: png.size });
+                copied = navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+            } catch (error) {
+                copied = Promise.reject(error);
             }
+            const paste = /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘V' : 'Ctrl+V';
+            const openPost: ShareAction = {
+                label: '𝕏 Open the post',
+                run: () => {
+                    const intent = postIntentUrl(text);
+                    shareLog('shareCollage: opening post', intent);
+                    const post = window.open(intent, '_blank');
+                    shareLog('shareCollage: window.open returned', post ? 'a window' : post);
+                    if (!post) say('The post did not open - allow pop-ups for this page and try again.', openPost);
+                },
+            };
+            copied
+                .then(() => {
+                    shareLog('shareCollage: clipboard written');
+                    say(`✅ Picture copied. In the X post, press ${paste} to add it.`, openPost);
+                })
+                .catch((error: unknown) => {
+                    shareLog('shareCollage: clipboard failed', error);
+                    downloadPrepared();
+                    say('📥 Picture saved to your downloads. In the X post, attach it with the 🖼 button.', openPost);
+                });
         } catch (error) {
+            shareLog('shareCollage: unexpected error', error);
             // Last resort: if anything unexpected happens, at least try to download
             try {
                 downloadPrepared();
@@ -719,13 +766,17 @@ export async function emotionGame(
     // gallery asked for twice (or asked for and then restarted) must not fight over the screen.
     let galleryRequest = 0;
     const showGallery = async () => {
+        shareLog('showGallery: start', { hasGallery: !!gallery, hasGame: !!game });
         if (!gallery || !game) return;
         const request = ++galleryRequest;
         // The collage is made before the gallery appears, so the Share button works on the
         // first click: the browser only allows the share sheet, a new tab and the clipboard
         // during the click itself.
-        await prepareShare();
-        if (request !== galleryRequest || !gallery || !game) return;
+        await prepareShare().catch(error => shareLog('showGallery: prepareShare threw', error));
+        if (request !== galleryRequest || !gallery || !game) {
+            shareLog('showGallery: dropped', { request, galleryRequest, hasGallery: !!gallery, hasGame: !!game });
+            return;
+        }
         gallery.innerHTML = '';
         const title = document.createElement('div');
         title.textContent = `${game.timeUp ? "⏱ Time's up" : '🏁 Game over'} - score ${game.score}`;
@@ -750,10 +801,23 @@ export async function emotionGame(
             buttons.appendChild(element);
         };
         const message = document.createElement('div');
-        message.style.cssText = 'font-size:14px;min-height:1.3em;text-align:center';
-        const say = (text: string) => { message.textContent = text; };
+        message.style.cssText = 'font-size:16px;min-height:1.3em;text-align:center;display:flex;flex-direction:column;align-items:center';
+        const say = (text: string, action?: ShareAction) => {
+            shareLog('say:', text, action?.label);
+            message.textContent = text;
+            if (!action) return;
+            const next = document.createElement('div');
+            next.className = 'emotion-game-buttons';
+            const element = document.createElement('button');
+            element.type = 'button';
+            element.className = 'emotion-game-button';
+            element.textContent = action.label;
+            element.addEventListener('click', action.run);
+            next.appendChild(element);
+            message.appendChild(next);
+        };
         if (snapshots.length) {
-            button('📤 Share', () => shareCollage(say));
+            button('📤 Share', () => { shareLog('Share button: click'); shareCollage(say); });
             button('📸 Save picture', () => { if (prepared) downloadPrepared(); else void saveCollage(); });
         }
         button('▶ Play again', () => restart());
@@ -762,6 +826,7 @@ export async function emotionGame(
         note.style.cssText = 'font-size:12px;opacity:0.7;margin-top:4px';
         gallery.append(title, buttons, message, grid, note);
         gallery.style.display = 'flex';
+        shareLog('showGallery: shown', { snapshots: snapshots.length, prepared: !!prepared });
     };
 
     const restart = () => {
@@ -792,6 +857,12 @@ export async function emotionGame(
             gallery.style.cssText = 'position:absolute;inset:0;z-index:3;display:none;flex-direction:column;align-items:center;overflow:auto;padding:16px;'
                 + 'background:rgba(10,10,10,0.92);color:#fff;font:700 16px/1.3 system-ui,sans-serif;box-sizing:border-box';
             box.appendChild(gallery);
+            // A click on the gallery that never reaches its buttons (something on top of them) shows up here.
+            box.addEventListener('pointerdown', event => {
+                if (gallery?.style.display !== 'flex') return;
+                const target = event.target as HTMLElement | null;
+                shareLog('gallery pointerdown', { target: target?.tagName, className: target?.className, text: target?.textContent?.slice(0, 20) });
+            }, true);
             if (!document.getElementById('emotion-game-parade-style')) {
                 const style = document.createElement('style');
                 style.id = 'emotion-game-parade-style';
